@@ -1,5 +1,5 @@
 import { Parser } from "htmlparser2";
-import { DomHandler } from "domhandler";
+import { DomHandler, hasChildren } from "domhandler";
 import { hasAttrib, getAttributeValue } from "domutils";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
@@ -21,7 +21,9 @@ export function rewriteHtml(html: string, origin?: string) {
 
 function traverseParsedHtml(node, origin?: string) {
     // apparently nonce is a global attribute so i'll just delete it at the beginning of the file
-    delete node.attribs.nonce;
+    if (hasAttrib(node, "nonce")) {
+        delete node.attribs.nonce;
+    }
 
     if (node.name === "a" && hasAttrib(node, "href")) {
         node.attribs.href = encodeUrl(node.attribs.href, origin);
@@ -59,7 +61,7 @@ function traverseParsedHtml(node, origin?: string) {
             }
         }
 
-        node.children[0].data = rewriteJs(node.children[0].data, origin);
+        // implement js rewriting when done
     } else if (node.name === "img" && hasAttrib(node, "src")) {
         if (hasAttrib(node, "src")) {
             node.attribs.src = encodeUrl(node.attribs.src, origin);
@@ -87,11 +89,15 @@ function traverseParsedHtml(node, origin?: string) {
     } else if (node.name === "base" && hasAttrib(node, "href")) {
         node.attribs.href = encodeUrl(node.attribs.href, origin);
     } else if (node.name === "input") {
-        node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
+        if (hasAttrib(node, "formaction")) {
+            node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
+        }
     } else if (node.name === "audio") {
         node.attribs.src = encodeUrl(node.attribs.src, origin);
     } else if (node.name === "button") {
-        node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
+        if (hasAttrib(node, "formaction")) {
+            node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
+        }
     } else if (node.name === "track") {
         node.attribs.src = encodeUrl(node.attribs.src, origin);
     } else if (node.name === "video") {

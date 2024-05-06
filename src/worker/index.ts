@@ -19,13 +19,14 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
     async fetch(event: FetchEvent) {
         const url = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(event.request.url));
 
-        self.__scramjet$bundle.rewriters.rewriteHeaders(event.request.headers)
+        let headers = new Headers(event.request.headers);
+        self.__scramjet$bundle.rewriters.rewriteHeaders(headers); 
 
         // implement header rewriting later
         const response = await this.client.fetch(url, {
             method: event.request.method,
             body: event.request.body,
-            headers: event.request.headers
+            headers
         });
 
         self.__scramjet$bundle.rewriters.rewriteHeaders(response.headers);
