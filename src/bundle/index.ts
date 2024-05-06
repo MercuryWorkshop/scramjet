@@ -1,6 +1,7 @@
 import { encodeUrl, decodeUrl } from "./rewriters/url";
 import { rewriteCss } from "./rewriters/css";
-import { rewriteHtml } from "./rewriters/html";
+import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
+import { rewriteJs } from "./rewriters/js";
 
 const bundle = {
     rewriters: {
@@ -8,7 +9,9 @@ const bundle = {
             encodeUrl, decodeUrl
         },
         rewriteCss,
-        rewriteHtml
+        rewriteHtml,
+        rewriteSrcset,
+        rewriteJs
     }
 }
 

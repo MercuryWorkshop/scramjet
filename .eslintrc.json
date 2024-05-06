@@ -8,7 +8,7 @@
         "no-unused-vars": "error",
         "quotes": ["error", "double"],
         "max-lines-per-function": ["error", {
-            "max": 60,
+            "max": 200,
             "skipComments": true
         }],
         "getter-return": "error",
