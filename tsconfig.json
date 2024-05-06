@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        // "allowJs": true,
+        "allowImportingTsExtensions": true,
+        "rootDir": "./src",
+        "target": "ES2020",
+        "moduleResolution": "Bundler",
+        "noEmit": true,
+    }
+}

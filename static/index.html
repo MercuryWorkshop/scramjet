@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="https://unpkg.com/dreamland"></script>
+    <script src="./scramjet.codecs.js"></script>
+    <script src="./scramjet.config.js"></script>
+    <script>
+        function App() {
+            return html`
+                <input placeholder="Enter URL Here" on:keydown=${e => {
+                    if (e.key === "Enter") {
+                        const url = __scramjet$config.codec.encode(e.target.value);
+                        registerSw();
+                        location = __scramjet$config.prefix + url;
+                    }
+                }} />
+            `
+        }
+
+        function registerSw() {
+            navigator.serviceWorker.register("./sw.js", {
+                scope: __scramjet$config.prefix
+            })
+        }
+
+        document.body.appendChild(h(App));
+    </script>
+</body>
+</html>

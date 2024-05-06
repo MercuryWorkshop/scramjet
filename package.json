@@ -1,0 +1,38 @@
+{
+  "name": "scramjet",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "node esbuild.js",
+    "dev": "concurrently -n dev-server,bare-server-node -c blue,green -k \"node esbuild.dev.js\" \"bare-server-node -p 3000 -e\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/eslint": "^8.56.10",
+    "@types/serviceworker": "^0.0.85",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "esbuild": "^0.20.2",
+    "esbuild-plugin-copy": "^2.1.1",
+    "esbuild-plugin-time": "^1.0.0",
+    "eslint": "^8.57.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.5"
+  },
+  "type": "module",
+  "dependencies": {
+    "@fastify/static": "^7.0.3",
+    "@tomphttp/bare-client": "2.2.0-alpha",
+    "@tomphttp/bare-server-node": "^2.0.3",
+    "concurrently": "^8.2.2",
+    "dom-serializer": "^2.0.0",
+    "domhandler": "^5.0.3",
+    "domutils": "^3.1.0",
+    "esbuild-server": "^0.3.0",
+    "fastify": "^4.26.2",
+    "htmlparser2": "^9.1.0"
+  }
+}
