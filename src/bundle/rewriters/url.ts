@@ -1,3 +1,5 @@
+import { rewriteJs } from "./js";
+
 function canParseUrl(url: string, origin?: string) {
     if (URL.canParse) {
         console.log(URL.canParse(url, origin) + "\n" + url + "\n" + origin);
@@ -21,14 +23,11 @@ export function encodeUrl(url: string, origin?: string) {
     // }
 
     if (url.startsWith("javascript:")) {
-        // implement when js rewriting is done
-        return url;
+        return "javascript:" + rewriteJs(url.slice("javascript:".length));
     } else if (/^(#|mailto|about|data)/.test(url)) {
         return url;
     } else if (canParseUrl(url, origin)) {
-        console.log(self.__scramjet$config.prefix + self.__scramjet$config.codec.encode(new URL(url, origin).href));
-
-        return self.__scramjet$config.prefix + self.__scramjet$config.codec.encode(new URL(url, origin).href);
+        return location.origin + self.__scramjet$config.prefix + self.__scramjet$config.codec.encode(new URL(url, origin).href);
     }
 }
 

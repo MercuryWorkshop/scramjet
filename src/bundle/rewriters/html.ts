@@ -4,6 +4,7 @@ import { hasAttrib, getAttributeValue } from "domutils";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
 import { rewriteCss } from "./css";
+import { rewriteJs } from "./js";
 
 // html nodes to rewrite
 // meta
@@ -18,9 +19,10 @@ export function rewriteHtml(html: string, origin?: string) {
     return render(traverseParsedHtml(handler.root, origin));
 }
 
-// typescript error hell
-// the code still works but the types provided from domhandler are shit
-function traverseParsedHtml(node: any, origin?: string) {
+function traverseParsedHtml(node, origin?: string) {
+    // apparently nonce is a global attribute so i'll just delete it at the beginning of the file
+    delete node.attribs.nonce;
+
     if (node.name === "a" && hasAttrib(node, "href")) {
         node.attribs.href = encodeUrl(node.attribs.href, origin);
     } else if (node.name === "iframe") {
@@ -31,12 +33,25 @@ function traverseParsedHtml(node: any, origin?: string) {
         if (hasAttrib(node, "srcdoc")) {
             node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, origin);
         }
+
+        if (hasAttrib(node, "csp")) {
+            delete node.attribs.csp;
+        }
     } else if (node.name === "link") {
+        delete node.attribs.integrity;
+
         node.attribs.href = encodeUrl(node.attribs.href, origin);
+
+        if (hasAttrib(node, "imagesrcset")) {
+            node.attribs.imagesrcset = rewriteSrcset(node.attribs.imagesrcset);
+        }
+
         console.log(node.attribs.href)
     } else if (node.name === "style") {
         node.children[0].data = rewriteCss(node.children[0].data, origin);
     } else if (node.name === "script") {
+        delete node.attribs.integrity;
+
         if (hasAttrib(node, "type") && /(application|text)\/javascript|importmap/.test(getAttributeValue(node, "type"))) {
             if (hasAttrib(node, "src")) {
                 node.attribs.src = encodeUrl(node.attribs.src, origin);
@@ -44,7 +59,7 @@ function traverseParsedHtml(node: any, origin?: string) {
             }
         }
 
-        // implement js rewriting when done
+        node.children[0].data = rewriteJs(node.children[0].data, origin);
     } else if (node.name === "img" && hasAttrib(node, "src")) {
         if (hasAttrib(node, "src")) {
             node.attribs.src = encodeUrl(node.attribs.src, origin);

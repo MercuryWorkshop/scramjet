@@ -20,7 +20,6 @@
         "no-useless-return": "error",
         "no-shadow": "error",
         "prefer-const": "warn",
-        "prefer-reflect": "warn",
         "no-unreachable": "warn",
         "no-undef": "off"
     }
