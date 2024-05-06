@@ -30,7 +30,6 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 
         if (event.request.destination === "document") {
             responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url.origin);
-            debugger;
         } else if (event.request.destination === "style") {
             responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), url.origin);
         } else if (event.request.destination === "script") {
