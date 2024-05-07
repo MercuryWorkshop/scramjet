@@ -2,7 +2,7 @@ importScripts("/scramjet.codecs.js");
 importScripts("/scramjet.config.js");
 importScripts("/scramjet.bundle.js");
 import { BareClient } from "@mercuryworkshop/bare-mux";
-import { BareResponseFetch } from "@tomphttp/bare-client"
+import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
 
 declare global {
     interface Window {
@@ -31,19 +31,31 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
         let responseBody;
         const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, origin);
 
-        if (event.request.destination === "document") {
-            responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url.origin);
-        } else if (event.request.destination === "style") {
-            responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), url.origin);
-        } else if (event.request.destination === "script") {
-            responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), url.origin);
-        } else {
-            responseBody = response.body;
+        switch (event.request.destination) {
+            case "document":
+                responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url.origin);
+                break;
+            case "iframe":
+                responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url.origin);
+                break;
+            case "script":
+                responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), url.origin);
+                break;
+            case "style":
+                responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), url.origin);
+                break;
+            case "sharedworker":
+                break;
+            case "worker":
+                break;
+            default:
+                responseBody = response.body;
+                break;
         }
         
-        // if (crossOriginIsolated) {
-        //     response.headers["Cross-Origin-Embedder-Policy"] = "require-cors";
-        // }
+        if (crossOriginIsolated) {
+             responseHeaders["Cross-Origin-Embedder-Policy"] = "require-corp";
+        }
 
         return new Response(responseBody, {
             headers: responseHeaders as HeadersInit,
