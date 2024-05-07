@@ -1,5 +1,5 @@
 import { encodeUrl } from "./url";
-import { BareHeaders } from "@tomphttp/bare-client";
+import { BareHeaders } from "@mercuryworkshop/bare-mux";
 
 const cspHeaders = [
     "cross-origin-embedder-policy",

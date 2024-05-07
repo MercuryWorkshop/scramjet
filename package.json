@@ -11,6 +11,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@fastify/static": "^7.0.3",
+    "@tomphttp/bare-server-node": "^2.0.3",
+    "@mercuryworkshop/bare-as-module3": "^2.2.0-alpha",
+    "concurrently": "^8.2.2",
     "@types/eslint": "^8.56.10",
     "@types/serviceworker": "^0.0.85",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -24,12 +28,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@fastify/static": "^7.0.3",
-    "@mercuryworkshop/bare-as-module3": "^2.2.0-alpha",
     "@mercuryworkshop/bare-mux": "^1.1.0",
-    "@tomphttp/bare-client": "2.2.0-alpha",
-    "@tomphttp/bare-server-node": "^2.0.3",
-    "concurrently": "^8.2.2",
     "dom-serializer": "^2.0.0",
     "domhandler": "^5.0.3",
     "domutils": "^3.1.0",
