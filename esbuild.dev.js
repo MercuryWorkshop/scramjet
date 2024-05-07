@@ -14,6 +14,7 @@ const devServer = createServer({
     outdir: "./dist",
     bundle: true,
     sourcemap: true,
+    logLevel: 'info',
     plugins: [
         copy({
             resolveFrom: "cwd",

@@ -14,13 +14,7 @@ build({
     outdir: "./dist",
     bundle: true,
     plugins: [
-        copy({
-            resolveFrom: "cwd",
-            assets: {
-                from: ["./dist/*"],
-                to: ["./server/static"]
-            }
-        }),
         time()
-    ]
+    ],
+    logLevel: 'info',
 });
