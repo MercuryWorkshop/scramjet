@@ -4,7 +4,6 @@ declare global {
     interface Window {
         __scramjet$config: {
             prefix: string;
-            bareServer: string;
             codec: Codec
             scramjet: {
                 config: string;
@@ -19,7 +18,6 @@ declare global {
 
 self.__scramjet$config = {
     prefix: "/scramjet/",
-    bareServer: "/bare/",
     codec: self.__scramjet$codecs.plain,
     scramjet: {
         config: "/scramjet.config.js",

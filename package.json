@@ -25,7 +25,8 @@
   "type": "module",
   "dependencies": {
     "@fastify/static": "^7.0.3",
-    "@tomphttp/bare-client": "2.2.0-alpha",
+    "@mercuryworkshop/bare-mux": "^1.1.0",
+    "@mercuryworkshop/bare-as-module3": "^2.2.0-alpha",
     "@tomphttp/bare-server-node": "^2.0.3",
     "concurrently": "^8.2.2",
     "dom-serializer": "^2.0.0",

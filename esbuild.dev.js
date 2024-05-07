@@ -17,10 +17,20 @@ const devServer = createServer({
     plugins: [
         copy({
             resolveFrom: "cwd",
-            assets: {
-                from: ["./dist/*"],
-                to: ["./static"]
-            }
+            assets: [
+                {
+                  from: ['./node_modules/@mercuryworkshop/bare-mux/dist/bare.cjs'],
+                  to: ['./static/bare-mux.js'],
+                },
+                {
+                    from: ['./node_modules/@mercuryworkshop/bare-as-module3/dist/bare.cjs'],
+                    to: ['./static/bare-client.js'],
+                },
+                {
+                    from: ["./dist/*"],
+                    to: ["./static"]
+                },
+              ],
         }),
         time()
     ]
@@ -28,8 +38,8 @@ const devServer = createServer({
     static: "./static",
     port: 1337,
     proxy: (path) => {
-        if (path.startsWith("/bare")) {
-            return path.replace("/bare", "http://127.0.0.1:3000")
+        if (path.startsWith("/bare/")) {
+            return path.replace("/bare/", "http://127.0.0.1:3000/")
         }
     },
     injectLiveReload: false

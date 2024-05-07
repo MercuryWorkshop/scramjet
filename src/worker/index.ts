@@ -1,7 +1,7 @@
 importScripts("/scramjet.codecs.js");
 importScripts("/scramjet.config.js");
 importScripts("/scramjet.bundle.js");
-import { BareClient } from "@tomphttp/bare-client";
+import { BareClient } from "@mercuryworkshop/bare-mux";
 
 declare global {
     interface Window {
@@ -13,7 +13,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
     client: typeof BareClient.prototype;
 
     constructor() {
-        this.client = new BareClient(location.origin + self.__scramjet$config.bareServer);
+        this.client = new BareClient();
     }
 
     async fetch(event: FetchEvent) {

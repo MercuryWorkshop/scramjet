@@ -6,6 +6,8 @@
     <title>Document</title>
     <link rel="preload" as="script" href="./scramjet.worker.js">
     <link rel="preload" as="script" href="./scramjet.bundle.js">
+    <script src="./bare-mux.js" defer></script>
+    <script src="./bare-client.js" defer></script>
 </head>
 <body>
     <script src="https://unpkg.com/dreamland"></script>
@@ -14,20 +16,26 @@
     <script>
         function App() {
             return html`
-                <input placeholder="Enter URL Here" on:keydown=${e => {
+                <input placeholder="Enter URL Here" on:keydown=${async (e) => {
                     if (e.key === "Enter") {
                         const url = __scramjet$config.codec.encode(e.target.value);
-                        registerSw();
+                        try {
+                            await registerSw();
+                        } catch (e) {
+                            console.error(e)
+                        }
                         location = __scramjet$config.prefix + url;
                     }
                 }} />
             `
         }
 
-        function registerSw() {
-            navigator.serviceWorker.register("./sw.js", {
+        async function registerSw() {
+            await navigator.serviceWorker.register("./sw.js", {
                 scope: __scramjet$config.prefix
             })
+            let bareUrl = (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/";
+            await BareMux.SetTransport("BareMod.BareClient", bareUrl);
         }
 
         document.body.appendChild(h(App));

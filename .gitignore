@@ -1,3 +1,5 @@
 node_modules
 dist
 static/scramjet*
+static/bare-mux.js
+static/bare-client.js
