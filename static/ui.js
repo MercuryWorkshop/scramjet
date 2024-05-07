@@ -9,59 +9,71 @@ const store = $store({
     wispurl: "wss://wisp.mercurywork.shop/",
     bareurl: (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/",
 }, { ident: "settings", backing: "localstorage", autosave: "auto" });
-BareMux.SetTransport("BareMod.BareClient", (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/")
 function App() {
     this.urlencoded = "";
     this.css = `
-        width: 100%;
-        height:100%;
-        color:  #e0def4;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction:column;
-      h1 {
-        font-family: "Inter";
-        text-align: center;
-      }
-      iframe {
-        border: 8px solid #11528f;
-        background-color: #11528f;
-        border-radius: 25px;
-        margin: 2em;
-        width: calc(100% - 4em);
-        height: calc(100% - 8em);
-      }
-  
-      input.bar {
-        border: none;
-        outline: none;
-        color: #191724;
-        height:2em;
-        width:60%;
-        text-align:center;
-        border-radius: 5px;
-        background-color: #eb6f92;
-      }
-      .cfg * {
-        margin: 2px;
-      }
-      .buttons button {
-        border: 4px solid #11528f;
-        background-color: #eb6f92;
-        color: #191724;
-      }
-      .cfg input {
-        border: 3px solid #3d84a8;
-        background-color: #eb6f92;
-        outline: none;
-      }
+    width: 100%;
+    height: 100%;
+    color: #e0def4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    input,
+    button {
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+        sans-serif;
+    }
+    h1 {
+      font-family: "Inter Tight", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+      sans-serif;
+      margin-bottom: 0;
+    }
+    iframe {
+      border: 4px solid #313131;
+      background-color: #121212;
+      border-radius: 1rem;
+      margin: 2em;
+      margin-top: 0.5em;
+      width: calc(100% - 4em);
+      height: calc(100% - 8em);
+    }
+
+    input.bar {
+      border: none;
+      outline: none;
+      color: #fff;
+      height: 2em;
+      width: 60%;
+      text-align: center;
+      border-radius: 0.75em;
+      background-color: #313131;
+      padding: 0.45em;
+    }
+    .cfg * {
+      margin: 2px;
+    }
+    .buttons button {
+      border: 2px solid #4c8bf5;
+      background-color: #313131;
+      border-radius: 0.75em;
+      color: #fff;
+      padding: 0.45em;
+    }
+    .cfg input {
+      border: none;
+      background-color: #313131;
+      border-radius: 0.75em;
+      color: #fff;
+      outline: none;
+      padding: 0.45em;
+    }
   `;
   
     return html`
       <div>
       <h1>Percury Unblocker</h1>
-      surf the unblocked and mostly buggy web
+      <p>surf the unblocked and mostly buggy web</p>
 
       <div class=${[flex, col, "cfg"]}>
         <input bind:value=${use(store.wispurl)}></input>
