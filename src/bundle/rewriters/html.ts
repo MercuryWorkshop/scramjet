@@ -40,7 +40,9 @@ function traverseParsedHtml(node, origin?: string) {
             delete node.attribs.csp;
         }
     } else if (node.name === "link") {
-        delete node.attribs.integrity;
+        if (hasAttrib(node, "integrity")) {
+            delete node.attribs.integrity;
+        }
 
         node.attribs.href = encodeUrl(node.attribs.href, origin);
 
@@ -52,7 +54,9 @@ function traverseParsedHtml(node, origin?: string) {
     } else if (node.name === "style") {
         node.children[0].data = rewriteCss(node.children[0].data, origin);
     } else if (node.name === "script") {
-        delete node.attribs.integrity;
+        if (hasAttrib(node, "integrity")) {
+            delete node.attribs.integrity;
+        }
 
         if (hasAttrib(node, "type") && /(application|text)\/javascript|importmap/.test(getAttributeValue(node, "type"))) {
             if (hasAttrib(node, "src")) {
@@ -102,6 +106,10 @@ function traverseParsedHtml(node, origin?: string) {
         node.attribs.src = encodeUrl(node.attribs.src, origin);
     } else if (node.name === "video") {
         node.attribs.src = encodeUrl(node.attribs.src, origin);
+    } else if (node.name === "meta") {
+        if (hasAttrib(node, "http-equiv") && node.attribs["http-equiv"] === "content-security-policy") {
+            delete node.attribs["http-equiv"];
+        }
     }
 
     if (node.childNodes) {
