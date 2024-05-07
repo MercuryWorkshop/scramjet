@@ -1,5 +1,4 @@
 import { build } from "esbuild";
-import copy from "esbuild-plugin-copy";
 import time from "esbuild-plugin-time";
 
 build({
@@ -16,5 +15,5 @@ build({
     plugins: [
         time()
     ],
-    logLevel: 'info',
+    logLevel: "info",
 });
