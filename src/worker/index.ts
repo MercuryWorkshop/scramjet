@@ -42,7 +42,10 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
         } else {
             responseBody = response.body;
         }
-
+        
+        if (crossOriginIsolated) {
+            response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp';
+        }
         return new Response(responseBody, {
             headers: response.headers,
             status: response.status,
