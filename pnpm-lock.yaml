@@ -8,6 +8,12 @@ dependencies:
   '@fastify/static':
     specifier: ^7.0.3
     version: 7.0.3
+  '@mercuryworkshop/bare-as-module3':
+    specifier: ^2.2.0-alpha
+    version: 2.2.0-alpha
+  '@mercuryworkshop/bare-mux':
+    specifier: ^1.1.0
+    version: 1.1.0
   '@tomphttp/bare-client':
     specifier: 2.2.0-alpha
     version: 2.2.0-alpha
@@ -385,6 +391,17 @@ packages:
     engines: {node: '>=8'}
     dev: false
 
+  /@mercuryworkshop/bare-as-module3@2.2.0-alpha:
+    resolution: {integrity: sha512-Vbk07NDfwENaiadfZFdG+FkjZb6dQODhykYhMpY7k2TZJanuDjs+MDIucpiqufymCTemx+9uAnv91v/GTxqJsg==}
+    dev: false
+
+  /@mercuryworkshop/bare-mux@1.1.0:
+    resolution: {integrity: sha512-E+d2GZEdbnUrGTx8AOrDVe0d7Cxz57rjDWBn9xAHH65G68PQkVY17j0EXAurFXF/sJzbjLTPcJZvHZQA2P/IVQ==}
+    dependencies:
+      '@types/uuid': 9.0.8
+      uuid: 9.0.1
+    dev: false
+
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -456,6 +473,10 @@ packages:
   /@types/serviceworker@0.0.85:
     resolution: {integrity: sha512-jBhFui72jyO0Tpsq/8AvL7GRJKiuUxdHPD9rrSRhf2SSElCn61yTyU2G133IlBVvBumCH4T5FDjmjbAG7MU9tg==}
     dev: true
+
+  /@types/uuid@9.0.8:
+    resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
+    dev: false
 
   /@typescript-eslint/eslint-plugin@6.21.0(@typescript-eslint/parser@6.21.0)(eslint@8.57.0)(typescript@5.4.5):
     resolution: {integrity: sha512-oy9+hTPCUFpngkEZUSzbf9MxI65wbKFoQYsgPdILTfbUldp5ovUuphZVe4i30emU9M/kP+T64Di0mxl7dSw3MA==}
@@ -2025,6 +2046,11 @@ packages:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
     dependencies:
       punycode: 2.3.1
+
+  /uuid@9.0.1:
+    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    hasBin: true
+    dev: false
 
   /which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}

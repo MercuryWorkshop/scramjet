@@ -14,24 +14,24 @@ const devServer = createServer({
     outdir: "./dist",
     bundle: true,
     sourcemap: true,
-    logLevel: 'info',
+    logLevel: "info",
     plugins: [
         copy({
             resolveFrom: "cwd",
             assets: [
                 {
-                  from: ['./node_modules/@mercuryworkshop/bare-mux/dist/bare.cjs'],
-                  to: ['./static/bare-mux.js'],
+                    from: ["./node_modules/@mercuryworkshop/bare-mux/dist/bare.cjs"],
+                    to: ["./static/bare-mux.js"],
                 },
                 {
-                    from: ['./node_modules/@mercuryworkshop/bare-as-module3/dist/bare.cjs'],
-                    to: ['./static/bare-client.js'],
+                    from: ["./node_modules/@mercuryworkshop/bare-as-module3/dist/bare.cjs"],
+                    to: ["./static/bare-client.js"],
                 },
                 {
                     from: ["./dist/*"],
                     to: ["./static"]
                 },
-              ],
+            ],
         }),
         time()
     ]

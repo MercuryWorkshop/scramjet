@@ -1,4 +1,5 @@
 import { encodeUrl } from "./url";
+import { BareHeaders } from "@tomphttp/bare-client";
 
 const cspHeaders = [
     "cross-origin-embedder-policy",
@@ -25,26 +26,19 @@ const urlHeaders = [
     "referer"
 ];
 
-export function rewriteHeaders(headers: Headers, origin?: string) {
+export function rewriteHeaders(headers: BareHeaders, origin?: string) {
     cspHeaders.forEach((header) => {
-        if (headers.has(header)) {
-            headers.delete(header);
-        }
+        delete headers[header];
+        delete headers[header.toLowerCase()];
     });
 
     urlHeaders.forEach((header) => {
-        if (headers.has(header)) {
-            headers.set(header, encodeUrl(headers.get(header), origin));
+        if (headers[header]) {
+            headers[header] = encodeUrl(headers[header] as string, origin);
+        } else if (headers[header.toLowerCase()]) {
+            headers[header.toLowerCase()] = encodeUrl(headers[header.toLowerCase()] as string, origin);
         }
-    });
+    })
 
-    if (headers.has("link")) {
-        let link = headers.get("link");
-        
-        link = link.replace(/<(.*?)>/g, (match, g1) => {
-            return `<${encodeUrl(g1, origin)}>`;
-        });
-
-        headers.set("link", link);
-    }
+    return headers;
 }

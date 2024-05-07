@@ -2,6 +2,7 @@ importScripts("/scramjet.codecs.js");
 importScripts("/scramjet.config.js");
 importScripts("/scramjet.bundle.js");
 import { BareClient } from "@mercuryworkshop/bare-mux";
+import { BareResponseFetch } from "@tomphttp/bare-client"
 
 declare global {
     interface Window {
@@ -19,19 +20,16 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
     async fetch(event: FetchEvent) {
         const url = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(event.request.url));
 
-        let headers = new Headers(event.request.headers);
-        self.__scramjet$bundle.rewriters.rewriteHeaders(headers); 
-
         // implement header rewriting later
-        const response = await this.client.fetch(url, {
+        const response: BareResponseFetch = await this.client.fetch(url, {
             method: event.request.method,
             body: event.request.body,
-            headers
+            headers: event.request.headers
         });
 
-        self.__scramjet$bundle.rewriters.rewriteHeaders(response.headers);
-
+        
         let responseBody;
+        const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, origin);
 
         if (event.request.destination === "document") {
             responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url.origin);
@@ -43,11 +41,12 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
             responseBody = response.body;
         }
         
-        if (crossOriginIsolated) {
-            response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp';
-        }
+        // if (crossOriginIsolated) {
+        //     response.headers["Cross-Origin-Embedder-Policy"] = "require-cors";
+        // }
+
         return new Response(responseBody, {
-            headers: response.headers,
+            headers: responseHeaders as HeadersInit,
             status: response.status,
             statusText: response.statusText
         })
