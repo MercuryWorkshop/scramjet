@@ -22,6 +22,7 @@ const cspHeaders = [
 
 const urlHeaders = [
     "location",
+    "Location",
     "content-location",
     "referer"
 ];
