@@ -3,19 +3,21 @@ import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
 
 declare global {
     interface Window {
-        ScramjetServiceWorker: any;
+        ScramjetServiceWorker;
     }
 }
 
 self.ScramjetServiceWorker = class ScramjetServiceWorker {
     client: typeof BareClient.prototype;
-
-    constructor() {
+    config: typeof self.__scramjet$config;
+    constructor(config = self.__scramjet$config) {
         this.client = new BareClient();
+        if (!config.prefix) config.prefix = "/scramjet/";
+        this.config = config;
     }
 
     route({ request }: FetchEvent) {
-        if (request.url.startsWith(location.origin + self.__scramjet$config.prefix)) return true;
+        if (request.url.startsWith(location.origin + this.config.prefix)) return true;
         else return false;
     }
 
@@ -33,7 +35,6 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
                 redirect: request.redirect,
             });
 
-            console.log(response)
             let responseBody;
             const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, origin);
             if (response.body) {
