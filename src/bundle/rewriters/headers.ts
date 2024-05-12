@@ -22,23 +22,22 @@ const cspHeaders = [
 
 const urlHeaders = [
     "location",
-    "Location",
     "content-location",
     "referer"
 ];
 
-export function rewriteHeaders(headers: BareHeaders, origin?: string) {
+export function rewriteHeaders(rawHeaders: BareHeaders, origin?: string) {
+    const headers = {};
+    for (const key in rawHeaders) {
+        headers[key.toLowerCase()] = rawHeaders[key];
+    }
     cspHeaders.forEach((header) => {
         delete headers[header];
-        delete headers[header.toLowerCase()];
     });
 
     urlHeaders.forEach((header) => {
-        if (headers[header]) {
+        if (headers[header])
             headers[header] = encodeUrl(headers[header] as string, origin);
-        } else if (headers[header.toLowerCase()]) {
-            headers[header.toLowerCase()] = encodeUrl(headers[header.toLowerCase()] as string, origin);
-        }
     })
 
     return headers;

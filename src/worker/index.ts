@@ -1,6 +1,3 @@
-importScripts("/scramjet.codecs.js");
-importScripts("/scramjet.config.js");
-importScripts("/scramjet.bundle.js");
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
 
@@ -26,7 +23,6 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
         try {
             const url = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(request.url));
 
-            // implement header rewriting later
             const response: BareResponseFetch = await this.client.fetch(url, {
                 method: request.method,
                 body: request.body,
@@ -37,7 +33,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
                 redirect: request.redirect,
             });
 
-            
+            console.log(response)
             let responseBody;
             const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, origin);
             if (response.body) {
@@ -62,8 +58,8 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
                 }
             }
             
-            if (responseHeaders.accept === "text/event-stream") {
-                responseHeaders.headers["content-type"] = "text/event-stream";
+            if (responseHeaders["accept"] === "text/event-stream") {
+                responseHeaders["content-type"] = "text/event-stream";
             }
             if (crossOriginIsolated) {
                 responseHeaders["Cross-Origin-Embedder-Policy"] = "require-corp";

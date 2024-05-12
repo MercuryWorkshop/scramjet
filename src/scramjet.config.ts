@@ -5,13 +5,11 @@ declare global {
         __scramjet$config: {
             prefix: string;
             codec: Codec
-            scramjet: {
-                config: string;
-                bundle: string;
-                worker: string;
-                client: string;
-                codecs: string;
-            }
+            config: string;
+            bundle: string;
+            worker: string;
+            client: string;
+            codecs: string;
         }
     }
 }
@@ -19,11 +17,9 @@ declare global {
 self.__scramjet$config = {
     prefix: "/scramjet/",
     codec: self.__scramjet$codecs.plain,
-    scramjet: {
-        config: "/scramjet.config.js",
-        bundle: "/scramjet.bundle.js",
-        worker: "/scramjet.worker.js",
-        client: "/scramjet.client.js",
-        codecs: "/scramjet.codecs.js"
-    }
+    config: "/scramjet.config.js",
+    bundle: "/scramjet.bundle.js",
+    worker: "/scramjet.worker.js",
+    client: "/scramjet.client.js",
+    codecs: "/scramjet.codecs.js"
 }

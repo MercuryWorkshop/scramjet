@@ -1,7 +1,8 @@
-importScripts("./scramjet.codecs.js");
-importScripts("./scramjet.config.js");
-importScripts("./scramjet.worker.js");
-importScripts("./bare-client.js")
+importScripts("scramjet.codecs.js");
+importScripts("scramjet.config.js");
+importScripts( __scramjet$config.bundle || "scramjet.bundle.js")
+importScripts( __scramjet$config.worker || "scramjet.worker.js");
+importScripts("bare-client.js")
 
 const scramjet = new ScramjetServiceWorker();
 
