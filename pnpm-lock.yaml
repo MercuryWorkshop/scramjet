@@ -11,6 +11,12 @@ importers:
       '@mercuryworkshop/bare-mux':
         specifier: ^1.1.0
         version: 1.1.0
+      astravel:
+        specifier: ^0.6.1
+        version: 0.6.1
+      astring:
+        specifier: ^1.8.6
+        version: 1.8.6
       dom-serializer:
         specifier: ^2.0.0
         version: 2.0.0
@@ -29,6 +35,9 @@ importers:
       htmlparser2:
         specifier: ^9.1.0
         version: 9.1.0
+      meriyah:
+        specifier: ^4.4.2
+        version: 4.4.2
     devDependencies:
       '@fastify/static':
         specifier: ^7.0.3
@@ -450,6 +459,13 @@ packages:
   array-union@2.1.0:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
+
+  astravel@0.6.1:
+    resolution: {integrity: sha512-ZIkgWFIV0Yo423Vqalz7VcF+BAiISvSgplnkV2abPGACPFKofsWTcvr9SFyYM/t/vMZWqmdP/Eze6ATX7r84Dg==}
+
+  astring@1.8.6:
+    resolution: {integrity: sha512-ISvCdHdlTDlH5IpxQJIex7BWBywFWgjJSVdwst+/iQCoEYnyOaQ95+X1JGshuBjGp6nxKUy1jMgE3zPqN7fQdg==}
+    hasBin: true
 
   async-exit-hook@2.0.1:
     resolution: {integrity: sha512-NW2cX8m1Q7KPA7a5M2ULQeZ2wR5qI5PAbw5L0UOMxdioVk9PMZ0h1TmyZEkPYrCvYjDlFICusOu1dlEKAAeXBw==}
@@ -906,6 +922,10 @@ packages:
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
+
+  meriyah@4.4.2:
+    resolution: {integrity: sha512-fENZIbs4tscI3IGRGtPrCoW4H4oGzVQrQCVCGRv+92kFXKkvxr52ZNR684ICvDC/UBWg9ioGc2X6pMnWOtRYwA==}
+    engines: {node: '>=10.4.0'}
 
   micromatch@4.0.5:
     resolution: {integrity: sha512-DMy+ERcEW2q8Z2Po+WNXuw3c5YaUSFjAO5GsJqfEl7UjvtIuFKO6ZrKvcItdy98dwFI2N1tg3zNIdKaQT+aNdA==}
@@ -1617,6 +1637,10 @@ snapshots:
 
   array-union@2.1.0: {}
 
+  astravel@0.6.1: {}
+
+  astring@1.8.6: {}
+
   async-exit-hook@2.0.1: {}
 
   atomic-sleep@1.0.0: {}
@@ -2150,6 +2174,8 @@ snapshots:
       yallist: 4.0.0
 
   merge2@1.4.1: {}
+
+  meriyah@4.4.2: {}
 
   micromatch@4.0.5:
     dependencies:

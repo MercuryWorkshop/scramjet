@@ -12,13 +12,13 @@
   "license": "ISC",
   "devDependencies": {
     "@fastify/static": "^7.0.3",
-    "@tomphttp/bare-server-node": "^2.0.3",
     "@mercuryworkshop/bare-as-module3": "^2.2.0-alpha",
-    "concurrently": "^8.2.2",
+    "@tomphttp/bare-server-node": "^2.0.3",
     "@types/eslint": "^8.56.10",
     "@types/serviceworker": "^0.0.85",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "concurrently": "^8.2.2",
     "esbuild": "^0.20.2",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-time": "^1.0.0",
@@ -29,11 +29,14 @@
   "type": "module",
   "dependencies": {
     "@mercuryworkshop/bare-mux": "^1.1.0",
+    "astravel": "^0.6.1",
+    "astring": "^1.8.6",
     "dom-serializer": "^2.0.0",
     "domhandler": "^5.0.3",
     "domutils": "^3.1.0",
     "esbuild-server": "^0.3.0",
     "fastify": "^4.26.2",
-    "htmlparser2": "^9.1.0"
+    "htmlparser2": "^9.1.0",
+    "meriyah": "^4.4.2"
   }
 }

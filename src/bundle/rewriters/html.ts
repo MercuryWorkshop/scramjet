@@ -1,5 +1,5 @@
 import { Parser } from "htmlparser2";
-import { DomHandler, hasChildren } from "domhandler";
+import { DomHandler } from "domhandler";
 import { hasAttrib } from "domutils";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
@@ -37,10 +37,8 @@ function traverseParsedHtml(node, origin?: string) {
     if (hasAttrib(node, "srcset")) node.attribs.srcset = rewriteSrcset(node.attribs.srcset, origin);
     if (hasAttrib(node, "imagesrcset")) node.attribs.imagesrcset = rewriteSrcset(node.attribs.imagesrcset, origin);
 
-    if (node.name === "style" && hasChildren(node)) node.children[0].data = rewriteCss(node.children[0].data, origin);
-    // if (node.name === "script" && /((application|text)\/javascript)|importmap|undefined/.test(node.attribs.type) && !!node.children[0].data) {
-    //     node.children[0].data = rewriteJs(node.children[0].data);
-    // }
+    if (node.name === "style" && node.children[0] !== undefined) node.children[0].data = rewriteCss(node.children[0].data, origin);
+    if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
 
     if (node.childNodes) {
         for (const childNode in node.childNodes) {

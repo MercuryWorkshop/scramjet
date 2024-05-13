@@ -18,9 +18,9 @@ function canParseUrl(url: string, origin?: string) {
 
 // something is broken with this but i didn't debug it
 export function encodeUrl(url: string, origin?: string) {
-    // if (!origin) {
-    //     origin = self.__scramjet$config.codec.decode(location.href.slice((location.origin + self.__scramjet$config.prefix).length));
-    // }
+    if (!origin) {
+        origin = self.__scramjet$config.codec.decode(location.href.slice((location.origin + self.__scramjet$config.prefix).length));
+    }
 
     if (url.startsWith("javascript:")) {
         return "javascript:" + rewriteJs(url.slice("javascript:".length));
