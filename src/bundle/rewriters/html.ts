@@ -9,7 +9,7 @@ import { rewriteJs } from "./js";
 // html nodes to rewrite
 // meta
 
-export function rewriteHtml(html: string, origin?: string) {
+export function rewriteHtml(html: string, origin?: URL) {
     const handler = new DomHandler((err, dom) => dom);
     const parser = new Parser(handler);
 
@@ -19,7 +19,7 @@ export function rewriteHtml(html: string, origin?: string) {
     return render(traverseParsedHtml(handler.root, origin));
 }
 
-function traverseParsedHtml(node, origin?: string) {
+function traverseParsedHtml(node, origin?: URL) {
     /* csp attributes */
     if (hasAttrib(node, "nonce")) delete node.attribs.nonce;
     if (hasAttrib(node, "integrity")) delete node.attribs.integrity;
@@ -39,6 +39,13 @@ function traverseParsedHtml(node, origin?: string) {
 
     if (node.name === "style" && node.children[0] !== undefined) node.children[0].data = rewriteCss(node.children[0].data, origin);
     if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
+    if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
+        if (node.attribs["http-equiv"] === "content-security-policy") {
+            return;
+        } else if (node.attribs["http-equiv"] === "refresh") {
+            node.attribs.content = node.attribs.content.split(";url=").map((elem, index) => index === 1 ? encodeUrl(elem) : elem).join(";url=");
+        }
+    } 
 
     if (node.childNodes) {
         for (const childNode in node.childNodes) {
@@ -50,7 +57,7 @@ function traverseParsedHtml(node, origin?: string) {
 }
 
 // stole from osana lmao
-export function rewriteSrcset(srcset: string, origin?: string) {
+export function rewriteSrcset(srcset: string, origin?: URL) {
     const urls = srcset.split(/ [0-9]+x,? ?/g);
     if (!urls) return "";
     const sufixes = srcset.match(/ [0-9]+x,? ?/g);

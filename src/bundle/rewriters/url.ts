@@ -1,25 +1,19 @@
 import { rewriteJs } from "./js";
 
-function canParseUrl(url: string, origin?: string) {
-    if (URL.canParse) {
-        console.log(URL.canParse(url, origin) + "\n" + url + "\n" + origin);
+function canParseUrl(url: string, origin?: URL) {
+    try {
+        new URL(url, origin);
 
-        return URL.canParse(url, origin);
-    } else {
-        try {
-            new URL(url, origin);
-    
-            return true;
-        } catch {
-            return false;
-        }
+        return true;
+    } catch {
+        return false;
     }
 }
 
 // something is broken with this but i didn't debug it
-export function encodeUrl(url: string, origin?: string) {
+export function encodeUrl(url: string, origin?: URL) {
     if (!origin) {
-        origin = self.__scramjet$config.codec.decode(location.href.slice((location.origin + self.__scramjet$config.prefix).length));
+        origin = new URL(self.__scramjet$config.codec.decode(location.href.slice((location.origin + self.__scramjet$config.prefix).length)));
     }
 
     if (url.startsWith("javascript:")) {

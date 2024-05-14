@@ -26,11 +26,13 @@ const urlHeaders = [
     "referer"
 ];
 
-export function rewriteHeaders(rawHeaders: BareHeaders, origin?: string) {
+export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
     const headers = {};
+
     for (const key in rawHeaders) {
         headers[key.toLowerCase()] = rawHeaders[key];
     }
+
     cspHeaders.forEach((header) => {
         delete headers[header];
     });
@@ -38,7 +40,11 @@ export function rewriteHeaders(rawHeaders: BareHeaders, origin?: string) {
     urlHeaders.forEach((header) => {
         if (headers[header])
             headers[header] = encodeUrl(headers[header] as string, origin);
-    })
+    });
+
+    if (headers["link"]) {
+        headers["link"] = headers["link"].replace(/<(.*?)>/gi, (match) => encodeUrl(match, origin));
+    }
 
     return headers;
 }

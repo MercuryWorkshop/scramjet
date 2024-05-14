@@ -5,7 +5,7 @@ import { encodeUrl } from "./url";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
 
-export function rewriteJs(js: string, origin?: string) {
+export function rewriteJs(js: string, origin?: URL) {
     const ast = parse(js, {
         module: true
     });

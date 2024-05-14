@@ -41,13 +41,13 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
                 switch (request.destination) {
                 case "iframe":
                 case "document":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url.origin);
+                    responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), origin);
                     break;
                 case "script":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), url.origin);
+                    responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), origin);
                     break;
                 case "style":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), url.origin);
+                    responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), origin);
                     break;
                 case "sharedworker":
                     break;
