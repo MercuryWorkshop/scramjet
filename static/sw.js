@@ -3,6 +3,8 @@ importScripts("scramjet.config.js");
 importScripts( __scramjet$config.bundle || "scramjet.bundle.js")
 importScripts( __scramjet$config.worker || "scramjet.worker.js");
 importScripts("bare-client.js")
+importScripts("curl-client.js")
+importScripts("epoxy-client.js")
 
 const scramjet = new ScramjetServiceWorker();
 

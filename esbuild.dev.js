@@ -28,6 +28,14 @@ const devServer = createServer({
                     to: ["./static/bare-client.js"],
                 },
                 {
+                    from: ["./node_modules/@mercuryworkshop/libcurl-transport/dist/index.cjs"],
+                    to: ["./static/curl-client.js"],
+                },
+                {
+                    from: ["./node_modules/@mercuryworkshop/epoxy-transport/dist/index.js"],
+                    to: ["./static/epoxy-client.js"],
+                },
+                {
                     from: ["./dist/*"],
                     to: ["./static"]
                 },
