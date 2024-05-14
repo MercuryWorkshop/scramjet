@@ -36,18 +36,18 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
             });
 
             let responseBody;
-            const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, origin);
+            const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, url);
             if (response.body) {
                 switch (request.destination) {
                 case "iframe":
                 case "document":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), origin);
+                    responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url);
                     break;
                 case "script":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), origin);
+                    responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), url);
                     break;
                 case "style":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), origin);
+                    responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), url);
                     break;
                 case "sharedworker":
                     break;
