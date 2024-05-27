@@ -1,13 +1,11 @@
 import { Parser } from "htmlparser2";
-import { DomHandler } from "domhandler";
-import { hasAttrib } from "domutils";
+import { DomHandler, Element } from "domhandler";
+import { hasAttrib, prependChild } from "domutils";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
-
-// html nodes to rewrite
-// meta
+import { isScramjetFile } from "../";
 
 export function rewriteHtml(html: string, origin?: URL) {
     const handler = new DomHandler((err, dom) => dom);
@@ -26,9 +24,10 @@ function traverseParsedHtml(node, origin?: URL) {
     if (hasAttrib(node, "csp")) delete node.attribs.csp;
 
     /* url attributes */
-    if (hasAttrib(node, "src")) node.attribs.src = encodeUrl(node.attribs.src, origin);
+    if (hasAttrib(node, "src") && !isScramjetFile(node.attribs.src)) node.attribs.src = encodeUrl(node.attribs.src, origin);
     if (hasAttrib(node, "href")) node.attribs.href = encodeUrl(node.attribs.href, origin);
     if (hasAttrib(node, "data")) node.attribs.data = encodeUrl(node.attribs.data, origin);
+    if (hasAttrib(node, "action")) node.attribs.action = encodeUrl(node.attribs.action, origin);
     if (hasAttrib(node, "formaction")) node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
     if (hasAttrib(node, "form")) node.attribs.action = encodeUrl(node.attribs.action, origin);
 
@@ -41,11 +40,21 @@ function traverseParsedHtml(node, origin?: URL) {
     if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
     if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
         if (node.attribs["http-equiv"] === "content-security-policy") {
-            return;
+            node = {};
         } else if (node.attribs["http-equiv"] === "refresh") {
-            node.attribs.content = node.attribs.content.split(";url=").map((elem, index) => index === 1 ? encodeUrl(elem) : elem).join(";url=");
+            const contentArray = node.attribs.content.split(";url=");
+            contentArray[1] = encodeUrl(contentArray[1], origin);
+            node.attribs.content = contentArray.join(";url=");
         }
-    } 
+    }
+
+    if (node.name === "head") {
+        ["codecs", "config", "bundle", "client"].forEach((script) => {
+            prependChild(node, new Element("script", { 
+                src: self.__scramjet$config[script]
+            }));
+        });
+    }
 
     if (node.childNodes) {
         for (const childNode in node.childNodes) {

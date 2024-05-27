@@ -37,6 +37,7 @@
     "esbuild-server": "^0.3.0",
     "fastify": "^4.26.2",
     "htmlparser2": "^9.1.0",
+    "idb-keyval": "^6.2.1",
     "meriyah": "^4.4.2"
   }
 }
