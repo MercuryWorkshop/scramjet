@@ -1,6 +1,6 @@
 import { Parser } from "htmlparser2";
 import { DomHandler, Element } from "domhandler";
-import { hasAttrib, prependChild } from "domutils";
+import { hasAttrib } from "domutils";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
 import { rewriteCss } from "./css";
@@ -49,11 +49,14 @@ function traverseParsedHtml(node, origin?: URL) {
     }
 
     if (node.name === "head") {
+        const scramjetScripts = [];
         ["codecs", "config", "bundle", "client"].forEach((script) => {
-            prependChild(node, new Element("script", { 
+            scramjetScripts.push(new Element("script", {
                 src: self.__scramjet$config[script]
             }));
         });
+
+        node.children.unshift(...scramjetScripts);
     }
 
     if (node.childNodes) {
