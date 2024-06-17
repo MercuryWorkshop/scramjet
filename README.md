@@ -9,7 +9,9 @@ The UI is not finalized and only used as a means to test the web proxy.
 ## How to build
 Running `pnpm dev` will build Scramjet and start a dev server on localhost:1337. If you only want to build the proxy without using the dev server, run `pnpm build`.
 
-TODO
+
+
+## TODO
 - Finish HTML rewriting
     - `<script type="importmap"></script>` rewriting
         - Make an array of all possible import values and pass the array onto the JS rewriter, then rewrite all the URLs inside of it
