@@ -17,6 +17,8 @@ export function rewriteHtml(html: string, origin?: URL) {
     return render(traverseParsedHtml(handler.root, origin));
 }
 
+// i need to add the attributes in during rewriting
+
 function traverseParsedHtml(node, origin?: URL) {
     /* csp attributes */
     if (hasAttrib(node, "nonce")) delete node.attribs.nonce;
@@ -35,16 +37,17 @@ function traverseParsedHtml(node, origin?: URL) {
     if (hasAttrib(node, "srcdoc")) node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, origin);
     if (hasAttrib(node, "srcset")) node.attribs.srcset = rewriteSrcset(node.attribs.srcset, origin);
     if (hasAttrib(node, "imagesrcset")) node.attribs.imagesrcset = rewriteSrcset(node.attribs.imagesrcset, origin);
+    if (hasAttrib(node, "style")) node.attribs.style = rewriteCss(node.attribs.style, origin);
 
     if (node.name === "style" && node.children[0] !== undefined) node.children[0].data = rewriteCss(node.children[0].data, origin);
     if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
     if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
         if (node.attribs["http-equiv"] === "content-security-policy") {
             node = {};
-        } else if (node.attribs["http-equiv"] === "refresh") {
-            const contentArray = node.attribs.content.split(";url=");
-            contentArray[1] = encodeUrl(contentArray[1], origin);
-            node.attribs.content = contentArray.join(";url=");
+        } else if (node.attribs["http-equiv"] === "refresh" && node.attribs.content.includes("url")) {
+            const contentArray = node.attribs.content.split("url=");
+            contentArray[1] = encodeUrl(contentArray[1].trim(), origin);
+            node.attribs.content = contentArray.join("url=");
         }
     }
 

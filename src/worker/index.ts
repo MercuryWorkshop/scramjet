@@ -22,6 +22,12 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
     }
 
     async fetch({ request }: FetchEvent) {
+        const urlParam = new URLSearchParams(new URL(request.url).search);
+
+        if (urlParam.has("url")) {
+            return Response.redirect(self.__scramjet$bundle.rewriters.url.encodeUrl(urlParam.get("url"), new URL(urlParam.get("url"))))
+        }
+
         try {
             const url = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(request.url));
 

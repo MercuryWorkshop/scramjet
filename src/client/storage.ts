@@ -1,46 +1,55 @@
+// import IDBMap from "@webreflection/idb-map";
+
+// this will be converted to use IDB later but i can't figure out how to make it work synchronously
+
+function filterStorage(scope: Storage) {
+    return Object.keys(scope).filter((key) => key.startsWith(window.__location.host));
+}
+
 function storageProxy(scope: Storage): Storage {
     // sessionStorage isn't properly implemented currently, since everything is being stored in IDB
 
-    const { set, get, keys, del, createStore } = self.__scramjet$bundle.idb;
-    const store = createStore(window.__location.host, "store");
+    // const store = new IDBMap(window.__location.host);
 
     return new Proxy(scope, {
-        get(target, prop) {
+        get(target, prop, receiver) {
             switch (prop) {
             case "getItem":
-                return async function getItem(key: string) {
-                    return await get(key, store);
+                return (key: string) => {
+                    return target.getItem(window.__location.host + "@" + key);
                 }
 
             case "setItem":
-                return async function setItem(key: string, value: string) {
-                    await set(key, value, store);
+                return (key: string, value: string) => {
+                    target.setItem(window.__location.host + "@" + key, value);
                 }
-                
+
             case "removeItem":
-                return async function removeItem(key: string) {
-                    await del(key, store);
+                return (key: string) => {
+                    target.removeItem(window.__location.host + "@" + key);
                 }
 
             case "clear":
-                return async function clear() {
-                    // clear can't be used because the names are the exact same
-                    await self.__scramjet$bundle.idb.clear(store);
+                return () => {
+                    filterStorage(target).forEach((key) => target.removeItem(key));
                 }
 
             case "key":
-                return async function key(index: number) {
-                    // supposed to be key but key is the name of the function
-                    return (await keys(store))[index];
+                return (index: number) => {
+                    return target[filterStorage(target)[index]];
                 }
 
             case "length":
-                return (async ()=>{
-                    return (await keys(store)).length;
-                })();
+                return filterStorage(target).length;
             }
         },
-    });
+
+        defineProperty(target, property, attributes) {
+            target.setItem(property as string, attributes.value);
+            
+            return true;
+        },
+    })
 }
 
 const localStorageProxy = storageProxy(window.localStorage);

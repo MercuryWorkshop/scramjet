@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 function urlLocation() {
     let loc = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(location.href));
     loc.assign = (url: string) => location.assign(self.__scramjet$bundle.rewriters.url.encodeUrl(url));
@@ -8,13 +10,14 @@ function urlLocation() {
     return loc;
 }
 
-export function locationProxy() {
+export function LocationProxy() {
     const loc = urlLocation();
 
-    return new Proxy(Location, {
+    return new Proxy(window.location, {
         get(target, prop) {
             return loc[prop];
         },
+        
         set(obj, prop, value) {
             if (prop === "href") {
                 location.href = self.__scramjet$bundle.rewriters.url.encodeUrl(value);
@@ -27,4 +30,4 @@ export function locationProxy() {
     })
 }
 
-window.__location = locationProxy();
+window.__location = LocationProxy();

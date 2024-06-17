@@ -3,7 +3,6 @@ import { rewriteCss } from "./rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
 import { rewriteJs } from "./rewriters/js";
 import { rewriteHeaders } from "./rewriters/headers";
-import * as idb from "idb-keyval";
 
 export function isScramjetFile(src: string) {
     let bool = false;
@@ -25,7 +24,6 @@ const bundle = {
         rewriteJs,
         rewriteHeaders
     },
-    idb,
     isScramjetFile
 }
 

@@ -21,6 +21,7 @@
         "no-shadow": "error",
         "prefer-const": "warn",
         "no-unreachable": "warn",
-        "no-undef": "off"
+        "no-undef": "off",
+        "@typescript-eslint/ban-ts-comment": "off"
     }
 }
