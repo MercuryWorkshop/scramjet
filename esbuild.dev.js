@@ -1,6 +1,7 @@
 import { createServer } from "esbuild-server";
 import copy from "esbuild-plugin-copy";
 import time from "esbuild-plugin-time";
+import "dotenv/config"
 
 const devServer = createServer({
     entryPoints: {
@@ -45,7 +46,7 @@ const devServer = createServer({
     ]
 }, {
     static: "./static",
-    port: 1337,
+    port: process.env.PORT || 1337,
     proxy: (path) => {
         if (path.startsWith("/bare/")) {
             return path.replace("/bare/", "http://127.0.0.1:3000/")
