@@ -98,9 +98,6 @@ function traverseParsedHtml(node, origin?: URL) {
 
 
 function parseImportValues(scriptContent: string): string[] {
-    // Implement your logic to parse import values from script content
-    // This could involve regex, JSON parsing, or any custom logic based on your script format
-    // Example: Extract values from a JSON-like structure
     const importMap = JSON.parse(scriptContent);
     return Object.values(importMap.imports || {});
 }
