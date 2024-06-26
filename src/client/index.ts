@@ -1,9 +1,10 @@
 import "./location";
+import "./trustedTypes.ts";
+import "./eval.ts";
 import "./storage";
 import "./element.ts";
-import "./eval.ts";
 import "./fetch.ts";
-import "./trustedTypes.ts";
+import "./xmlhttprequest.ts";
 
 declare global {
     interface Window {
