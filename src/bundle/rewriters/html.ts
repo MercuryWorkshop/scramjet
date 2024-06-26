@@ -38,8 +38,33 @@ function traverseParsedHtml(node, origin?: URL) {
     if (hasAttrib(node, "srcset")) node.attribs.srcset = rewriteSrcset(node.attribs.srcset, origin);
     if (hasAttrib(node, "imagesrcset")) node.attribs.imagesrcset = rewriteSrcset(node.attribs.imagesrcset, origin);
     if (hasAttrib(node, "style")) node.attribs.style = rewriteCss(node.attribs.style, origin);
+    //importmaps!!!
+    if (node.type === "script" && node.attribs.type === "importmap" && node.children.length > 0) {
+        const scriptContent = node.children[0].data.trim();
+
+        let imports;
+        try {
+            imports = JSON.parse(scriptContent).imports || {};
+        } catch (error) {
+            console.error("Error parsing import map:", error);
+            imports = {};
+        }
+
+        for (const key in imports) {
+            if (Object.prototype.hasOwnProperty.call(imports, key)) {
+                imports[key] = encodeUrl(imports[key], origin);
+            }
+        }
+
+        const formattedScriptContent = JSON.stringify({ imports }, null, 2); // retain formatting 
+
+        node.children[0].data = formattedScriptContent;
+
+        node.attribs.type = "importmap";
+    }
 
     if (node.name === "style" && node.children[0] !== undefined) node.children[0].data = rewriteCss(node.children[0].data, origin);
+    //leaving this alone for now
     if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
     if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
         if (node.attribs["http-equiv"] === "content-security-policy") {
@@ -69,6 +94,15 @@ function traverseParsedHtml(node, origin?: URL) {
     }
 
     return node;
+}
+
+
+function parseImportValues(scriptContent: string): string[] {
+    // Implement your logic to parse import values from script content
+    // This could involve regex, JSON parsing, or any custom logic based on your script format
+    // Example: Extract values from a JSON-like structure
+    const importMap = JSON.parse(scriptContent);
+    return Object.values(importMap.imports || {});
 }
 
 // stole from osana lmao
