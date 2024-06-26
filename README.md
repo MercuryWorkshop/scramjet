@@ -18,6 +18,4 @@ Running `pnpm dev` will build Scramjet and start a dev server on localhost:1337.
 - Finish JS rewriting 
     - Only thing rewritten currently are imports and exports
     - Check imports/exports for values contained in the `importmap` array, don't rewrite the node value if present
-- Fix CSS rewriting
-    - CSS rewriting only rewrites the `url()` function, but `@import` rules can import urls using just a string: https://developer.mozilla.org/en-US/docs/Web/CSS/@import
 - Write client APIs
