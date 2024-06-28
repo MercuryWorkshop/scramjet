@@ -31,8 +31,7 @@ function traverseParsedHtml(node, origin?: URL) {
     if (hasAttrib(node, "data")) node.attribs.data = encodeUrl(node.attribs.data, origin);
     if (hasAttrib(node, "action")) node.attribs.action = encodeUrl(node.attribs.action, origin);
     if (hasAttrib(node, "formaction")) node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
-    if (hasAttrib(node, "form")) node.attribs.action = encodeUrl(node.attribs.action, origin);
-
+    
     /* other */
     if (hasAttrib(node, "srcdoc")) node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, origin);
     if (hasAttrib(node, "srcset")) node.attribs.srcset = rewriteSrcset(node.attribs.srcset, origin);

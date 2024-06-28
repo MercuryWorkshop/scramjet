@@ -1,7 +1,8 @@
 import { build } from "esbuild";
 import time from "esbuild-plugin-time";
+// import { writeFileSync } from "fs"
 
-build({
+const scramjetBuild = await build({
     entryPoints: {
         client: "./src/client/index.ts",
         bundle: "./src/bundle/index.ts",
@@ -16,4 +17,9 @@ build({
         time()
     ],
     logLevel: "info",
+    // metafile: true,
+    treeShaking: true,
+    minify: true
 });
+
+// writeFileSync("./meta.json", JSON.stringify(scramjetBuild.metafile));

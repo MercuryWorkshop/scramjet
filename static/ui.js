@@ -85,6 +85,7 @@ function App() {
           <button on:click=${() => BareMux.SetTransport("CurlMod.LibcurlClient", { wisp: store.wispurl })}>use libcurl.js</button>
           <button on:click=${() => BareMux.SetTransport("EpxMod.EpoxyClient", { wisp: store.wispurl })}>use epoxy</button>
           <button on:click=${() => BareMux.SetSingletonTransport(new BareMod.BareClient(store.bareurl))}>use bare server 3 (remote)</button>
+          <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>
       <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = __scramjet$config.prefix + __scramjet$config.codec.encode(e.target.value))} />
