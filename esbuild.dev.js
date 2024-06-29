@@ -52,7 +52,7 @@ const devServer = await context({
         bundle: "./src/bundle/index.ts",
         worker: "./src/worker/index.ts",
         codecs: "./src/codecs/index.ts",
-        config: "./src/scramjet.config.ts",
+        bootstrapper: "./src/scramjet.bootstrapper.ts",
     },
     entryNames: "scramjet.[name]",
     outdir: "./dist",

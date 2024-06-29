@@ -1,12 +1,5 @@
+import { Codec } from "../types.ts";
 import { enc, dec } from "./aes.ts";
-
-// for some reason eslint was parsing the type inside of the function params as a variable
-export interface Codec {
-    // eslint-disable-next-line
-    encode: (str: string | undefined) => string;
-    // eslint-disable-next-line
-    decode: (str: string | undefined) => string;
-}
 
 const xor = {
     encode: (str: string | undefined, key: number = 2) => {

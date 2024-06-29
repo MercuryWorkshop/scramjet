@@ -1,6 +1,30 @@
-navigator.serviceWorker.register("./sw.js", {
-    scope: __scramjet$config.prefix
-})
+const bootstrapper = new Bootstrapper({
+    prefix: "/scramjet/",
+    codec: "e",
+    config: "/scramjet.config.js",
+    bundle: "/scramjet.bundle.js",
+    worker: "/scramjet.worker.js",
+    client: "/scramjet.client.js",
+    codecs: "/scramjet.codecs.js"
+}, "./sw.js");
+
+const plain = {
+    encode: (str) => {
+        if (!str) return str;
+
+        return encodeURIComponent(str);
+    },
+    decode: (str) => {
+        if (!str) return str;
+
+        return decodeURIComponent(str);
+    }
+}
+
+bootstrapper.addCodec("e", plain)
+
+bootstrapper.init();
+
 BareMux.SetTransport("BareMod.BareClient", (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/")
 const flex = css`display: flex;`;
 const col = css`flex-direction: column;`;
@@ -88,7 +112,7 @@ function App() {
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = __scramjet$config.prefix + __scramjet$config.codec.encode(e.target.value))} />
+      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = bootstrapper.config.prefix + bootstrapper.config.codec.encode(e.target.value))} />
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
     `
