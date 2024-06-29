@@ -1,4 +1,4 @@
-import { IScramJetCodec, IScramJetConfig, IScramJetConfigWithStringCodec } from "./types";
+import { Codec, Config, ConfigWithStringCodec } from "./types";
 
 declare global {
     interface Window {
@@ -7,21 +7,21 @@ declare global {
 }
 
 class Bootstrapper {
-    private parsedConfig: IScramJetConfig;
+    private parsedConfig: Config;
     
     get config() {
         return this.parsedConfig;
     }
-    set config(config: IScramJetConfig) {}
+    set config(config: Config) {}
 
     private codecs: { [key: string]: {
         encode: string;
         decode: string;
     } } = {};
-    private customCodecs: { [key: string]: IScramJetCodec } = {};
+    private customCodecs: { [key: string]: Codec } = {};
     
     // eslint-disable-next-line no-unused-vars
-    constructor(private _config: IScramJetConfigWithStringCodec, private readonly serviceWorkerUrl: string) {
+    constructor(private _config: ConfigWithStringCodec, private readonly serviceWorkerUrl: string) {
         if (!_config) throw new Error("Config is required");
         if (!serviceWorkerUrl) throw new Error("Service worker URL is required");
     }
@@ -52,7 +52,7 @@ class Bootstrapper {
         })();
     }
 
-    addCodec(name: string, codec: IScramJetCodec) {
+    addCodec(name: string, codec: Codec) {
         this.codecs[name] = {
             encode: codec.encode.toString(),
             decode: codec.decode.toString()

@@ -1,4 +1,4 @@
-import { IScramJetCodec } from "../types.ts";
+import { Codec } from "../types.ts";
 import { enc, dec } from "./aes.ts";
 
 const xor = {
@@ -61,11 +61,11 @@ const base64 = {
 declare global {
     interface Window {
         __scramjet$codecs: {
-            none: IScramJetCodec;
-            plain: IScramJetCodec;
-            base64: IScramJetCodec;
-            xor: IScramJetCodec;
-            aes: IScramJetCodec;
+            none: Codec;
+            plain: Codec;
+            base64: Codec;
+            xor: Codec;
+            aes: Codec;
         }
     }
 }

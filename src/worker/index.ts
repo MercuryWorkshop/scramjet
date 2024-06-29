@@ -1,4 +1,4 @@
-import { IScramJetCodec, IScramJetConfig, IScramJetConfigWithStringCodec } from "../types";
+import { Codec, Config, ConfigWithStringCodec } from "../types";
 
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
@@ -6,15 +6,15 @@ import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
 declare global {
     interface Window {
         ScramjetServiceWorker;
-        __scramjet$config: IScramJetConfig;
+        __scramjet$config: Config;
     }
 }
 
 self.ScramjetServiceWorker = class ScramjetServiceWorker {
     client: typeof BareClient.prototype;
-    config: IScramJetConfig
+    config: Config
     
-    constructor(config: IScramJetConfigWithStringCodec, codecs: { [key: string]: IScramJetCodec }) {
+    constructor(config: ConfigWithStringCodec, codecs: { [key: string]: Codec }) {
         this.client = new BareClient();
         this.config = config ? {
             ...config,

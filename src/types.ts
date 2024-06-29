@@ -1,14 +1,14 @@
 // for some reason eslint was parsing the type inside of the function params as a variable
-export interface IScramJetCodec {
+export interface Codec {
   // eslint-disable-next-line
   encode: (str: string | undefined) => string;
   // eslint-disable-next-line
   decode: (str: string | undefined) => string;
 }
 
-export interface IScramJetConfig {
+export interface Config {
   prefix?: string;
-  codec: IScramJetCodec;
+  codec: Codec;
   config: string;
   bundle: string;
   worker: string;
@@ -16,7 +16,7 @@ export interface IScramJetConfig {
   codecs: string;
 }
 
-export interface IScramJetConfigWithStringCodec {
+export interface ConfigWithStringCodec {
   prefix?: string;
   codec: string;
   config: string;
