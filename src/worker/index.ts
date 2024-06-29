@@ -1,24 +1,39 @@
+import { IScramJetCodec, IScramJetConfig, IScramJetConfigWithStringCodec } from "../types";
+
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
 
 declare global {
     interface Window {
         ScramjetServiceWorker;
+        __scramjet$config: IScramJetConfig;
     }
 }
 
 self.ScramjetServiceWorker = class ScramjetServiceWorker {
     client: typeof BareClient.prototype;
-    config: typeof self.__scramjet$config;
-    constructor(config = self.__scramjet$config) {
+    config: IScramJetConfig
+    
+    constructor(config: IScramJetConfigWithStringCodec, codecs: { [key: string]: IScramJetCodec }) {
         this.client = new BareClient();
-        if (!config.prefix) config.prefix = "/scramjet/";
-        this.config = config;
+        this.config = config ? {
+            ...config,
+            prefix: config.prefix || "/scramjet/",
+            codec: { ...self.__scramjet$codecs, ...codecs }[config.codec]
+        } : {
+            prefix: "/scramjet/",
+            codec: self.__scramjet$codecs.plain,
+            config: "/scramjet.config.js",
+            bundle: "/scramjet.bundle.js",
+            worker: "/scramjet.worker.js",
+            client: "/scramjet.client.js",
+            codecs: "/scramjet.codecs.js"
+        };
+        self.__scramjet$config = this.config;
     }
 
     route({ request }: FetchEvent) {
-        if (request.url.startsWith(location.origin + this.config.prefix)) return true;
-        else return false;
+        return request.url.startsWith(location.origin + this.config.prefix) ? true : false;
     }
 
     async fetch({ request }: FetchEvent) {
