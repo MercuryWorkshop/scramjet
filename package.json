@@ -5,9 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "node esbuild.js",
-    "dev": "concurrently -n dev-server,bare-server-node -c blue,green -k \"node esbuild.dev.js\" \"bare-server-node -p 3000 -e\"",
-    "prepublish": "pnpm build",
-    "publish": "pnpm run publish && pnpm publish --access public"
+    "dev": "node esbuild.dev.js"
   },
   "files": [
     "dist",
