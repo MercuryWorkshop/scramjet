@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node esbuild.js",
     "dev": "concurrently -n dev-server,bare-server-node -c blue,green -k \"node esbuild.dev.js\" \"bare-server-node -p 3000 -e\"",
-    "publish": "npm run publish && npm publish --access public"
+    "prepublish": "pnpm build",
+    "publish": "pnpm run publish && pnpm publish --access public"
   },
   "files": [
     "dist",
