@@ -2,7 +2,8 @@
   "name": "scramjet",
   "version": "1.0.0",
   "description": "An experimental web proxy that aims to be the successor to Ultraviolet",
-  "main": "index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.js",
   "scripts": {
     "build": "node esbuild.js",
     "dev": "node esbuild.dev.js",
