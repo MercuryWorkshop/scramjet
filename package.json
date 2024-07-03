@@ -12,7 +12,7 @@
     "build": "node esbuild.js",
     "dev": "node esbuild.dev.js",
     "prepublish": "pnpm build",
-    "publish": "pnpm publish --no-git-checks --access public"
+    "pub": "pnpm publish --no-git-checks --access public"
   },
   "files": [
     "dist",
