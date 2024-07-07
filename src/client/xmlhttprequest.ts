@@ -8,10 +8,10 @@ XMLHttpRequest.prototype.open = new Proxy(XMLHttpRequest.prototype.open, {
 
 XMLHttpRequest.prototype.setRequestHeader = new Proxy(XMLHttpRequest.prototype.setRequestHeader, {
   apply(target, thisArg, argArray) {
-    let headerObject = Object.fromEntries(argArray);
+    let headerObject = Object.fromEntries([argArray]);
     headerObject = self.__scramjet$bundle.rewriters.rewriteHeaders(headerObject);
 
-    argArray = Object.entries(headerObject);
+    argArray = Object.entries(headerObject)[0];
 
     return Reflect.apply(target, thisArg, argArray);
   },

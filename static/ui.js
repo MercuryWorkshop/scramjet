@@ -112,7 +112,7 @@ function App() {
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = bootstrapper.config.prefix + bootstrapper.config.codec.encode(e.target.value))} />
+      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = bootstrapper.config.prefix + bootstrapper.config.codec.encode(e.target.value))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
     `

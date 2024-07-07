@@ -1,9 +1,52 @@
-import { createServer } from "esbuild-server";
+// import { createServer } from "esbuild-server";
 import copy from "esbuild-plugin-copy";
 import time from "esbuild-plugin-time";
-import "dotenv/config"
+import { createBareServer } from "@tomphttp/bare-server-node";
+import Fastify from "fastify";
+import { context } from "esbuild";
+import { createServer } from "http"; 
+import fastifyStatic from "@fastify/static";
+import { join } from "path";
+import { fileURLToPath } from "url";
+import "dotenv/config";
 
-const devServer = createServer({
+const bare = createBareServer("/bare/", {
+    logErrors: true
+});
+
+const fastify = Fastify({
+    serverFactory: (handler, opts) => {
+        return createServer()
+            .on("request", (req, res) => {
+                if (bare.shouldRoute(req)) {
+                    bare.routeRequest(req, res);
+                } else {
+                    handler(req, res);
+                }
+            }).on("upgrade", (req, socket, head) => {
+                if (bare.shouldRoute(req)) {
+                    bare.routeUpgrade(req, socket, head);
+                } else {
+                    socket.end();
+                }
+            })
+    }
+});
+
+fastify.register(fastifyStatic, {
+    root: join(fileURLToPath(new URL(".", import.meta.url)), "./static"),
+    decorateReply: false
+});
+
+//fastify.get("/", {
+    
+// })
+
+fastify.listen({
+    port: 1337
+});
+
+const devServer = await context({
     entryPoints: {
         client: "./src/client/index.ts",
         bundle: "./src/bundle/index.ts",
@@ -43,16 +86,7 @@ const devServer = createServer({
             ],
         }),
         time()
-    ]
-}, {
-    static: "./static",
-    port: process.env.PORT || 1337,
-    proxy: (path) => {
-        if (path.startsWith("/bare/")) {
-            return path.replace("/bare/", "http://127.0.0.1:3000/")
-        }
-    },
-    injectLiveReload: false
+    ],
 });
 
-devServer.start();
+await devServer.watch();
