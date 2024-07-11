@@ -64,20 +64,24 @@ const devServer = await context({
             resolveFrom: "cwd",
             assets: [
                 {
-                    from: ["./node_modules/@mercuryworkshop/bare-mux/dist/bare.cjs"],
+                    from: ["./node_modules/@mercuryworkshop/bare-mux/dist/index.js"],
                     to: ["./static/bare-mux.js"],
                 },
                 {
-                    from: ["./node_modules/@mercuryworkshop/bare-as-module3/dist/bare.cjs"],
+                    from: ["./node_modules/@mercuryworkshop/bare-as-module3/dist/index.mjs"],
                     to: ["./static/bare-client.js"],
                 },
                 {
-                    from: ["./node_modules/@mercuryworkshop/libcurl-transport/dist/index.cjs"],
+                    from: ["./node_modules/@mercuryworkshop/libcurl-transport/dist/index.mjs"],
                     to: ["./static/curl-client.js"],
                 },
                 {
-                    from: ["./node_modules/@mercuryworkshop/epoxy-transport/dist/index.js"],
+                    from: ["./node_modules/@mercuryworkshop/epoxy-transport/dist/index.mjs"],
                     to: ["./static/epoxy-client.js"],
+                },
+                {
+                    from: ["./node_modules/@mercuryworkshop/bare-mux/dist/worker.js"],
+                    to: ["./static/bare-mux-worker.js"],
                 },
                 {
                     from: ["./dist/*"],

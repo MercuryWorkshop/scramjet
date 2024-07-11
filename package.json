@@ -23,9 +23,9 @@
   "license": "ISC",
   "devDependencies": {
     "@fastify/static": "^7.0.3",
-    "@mercuryworkshop/bare-as-module3": "^2.2.0-alpha",
-    "@mercuryworkshop/epoxy-transport": "^1.1.0",
-    "@mercuryworkshop/libcurl-transport": "^1.3.1",
+    "@mercuryworkshop/bare-as-module3": "^2.2.2",
+    "@mercuryworkshop/epoxy-transport": "^2.1.2",
+    "@mercuryworkshop/libcurl-transport": "^1.3.6",
     "@tomphttp/bare-server-node": "^2.0.3",
     "@types/eslint": "^8.56.10",
     "@types/serviceworker": "^0.0.85",
@@ -42,7 +42,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@mercuryworkshop/bare-mux": "^1.1.2",
+    "@mercuryworkshop/bare-mux": "^2.0.1",
     "@webreflection/idb-map": "^0.1.3",
     "astravel": "^0.6.1",
     "astring": "^1.8.6",

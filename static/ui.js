@@ -1,7 +1,7 @@
 navigator.serviceWorker.register("./sw.js", {
     scope: __scramjet$config.prefix
 })
-BareMux.SetTransport("BareMod.BareClient", (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/")
+const connection = new BareMux.BareMuxConnection("/bare-mux-worker.js")
 const flex = css`display: flex;`;
 const col = css`flex-direction: column;`;
 const store = $store({
@@ -9,6 +9,7 @@ const store = $store({
     wispurl: "wss://wisp.mercurywork.shop/",
     bareurl: (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/",
 }, { ident: "settings", backing: "localstorage", autosave: "auto" });
+connection.setTransport("/bare-client.js", [store.bareurl])
 function App() {
     this.urlencoded = "";
     this.css = `
@@ -81,10 +82,9 @@ function App() {
 
 
         <div class=${[flex, "buttons"]}>
-          <button on:click=${() => BareMux.SetTransport("BareMod.BareClient", store.bareurl)}>use bare server 3</button>
-          <button on:click=${() => BareMux.SetTransport("CurlMod.LibcurlClient", { wisp: store.wispurl })}>use libcurl.js</button>
-          <button on:click=${() => BareMux.SetTransport("EpxMod.EpoxyClient", { wisp: store.wispurl })}>use epoxy</button>
-          <button on:click=${() => BareMux.SetSingletonTransport(new BareMod.BareClient(store.bareurl))}>use bare server 3 (remote)</button>
+          <button on:click=${() => connection.setTransport("/bare-client.js", [store.bareurl])}>use bare server 3</button>
+          <button on:click=${() => connection.setTransport("/curl-client.js", [{ wisp: store.wispurl }])}>use libcurl.js</button>
+          <button on:click=${() => connection.setTransport("/epoxy-client.js", [{ wisp: store.wispurl }])}>use epoxy</button>
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>

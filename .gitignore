@@ -5,4 +5,5 @@ static/bare-mux.js
 static/bare-client.js
 static/curl-client.js
 static/epoxy-client.js
+static/bare-mux-worker.js
 meta.json
