@@ -1,10 +1,11 @@
 // @ts-nocheck
+import { encodeUrl, decodeUrl } from "../bundle";
 
 function urlLocation() {
-    let loc = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(location.href));
-    loc.assign = (url: string) => location.assign(self.__scramjet$bundle.rewriters.url.encodeUrl(url));
+    const loc = new URL(decodeUrl(location.href));
+    loc.assign = (url: string) => location.assign(encodeUrl(url));
     loc.reload = () => location.reload();
-    loc.replace = (url: string) => location.replace(self.__scramjet$bundle.rewriters.url.encodeUrl(url));
+    loc.replace = (url: string) => location.replace(encodeUrl(url));
     loc.toString = () => loc.href;
         
     return loc;
@@ -20,7 +21,7 @@ export function LocationProxy() {
         
         set(obj, prop, value) {
             if (prop === "href") {
-                location.href = self.__scramjet$bundle.rewriters.url.encodeUrl(value);
+                location.href = encodeUrl(value);
             } else {
                 loc[prop] = value;
             }

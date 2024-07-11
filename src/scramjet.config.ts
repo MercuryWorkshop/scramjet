@@ -10,6 +10,7 @@ declare global {
             worker: string;
             client: string;
             codecs: string;
+            html: string;
         }
     }
 }
@@ -21,5 +22,6 @@ self.__scramjet$config = {
     bundle: "/scramjet.bundle.js",
     worker: "/scramjet.worker.js",
     client: "/scramjet.client.js",
-    codecs: "/scramjet.codecs.js"
+    codecs: "/scramjet.codecs.js",
+    html: "/scramjet.html.js"
 }

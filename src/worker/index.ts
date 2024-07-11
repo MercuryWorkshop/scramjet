@@ -1,5 +1,6 @@
 import { BareClient } from "@mercuryworkshop/bare-mux";
-import { BareResponseFetch } from "@mercuryworkshop/bare-mux"
+import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+import { encodeUrl, decodeUrl, rewriteCss, rewriteJs, rewriteHeaders } from "../bundle";
 
 declare global {
     interface Window {
@@ -7,9 +8,11 @@ declare global {
     }
 }
 
-self.ScramjetServiceWorker = class ScramjetServiceWorker {
+export class ScramjetServiceWorker {
     client: typeof BareClient.prototype;
     config: typeof self.__scramjet$config;
+    html: string;
+
     constructor(config = self.__scramjet$config) {
         this.client = new BareClient();
         if (!config.prefix) config.prefix = "/scramjet/";
@@ -25,11 +28,11 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
         const urlParam = new URLSearchParams(new URL(request.url).search);
 
         if (urlParam.has("url")) {
-            return Response.redirect(self.__scramjet$bundle.rewriters.url.encodeUrl(urlParam.get("url"), new URL(urlParam.get("url"))))
+            return Response.redirect(encodeUrl(urlParam.get("url"), new URL(urlParam.get("url"))))
         }
 
         try {
-            const url = new URL(self.__scramjet$bundle.rewriters.url.decodeUrl(request.url));
+            const url = new URL(decodeUrl(request.url));
 
             const response: BareResponseFetch = await this.client.fetch(url, {
                 method: request.method,
@@ -42,18 +45,24 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
             });
 
             let responseBody;
-            const responseHeaders = self.__scramjet$bundle.rewriters.rewriteHeaders(response.rawHeaders, url);
+            const responseHeaders = rewriteHeaders(response.rawHeaders, url);
             if (response.body) {
                 switch (request.destination) {
                 case "iframe":
                 case "document":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteHtml(await response.text(), url);
+                    responseBody = 
+                    `<html>
+                        <head>
+                            ${["codecs", "config", "html"].map((script) => "<script type=\"module\" src=" + this.config[script] + "></script>").join("")}
+                        </head>
+                    </html>`;
+                    this.html = await response.text();
                     break;
                 case "script":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteJs(await response.text(), url);
+                    responseBody = rewriteJs(await response.text(), url);
                     break;
                 case "style":
-                    responseBody = self.__scramjet$bundle.rewriters.rewriteCss(await response.text(), url);
+                    responseBody = rewriteCss(await response.text(), url);
                     break;
                 case "sharedworker":
                     break;
@@ -104,7 +113,13 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
             
             console.error(err);
 
-            return renderError(err, self.__scramjet$bundle.rewriters.url.decodeUrl(request.url));
+            return renderError(err, decodeUrl(request.url));
+        }
+    }
+
+    async messageListener(message: MessageEvent) {
+        if (message.data === "rewriteHtml") {
+            message.source.postMessage(this.html);
         }
     }
 }

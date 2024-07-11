@@ -7,12 +7,10 @@ function filterStorage(scope: Storage) {
 }
 
 function storageProxy(scope: Storage): Storage {
-    // sessionStorage isn't properly implemented currently, since everything is being stored in IDB
-
     // const store = new IDBMap(window.__location.host);
 
     return new Proxy(scope, {
-        get(target, prop, receiver) {
+        get(target, prop) {
             switch (prop) {
             case "getItem":
                 return (key: string) => {
