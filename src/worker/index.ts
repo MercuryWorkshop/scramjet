@@ -50,13 +50,17 @@ export class ScramjetServiceWorker {
                 switch (request.destination) {
                 case "iframe":
                 case "document":
-                    responseBody = 
-                    `<html>
-                        <head>
-                            ${["codecs", "config", "html"].map((script) => "<script type=\"module\" src=" + this.config[script] + "></script>").join("")}
-                        </head>
-                    </html>`;
-                    this.html = await response.text();
+                    if (responseHeaders["content-type"].startsWith("text/html")) {
+                        responseBody = 
+                        `<html>
+                            <head>
+                                ${["codecs", "config", "html"].map((script) => "<script type=\"module\" src=" + this.config[script] + "></script>").join("")}
+                            </head>
+                        </html>`;
+                        this.html = await response.text();
+                    } else {
+                        responseBody = response.body
+                    }
                     break;
                 case "script":
                     responseBody = rewriteJs(await response.text(), url);
@@ -74,7 +78,7 @@ export class ScramjetServiceWorker {
                 }
             }
             // downloads
-            if (request.destination === "document") {
+            if (["document", "iframe"].includes(request.destination)) {
                 const header = responseHeaders["content-disposition"];
 
                 // validate header and test for filename
