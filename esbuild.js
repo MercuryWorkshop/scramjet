@@ -19,7 +19,8 @@ const scramjetBuild = await build({
     logLevel: "info",
     metafile: true,
     treeShaking: true,
-    minify: true
+    minify: true,
+    format: "esm"
 });
 
 writeFileSync("./meta.json", JSON.stringify(scramjetBuild.metafile));

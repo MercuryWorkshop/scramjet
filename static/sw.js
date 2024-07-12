@@ -1,7 +1,6 @@
-importScripts("scramjet.codecs.js");
-importScripts("scramjet.config.js");
-importScripts( __scramjet$config.bundle || "scramjet.bundle.js")
-importScripts( __scramjet$config.worker || "scramjet.worker.js");
+import ScramjetServiceWorker from "./scramjet.worker.js";
+import "./scramjet.codecs.js";
+import "./scramjet.config.js";
 
 const scramjet = new ScramjetServiceWorker();
 
@@ -13,4 +12,4 @@ self.addEventListener("fetch", async (event) => {
             return await fetch(event.request);
         }
     })())
-}) 
+});

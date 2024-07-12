@@ -15,7 +15,7 @@ const bare = createBareServer("/bare/", {
 });
 
 const fastify = Fastify({
-    serverFactory: (handler, opts) => {
+    serverFactory: (handler) => {
         return createServer()
             .on("request", (req, res) => {
                 if (bare.shouldRoute(req)) {
@@ -59,6 +59,7 @@ const devServer = await context({
     bundle: true,
     sourcemap: true,
     logLevel: "info",
+    format: "esm",
     plugins: [
         copy({
             resolveFrom: "cwd",

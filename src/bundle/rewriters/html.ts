@@ -21,21 +21,32 @@ export function rewriteHtml(html: string, origin?: URL) {
 
 function traverseParsedHtml(node, origin?: URL) {
     /* csp attributes */
-    if (hasAttrib(node, "nonce")) delete node.attribs.nonce;
-    if (hasAttrib(node, "integrity")) delete node.attribs.integrity;
-    if (hasAttrib(node, "csp")) delete node.attribs.csp;
+    for (const cspAttr of ["nonce", "integrity", "csp"]) {
+        if (hasAttrib(node, cspAttr)) {
+            node.attribs[`data-${cspAttr}`] = node.attribs[cspAttr];
+            delete node.attribs[cspAttr];
+        }
+    }
 
     /* url attributes */
-    if (hasAttrib(node, "src") && !isScramjetFile(node.attribs.src)) node.attribs.src = encodeUrl(node.attribs.src, origin);
-    if (hasAttrib(node, "href")) node.attribs.href = encodeUrl(node.attribs.href, origin);
-    if (hasAttrib(node, "data")) node.attribs.data = encodeUrl(node.attribs.data, origin);
-    if (hasAttrib(node, "action")) node.attribs.action = encodeUrl(node.attribs.action, origin);
-    if (hasAttrib(node, "formaction")) node.attribs.formaction = encodeUrl(node.attribs.formaction, origin);
+    for (const urlAttr of ["src", "href", "data", "action"]) {
+        if (hasAttrib(node, urlAttr) && !isScramjetFile(node.attribs[urlAttr])) {
+            const value = node.attribs[urlAttr];
+            node.attribs[`data-${urlAttr}`] = value;
+            node.attribs[urlAttr] = encodeUrl(value, origin);
+        }
+    }
     
     /* other */
+    for (const srcsetAttr of ["srcset", "imagesrcset"]) {
+        if (hasAttrib(node, srcsetAttr)) {
+            const value = node.attribs[srcsetAttr];
+            node.attribs[`data-${srcsetAttr}`] = value;
+            node.attribs[srcsetAttr] = rewriteSrcset(value, origin);
+        }
+    }
+
     if (hasAttrib(node, "srcdoc")) node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, origin);
-    if (hasAttrib(node, "srcset")) node.attribs.srcset = rewriteSrcset(node.attribs.srcset, origin);
-    if (hasAttrib(node, "imagesrcset")) node.attribs.imagesrcset = rewriteSrcset(node.attribs.imagesrcset, origin);
     if (hasAttrib(node, "style")) node.attribs.style = rewriteCss(node.attribs.style, origin);
 
     if (node.name === "style" && node.children[0] !== undefined) node.children[0].data = rewriteCss(node.children[0].data, origin);
@@ -54,7 +65,8 @@ function traverseParsedHtml(node, origin?: URL) {
         const scramjetScripts = [];
         ["codecs", "config", "bundle", "client"].forEach((script) => {
             scramjetScripts.push(new Element("script", {
-                src: self.__scramjet$config[script]
+                src: self.__scramjet$config[script],
+                type: "module"
             }));
         });
 
@@ -70,7 +82,6 @@ function traverseParsedHtml(node, origin?: URL) {
     return node;
 }
 
-// stole from osana lmao
 export function rewriteSrcset(srcset: string, origin?: URL) {
     const urls = srcset.split(/ [0-9]+x,? ?/g);
     if (!urls) return "";

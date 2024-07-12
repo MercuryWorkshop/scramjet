@@ -1,8 +1,8 @@
-import { encodeUrl, decodeUrl } from "./rewriters/url";
-import { rewriteCss } from "./rewriters/css";
-import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
-import { rewriteJs } from "./rewriters/js";
-import { rewriteHeaders } from "./rewriters/headers";
+export { encodeUrl, decodeUrl } from "./rewriters/url";
+export { rewriteCss } from "./rewriters/css";
+export { rewriteHtml, rewriteSrcset } from "./rewriters/html";
+export { rewriteJs } from "./rewriters/js";
+export { rewriteHeaders } from "./rewriters/headers";
 
 export function isScramjetFile(src: string) {
     let bool = false;
@@ -12,25 +12,3 @@ export function isScramjetFile(src: string) {
 
     return bool;
 }
-
-const bundle = {
-    rewriters: {
-        url: {
-            encodeUrl, decodeUrl
-        },
-        rewriteCss,
-        rewriteHtml,
-        rewriteSrcset,
-        rewriteJs,
-        rewriteHeaders
-    },
-    isScramjetFile
-}
-
-declare global {
-    interface Window {
-        __scramjet$bundle: typeof bundle;
-    }
-}
-
-self.__scramjet$bundle = bundle;
