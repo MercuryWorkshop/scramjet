@@ -1,44 +1,40 @@
-// import IDBMap from "@webreflection/idb-map";
-
-// this will be converted to use IDB later but i can't figure out how to make it work synchronously
-
-function filterStorage(scope: Storage) {
-    return Object.keys(scope).filter((key) => key.startsWith(window.__location.host));
-}
+import IDBMapSync from "@webreflection/idb-map/sync";
 
 function storageProxy(scope: Storage): Storage {
-    // const store = new IDBMap(window.__location.host);
+    const store = new IDBMapSync(window.__location.host);
 
     return new Proxy(scope, {
-        get(target, prop) {
+        async get(target, prop) {
+            await store.sync();
+
             switch (prop) {
             case "getItem":
                 return (key: string) => {
-                    return target.getItem(window.__location.host + "@" + key);
+                    return store.get(key);
                 }
 
             case "setItem":
                 return (key: string, value: string) => {
-                    target.setItem(window.__location.host + "@" + key, value);
+                    store.set(key, value);
                 }
 
             case "removeItem":
                 return (key: string) => {
-                    target.removeItem(window.__location.host + "@" + key);
+                    store.delete(key);
                 }
 
             case "clear":
                 return () => {
-                    filterStorage(target).forEach((key) => target.removeItem(key));
+                    store.clear();
                 }
 
             case "key":
                 return (index: number) => {
-                    return target[filterStorage(target)[index]];
+                    store.keys()[index];
                 }
 
             case "length":
-                return filterStorage(target).length;
+                return store.size;
             }
         },
 

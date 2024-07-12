@@ -43,7 +43,7 @@
   "type": "module",
   "dependencies": {
     "@mercuryworkshop/bare-mux": "^2.0.1",
-    "@webreflection/idb-map": "^0.1.3",
+    "@webreflection/idb-map": "^0.3.1",
     "astravel": "^0.6.1",
     "astring": "^1.8.6",
     "meriyah": "^4.4.2"
