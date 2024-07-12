@@ -1,6 +1,6 @@
 // ts throws an error if you dont do window.fetch
 
-import { encodeUrl, rewriteHeaders } from "../bundle";
+import { encodeUrl, rewriteHeaders } from "../../bundle";
 
 window.fetch = new Proxy(window.fetch, {
     apply(target, thisArg, argArray) {

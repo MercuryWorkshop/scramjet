@@ -10,6 +10,7 @@ WebSocket = new Proxy(WebSocket, {
             {
                 "User-Agent": navigator.userAgent
             },
+            // @ts-expect-error
             ArrayBuffer.prototype
         )
     }
