@@ -1,6 +1,7 @@
 // this code needs to be bundled as a separate file due to when it is ran
 
 import { encodeUrl, rewriteCss, rewriteJs, rewriteSrcset } from "../bundle";
+import Clone from "./cloner.ts";
 
 const parser = new DOMParser();
 
@@ -79,4 +80,12 @@ navigator.serviceWorker.ready.then(({ active }) => {
 
 navigator.serviceWorker.addEventListener("message", (message) => {
     document.documentElement.replaceWith(rewriteHtml(message.data).documentElement);
+
+    const scripts = document.querySelectorAll("script:not([data-scramjet])");
+
+    for (const script of scripts) {
+        const clone = new Clone(script);
+        clone.insertCopy();
+        clone.removeElement();
+    }
 });

@@ -16,8 +16,6 @@ export function encodeUrl(url: string, origin?: string | URL) {
         origin = new URL(self.__scramjet$config.codec.decode(location.href.slice((location.origin + self.__scramjet$config.prefix).length)));
     }
 
-    console.log(url);
-
     if (url.startsWith("javascript:")) {
         return "javascript:" + rewriteJs(url.slice("javascript:".length));
     } else if (/^(#|mailto|about|data)/.test(url) || url.startsWith(location.origin + self.__scramjet$config.prefix)) {

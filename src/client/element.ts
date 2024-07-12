@@ -44,6 +44,10 @@ Object.keys(attribs).forEach((attrib: string) => {
             },
 
             set(value) {
+                if (this.dataset["scramjet"]) {
+                    return;
+                }
+                console.log(value);
                 this.dataset[`${attrib}`] = value;
                 if (/nonce|integrity|csp/.test(attrib)) {
                     this.removeAttribute(attrib);
@@ -84,6 +88,10 @@ Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
 
 Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
     apply(target, thisArg, argArray) {
+        if (thisArg.dataset["scramjet"]) {
+            return;
+        }
+        console.log(argArray[1])
         if (Object.keys(attribs).includes(argArray[0])) {
             thisArg.dataset[`${argArray[0]}`] = argArray[1];
             if (/nonce|integrity|csp/.test(argArray[0])) {
