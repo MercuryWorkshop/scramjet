@@ -46,6 +46,10 @@
     "@webreflection/idb-map": "^0.3.1",
     "astravel": "^0.6.1",
     "astring": "^1.8.6",
+    "dom-serializer": "^2.0.0",
+    "domhandler": "^5.0.3",
+    "domutils": "^3.1.0",
+    "htmlparser2": "^9.1.0",
     "meriyah": "^4.4.2"
   }
 }
