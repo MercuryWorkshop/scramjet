@@ -9,7 +9,7 @@ const scramjetBuild = await build({
         worker: "./src/worker/index.ts",
         codecs: "./src/codecs/index.ts",
         config: "./src/scramjet.config.ts",
-        html: "./scramjet.html.ts"
+        html: "./src/html/index.ts"
     },
     entryNames: "scramjet.[name]",
     outdir: "./dist",
