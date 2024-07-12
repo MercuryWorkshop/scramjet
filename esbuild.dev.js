@@ -15,7 +15,7 @@ const bare = createBareServer("/bare/", {
 });
 
 const fastify = Fastify({
-    serverFactory: (handler) => {
+    serverFactory: (handler, opts) => {
         return createServer()
             .on("request", (req, res) => {
                 if (bare.shouldRoute(req)) {
@@ -53,14 +53,12 @@ const devServer = await context({
         worker: "./src/worker/index.ts",
         codecs: "./src/codecs/index.ts",
         config: "./src/scramjet.config.ts",
-        html: "./src/html/index.ts"
     },
     entryNames: "scramjet.[name]",
     outdir: "./dist",
     bundle: true,
     sourcemap: true,
     logLevel: "info",
-    format: "esm",
     plugins: [
         copy({
             resolveFrom: "cwd",

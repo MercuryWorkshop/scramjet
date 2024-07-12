@@ -1,6 +1,3 @@
-import { encodeUrl, rewriteCss, rewriteJs, rewriteSrcset } from "../bundle";
-import { rewriteHtml } from "../html";
-
 // object
 // iframe
 // embed
@@ -40,34 +37,25 @@ Object.keys(attribs).forEach((attrib: string) => {
         const descriptor = Object.getOwnPropertyDescriptor(element.prototype, attrib);
         Object.defineProperty(element.prototype, attrib, {
             get() {
-                return this.dataset[`${attrib}`];
+                return descriptor.get.call(this, [this.dataset[`_${attrib}`]]);
             },
 
             set(value) {
-                if (this.dataset["scramjet"]) {
-                    return;
-                }
-                console.log(value);
-                this.dataset[`${attrib}`] = value;
+                this.dataset[`_${attrib}`] = value;
                 if (/nonce|integrity|csp/.test(attrib)) {
                     this.removeAttribute(attrib);
                 } else if (/src|href|data|action|formaction/.test(attrib)) {
-                    // @ts-expect-error
-                    // TrustedScriptURL does not exist as a type yet, but it is a real thing
                     if (value instanceof TrustedScriptURL) {
                         return;
                     }
 
-                    value = encodeUrl(value);
+                    value = self.__scramjet$bundle.rewriters.url.encodeUrl(value);
                 } else if (attrib === "srcdoc") {
-                    // @ts-ignore
-                    // This needs to be ignored because I'm bad at TypeScript
-                    
-                    value = rewriteHtml(value).documentElement.innerHTML;
+                    value = self.__scramjet$bundle.rewriters.rewriteHtml(value);
                 } else if (/(image)?srcset/.test(attrib)) {
-                    value = rewriteSrcset(value);
+                    value = self.__scramjet$bundle.rewriters.rewriteSrcset(value);
                 } else if (attrib === "style") {
-                    value = rewriteCss(value);
+                    value = self.__scramjet$bundle.rewriters.rewriteCss(value);
                 }
 
                 descriptor.set.call(this, value);
@@ -76,35 +64,38 @@ Object.keys(attribs).forEach((attrib: string) => {
     })
 });
 
-Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
+HTMLElement.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
     apply(target, thisArg, argArray) {
-        if (Object.keys(attribs).includes(argArray[0]) && thisArg.dataset[`${argArray[0]}`]) {
-            return thisArg.dataset[`${argArray[0]}`];
+        console.log(thisArg);
+        if (Object.keys(attribs).includes(argArray[0])) {
+            argArray[0] = `_${argArray[0]}`;
         }
 
         return Reflect.apply(target, thisArg, argArray);
     },
 });
 
-Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
+// setAttribute proxy is currently broken
+
+HTMLElement.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
     apply(target, thisArg, argArray) {
         if (thisArg.dataset["scramjet"]) {
             return;
         }
         console.log(argArray[1])
         if (Object.keys(attribs).includes(argArray[0])) {
-            thisArg.dataset[`${argArray[0]}`] = argArray[1];
+            thisArg.dataset[`_${argArray[0]}`] = argArray[1];
             if (/nonce|integrity|csp/.test(argArray[0])) {
                 return;
             } else if (/src|href|data|action|formaction/.test(argArray[0])) {
-                argArray[1] = encodeUrl(argArray[1]);
+                console.log(thisArg);
+                argArray[1] = self.__scramjet$bundle.rewriters.url.encodeUrl(argArray[1]);
             } else if (argArray[0] === "srcdoc") {
-                // @ts-ignore
-                argArray[1] = rewriteHtml(argArray[1]).documentElement.innerHTML;
+                argArray[1] = self.__scramjet$bundle.rewriters.rewriteHtml(argArray[1]);
             } else if (/(image)?srcset/.test(argArray[0])) {
-                argArray[1] = rewriteSrcset(argArray[1]);
+                argArray[1] = self.__scramjet$bundle.rewriters.rewriteSrcset(argArray[1]);
             } else if (argArray[1] === "style") {
-                argArray[1] = rewriteCss(argArray[1]);
+                argArray[1] = self.__scramjet$bundle.rewriters.rewriteCss(argArray[1]);
             }
         }
 
@@ -117,22 +108,17 @@ const innerHTML = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML"
 Object.defineProperty(HTMLElement.prototype, "innerHTML", {
     set(value) {
         if (this instanceof HTMLScriptElement) {
-            // @ts-expect-error
-            // TrustedScript does not exist as a type yet, but it is a real thing
             if (!(value instanceof TrustedScript)) {
-                value = rewriteJs(value);
+                value = self.__scramjet$bundle.rewriters.rewriteJs(value);
             }
         } else if (this instanceof HTMLStyleElement) {
-            value = rewriteCss(value);
+            value = self.__scramjet$bundle.rewriters.rewriteCss(value);
         } else {
-            // @ts-expect-error
-            // TrustedHTML does not exist as a type, but it is a real thing
             if (!(value instanceof TrustedHTML)) {
-                // @ts-ignore
-                value = rewriteHtml(value).documentElement.innerHTML;
+                value = self.__scramjet$bundle.rewriters.rewriteHtml(value);
             }
         }
 
-        innerHTML.set.call(this, value);
+        return innerHTML.set.call(this, value);
     },
-});
+})

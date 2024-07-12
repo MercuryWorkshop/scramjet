@@ -19,5 +19,3 @@ Running `pnpm dev` will build Scramjet and start a dev server on localhost:1337.
     - Only thing rewritten currently are imports and exports
     - Check imports/exports for values contained in the `importmap` array, don't rewrite the node value if present
 - Write client APIs
-- The DAMN SCRIPTS not being executed
-- esbuild bundling more than what it's supposed to (instead of using imports, it bundles the whole file which is not what we want)

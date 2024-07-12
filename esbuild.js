@@ -9,7 +9,6 @@ const scramjetBuild = await build({
         worker: "./src/worker/index.ts",
         codecs: "./src/codecs/index.ts",
         config: "./src/scramjet.config.ts",
-        html: "./src/html/index.ts"
     },
     entryNames: "scramjet.[name]",
     outdir: "./dist",
@@ -20,8 +19,7 @@ const scramjetBuild = await build({
     logLevel: "info",
     metafile: true,
     treeShaking: true,
-    minify: true,
-    format: "esm"
+    minify: true
 });
 
 writeFileSync("./meta.json", JSON.stringify(scramjetBuild.metafile));
