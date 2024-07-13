@@ -1,3 +1,4 @@
+import "./window.ts";
 import "./native/eval.ts";
 import "./location.ts";
 import "./trustedTypes.ts";
@@ -12,5 +13,6 @@ import "./worker.ts";
 declare global {
     interface Window {
         __location: Location;
+        __window: Window;
     }
 }

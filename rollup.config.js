@@ -1,4 +1,5 @@
 import typescript from "rollup-plugin-typescript2";
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import { join } from "node:path";
 import fs from "node:fs" 
 import { fileURLToPath } from "node:url";
@@ -9,9 +10,8 @@ console.log(production)
 fs.rmSync(join(fileURLToPath(new URL(".", import.meta.url)), "./dist"), { recursive: true, force: true })
 
 const commonPlugins = () => [
-    typescript({
-        tsconfig: "tsconfig.json",
-    }),
+    typescript(),
+    nodeResolve(),
 ]
 
 export default {

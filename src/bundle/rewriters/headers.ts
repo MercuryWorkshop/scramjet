@@ -1,6 +1,5 @@
 import { encodeUrl } from "./url";
 import { BareHeaders } from "@mercuryworkshop/bare-mux";
-
 const cspHeaders = [
     "cross-origin-embedder-policy",
     "cross-origin-opener-policy",
