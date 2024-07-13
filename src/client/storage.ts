@@ -1,7 +1,12 @@
 import IDBMapSync from "@webreflection/idb-map/sync";
+const store = new IDBMapSync(window.__location.host, {
+	prefix: "Storage",
+	durability: "relaxed"
+});
+
+await store.sync();
 
 function storageProxy(scope: Storage): Storage {
-	const store = new IDBMapSync(window.__location.host);
 
 	return new Proxy(scope, {
 		get(target, prop) {
@@ -46,7 +51,7 @@ function storageProxy(scope: Storage): Storage {
 		},
 
 		defineProperty(target, property, attributes) {
-			target.setItem(property as string, attributes.value);
+			store.set(property as string, attributes.value);
 
 			return true;
 		},
