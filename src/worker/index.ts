@@ -57,7 +57,6 @@ export default class ScramjetServiceWorker {
                     responseBody = rewriteCss(await response.text(), url);
                     break;
                 case "sharedworker":
-                    break;
                 case "worker":
                     break;
                 default:
