@@ -29,7 +29,7 @@ function traverseParsedHtml(node, origin?: URL) {
     }
 
     /* url attributes */
-    for (const urlAttr of ["src", "href", "data", "action"]) {
+    for (const urlAttr of ["src", "href", "data", "action", "formaction"]) {
         if (hasAttrib(node, urlAttr) && !isScramjetFile(node.attribs[urlAttr])) {
             const value = node.attribs[urlAttr];
             node.attribs[`data-${urlAttr}`] = value;

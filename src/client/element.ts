@@ -1,25 +1,6 @@
 import { encodeUrl, rewriteCss, rewriteHtml, rewriteJs, rewriteSrcset } from "../bundle";
 
-// object
-// iframe
-// embed
-// link
-// style
-// script
-// img
-// source
-// form
-// meta
-// area
-// base
-// body
-// input
-// audio
-// button
-// track
-// video
-
-const attribs = {
+const attrObject = {
     "nonce": [HTMLElement],
     "integrity": [HTMLScriptElement, HTMLLinkElement],
     "csp": [HTMLIFrameElement],
@@ -30,64 +11,56 @@ const attribs = {
     "formaction": [HTMLButtonElement, HTMLInputElement],
     "srcdoc": [HTMLIFrameElement],
     "srcset": [HTMLImageElement, HTMLSourceElement],
-    "imagesrcset": [HTMLLinkElement],
-    "style": [HTMLElement]
+    "imagesrcset": [HTMLLinkElement]
 }
 
-Object.keys(attribs).forEach((attrib: string) => {
-    attribs[attrib].forEach((element) => {
-        const descriptor = Object.getOwnPropertyDescriptor(element.prototype, attrib);
-        Object.defineProperty(element.prototype, attrib, {
+const attrs = Object.keys(attrObject);
+
+for (const attr of attrs) {
+    for (const element of attrObject[attr]) {
+        const descriptor = Object.getOwnPropertyDescriptor(element.prototype, attr);
+        Object.defineProperty(element.prototype, attr, {
             get() {
-                return this.dataset[attrib];
+                return this.dataset[attr];
             },
 
             set(value) {
-                this.dataset[attrib] = value;
-                if (/nonce|integrity|csp/.test(attrib)) {
-                    this.removeAttribute(attrib);
-                } else if (/src|href|data|action|formaction/.test(attrib)) {
+                this.dataset[attr] = value;
+                if (/nonce|integrity|csp/.test(attr)) {
+                    return;
+                } else if (/src|href|data|action|formaction/.test(attr)) {
                     // @ts-expect-error
                     if (value instanceof TrustedScriptURL) {
                         return;
                     }
 
                     value = encodeUrl(value);
-                } else if (attrib === "srcdoc") {
+                } else if (attr === "srcdoc") {
                     value = rewriteHtml(value);
-                } else if (/(image)?srcset/.test(attrib)) {
+                } else if (/(image)?srcset/.test(attr)) {
                     value = rewriteSrcset(value);
-                } else if (attrib === "style") {
-                    value = rewriteCss(value);
                 }
 
                 descriptor.set.call(this, value);
             },
         });
-    })
-});
+    }
+}
 
-HTMLElement.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
+Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
     apply(target, thisArg, argArray) {
-        console.log(thisArg);
-        if (Object.keys(attribs).includes(argArray[0])) {
-            argArray[0] = `data-${argArray[0]}`;
+        if (attrs.includes(argArray[0]) && thisArg.dataset[argArray[0]]) {
+            return thisArg.dataset[argArray[0]];
         }
 
         return Reflect.apply(target, thisArg, argArray);
     },
 });
 
-// setAttribute proxy is currently broken
-
-HTMLElement.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
+Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
     apply(target, thisArg, argArray) {
-        if (thisArg.dataset["scramjet"]) {
-            return;
-        }
-        console.log(argArray[1])
-        if (Object.keys(attribs).includes(argArray[0])) {
-            thisArg.dataset[`_${argArray[0]}`] = argArray[1];
+        if (attrs.includes(argArray[0])) {
+            thisArg.dataset[argArray[0]] = argArray[1];
             if (/nonce|integrity|csp/.test(argArray[0])) {
                 return;
             } else if (/src|href|data|action|formaction/.test(argArray[0])) {
@@ -108,20 +81,16 @@ HTMLElement.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
 
 const innerHTML = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
 
-Object.defineProperty(HTMLElement.prototype, "innerHTML", {
+Object.defineProperty(Element.prototype, "innerHTML", {
     set(value) {
-        if (this instanceof HTMLScriptElement) {
-            // @ts-expect-error
-            if (!(value instanceof TrustedScript)) {
-                value = rewriteJs(value);
-            }
+        // @ts-expect-error
+        if (this instanceof HTMLScriptElement && !(value instanceof TrustedScript)) {
+            value = rewriteJs(value);
         } else if (this instanceof HTMLStyleElement) {
             value = rewriteCss(value);
-        } else {
-            // @ts-expect-error
-            if (!(value instanceof TrustedHTML)) {
-                value = rewriteHtml(value);
-            }
+        // @ts-expect-error
+        } else if (!(value instanceof TrustedHTML)) {
+            value = rewriteHtml(value);
         }
 
         return innerHTML.set.call(this, value);

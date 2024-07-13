@@ -7,7 +7,7 @@ import "./requests/websocket.ts"
 import "./element.ts";
 import "./storage.ts";
 import "./css.ts";
-import "./worker.ts"
+import "./worker.ts";
 
 declare global {
     interface Window {

@@ -1,7 +1,7 @@
 import { parseModule } from "meriyah";
 import { generate } from "astring";
-import { makeTraveler } from "astravel";
 import { encodeUrl } from "./url";
+import { replace } from "estraverse";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
 
@@ -18,10 +18,7 @@ import { encodeUrl } from "./url";
 
 export function rewriteJs(js: string, origin?: URL) {
     try {
-        const ast = parseModule(js, {
-            module: true,
-            webcompat: true
-        });
+        const ast = parseModule(js);
     
         // const identifierList = [
         //     "window",
@@ -33,30 +30,20 @@ export function rewriteJs(js: string, origin?: URL) {
         //     ""
         // ]
     
-        const customTraveler = makeTraveler({
-            ImportDeclaration: (node) => {
-                node.source.value = encodeUrl(node.source.value, origin);
+        replace(ast, {
+            enter: (node, parent) => {
+                if (["ImportDeclaration", "ImportExpression", "ExportAllDeclaration", "ExportNamedDeclaration"].includes(node.type) && node.source) {
+                    node.source.value = encodeUrl(node.source.value, origin);
+                }
+
+                return node;
             },
-    
-            ImportExpression: (node) => {
-                node.source.value = encodeUrl(node.source.value, origin);
-            },
-    
-            ExportAllDeclaration: (node) => {
-                node.source.value = encodeUrl(node.source.value, origin);
-            },
-    
-            ExportNamedDeclaration: (node) => {
-                if (node.source) node.source.value = encodeUrl(node.source.value, origin);
-            },
-        });
-    
-        customTraveler.go(ast);
+
+            fallback: "iteration"
+        })
     
         return generate(ast);
-    } catch {
-        console.log(js);
-
-        return js;
+    } catch (err) {
+        throw new Error(err);
     }
 }

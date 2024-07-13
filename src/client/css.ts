@@ -16,8 +16,11 @@ jsProperties.forEach((prop) => {
     const propDescriptor = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, prop);
 
     Object.defineProperty(CSSStyleDeclaration.prototype, prop, {
+        get() {
+            return propDescriptor.get.call(this);
+        },
         set(v) {
-            propDescriptor.set.call(this, rewriteCss(v));
+            return propDescriptor.set.call(this, rewriteCss(v));
         },
     })
 });
