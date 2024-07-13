@@ -2,7 +2,7 @@ navigator.serviceWorker.register("./sw.js", {
     scope: __scramjet$config.prefix,
     type: "module"
 })
-const connection = new BareMux.BareMuxConnection("/bare-mux-worker.js")
+const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
 const flex = css`display: flex;`;
 const col = css`flex-direction: column;`;
 const store = $store({
