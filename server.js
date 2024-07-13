@@ -15,8 +15,6 @@ import { epoxyPath } from "@mercuryworkshop/epoxy-transport"
 import { libcurlPath } from "@mercuryworkshop/libcurl-transport"
 import { bareModulePath } from "@mercuryworkshop/bare-as-module3"
 
-let watcher = watch()
-
 const bare = createBareServer("/bare/", {
     logErrors: true
 });
@@ -46,7 +44,7 @@ fastify.register(fastifyStatic, {
 });
 fastify.register(fastifyStatic, {
     root: join(fileURLToPath(new URL(".", import.meta.url)), "./dist"),
-    prefix: "/dist/",
+    prefix: "/scram/",
     decorateReply: false
 })
 fastify.register(fastifyStatic, {
