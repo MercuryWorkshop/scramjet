@@ -5,8 +5,8 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
 import fs from "node:fs"
+import { spawn } from "node:child_process"
 import { fileURLToPath } from "node:url";
-import { watch } from "rollup"
 import { loadConfigFile } from "rollup/loadConfigFile"
 
 //transports
@@ -69,4 +69,14 @@ fastify.register(fastifyStatic, {
 })
 fastify.listen({
     port: process.env.PORT || 1337
+});
+
+const watch = spawn("rollup", ["-c", "-w"], { detached: true });
+
+watch.stdout.on("data", (data) => {
+    console.log(`${data}`);
+});
+
+watch.stderr.on("data", (data) => {
+    console.log(`${data}`);
 });
