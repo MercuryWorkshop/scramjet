@@ -10,7 +10,7 @@ const store = $store({
     wispurl: "wss://wisp.mercurywork.shop/",
     bareurl: (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/",
 }, { ident: "settings", backing: "localstorage", autosave: "auto" });
-connection.setTransport("/bare-client.js", [store.bareurl])
+connection.setTransport("/baremod/index.mjs", [store.bareurl])
 function App() {
     this.urlencoded = "";
     this.css = `
@@ -83,9 +83,9 @@ function App() {
 
 
         <div class=${`${flex} buttons`}>
-          <button on:click=${() => connection.setTransport("/bare-client.js", [store.bareurl])}>use bare server 3</button>
-          <button on:click=${() => connection.setTransport("/curl-client.js", [{ wisp: store.wispurl }])}>use libcurl.js</button>
-          <button on:click=${() => connection.setTransport("/epoxy-client.js", [{ wisp: store.wispurl }])}>use epoxy</button>
+          <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
+          <button on:click=${() => connection.setTransport("/libcurl/index.mjs", [{ wisp: store.wispurl }])}>use libcurl.js</button>
+          <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>

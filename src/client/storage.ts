@@ -45,6 +45,7 @@ function storageProxy(scope: Storage): Storage {
 			}
 		},
 
+		//@ts-ignore
 		set(target, prop, value) {
 			store.set(prop, value);
 			store.sync();

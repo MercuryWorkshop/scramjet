@@ -1,4 +1,4 @@
-import { enc, dec } from "./aes.ts";
+import { enc, dec } from "./aes";
 
 // for some reason eslint was parsing the type inside of the function params as a variable
 export interface Codec {
@@ -34,6 +34,7 @@ const plain = {
     }
 }
 
+/*
 const aes = {
     encode: (str: string | undefined) => {
         if (!str) return str;
@@ -46,6 +47,7 @@ const aes = {
         return dec("U2FsdGVkX1" + decodeURIComponent(str), "dynamic");
     }
 }
+*/
 
 const none = {
     encode: (str: string | undefined) => str,
@@ -72,11 +74,10 @@ declare global {
             plain: Codec;
             base64: Codec;
             xor: Codec;
-            aes: Codec;
         }
     }
 }
 
 self.__scramjet$codecs = {
-    none, plain, base64, xor, aes
+    none, plain, base64, xor
 }
