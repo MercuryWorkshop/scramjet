@@ -1,11 +1,32 @@
 import { encodeUrl } from "./url";
 
 export function rewriteCss(css: string, origin?: URL) {
-    css = css.replace(/(?<=url\("?'?)[^"'][\S]*[^"'](?="?'?\);?)/gm, (match) => encodeUrl(match, origin));
-    //painful regex simulator
-    css = css.replace(/@import\s+(['"])?([^'");]+)\1?\s*(?:;|$)/gm, (_, quote, url) => {
-        return `@import ${quote || ""}${encodeUrl(url.trim(), origin)}${quote || ""};`;  
-    });
+    const regex =
+    /(@import\s+(?!url\())?\s*url\(\s*(['"]?)([^'")]+)\2\s*\)|@import\s+(['"])([^'"]+)\4/g
 
-    return css;
+    return css.replace(
+        regex,
+        (
+            match,
+            importStatement,
+            urlQuote,
+            urlContent,
+            importQuote,
+            importContent
+        ) => {
+            const url = urlContent || importContent
+            const encodedUrl = encodeUrl(url.trim(), origin)
+
+            if (importStatement) {
+                return `@import url(${urlQuote}${encodedUrl}${urlQuote})`
+            }
+
+            if (importQuote) {
+                return `@import ${importQuote}${encodedUrl}${importQuote}`
+            }
+
+            return `url(${urlQuote}${encodedUrl}${urlQuote})`
+        }
+    )
+
 }
