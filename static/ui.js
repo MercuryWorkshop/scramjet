@@ -77,12 +77,12 @@ function App() {
       <h1>Percury Unblocker</h1>
       <p>surf the unblocked and mostly buggy web</p>
 
-      <div class=${[flex, col, "cfg"]}>
+      <div class=${`${flex} ${col} cfg`}>
         <input bind:value=${use(store.wispurl)}></input>
         <input bind:value=${use(store.bareurl)}></input>
 
 
-        <div class=${[flex, "buttons"]}>
+        <div class=${`${flex} buttons`}>
           <button on:click=${() => connection.setTransport("/bare-client.js", [store.bareurl])}>use bare server 3</button>
           <button on:click=${() => connection.setTransport("/curl-client.js", [{ wisp: store.wispurl }])}>use libcurl.js</button>
           <button on:click=${() => connection.setTransport("/epoxy-client.js", [{ wisp: store.wispurl }])}>use epoxy</button>
