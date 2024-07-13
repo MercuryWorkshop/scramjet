@@ -16,6 +16,7 @@ const commonPlugins = () => [
 
 export default {
     plugins: commonPlugins(),
+    treeshake: "recommended",
     input: {
         client: "./src/client/index.ts",
         bundle: "./src/bundle/index.ts",
@@ -27,9 +28,7 @@ export default {
         entryFileNames: "scramjet.[name].js",
         dir: "./dist",
         format: "esm",
-        bundle: true,
-        minify: production,
         sourcemap: true,
-        treeshake: "recommended",
+        compact: production,
     },
 };
