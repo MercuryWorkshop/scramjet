@@ -1,3 +1,6 @@
+// This CSS rewriter uses code from Meteor
+// You can find the original source code at https://github.com/MeteorProxy/Meteor
+
 import { encodeUrl } from "./url";
 
 export function rewriteCss(css: string, origin?: URL) {
