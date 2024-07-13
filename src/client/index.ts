@@ -1,11 +1,11 @@
-import "./location";
+import "./native/eval.ts";
+import "./location.ts";
 import "./trustedTypes.ts";
-import "./eval.ts";
-import "./storage";
-import "./element.ts";
 import "./requests/fetch.ts";
 import "./requests/xmlhttprequest.ts";
 import "./requests/websocket.ts"
+import "./element.ts";
+import "./storage.ts";
 import "./css.ts";
 
 declare global {

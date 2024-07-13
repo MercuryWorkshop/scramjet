@@ -1,4 +1,4 @@
-import { rewriteJs } from "../bundle";
+import { rewriteJs } from "../../bundle";
 
 const FunctionProxy = new Proxy(Function, {
     construct(target, argArray) {
