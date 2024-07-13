@@ -18,6 +18,9 @@ const cspHeaders = [
     "x-permitted-cross-domain-policies",
     "x-powered-by",
     "x-xss-protection",
+    // This needs to be emulated, but for right now it isn't that important of a feature to be worried about
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
+    "clear-site-data"
 ];
 
 const urlHeaders = [
