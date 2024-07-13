@@ -17,9 +17,9 @@ declare global {
 self.__scramjet$config = {
     prefix: "/scramjet/",
     codec: self.__scramjet$codecs.plain,
-    config: "/scramjet.config.js",
-    bundle: "/scramjet.bundle.js",
-    worker: "/scramjet.worker.js",
-    client: "/scramjet.client.js",
-    codecs: "/scramjet.codecs.js"
+    config: "/scram/scramjet.config.js",
+    bundle: "/scram/scramjet.bundle.js",
+    worker: "/scram/scramjet.worker.js",
+    client: "/scram/scramjet.client.js",
+    codecs: "/scram/scramjet.codecs.js"
 }
