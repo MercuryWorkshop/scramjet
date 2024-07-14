@@ -13,7 +13,7 @@ function canParseUrl(url: string, origin?: URL) {
 // something is broken with this but i didn't debug it
 export function encodeUrl(url: string | URL, origin?: URL) {
     if (url instanceof URL) {
-        url = url.toString()
+        return url.toString();
     }
 
     if (!origin) {
@@ -32,7 +32,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 // something is also broken with this but i didn't debug it
 export function decodeUrl(url: string | URL) {
     if (url instanceof URL) {
-        url = url.toString()
+        return url.toString();
     }
 
     if (/^(#|about|data|mailto|javascript)/.test(url)) {
