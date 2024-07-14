@@ -1,4 +1,5 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+import IDBMap from "@webreflection/idb-map";
 
 declare global {
     interface Window {
@@ -9,6 +10,7 @@ declare global {
 self.ScramjetServiceWorker = class ScramjetServiceWorker {
     client: typeof self.$scramjet.shared.BareClient.prototype;
     config: typeof self.$scramjet.config;
+
     constructor(config = self.$scramjet.config) {
         this.client = new self.$scramjet.shared.BareClient();
         if (!config.prefix) config.prefix = "/scramjet/";
@@ -31,6 +33,8 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
         try {
             const url = new URL(decodeUrl(request.url));
 
+			const cookieStore = new IDBMap(url.origin, { durability: "relaxed", prefix: "Cookies" });
+
             const response: BareResponseFetch = await this.client.fetch(url, {
                 method: request.method,
                 body: request.body,
@@ -45,6 +49,14 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 
             let responseBody;
             const responseHeaders = rewriteHeaders(response.rawHeaders, url);
+
+			for (const cookie of (responseHeaders["set-cookie"] || []) as string[]) {
+				let cookieParsed = cookie.split(";").map(x=>x.trim().split("="));
+				let [key, value] = cookieParsed.shift();
+				value = value.replace("\"", "");
+				cookieStore.set(key, { value: value, args: cookieParsed });
+			}
+
             if (response.body) {
                 switch (request.destination) {
                 case "iframe":
