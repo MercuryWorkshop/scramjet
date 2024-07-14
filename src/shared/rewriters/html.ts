@@ -37,7 +37,7 @@ function traverseParsedHtml(node, origin?: URL) {
 	}
 
 	/* url attributes */
-	for (const urlAttr of ["src", "href", "data", "action", "formaction"]) {
+	for (const urlAttr of ["src", "href", "action", "formaction"]) {
 		if (hasAttrib(node, urlAttr) && !isScramjetFile(node.attribs[urlAttr])) {
 			const value = node.attribs[urlAttr];
 			node.attribs[`data-${urlAttr}`] = value;
@@ -67,8 +67,12 @@ function traverseParsedHtml(node, origin?: URL) {
 			node.attribs.type
 		) &&
 		node.children[0] !== undefined
-	)
-		node.children[0].data = rewriteJs(node.children[0].data, origin);
+	) {
+		let js = node.children[0].data
+		const htmlcomment = /<!--[\s\S]*?-->/g;
+		js = js.replace(htmlcomment, "");
+		node.children[0].data = rewriteJs(js, origin);
+	}
 	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
 		if (node.attribs["http-equiv"] === "content-security-policy") {
 			node = {};

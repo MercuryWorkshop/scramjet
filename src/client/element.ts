@@ -51,11 +51,6 @@ for (const attr of attrs) {
 				if (/nonce|integrity|csp/.test(attr)) {
 					return;
 				} else if (/src|href|data|action|formaction/.test(attr)) {
-					// @ts-expect-error
-					if (value instanceof TrustedScriptURL) {
-						return;
-					}
-
 					value = encodeUrl(value);
 				} else if (attr === "srcdoc") {
 					value = rewriteHtml(value);
@@ -115,17 +110,12 @@ const innerHTML = Object.getOwnPropertyDescriptor(
 
 Object.defineProperty(Element.prototype, "innerHTML", {
 	set(value) {
-		// @ts-expect-error
 		if (
-			this instanceof HTMLScriptElement &&
-			!(value instanceof TrustedScript)
+			this instanceof HTMLScriptElement
 		) {
 			value = rewriteJs(value);
 		} else if (this instanceof HTMLStyleElement) {
 			value = rewriteCss(value);
-			// @ts-expect-error
-		} else if (!(value instanceof TrustedHTML)) {
-			value = rewriteHtml(value);
 		}
 
 		return innerHTML.set.call(this, value);

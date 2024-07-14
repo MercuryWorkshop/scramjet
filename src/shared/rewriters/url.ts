@@ -27,6 +27,9 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 		);
 	}
 
+	// is this the correct behavior?
+	if (!url) url = origin.href;
+
 	if (url.startsWith("javascript:")) {
 		return "javascript:" + rewriteJs(url.slice("javascript:".length));
 	} else if (/^(#|mailto|about|data)/.test(url)) {

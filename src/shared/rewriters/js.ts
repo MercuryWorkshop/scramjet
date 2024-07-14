@@ -17,8 +17,6 @@ import * as ESTree from "estree";
 // parent
 
 export function rewriteJs(js: string, origin?: URL) {
-	const htmlcomment = /<!--[\s\S]*?-->/g;
-	js = js.replace(htmlcomment, "");
 	try {
 		const ast = parseModule(js, {
 			module: true,
