@@ -7,7 +7,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
     // change to production when needed
-    mode: "development",
+    mode: process.env.NODE_ENV,
     entry: {
         shared: join(__dirname, "src/shared/index.ts"),
         worker: join(__dirname, "src/worker/index.ts"),
