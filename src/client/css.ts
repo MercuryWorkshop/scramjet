@@ -1,4 +1,4 @@
-import { rewriteCss } from "./index";
+import { rewriteCss } from "./shared";
 
 const cssProperties = ["background", "background-image", "mask", "mask-image", "list-style", "list-style-image", "border-image", "border-image-source", "cursor"];
 const jsProperties = ["background", "backgroundImage", "mask", "maskImage", "listStyle", "listStyleImage", "borderImage", "borderImageSource", "cursor"];

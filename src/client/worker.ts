@@ -1,4 +1,4 @@
-import { encodeUrl } from "./index";
+import { encodeUrl } from "./shared";
 
 Worker = new Proxy(Worker, {
     construct(target, argArray) {
@@ -20,12 +20,15 @@ Worklet.prototype.addModule = new Proxy(Worklet.prototype.addModule, {
     },
 });
 
-window.importScripts = new Proxy(window.importScripts, {
-    apply(target, thisArg, argArray) {
-        for (const i in argArray) {
-            argArray[i] = encodeUrl(argArray[i]);
-        }
 
-        return Reflect.apply(target, thisArg, argArray);
-    },
-});
+// broken
+
+// window.importScripts = new Proxy(window.importScripts, {
+//     apply(target, thisArg, argArray) {
+//         for (const i in argArray) {
+//             argArray[i] = encodeUrl(argArray[i]);
+//         }
+
+//         return Reflect.apply(target, thisArg, argArray);
+//     },
+// });

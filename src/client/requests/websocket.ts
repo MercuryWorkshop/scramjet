@@ -1,4 +1,4 @@
-import { BareClient } from "../index";
+import { BareClient } from "../shared";
 const client = new BareClient();
 
 WebSocket = new Proxy(WebSocket, {

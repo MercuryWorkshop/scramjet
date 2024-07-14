@@ -1,3 +1,4 @@
+import "./scope.ts";
 import "./window.ts";
 import "./event.ts";
 import "./native/eval.ts";
@@ -11,23 +12,9 @@ import "./storage.ts";
 import "./css.ts";
 import "./history.ts"
 import "./worker.ts";
-import "./scope.ts";
 
 declare global {
     interface Window {
         $s: any;
     }
 }
-
-export const { 
-    encodeUrl, 
-    decodeUrl, 
-    rewriteHeaders, 
-    rewriteHtml, 
-    rewriteSrcset, 
-    rewriteJs,
-    rewriteCss, 
-    rewriteWorkers, 
-    isScramjetFile, 
-    BareClient
-} = self.$scramjet.bundle;

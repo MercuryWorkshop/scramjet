@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
+    // change to production when needed
+    mode: "development",
     entry: {
         shared: join(__dirname, "src/shared/index.ts"),
         worker: join(__dirname, "src/worker/index.ts"),
@@ -35,7 +37,9 @@ export default defineConfig({
     },
     output: {
         filename: "scramjet.[name].js",
-        path: join(__dirname, "dist")
+        path: join(__dirname, "dist"),
+        iife: true,
+        clean: true
     },
     plugins: [
         // new RsdoctorRspackPlugin({

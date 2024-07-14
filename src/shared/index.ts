@@ -11,7 +11,7 @@ if (!self.$scramjet) {
     //@ts-expect-error really dumb workaround
     self.$scramjet = {}
 }
-self.$scramjet.bundle = {
+self.$scramjet.shared = {
     encodeUrl,
     decodeUrl,
     rewriteCss,

@@ -11,7 +11,7 @@ import { BareClient } from "@mercuryworkshop/bare-mux";
 declare global {
     interface Window {
         $scramjet: {
-            bundle: {
+            shared: {
                 encodeUrl: typeof encodeUrl,
                 decodeUrl: typeof decodeUrl,
                 rewriteCss: typeof rewriteCss,

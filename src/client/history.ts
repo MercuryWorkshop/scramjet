@@ -1,5 +1,5 @@
 
-import { encodeUrl } from "./index";
+import { encodeUrl } from "./shared";
 
 window.history.pushState = new Proxy(window.history.pushState, {
     apply(target, thisArg, argArray) {
