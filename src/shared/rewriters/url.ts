@@ -11,7 +11,11 @@ function canParseUrl(url: string, origin?: URL) {
 }
 
 // something is broken with this but i didn't debug it
-export function encodeUrl(url: string, origin?: URL) {
+export function encodeUrl(url: string | URL, origin?: URL) {
+    if (url instanceof URL) {
+        url = url.toString()
+    }
+
     if (!origin) {
         origin = new URL(self.$scramjet.config.codec.decode(location.href.slice((location.origin + self.$scramjet.config.prefix).length)));
     }
@@ -26,7 +30,11 @@ export function encodeUrl(url: string, origin?: URL) {
 }
 
 // something is also broken with this but i didn't debug it
-export function decodeUrl(url: string) {
+export function decodeUrl(url: string | URL) {
+    if (url instanceof URL) {
+        url = url.toString()
+    }
+
     if (/^(#|about|data|mailto|javascript)/.test(url)) {
         return url;
     } else if (canParseUrl(url)) {
