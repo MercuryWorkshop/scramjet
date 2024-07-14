@@ -4,7 +4,7 @@ import { hasAttrib } from "domutils";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
 import { rewriteCss } from "./css";
-import { rewriteJs } from "./js";
+// import { rewriteJs } from "./js";
 import { isScramjetFile } from "..";
 
 export function rewriteHtml(html: string, origin?: URL) {
@@ -50,7 +50,7 @@ function traverseParsedHtml(node, origin?: URL) {
     if (hasAttrib(node, "style")) node.attribs.style = rewriteCss(node.attribs.style, origin);
 
     if (node.name === "style" && node.children[0] !== undefined) node.children[0].data = rewriteCss(node.children[0].data, origin);
-    if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
+    // if (node.name === "script" && /(application|text)\/javascript|importmap|undefined/.test(node.attribs.type) && node.children[0] !== undefined) node.children[0].data = rewriteJs(node.children[0].data, origin);
     if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
         if (node.attribs["http-equiv"] === "content-security-policy") {
             node = {};
@@ -66,7 +66,8 @@ function traverseParsedHtml(node, origin?: URL) {
         ["codecs", "config", "shared", "client"].forEach((script) => {
             scramjetScripts.push(new Element("script", {
                 src: self.__scramjet$config[script],
-                type: "module"
+                type: "module",
+                "data-scramjet": ""
             }));
         });
 

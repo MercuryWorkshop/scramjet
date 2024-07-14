@@ -12,4 +12,4 @@ WebSocket = new Proxy(WebSocket, {
             ArrayBuffer.prototype
         )
     }
-})
+});

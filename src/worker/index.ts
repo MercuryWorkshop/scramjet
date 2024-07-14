@@ -48,7 +48,11 @@ export default class ScramjetServiceWorker {
                 switch (request.destination) {
                 case "iframe":
                 case "document":
-                    responseBody = rewriteHtml(await response.text(), url);
+                    if (responseHeaders["content-type"].startsWith("text/html")) {
+                        responseBody = rewriteHtml(await response.text(), url);
+                    } else {
+                        responseBody = response.body;
+                    }
                     break;
                 case "script":
                     responseBody = rewriteJs(await response.text(), url);

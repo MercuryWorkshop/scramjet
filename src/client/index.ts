@@ -21,3 +21,20 @@ declare global {
         __s: any;
     }
 }
+
+const scripts = document.querySelectorAll("script:not([data-scramjet])");
+
+for (const script of scripts) {
+    const clone = document.createElement("script");
+
+    for (const attr of Array.from(script.attributes)) {
+        clone.setAttribute(attr.name, attr.value);
+    }
+
+    if (script.innerHTML !== "") {
+        clone.innerHTML = script.innerHTML;
+    }
+
+    script.insertAdjacentElement("afterend", clone);
+    script.remove();
+}
