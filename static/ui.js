@@ -1,18 +1,20 @@
 navigator.serviceWorker.register("./sw.js", {
-    scope: $scramjet.config.prefix
-})
+  scope: $scramjet.config.prefix
+}).then((reg) => {
+  reg.update();
+});
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
 const flex = css`display: flex;`;
 const col = css`flex-direction: column;`;
 const store = $store({
-    url: "https://google.com",
-    wispurl: "wss://wisp.mercurywork.shop/",
-    bareurl: (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/",
+  url: "https://google.com",
+  wispurl: "wss://wisp.mercurywork.shop/",
+  bareurl: (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/",
 }, { ident: "settings", backing: "localstorage", autosave: "auto" });
 connection.setTransport("/baremod/index.mjs", [store.bareurl])
 function App() {
-    this.urlencoded = "";
-    this.css = `
+  this.urlencoded = "";
+  this.css = `
     width: 100%;
     height: 100%;
     color: #e0def4;
@@ -70,8 +72,8 @@ function App() {
       padding: 0.45em;
     }
   `;
-  
-    return html`
+
+  return html`
       <div>
       <h1>Percury Unblocker</h1>
       <p>surf the unblocked and mostly buggy web</p>
@@ -95,5 +97,5 @@ function App() {
 }
 
 window.addEventListener("load", () => {
-    document.body.appendChild(h(App))
+  document.body.appendChild(h(App))
 })

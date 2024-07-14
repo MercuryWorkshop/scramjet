@@ -70,11 +70,16 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 				}
 			}
 
+			for (let header in responseHeaders) {
+				// flatten everything past here
+				if (responseHeaders[header] instanceof Array) responseHeaders[header] = responseHeaders[header][0];
+			}
+
 			if (response.body) {
 				switch (request.destination) {
 					case "iframe":
 					case "document":
-						if (responseHeaders["content-type"].toString().startsWith("text/html")) {
+						if (responseHeaders["content-type"]?.toString()?.startsWith("text/html")) {
 							responseBody = rewriteHtml(await response.text(), url);
 						} else {
 							responseBody = response.body;
