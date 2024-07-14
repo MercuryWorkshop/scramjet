@@ -1,8 +1,11 @@
+import { locationProxy } from "./location";
+import { windowProxy } from "./window";
+
 function scope(identifier: any) {
     if (identifier instanceof Window) {
-        return window.__window;
+        return windowProxy;
     } else if (identifier instanceof Location) {
-        return window.__location;
+        return locationProxy;
     }
 
     return identifier;

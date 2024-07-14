@@ -1,5 +1,7 @@
 import IDBMapSync from "@webreflection/idb-map/sync";
-const store = new IDBMapSync(window.__location.host, {
+import { locationProxy } from "./location";
+
+const store = new IDBMapSync(locationProxy.host, {
 	prefix: "Storage",
 	durability: "relaxed"
 });

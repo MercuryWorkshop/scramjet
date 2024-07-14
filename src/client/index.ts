@@ -15,8 +15,6 @@ import "./scope.ts";
 
 declare global {
     interface Window {
-        __location: Location;
-        __window: Window;
         //@ts-ignore scope function cant be typed
         __s: any;
     }

@@ -1,10 +1,12 @@
-const windowProxy = new Proxy(window, {
+import { locationProxy } from "./location";
+
+export const windowProxy = new Proxy(window, {
     get(target, prop) {
         const propIsString = typeof prop === "string";
         if (propIsString && prop === "location") {
-            return target.__location;
+            return locationProxy;
         } else if (propIsString && ["window", "top", "parent", "self", "globalThis"].includes(prop)) {
-            return target.__window;
+            return windowProxy;
         }
 
         return target[prop];
@@ -19,5 +21,3 @@ const windowProxy = new Proxy(window, {
         return Reflect.set(target, prop, newValue);
     },
 });
-
-window.__window = windowProxy;
