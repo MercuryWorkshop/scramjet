@@ -39,6 +39,8 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
                 mode: request.mode === "cors" ? request.mode : "same-origin",
                 cache: request.cache,
                 redirect: request.redirect,
+                //@ts-ignore why the fuck is this not typed mircosoft
+                duplex: "half",
             });
 
             let responseBody;
