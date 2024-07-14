@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { encodeUrl, decodeUrl } from "../bundle";
+import { encodeUrl, decodeUrl } from "../shared";
 
 function urlLocation() {
     const loc = new URL(decodeUrl(location.href));

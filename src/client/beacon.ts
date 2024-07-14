@@ -1,4 +1,4 @@
-import { encodeUrl } from "../bundle";
+import { encodeUrl } from "../shared";
 
 navigator.sendBeacon = new Proxy(navigator.sendBeacon, {
     apply(target, thisArg, argArray) {

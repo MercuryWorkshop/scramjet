@@ -1,6 +1,6 @@
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import { encodeUrl, decodeUrl, rewriteCss, rewriteHeaders, rewriteHtml, rewriteJs } from "../bundle";
+import { encodeUrl, decodeUrl, rewriteCss, rewriteHeaders, rewriteHtml, rewriteJs } from "../shared";
 
 declare global {
     interface Window {

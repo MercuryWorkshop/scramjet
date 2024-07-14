@@ -19,7 +19,7 @@ export default {
     treeshake: "recommended",
     input: {
         client: "./src/client/index.ts",
-        bundle: "./src/bundle/index.ts",
+        shared: "./src/shared/index.ts",
         worker: "./src/worker/index.ts",
         codecs: "./src/codecs/index.ts",
         config: "./src/scramjet.config.ts"

@@ -1,4 +1,4 @@
-import { encodeUrl, rewriteCss, rewriteHtml, rewriteJs, rewriteSrcset } from "../bundle";
+import { encodeUrl, rewriteCss, rewriteHtml, rewriteJs, rewriteSrcset } from "../shared";
 
 const attrObject = {
     "nonce": [HTMLElement],

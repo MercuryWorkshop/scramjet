@@ -1,7 +1,13 @@
-import { encodeUrl } from "../bundle";
-const RealWorker = Worker
+import { encodeUrl } from "../shared";
+
 Worker = new Proxy(Worker, {
-    construct(_target, args) {
-        return new RealWorker(encodeUrl(args[0]), args[1])
+    construct(target, argArray) {
+        argArray[0] = encodeUrl(argArray[0]);
+
+        // target is a reference to the object that you are proxying
+        // Reflect.construct is just a wrapper for calling target
+        // you could do new target(...argArray) and it would work the same effectively
+        
+        return Reflect.construct(target, argArray);
     }
 })

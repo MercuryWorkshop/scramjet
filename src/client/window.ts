@@ -10,8 +10,13 @@ const windowProxy = new Proxy(window, {
         return target[prop];
     },
 
-    set(target, p, newValue, receiver) {
-        return Reflect.set(target, p, newValue, receiver);
+    set(target, prop, newValue) {
+        // ensures that no apis are overwritten
+        if (typeof prop === "string" && ["window", "top", "parent", "self", "globalThis", "location"].includes(prop)) {
+            return false;
+        }
+
+        return Reflect.set(target, prop, newValue);
     },
 });
 
