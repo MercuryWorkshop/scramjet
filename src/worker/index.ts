@@ -24,7 +24,8 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 
 	async fetch({ request }: FetchEvent) {
 		const urlParam = new URLSearchParams(new URL(request.url).search);
-		const { encodeUrl, decodeUrl, rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } = self.$scramjet.shared;
+		const { encodeUrl, decodeUrl } = self.$scramjet.shared.url;
+		const { rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } = self.$scramjet.shared.rewrite;
 
 		if (urlParam.has("url")) {
 			return Response.redirect(encodeUrl(urlParam.get("url"), new URL(urlParam.get("url"))))
@@ -206,7 +207,7 @@ function renderError(err, fetchedURL) {
 		"content-type": "text/html",
 	};
 	if (crossOriginIsolated) {
-		headers["Cross-Origin-Embedd'er-Policy"] = "require-corp";
+		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
 	}
 
 	return new Response(
