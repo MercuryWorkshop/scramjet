@@ -66,7 +66,7 @@ export function rewriteJs(js: string, origin?: URL) {
           node.object.type === "Identifier" &&
           identifierList.includes(node.object.name)
         ) {
-          node.object.name = `$s(${node.object.name})`;
+          node.object.name = `globalThis.$s(${node.object.name})`;
         }
       },
 
@@ -75,14 +75,14 @@ export function rewriteJs(js: string, origin?: URL) {
           node.left.type === "Identifier" &&
           identifierList.includes(node.left.name)
         ) {
-          node.left.name = `$s(${node.left.name})`;
+          node.left.name = `globalThis.$s(${node.left.name})`;
         }
 
         if (
           node.right.type === "Identifier" &&
           identifierList.includes(node.right.name)
         ) {
-          node.right.name = `$s(${node.right.name})`;
+          node.right.name = `globalThis.$s(${node.right.name})`;
         }
       },
 
@@ -92,7 +92,7 @@ export function rewriteJs(js: string, origin?: URL) {
           node.init.type === "Identifier" &&
           identifierList.includes(node.init.name)
         ) {
-          node.init.name = `$s(${node.init.name})`;
+          node.init.name = `globalThis.$s(${node.init.name})`;
         }
       },
     });
