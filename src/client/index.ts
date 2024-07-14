@@ -12,6 +12,7 @@ import "./storage.ts";
 import "./css.ts";
 import "./history.ts"
 import "./worker.ts";
+import "./url.ts";
 
 declare global {
     interface Window {

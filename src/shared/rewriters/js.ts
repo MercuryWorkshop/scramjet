@@ -31,7 +31,6 @@ export function rewriteJs(js: string, origin?: URL) {
             "this",
             "parent",
             "top",
-            "this",
             "location"
         ]
     
@@ -60,10 +59,25 @@ export function rewriteJs(js: string, origin?: URL) {
                 if (node.source) node.source.value = encodeUrl(node.source.value as string, origin);
             },
 
-            // js rweriting notrdone
             MemberExpression: (node: ESTree.MemberExpression) => {
                 if (node.object.type === "Identifier" && identifierList.includes(node.object.name)) {
                     node.object.name = `$s(${node.object.name})`;
+                }
+            },
+
+            AssignmentExpression: (node: ESTree.AssignmentExpression) => {
+                if (node.left.type === "Identifier" && identifierList.includes(node.left.name)) {
+                    node.left.name = `$s(${node.left.name})`;
+                }
+
+                if (node.right.type === "Identifier" && identifierList.includes(node.right.name)) {
+                    node.right.name = `$s(${node.right.name})`;
+                }
+            },
+
+            VariableDeclarator: (node: ESTree.VariableDeclarator) => {
+                if (node.init.type === "Identifier" && identifierList.includes(node.init.name)) {
+                    node.init.name = `$s(${node.init.name})`;
                 }
             }
         });
