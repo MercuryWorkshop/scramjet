@@ -1,3 +1,4 @@
+import { URL } from "../../client/url";
 import { rewriteJs } from "./js";
 
 function canParseUrl(url: string, origin?: URL) {

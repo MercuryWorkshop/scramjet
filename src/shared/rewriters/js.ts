@@ -18,12 +18,14 @@ import * as ESTree from "estree";
 
 
 export function rewriteJs(js: string, origin?: URL) {
+    const htmlcomment = /<!--[\s\S]*?-->/g;
+    js = js.replace(htmlcomment, "");
     try {
         const ast = parseModule(js, {
             module: true,
             webcompat: true
         });
-    
+
         const identifierList = [
             "window",
             "self",
@@ -33,12 +35,12 @@ export function rewriteJs(js: string, origin?: URL) {
             "top",
             "location"
         ]
-    
+
         const customTraveler = makeTraveler({
             ImportDeclaration: (node: ESTree.ImportDeclaration) => {
                 node.source.value = encodeUrl(node.source.value as string, origin);
             },
-            
+
             ImportExpression: (node: ESTree.ImportExpression) => {
                 if (node.source.type === "Literal") {
                     node.source.value = encodeUrl(node.source.value as string, origin);
@@ -49,11 +51,11 @@ export function rewriteJs(js: string, origin?: URL) {
                     node.source.name = `__wrapImport(${node.source.name})`;
                 }
             },
-    
+
             ExportAllDeclaration: (node: ESTree.ExportAllDeclaration) => {
                 node.source.value = encodeUrl(node.source.value as string, origin);
             },
-    
+
             ExportNamedDeclaration: (node: ESTree.ExportNamedDeclaration) => {
                 // strings are Literals in ESTree syntax but these will always be strings
                 if (node.source) node.source.value = encodeUrl(node.source.value as string, origin);
@@ -76,16 +78,17 @@ export function rewriteJs(js: string, origin?: URL) {
             },
 
             VariableDeclarator: (node: ESTree.VariableDeclarator) => {
-                if (node.init.type === "Identifier" && identifierList.includes(node.init.name)) {
+                if (node.init && node.init.type === "Identifier" && identifierList.includes(node.init.name)) {
                     node.init.name = `$s(${node.init.name})`;
                 }
             }
         });
-    
+
         customTraveler.go(ast);
-    
+
         return generate(ast);
-    } catch {
+    } catch (e) {
+        console.error(e);
         console.log(js);
 
         return js;
