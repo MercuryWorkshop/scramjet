@@ -69,7 +69,7 @@ fastify.listen({
     port: process.env.PORT || 1337
 });
 
-const watch = spawn("pnpm", ["rollup", "-c", "-w"], { detached: true, cwd: process.cwd() });
+const watch = spawn("pnpm", ["rspack", "-w"], { detached: true, cwd: process.cwd() });
 
 watch.stdout.on("data", (data) => {
     console.log(`${data}`);

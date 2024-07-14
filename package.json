@@ -9,9 +9,8 @@
     "url": "https://github.com/MercuryWorkshop/scramjet"
   },
   "scripts": {
-    "build": "rollup -c",
+    "build": "rspack build",
     "dev": "node server.js",
-    "temp": "rollup -c -w",
     "prepublish": "pnpm build",
     "pub": "pnpm publish --no-git-checks --access public"
   },
@@ -27,9 +26,9 @@
     "@mercuryworkshop/bare-as-module3": "^2.2.2",
     "@mercuryworkshop/epoxy-transport": "^2.1.3",
     "@mercuryworkshop/libcurl-transport": "^1.3.6",
-    "@rollup/plugin-inject": "^5.0.5",
-    "@rollup/plugin-replace": "^5.0.5",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rsdoctor/rspack-plugin": "^0.3.7",
+    "@rspack/cli": "^0.7.5",
+    "@rspack/core": "^0.7.5",
     "@tomphttp/bare-server-node": "^2.0.3",
     "@types/eslint": "^8.56.10",
     "@types/estree": "^1.0.5",
@@ -40,8 +39,6 @@
     "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
     "fastify": "^4.26.2",
-    "rollup": "^4.17.2",
-    "rollup-plugin-typescript2": "^0.36.0",
     "tslib": "^2.6.2",
     "typescript": "^5.4.5"
   },
