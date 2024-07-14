@@ -16,6 +16,7 @@ Running `pnpm dev` will build Scramjet and start a dev server on localhost:1337.
     - `<script type="importmap"></script>` rewriting
         - Make an array of all possible import values and pass the array onto the JS rewriter, then rewrite all the URLs inside of it
 - Finish JS rewriting 
-    - Only thing rewritten currently are imports and exports
     - Check imports/exports for values contained in the `importmap` array, don't rewrite the node value if present
 - Write client APIs
+- Fix `Illegal Invocation` when calling `addEventListener()` on the window proxy
+- Get rid of ESM builds and pollute the global namespace (maybe?)
