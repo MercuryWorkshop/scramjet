@@ -1,7 +1,7 @@
 import { locationProxy } from "./location";
 
 export const windowProxy = new Proxy(window, {
-    get(target, prop, reciever) {
+    get(target, prop) {
         const propIsString = typeof prop === "string";
         if (propIsString && prop === "location") {
             return locationProxy;
@@ -19,7 +19,7 @@ export const windowProxy = new Proxy(window, {
             })
         }
 
-        const value = Reflect.get(target, prop, reciever);
+        const value = Reflect.get(target, prop);
 
         if (typeof value === "function") {
             return value.bind(target);
