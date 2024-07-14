@@ -3,15 +3,15 @@ navigator.serviceWorker
 		scope: $scramjet.config.prefix,
 	})
 	.then((reg) => {
-		reg.update()
-	})
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
+		reg.update();
+	});
+const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
 	display: flex;
-`
+`;
 const col = css`
 	flex-direction: column;
-`
+`;
 const store = $store(
 	{
 		url: "https://google.com",
@@ -23,10 +23,10 @@ const store = $store(
 			"/bare/",
 	},
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
-)
-connection.setTransport("/baremod/index.mjs", [store.bareurl])
+);
+connection.setTransport("/baremod/index.mjs", [store.bareurl]);
 function App() {
-	this.urlencoded = ""
+	this.urlencoded = "";
 	this.css = `
     width: 100%;
     height: 100%;
@@ -84,7 +84,7 @@ function App() {
       outline: none;
       padding: 0.45em;
     }
-  `
+  `;
 
 	return html`
       <div>
@@ -106,9 +106,9 @@ function App() {
       <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value)))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
-    `
+    `;
 }
 
 window.addEventListener("load", () => {
-	document.body.appendChild(h(App))
-})
+	document.body.appendChild(h(App));
+});

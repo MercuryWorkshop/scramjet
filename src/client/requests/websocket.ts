@@ -1,5 +1,5 @@
-import { BareClient } from "../shared"
-const client = new BareClient()
+import { BareClient } from "../shared";
+const client = new BareClient();
 
 WebSocket = new Proxy(WebSocket, {
 	construct(target, args) {
@@ -11,6 +11,6 @@ WebSocket = new Proxy(WebSocket, {
 				"User-Agent": navigator.userAgent,
 			},
 			ArrayBuffer.prototype
-		)
+		);
 	},
-})
+});

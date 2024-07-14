@@ -1,6 +1,6 @@
 if (!self.$scramjet) {
 	//@ts-expect-error really dumb workaround
-	self.$scramjet = {}
+	self.$scramjet = {};
 }
 self.$scramjet.config = {
 	prefix: "/scramjet/",
@@ -10,4 +10,4 @@ self.$scramjet.config = {
 	worker: "/scram/scramjet.worker.js",
 	client: "/scram/scramjet.client.js",
 	codecs: "/scram/scramjet.codecs.js",
-}
+};

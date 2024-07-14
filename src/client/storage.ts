@@ -1,12 +1,12 @@
-import IDBMapSync from "@webreflection/idb-map/sync"
-import { locationProxy } from "./location"
+import IDBMapSync from "@webreflection/idb-map/sync";
+import { locationProxy } from "./location";
 
 const store = new IDBMapSync(locationProxy.host, {
 	prefix: "Storage",
 	durability: "relaxed",
-})
+});
 
-await store.sync()
+await store.sync();
 
 function storageProxy(scope: Storage): Storage {
 	return new Proxy(scope, {
@@ -14,57 +14,57 @@ function storageProxy(scope: Storage): Storage {
 			switch (prop) {
 				case "getItem":
 					return (key: string) => {
-						return store.get(key)
-					}
+						return store.get(key);
+					};
 
 				case "setItem":
 					return (key: string, value: string) => {
-						store.set(key, value)
-						store.sync()
-					}
+						store.set(key, value);
+						store.sync();
+					};
 
 				case "removeItem":
 					return (key: string) => {
-						store.delete(key)
-						store.sync()
-					}
+						store.delete(key);
+						store.sync();
+					};
 
 				case "clear":
 					return () => {
-						store.clear()
-						store.sync()
-					}
+						store.clear();
+						store.sync();
+					};
 
 				case "key":
 					return (index: number) => {
-						store.keys()[index]
-					}
+						store.keys()[index];
+					};
 				case "length":
-					return store.size
+					return store.size;
 				default:
-					return store.get(prop)
+					return store.get(prop);
 			}
 		},
 
 		//@ts-ignore
 		set(target, prop, value) {
-			store.set(prop, value)
-			store.sync()
+			store.set(prop, value);
+			store.sync();
 		},
 
 		defineProperty(target, property, attributes) {
-			store.set(property as string, attributes.value)
+			store.set(property as string, attributes.value);
 
-			return true
+			return true;
 		},
-	})
+	});
 }
 
-const localStorageProxy = storageProxy(window.localStorage)
-const sessionStorageProxy = storageProxy(window.sessionStorage)
+const localStorageProxy = storageProxy(window.localStorage);
+const sessionStorageProxy = storageProxy(window.sessionStorage);
 
-delete window.localStorage
-delete window.sessionStorage
+delete window.localStorage;
+delete window.sessionStorage;
 
-window.localStorage = localStorageProxy
-window.sessionStorage = sessionStorageProxy
+window.localStorage = localStorageProxy;
+window.sessionStorage = sessionStorageProxy;

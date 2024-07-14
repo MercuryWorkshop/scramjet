@@ -1,3 +1,3 @@
-declare const scramjetPath: string
+declare const scramjetPath: string;
 
-export { scramjetPath }
+export { scramjetPath };

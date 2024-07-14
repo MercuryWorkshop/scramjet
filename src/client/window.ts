@@ -1,34 +1,34 @@
-import { locationProxy } from "./location"
+import { locationProxy } from "./location";
 
 export const windowProxy = new Proxy(window, {
 	get(target, prop) {
-		const propIsString = typeof prop === "string"
+		const propIsString = typeof prop === "string";
 		if (propIsString && prop === "location") {
-			return locationProxy
+			return locationProxy;
 		} else if (
 			propIsString &&
 			["window", "top", "parent", "self", "globalThis"].includes(prop)
 		) {
-			return windowProxy
+			return windowProxy;
 		} else if (propIsString && prop === "$scramjet") {
-			return
+			return;
 		} else if (propIsString && prop === "addEventListener") {
-			console.log("addEventListener getteetetetetet")
+			console.log("addEventListener getteetetetetet");
 
 			return new Proxy(window.addEventListener, {
 				apply(target1, thisArg, argArray) {
-					window.addEventListener(argArray[0], argArray[1])
+					window.addEventListener(argArray[0], argArray[1]);
 				},
-			})
+			});
 		}
 
-		const value = Reflect.get(target, prop)
+		const value = Reflect.get(target, prop);
 
 		if (typeof value === "function") {
-			return value.bind(target)
+			return value.bind(target);
 		}
 
-		return value
+		return value;
 	},
 
 	set(target, prop, newValue) {
@@ -39,9 +39,9 @@ export const windowProxy = new Proxy(window, {
 				prop
 			)
 		) {
-			return false
+			return false;
 		}
 
-		return Reflect.set(target, prop, newValue)
+		return Reflect.set(target, prop, newValue);
 	},
-})
+});

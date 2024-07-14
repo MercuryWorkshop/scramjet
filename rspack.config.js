@@ -1,9 +1,9 @@
-import { defineConfig } from "@rspack/cli"
+import { defineConfig } from "@rspack/cli";
 // import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
-import { join } from "path"
-import { fileURLToPath } from "url"
+import { join } from "path";
+import { fileURLToPath } from "url";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url))
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
 	// change to production when needed
@@ -50,4 +50,4 @@ export default defineConfig({
 		// })
 	],
 	watch: true,
-})
+});

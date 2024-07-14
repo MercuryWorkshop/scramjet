@@ -1,9 +1,9 @@
-import { encodeUrl } from "./shared"
+import { encodeUrl } from "./shared";
 
 navigator.sendBeacon = new Proxy(navigator.sendBeacon, {
 	apply(target, thisArg, argArray) {
-		argArray[0] = encodeUrl(argArray[0])
+		argArray[0] = encodeUrl(argArray[0]);
 
-		return Reflect.apply(target, thisArg, argArray)
+		return Reflect.apply(target, thisArg, argArray);
 	},
-})
+});

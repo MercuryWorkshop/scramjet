@@ -9,4 +9,4 @@ export const {
 		rewriteHeaders,
 		rewriteWorkers,
 	},
-} = self.$scramjet.shared
+} = self.$scramjet.shared;

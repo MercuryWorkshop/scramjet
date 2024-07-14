@@ -1,4 +1,4 @@
-import { rewriteCss } from "./shared"
+import { rewriteCss } from "./shared";
 
 const cssProperties = [
 	"background",
@@ -10,7 +10,7 @@ const cssProperties = [
 	"border-image",
 	"border-image-source",
 	"cursor",
-]
+];
 // const jsProperties = ["background", "backgroundImage", "mask", "maskImage", "listStyle", "listStyleImage", "borderImage", "borderImageSource", "cursor"];
 
 CSSStyleDeclaration.prototype.setProperty = new Proxy(
@@ -18,9 +18,9 @@ CSSStyleDeclaration.prototype.setProperty = new Proxy(
 	{
 		apply(target, thisArg, argArray) {
 			if (cssProperties.includes(argArray[0]))
-				argArray[1] = rewriteCss(argArray[1])
+				argArray[1] = rewriteCss(argArray[1]);
 
-			return Reflect.apply(target, thisArg, argArray)
+			return Reflect.apply(target, thisArg, argArray);
 		},
 	}
-)
+);
