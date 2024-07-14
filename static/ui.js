@@ -1,5 +1,5 @@
 navigator.serviceWorker.register("./sw.js", {
-    scope: __scramjet$config.prefix
+    scope: $scramjet.config.prefix
 })
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
 const flex = css`display: flex;`;
@@ -88,7 +88,7 @@ function App() {
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = __scramjet$config.prefix + __scramjet$config.codec.encode(e.target.value))}></input>
+      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
     `

@@ -12,4 +12,4 @@ function scope(identifier: any) {
 }
 
 // shorthand because this can get out of hand reall quickly
-window.__s = scope;
+window.$s = scope;

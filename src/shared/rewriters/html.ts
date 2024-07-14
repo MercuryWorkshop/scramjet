@@ -9,7 +9,7 @@ import { rewriteJs } from "./js";
 export function isScramjetFile(src: string) {
     let bool = false;
     ["codecs", "client", "shared", "worker", "config"].forEach((file) => {
-        if (src === self.__scramjet$config[file]) bool = true;
+        if (src === self.$scramjet.config[file]) bool = true;
     });
 
     return bool;
@@ -73,7 +73,7 @@ function traverseParsedHtml(node, origin?: URL) {
         const scramjetScripts = [];
         ["codecs", "config", "shared", "client"].forEach((script) => {
             scramjetScripts.push(new Element("script", {
-                src: self.__scramjet$config[script],
+                src: self.$scramjet.config[script],
                 "data-scramjet": ""
             }));
         });

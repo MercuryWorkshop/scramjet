@@ -13,7 +13,7 @@ function canParseUrl(url: string, origin?: URL) {
 // something is broken with this but i didn't debug it
 export function encodeUrl(url: string, origin?: URL) {
     if (!origin) {
-        origin = new URL(self.__scramjet$config.codec.decode(location.href.slice((location.origin + self.__scramjet$config.prefix).length)));
+        origin = new URL(self.$scramjet.config.codec.decode(location.href.slice((location.origin + self.$scramjet.config.prefix).length)));
     }
 
     if (url.startsWith("javascript:")) {
@@ -21,7 +21,7 @@ export function encodeUrl(url: string, origin?: URL) {
     } else if (/^(#|mailto|about|data)/.test(url)) {
         return url;
     } else if (canParseUrl(url, origin)) {
-        return location.origin + self.__scramjet$config.prefix + self.__scramjet$config.codec.encode(new URL(url, origin).href);
+        return location.origin + self.$scramjet.config.prefix + self.$scramjet.config.codec.encode(new URL(url, origin).href);
     }
 }
 
@@ -30,7 +30,7 @@ export function decodeUrl(url: string) {
     if (/^(#|about|data|mailto|javascript)/.test(url)) {
         return url;
     } else if (canParseUrl(url)) {
-        return self.__scramjet$config.codec.decode(url.slice((location.origin + self.__scramjet$config.prefix).length))
+        return self.$scramjet.config.codec.decode(url.slice((location.origin + self.$scramjet.config.prefix).length))
     } else {
         return url;
     }

@@ -67,17 +67,10 @@ const base64 = {
     }
 }
 
-declare global {
-    interface Window {
-        __scramjet$codecs: {
-            none: Codec;
-            plain: Codec;
-            base64: Codec;
-            xor: Codec;
-        }
-    }
+if (!self.$scramjet) {
+    //@ts-expect-error really dumb workaround
+    self.$scramjet = {}
 }
-
-self.__scramjet$codecs = {
+self.$scramjet.codecs = {
     none, plain, base64, xor
 }

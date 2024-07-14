@@ -7,24 +7,11 @@ import { rewriteWorkers } from "./rewriters/worker";
 import { isScramjetFile } from "./rewriters/html";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 
-declare global {
-    interface Window {
-        __scramjet$bundle: {
-            encodeUrl: typeof encodeUrl;
-            decodeUrl: typeof decodeUrl;
-            rewriteCss: typeof rewriteCss;
-            rewriteHtml: typeof rewriteHtml;
-            rewriteSrcset: typeof rewriteSrcset;
-            rewriteJs: typeof rewriteJs;
-            rewriteHeaders: typeof rewriteHeaders;
-            rewriteWorkers: typeof rewriteWorkers;
-            BareClient: typeof BareClient;
-            isScramjetFile: typeof isScramjetFile
-        }
-    }
+if (!self.$scramjet) {
+    //@ts-expect-error really dumb workaround
+    self.$scramjet = {}
 }
-
-self.__scramjet$bundle = {
+self.$scramjet.bundle = {
     encodeUrl,
     decodeUrl,
     rewriteCss,

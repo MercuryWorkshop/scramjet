@@ -63,7 +63,7 @@ export function rewriteJs(js: string, origin?: URL) {
             // js rweriting notrdone
             MemberExpression: (node: ESTree.MemberExpression) => {
                 if (node.object.type === "Identifier" && identifierList.includes(node.object.name)) {
-                    node.object.name = `__s(${node.object.name})`;
+                    node.object.name = `$s(${node.object.name})`;
                 }
             }
         });

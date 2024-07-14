@@ -7,10 +7,10 @@ declare global {
 }
 
 self.ScramjetServiceWorker = class ScramjetServiceWorker {
-    client: typeof self.__scramjet$bundle.BareClient.prototype;
-    config: typeof self.__scramjet$config;
-    constructor(config = self.__scramjet$config) {
-        this.client = new self.__scramjet$bundle.BareClient();
+    client: typeof self.$scramjet.bundle.BareClient.prototype;
+    config: typeof self.$scramjet.config;
+    constructor(config = self.$scramjet.config) {
+        this.client = new self.$scramjet.bundle.BareClient();
         if (!config.prefix) config.prefix = "/scramjet/";
         this.config = config;
     }
@@ -22,7 +22,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 
     async fetch({ request }: FetchEvent) {
         const urlParam = new URLSearchParams(new URL(request.url).search);
-        const { encodeUrl, decodeUrl, rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } = self.__scramjet$bundle;
+        const { encodeUrl, decodeUrl, rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } = self.$scramjet.bundle;
 
         if (urlParam.has("url")) {
             return Response.redirect(encodeUrl(urlParam.get("url"), new URL(urlParam.get("url"))))

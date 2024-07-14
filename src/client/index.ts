@@ -15,8 +15,7 @@ import "./scope.ts";
 
 declare global {
     interface Window {
-        //@ts-ignore scope function cant be typed
-        __s: any;
+        $s: any;
     }
 }
 
@@ -31,4 +30,4 @@ export const {
     rewriteWorkers, 
     isScramjetFile, 
     BareClient
-} = self.__scramjet$bundle;
+} = self.$scramjet.bundle;
