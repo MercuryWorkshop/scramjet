@@ -79,11 +79,11 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 
 				if (host && host !== url.host) {
 					if (host.startsWith(".")) host = host.slice(1);
-					const cookieStore = new IDBMap(host, {
+					const realCookieStore = new IDBMap(host, {
 						durability: "relaxed",
 						prefix: "Cookies",
 					});
-					cookieStore.set(key, { value: value, args: cookieParsed });
+					realCookieStore.set(key, { value: value, args: cookieParsed });
 				} else {
 					cookieStore.set(key, { value: value, args: cookieParsed });
 				}
