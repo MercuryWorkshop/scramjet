@@ -9,14 +9,14 @@ function enc_utf8(s) {
   } catch (e) {
     throw "Error on UTF-8 encode";
   }
-};
+}
 function dec_utf8(s) {
   try {
     return decodeURIComponent(escape(s));
   } catch (e) {
     throw "Bad Key";
   }
-};
+}
 function padBlock(byteArr) {
   var array = [],
     cpad,
@@ -46,7 +46,7 @@ function padBlock(byteArr) {
     array[i] = byteArr[i];
   }
   return array;
-};
+}
 function block2s(block, lastBlock) {
   var string = "",
     padding,
@@ -68,7 +68,7 @@ function block2s(block, lastBlock) {
     }
   }
   return string;
-};
+}
 function a2h(numArr) {
   var string = "",
     i;
@@ -76,14 +76,14 @@ function a2h(numArr) {
     string += (numArr[i] < 16 ? "0" : "") + numArr[i].toString(16);
   }
   return string;
-};
+}
 function h2a(s) {
   var ret = [];
   s.replace(/(..)/g, function (s) {
     ret.push(parseInt(s, 16));
   });
   return ret;
-};
+}
 function s2a(string, binary) {
   var array = [],
     i;
@@ -97,7 +97,7 @@ function s2a(string, binary) {
   }
 
   return array;
-};
+}
 function size(newsize) {
   switch (newsize) {
     case 128:
@@ -115,7 +115,7 @@ function size(newsize) {
     default:
       throw "Invalid Key Size Specified:" + newsize;
   }
-};
+}
 function randArr(num) {
   var result = [],
     i;
@@ -123,7 +123,7 @@ function randArr(num) {
     result = result.concat(Math.floor(Math.random() * 256));
   }
   return result;
-};
+}
 function openSSLKey(passwordArr, saltArr) {
   var rounds = Nr >= 12 ? 3 : 2,
     key = [],
@@ -144,7 +144,7 @@ function openSSLKey(passwordArr, saltArr) {
     key: key,
     iv: iv,
   };
-};
+}
 function rawEncrypt(plaintext, key, iv) {
   key = expandKey(key);
   var numBlocks = Math.ceil(plaintext.length / 16),
@@ -168,7 +168,7 @@ function rawEncrypt(plaintext, key, iv) {
     cipherBlocks[i] = encryptBlock(blocks[i], key);
   }
   return cipherBlocks;
-};
+}
 function rawDecrypt(cryptArr, key, iv, binary) {
   key = expandKey(key);
   var numBlocks = cryptArr.length / 16,
@@ -191,7 +191,7 @@ function rawDecrypt(cryptArr, key, iv, binary) {
   }
   string += block2s(plainBlocks[i], true);
   return binary ? string : dec_utf8(string);
-};
+}
 function encryptBlock(block, words) {
   Decrypt = false;
   var state = addRoundKey(block, words, 0),
@@ -206,7 +206,7 @@ function encryptBlock(block, words) {
   }
 
   return state;
-};
+}
 function decryptBlock(block, words) {
   Decrypt = true;
   var state = addRoundKey(block, words, Nr),
@@ -221,7 +221,7 @@ function decryptBlock(block, words) {
   }
 
   return state;
-};
+}
 function subBytes(state) {
   var S = Decrypt ? SBoxInv : SBox,
     temp = [],
@@ -230,7 +230,7 @@ function subBytes(state) {
     temp[i] = S[state[i]];
   }
   return temp;
-};
+}
 function shiftRows(state) {
   var temp = [],
     shiftBy = Decrypt
@@ -241,7 +241,7 @@ function shiftRows(state) {
     temp[i] = state[shiftBy[i]];
   }
   return temp;
-};
+}
 function mixColumns(state) {
   var t = [],
     c;
@@ -294,7 +294,7 @@ function mixColumns(state) {
   }
 
   return t;
-};
+}
 function addRoundKey(state, words, round) {
   var temp = [],
     i;
@@ -302,7 +302,7 @@ function addRoundKey(state, words, round) {
     temp[i] = state[i] ^ words[round][i];
   }
   return temp;
-};
+}
 function xorBlocks(block1, block2) {
   var temp = [],
     i;
@@ -310,7 +310,7 @@ function xorBlocks(block1, block2) {
     temp[i] = block1[i] ^ block2[i];
   }
   return temp;
-};
+}
 function expandKey(key) {
   var w = [],
     temp = [],
@@ -347,18 +347,18 @@ function expandKey(key) {
         w[i * 4 + j][0],
         w[i * 4 + j][1],
         w[i * 4 + j][2],
-        w[i * 4 + j][3]
+        w[i * 4 + j][3],
       );
     }
   }
   return flat;
-};
+}
 function subWord(w) {
   for (var i = 0; i < 4; i++) {
     w[i] = SBox[w[i]];
   }
   return w;
-};
+}
 function rotWord(w) {
   var tmp = w[0],
     i;
@@ -367,7 +367,7 @@ function rotWord(w) {
   }
   w[3] = tmp;
   return w;
-};
+}
 function strhex(str, size) {
   var i,
     ret = [];
@@ -375,7 +375,7 @@ function strhex(str, size) {
     ret[i / size] = parseInt(str.substr(i, size), 16);
   }
   return ret;
-};
+}
 function invertArr(arr) {
   var i,
     ret = [];
@@ -383,7 +383,7 @@ function invertArr(arr) {
     ret[arr[i]] = i;
   }
   return ret;
-};
+}
 function Gxx(a, b) {
   var i, ret;
 
@@ -395,7 +395,7 @@ function Gxx(a, b) {
   }
 
   return ret;
-};
+}
 function Gx(x) {
   var i,
     r = [];
@@ -403,15 +403,15 @@ function Gx(x) {
     r[i] = Gxx(x, i);
   }
   return r;
-};
+}
 var SBox = strhex(
   "637c777bf26b6fc53001672bfed7ab76ca82c97dfa5947f0add4a2af9ca472c0b7fd9326363ff7cc34a5e5f171d8311504c723c31896059a071280e2eb27b27509832c1a1b6e5aa0523bd6b329e32f8453d100ed20fcb15b6acbbe394a4c58cfd0efaafb434d338545f9027f503c9fa851a3408f929d38f5bcb6da2110fff3d2cd0c13ec5f974417c4a77e3d645d197360814fdc222a908846eeb814de5e0bdbe0323a0a4906245cc2d3ac629195e479e7c8376d8dd54ea96c56f4ea657aae08ba78252e1ca6b4c6e8dd741f4bbd8b8a703eb5664803f60e613557b986c11d9ee1f8981169d98e949b1e87e9ce5528df8ca1890dbfe6426841992d0fb054bb16",
-  2
+  2,
 );
 var SBoxInv = invertArr(SBox);
 var Rcon = strhex(
   "01020408102040801b366cd8ab4d9a2f5ebc63c697356ad4b37dfaefc591",
-  2
+  2,
 );
 var G2X = Gx(2);
 var G3X = Gx(3);
@@ -431,7 +431,7 @@ function enc(string, pass, binary) {
 
   cipherBlocks = saltBlock.concat(cipherBlocks);
   return Base64.encode(cipherBlocks);
-};
+}
 function dec(string, pass, binary) {
   var cryptArr = Base64.decode(string),
     salt = cryptArr.slice(8, 16),
@@ -442,7 +442,7 @@ function dec(string, pass, binary) {
 
   string = rawDecrypt(cryptArr, key, iv, binary);
   return string;
-};
+}
 function MD5(numArr) {
   function rotateLeft(lValue, iShiftBits) {
     return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits));
@@ -550,7 +550,7 @@ function MD5(numArr) {
     d,
     rnd = strhex(
       "67452301efcdab8998badcfe10325476d76aa478e8c7b756242070dbc1bdceeef57c0faf4787c62aa8304613fd469501698098d88b44f7afffff5bb1895cd7be6b901122fd987193a679438e49b40821f61e2562c040b340265e5a51e9b6c7aad62f105d02441453d8a1e681e7d3fbc821e1cde6c33707d6f4d50d87455a14eda9e3e905fcefa3f8676f02d98d2a4c8afffa39428771f6816d9d6122fde5380ca4beea444bdecfa9f6bb4b60bebfbc70289b7ec6eaa127fad4ef308504881d05d9d4d039e6db99e51fa27cf8c4ac5665f4292244432aff97ab9423a7fc93a039655b59c38f0ccc92ffeff47d85845dd16fa87e4ffe2ce6e0a30143144e0811a1f7537e82bd3af2352ad7d2bbeb86d391",
-      8
+      8,
     );
 
   x = convertToWordArray(numArr);
@@ -636,7 +636,7 @@ function MD5(numArr) {
   }
 
   return wordToHex(a).concat(wordToHex(b), wordToHex(c), wordToHex(d));
-};
+}
 // function encString (plaintext, key, iv) {
 //   var i;
 //   plaintext = s2a(plaintext, false);
@@ -745,7 +745,7 @@ function MD5(numArr) {
 const Base64 = {
   encode: function (b) {
     var _chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
       chars = _chars.split(""),
       flatArr = [],
       b64 = "",
@@ -780,7 +780,7 @@ const Base64 = {
   decode: function (string) {
     string = string.replace(/\n/g, "");
     var _chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
       chars = _chars.split(""),
       flatArr = [],
       c = [],
@@ -799,7 +799,7 @@ const Base64 = {
     }
     flatArr = flatArr.slice(0, flatArr.length - (flatArr.length % 16));
     return flatArr;
-  }
-}
+  },
+};
 
 export { enc, dec };

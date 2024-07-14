@@ -1,17 +1,30 @@
-navigator.serviceWorker.register("./sw.js", {
-  scope: $scramjet.config.prefix
-}).then((reg) => {
-  reg.update();
-});
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
-const flex = css`display: flex;`;
-const col = css`flex-direction: column;`;
-const store = $store({
-  url: "https://google.com",
-  wispurl: "wss://wisp.mercurywork.shop/",
-  bareurl: (location.protocol === "https:" ? "https" : "http") + "://" + location.host + "/bare/",
-}, { ident: "settings", backing: "localstorage", autosave: "auto" });
-connection.setTransport("/baremod/index.mjs", [store.bareurl])
+navigator.serviceWorker
+  .register("./sw.js", {
+    scope: $scramjet.config.prefix,
+  })
+  .then((reg) => {
+    reg.update();
+  });
+const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+const flex = css`
+  display: flex;
+`;
+const col = css`
+  flex-direction: column;
+`;
+const store = $store(
+  {
+    url: "https://google.com",
+    wispurl: "wss://wisp.mercurywork.shop/",
+    bareurl:
+      (location.protocol === "https:" ? "https" : "http") +
+      "://" +
+      location.host +
+      "/bare/",
+  },
+  { ident: "settings", backing: "localstorage", autosave: "auto" },
+);
+connection.setTransport("/baremod/index.mjs", [store.bareurl]);
 function App() {
   this.urlencoded = "";
   this.css = `
@@ -90,12 +103,12 @@ function App() {
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
       </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log(this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value))}></input>
+      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value)))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
-    `
+    `;
 }
 
 window.addEventListener("load", () => {
-  document.body.appendChild(h(App))
-})
+  document.body.appendChild(h(App));
+});

@@ -1,52 +1,50 @@
 import { encodeUrl } from "./url";
 import { BareHeaders } from "@mercuryworkshop/bare-mux";
 const cspHeaders = [
-    "cross-origin-embedder-policy",
-    "cross-origin-opener-policy",
-    "cross-origin-resource-policy",
-    "content-security-policy",
-    "content-security-policy-report-only",
-    "expect-ct",
-    "feature-policy",
-    "origin-isolation",
-    "strict-transport-security",
-    "upgrade-insecure-requests",
-    "x-content-type-options",
-    "x-download-options",
-    "x-frame-options",
-    "x-permitted-cross-domain-policies",
-    "x-powered-by",
-    "x-xss-protection",
-    // This needs to be emulated, but for right now it isn't that important of a feature to be worried about
-    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
-    "clear-site-data"
+  "cross-origin-embedder-policy",
+  "cross-origin-opener-policy",
+  "cross-origin-resource-policy",
+  "content-security-policy",
+  "content-security-policy-report-only",
+  "expect-ct",
+  "feature-policy",
+  "origin-isolation",
+  "strict-transport-security",
+  "upgrade-insecure-requests",
+  "x-content-type-options",
+  "x-download-options",
+  "x-frame-options",
+  "x-permitted-cross-domain-policies",
+  "x-powered-by",
+  "x-xss-protection",
+  // This needs to be emulated, but for right now it isn't that important of a feature to be worried about
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
+  "clear-site-data",
 ];
 
-const urlHeaders = [
-    "location",
-    "content-location",
-    "referer"
-];
+const urlHeaders = ["location", "content-location", "referer"];
 
 export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
-    const headers = {};
+  const headers = {};
 
-    for (const key in rawHeaders) {
-        headers[key.toLowerCase()] = rawHeaders[key];
-    }
+  for (const key in rawHeaders) {
+    headers[key.toLowerCase()] = rawHeaders[key];
+  }
 
-    cspHeaders.forEach((header) => {
-        delete headers[header];
-    });
+  cspHeaders.forEach((header) => {
+    delete headers[header];
+  });
 
-    urlHeaders.forEach((header) => {
-        if (headers[header])
-            headers[header] = encodeUrl(headers[header] as string, origin);
-    });
+  urlHeaders.forEach((header) => {
+    if (headers[header])
+      headers[header] = encodeUrl(headers[header] as string, origin);
+  });
 
-    if (headers["link"]) {
-        headers["link"] = headers["link"].replace(/<(.*?)>/gi, (match) => encodeUrl(match, origin));
-    }
+  if (headers["link"]) {
+    headers["link"] = headers["link"].replace(/<(.*?)>/gi, (match) =>
+      encodeUrl(match, origin),
+    );
+  }
 
-    return headers;
+  return headers;
 }

@@ -6,16 +6,16 @@ import "./location.ts";
 import "./trustedTypes.ts";
 import "./requests/fetch.ts";
 import "./requests/xmlhttprequest.ts";
-import "./requests/websocket.ts"
+import "./requests/websocket.ts";
 import "./element.ts";
 import "./storage.ts";
 import "./css.ts";
-import "./history.ts"
+import "./history.ts";
 import "./worker.ts";
 import "./url.ts";
 
 declare global {
-    interface Window {
-        $s: any;
-    }
+  interface Window {
+    $s: any;
+  }
 }

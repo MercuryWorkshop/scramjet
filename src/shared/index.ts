@@ -8,24 +8,24 @@ import { isScramjetFile } from "./rewriters/html";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 
 if (!self.$scramjet) {
-    //@ts-expect-error really dumb workaround
-    self.$scramjet = {}
+  //@ts-expect-error really dumb workaround
+  self.$scramjet = {};
 }
 self.$scramjet.shared = {
-    util: {
-        isScramjetFile,
-        BareClient
-    },
-    url: {
-        encodeUrl,
-        decodeUrl,
-    },
-    rewrite: {
-        rewriteCss,
-        rewriteHtml,
-        rewriteSrcset,
-        rewriteJs,
-        rewriteHeaders,
-        rewriteWorkers,
-    }
-}
+  util: {
+    isScramjetFile,
+    BareClient,
+  },
+  url: {
+    encodeUrl,
+    decodeUrl,
+  },
+  rewrite: {
+    rewriteCss,
+    rewriteHtml,
+    rewriteSrcset,
+    rewriteJs,
+    rewriteHeaders,
+    rewriteWorkers,
+  },
+};
