@@ -1,12 +1,18 @@
 export const { 
-    encodeUrl, 
-    decodeUrl, 
-    rewriteHeaders, 
-    rewriteHtml, 
-    rewriteSrcset, 
-    rewriteJs,
-    rewriteCss, 
-    rewriteWorkers, 
-    isScramjetFile, 
-    BareClient
+    util: {
+        isScramjetFile,
+        BareClient
+    },
+    url: {
+        encodeUrl,
+        decodeUrl,
+    },
+    rewrite: {
+        rewriteCss,
+        rewriteHtml,
+        rewriteSrcset,
+        rewriteJs,
+        rewriteHeaders,
+        rewriteWorkers,
+    }
 } = self.$scramjet.shared;

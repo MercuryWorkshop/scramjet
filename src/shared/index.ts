@@ -12,14 +12,20 @@ if (!self.$scramjet) {
     self.$scramjet = {}
 }
 self.$scramjet.shared = {
-    encodeUrl,
-    decodeUrl,
-    rewriteCss,
-    rewriteHtml,
-    rewriteSrcset,
-    rewriteJs,
-    rewriteHeaders,
-    rewriteWorkers,
-    isScramjetFile,
-    BareClient
+    util: {
+        isScramjetFile,
+        BareClient
+    },
+    url: {
+        encodeUrl,
+        decodeUrl,
+    },
+    rewrite: {
+        rewriteCss,
+        rewriteHtml,
+        rewriteSrcset,
+        rewriteJs,
+        rewriteHeaders,
+        rewriteWorkers,
+    }
 }

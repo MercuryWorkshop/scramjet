@@ -12,16 +12,22 @@ declare global {
     interface Window {
         $scramjet: {
             shared: {
-                encodeUrl: typeof encodeUrl,
-                decodeUrl: typeof decodeUrl,
-                rewriteCss: typeof rewriteCss,
-                rewriteHtml: typeof rewriteHtml,
-                rewriteSrcset: typeof rewriteSrcset,
-                rewriteJs: typeof rewriteJs,
-                rewriteHeaders: typeof rewriteHeaders,
-                rewriteWorkers: typeof rewriteWorkers,
-                BareClient: typeof BareClient,
-                isScramjetFile: typeof isScramjetFile,
+                url: {
+                    encodeUrl: typeof encodeUrl,
+                    decodeUrl: typeof decodeUrl,
+                }
+                rewrite: {
+                    rewriteCss: typeof rewriteCss,
+                    rewriteHtml: typeof rewriteHtml,
+                    rewriteSrcset: typeof rewriteSrcset,
+                    rewriteJs: typeof rewriteJs,
+                    rewriteHeaders: typeof rewriteHeaders,
+                    rewriteWorkers: typeof rewriteWorkers,
+                }
+                util: {
+                    BareClient: typeof BareClient,
+                    isScramjetFile: typeof isScramjetFile,
+                }
             }
             config: {
                 prefix: string;
