@@ -47,7 +47,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
                 switch (request.destination) {
                 case "iframe":
                 case "document":
-                    if (responseHeaders["content-type"].startsWith("text/html")) {
+                    if (responseHeaders["content-type"].toString().startsWith("text/html")) {
                         responseBody = rewriteHtml(await response.text(), url);
                     } else {
                         responseBody = response.body;
