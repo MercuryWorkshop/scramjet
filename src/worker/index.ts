@@ -1,6 +1,6 @@
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import { encodeUrl, decodeUrl, rewriteCss, rewriteHeaders, rewriteHtml, rewriteJs } from "../shared";
+import { encodeUrl, decodeUrl, rewriteCss, rewriteHeaders, rewriteHtml, rewriteJs, rewriteWorkers } from "../shared";
 
 declare global {
     interface Window {
@@ -62,6 +62,7 @@ export default class ScramjetServiceWorker {
                     break;
                 case "sharedworker":
                 case "worker":
+                    responseBody = rewriteWorkers(await response.text(), url);
                     break;
                 default:
                     responseBody = response.body;

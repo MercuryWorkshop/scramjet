@@ -11,3 +11,21 @@ Worker = new Proxy(Worker, {
         return Reflect.construct(target, argArray);
     }
 })
+
+Worklet.prototype.addModule = new Proxy(Worklet.prototype.addModule, {
+    apply(target, thisArg, argArray) {
+        argArray[0] = encodeUrl(argArray[0])
+
+        return Reflect.apply(target, thisArg, argArray);
+    },
+});
+
+window.importScripts = new Proxy(window.importScripts, {
+    apply(target, thisArg, argArray) {
+        for (const i in argArray) {
+            argArray[i] = encodeUrl(argArray[i]);
+        }
+
+        return Reflect.apply(target, thisArg, argArray);
+    },
+});

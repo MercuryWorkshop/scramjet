@@ -3,6 +3,7 @@ export { rewriteCss } from "./rewriters/css";
 export { rewriteHtml, rewriteSrcset } from "./rewriters/html";
 export { rewriteJs } from "./rewriters/js";
 export { rewriteHeaders } from "./rewriters/headers";
+export { rewriteWorkers } from "./rewriters/worker"
 export { BareClient } from "@mercuryworkshop/bare-mux"
 
 export function isScramjetFile(src: string) {
