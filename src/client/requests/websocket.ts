@@ -1,5 +1,6 @@
-import { BareClient } from "@mercuryworkshop/bare-mux"
-const client = new BareClient()
+import { BareClient } from "../index";
+const client = new BareClient();
+
 WebSocket = new Proxy(WebSocket, {
     construct(target, args) {
         return client.createWebSocket(
@@ -12,4 +13,4 @@ WebSocket = new Proxy(WebSocket, {
             ArrayBuffer.prototype
         )
     }
-});
+})

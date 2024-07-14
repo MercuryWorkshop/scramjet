@@ -1,4 +1,4 @@
-import { encodeUrl, rewriteHeaders } from "../../shared";
+import { encodeUrl, rewriteHeaders } from "../index";
 
 XMLHttpRequest.prototype.open = new Proxy(XMLHttpRequest.prototype.open, {
     apply(target, thisArg, argArray) {

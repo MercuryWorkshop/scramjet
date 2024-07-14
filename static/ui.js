@@ -1,6 +1,5 @@
 navigator.serviceWorker.register("./sw.js", {
-    scope: __scramjet$config.prefix,
-    type: "module"
+    scope: __scramjet$config.prefix
 })
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
 const flex = css`display: flex;`;

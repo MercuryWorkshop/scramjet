@@ -1,4 +1,4 @@
-import { rewriteHtml, rewriteJs, encodeUrl } from "../shared";
+import { rewriteHtml, rewriteJs, encodeUrl } from "./index";
 
 // @ts-expect-error
 trustedTypes.createPolicy = new Proxy(trustedTypes.createPolicy, {

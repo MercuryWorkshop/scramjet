@@ -1,6 +1,4 @@
-import { BareClient } from "@mercuryworkshop/bare-mux";
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import { encodeUrl, decodeUrl, rewriteCss, rewriteHeaders, rewriteHtml, rewriteJs, rewriteWorkers } from "../shared";
 
 declare global {
     interface Window {
@@ -8,11 +6,11 @@ declare global {
     }
 }
 
-export default class ScramjetServiceWorker {
-    client: typeof BareClient.prototype;
+self.ScramjetServiceWorker = class ScramjetServiceWorker {
+    client: typeof self.__scramjet$bundle.BareClient.prototype;
     config: typeof self.__scramjet$config;
     constructor(config = self.__scramjet$config) {
-        this.client = new BareClient();
+        this.client = new self.__scramjet$bundle.BareClient();
         if (!config.prefix) config.prefix = "/scramjet/";
         this.config = config;
     }
@@ -24,6 +22,7 @@ export default class ScramjetServiceWorker {
 
     async fetch({ request }: FetchEvent) {
         const urlParam = new URLSearchParams(new URL(request.url).search);
+        const { encodeUrl, decodeUrl, rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } = self.__scramjet$bundle;
 
         if (urlParam.has("url")) {
             return Response.redirect(encodeUrl(urlParam.get("url"), new URL(urlParam.get("url"))))

@@ -4,10 +4,8 @@ import { createServer } from "http";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
-import fs from "node:fs"
 import { spawn } from "node:child_process"
 import { fileURLToPath } from "node:url";
-import { loadConfigFile } from "rollup/loadConfigFile"
 
 //transports
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node"
@@ -71,7 +69,7 @@ fastify.listen({
     port: process.env.PORT || 1337
 });
 
-const watch = spawn("rollup", ["-c", "-w"], { detached: true });
+const watch = spawn("pnpm", ["rollup", "-c", "-w"], { detached: true, cwd: process.cwd() });
 
 watch.stdout.on("data", (data) => {
     console.log(`${data}`);

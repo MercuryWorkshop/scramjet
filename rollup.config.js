@@ -1,5 +1,5 @@
 import typescript from "rollup-plugin-typescript2";
-import { nodeResolve } from '@rollup/plugin-node-resolve';
+import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { join } from "node:path";
 import fs from "node:fs" 
 import { fileURLToPath } from "node:url";
@@ -27,8 +27,8 @@ export default {
     output: {
         entryFileNames: "scramjet.[name].js",
         dir: "./dist",
-        format: "esm",
+        // format: "amd",
         sourcemap: true,
-        compact: production,
-    },
+        compact: production
+    }
 };

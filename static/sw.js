@@ -1,6 +1,9 @@
-import ScramjetServiceWorker from "/scram/scramjet.worker.js";
-import "/scram/scramjet.codecs.js";
-import "/scram/scramjet.config.js";
+importScripts(
+    "/scram/scramjet.codecs.js",
+    "/scram/scramjet.config.js",
+    "/scram/scramjet.shared.js",
+    "/scram/scramjet.worker.js"
+);
 
 const scramjet = new ScramjetServiceWorker();
 

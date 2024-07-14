@@ -1,4 +1,4 @@
-import { rewriteJs } from "../../shared";
+import { rewriteJs } from "../index";
 
 const FunctionProxy = new Proxy(Function, {
     construct(target, argArray) {

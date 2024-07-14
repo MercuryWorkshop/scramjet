@@ -1,4 +1,4 @@
-import { encodeUrl } from "../shared";
+import { encodeUrl } from "./index";
 
 Worker = new Proxy(Worker, {
     construct(target, argArray) {

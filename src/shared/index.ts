@@ -1,16 +1,38 @@
-export { encodeUrl, decodeUrl } from "./rewriters/url";
-export { rewriteCss } from "./rewriters/css";
-export { rewriteHtml, rewriteSrcset } from "./rewriters/html";
-export { rewriteJs } from "./rewriters/js";
-export { rewriteHeaders } from "./rewriters/headers";
-export { rewriteWorkers } from "./rewriters/worker"
-export { BareClient } from "@mercuryworkshop/bare-mux"
+import { encodeUrl, decodeUrl } from "./rewriters/url";
+import { rewriteCss } from "./rewriters/css";
+import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
+import { rewriteJs } from "./rewriters/js";
+import { rewriteHeaders } from "./rewriters/headers";
+import { rewriteWorkers } from "./rewriters/worker";
+import { isScramjetFile } from "./rewriters/html";
+import { BareClient } from "@mercuryworkshop/bare-mux";
 
-export function isScramjetFile(src: string) {
-    let bool = false;
-    ["codecs", "client", "shared", "worker", "config"].forEach((file) => {
-        if (src === self.__scramjet$config[file]) bool = true;
-    });
+declare global {
+    interface Window {
+        __scramjet$bundle: {
+            encodeUrl: typeof encodeUrl;
+            decodeUrl: typeof decodeUrl;
+            rewriteCss: typeof rewriteCss;
+            rewriteHtml: typeof rewriteHtml;
+            rewriteSrcset: typeof rewriteSrcset;
+            rewriteJs: typeof rewriteJs;
+            rewriteHeaders: typeof rewriteHeaders;
+            rewriteWorkers: typeof rewriteWorkers;
+            BareClient: typeof BareClient;
+            isScramjetFile: typeof isScramjetFile
+        }
+    }
+}
 
-    return bool;
+self.__scramjet$bundle = {
+    encodeUrl,
+    decodeUrl,
+    rewriteCss,
+    rewriteHtml,
+    rewriteSrcset,
+    rewriteJs,
+    rewriteHeaders,
+    rewriteWorkers,
+    isScramjetFile,
+    BareClient
 }
