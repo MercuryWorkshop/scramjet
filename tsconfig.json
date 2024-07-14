@@ -1,10 +1,10 @@
 {
-  "compilerOptions": {
-    // "allowJs": true,
-    "rootDir": "./src",
-    "target": "ES2022",
-    "moduleResolution": "Bundler",
-    "module": "ES2022"
-  },
-  "include": ["src"]
+	"compilerOptions": {
+		// "allowJs": true,
+		"rootDir": "./src",
+		"target": "ES2022",
+		"moduleResolution": "Bundler",
+		"module": "ES2022"
+	},
+	"include": ["src"]
 }

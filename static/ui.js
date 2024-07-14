@@ -1,33 +1,33 @@
 navigator.serviceWorker
-  .register("./sw.js", {
-    scope: $scramjet.config.prefix,
-  })
-  .then((reg) => {
-    reg.update();
-  });
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+	.register("./sw.js", {
+		scope: $scramjet.config.prefix,
+	})
+	.then((reg) => {
+		reg.update()
+	})
+const connection = new BareMux.BareMuxConnection("/baremux/worker.js")
 const flex = css`
-  display: flex;
-`;
+	display: flex;
+`
 const col = css`
-  flex-direction: column;
-`;
+	flex-direction: column;
+`
 const store = $store(
-  {
-    url: "https://google.com",
-    wispurl: "wss://wisp.mercurywork.shop/",
-    bareurl:
-      (location.protocol === "https:" ? "https" : "http") +
-      "://" +
-      location.host +
-      "/bare/",
-  },
-  { ident: "settings", backing: "localstorage", autosave: "auto" },
-);
-connection.setTransport("/baremod/index.mjs", [store.bareurl]);
+	{
+		url: "https://google.com",
+		wispurl: "wss://wisp.mercurywork.shop/",
+		bareurl:
+			(location.protocol === "https:" ? "https" : "http") +
+			"://" +
+			location.host +
+			"/bare/",
+	},
+	{ ident: "settings", backing: "localstorage", autosave: "auto" }
+)
+connection.setTransport("/baremod/index.mjs", [store.bareurl])
 function App() {
-  this.urlencoded = "";
-  this.css = `
+	this.urlencoded = ""
+	this.css = `
     width: 100%;
     height: 100%;
     color: #e0def4;
@@ -84,9 +84,9 @@ function App() {
       outline: none;
       padding: 0.45em;
     }
-  `;
+  `
 
-  return html`
+	return html`
       <div>
       <h1>Percury Unblocker</h1>
       <p>surf the unblocked and mostly buggy web</p>
@@ -106,9 +106,9 @@ function App() {
       <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value)))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
-    `;
+    `
 }
 
 window.addEventListener("load", () => {
-  document.body.appendChild(h(App));
-});
+	document.body.appendChild(h(App))
+})
