@@ -1,3 +1,4 @@
+import { decodeUrl } from "../shared/rewriters/url";
 import { encodeUrl, rewriteCss, rewriteHtml, rewriteJs, rewriteSrcset } from "./shared";
 
 const attrObject = {
@@ -21,11 +22,20 @@ for (const attr of attrs) {
         const descriptor = Object.getOwnPropertyDescriptor(element.prototype, attr);
         Object.defineProperty(element.prototype, attr, {
             get() {
-                return this.dataset[attr];
+                if (/src|href|data|action|formaction/.test(attr)) {
+                    return decodeUrl(descriptor.get.call(this));
+                }
+
+                if (this.__origattrs[attr]) {
+                    return this.__origattrs[attr];
+                }
+
+                return descriptor.get.call(this);
             },
 
             set(value) {
-                this.dataset[attr] = value;
+                this.__origattrs[attr] = value;
+
                 if (/nonce|integrity|csp/.test(attr)) {
                     return;
                 } else if (/src|href|data|action|formaction/.test(attr)) {
@@ -47,10 +57,18 @@ for (const attr of attrs) {
     }
 }
 
+declare global {
+    interface Element {
+        __origattrs: Record<string, string>;
+    }
+}
+
+Element.prototype.__origattrs = {};
+
 Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
     apply(target, thisArg, argArray) {
-        if (attrs.includes(argArray[0]) && thisArg.dataset[argArray[0]]) {
-            return thisArg.dataset[argArray[0]];
+        if (attrs.includes(argArray[0]) && thisArg.__origattrs[argArray[0]]) {
+            return thisArg.__origattrs[argArray[0]];
         }
 
         return Reflect.apply(target, thisArg, argArray);
@@ -60,11 +78,10 @@ Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
 Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
     apply(target, thisArg, argArray) {
         if (attrs.includes(argArray[0])) {
-            thisArg.dataset[argArray[0]] = argArray[1];
+            thisArg.__origattrs[argArray[0]] = argArray[1];
             if (/nonce|integrity|csp/.test(argArray[0])) {
                 return;
             } else if (/src|href|data|action|formaction/.test(argArray[0])) {
-                console.log(thisArg);
                 argArray[1] = encodeUrl(argArray[1]);
             } else if (argArray[0] === "srcdoc") {
                 argArray[1] = rewriteHtml(argArray[1]);
@@ -88,7 +105,7 @@ Object.defineProperty(Element.prototype, "innerHTML", {
             value = rewriteJs(value);
         } else if (this instanceof HTMLStyleElement) {
             value = rewriteCss(value);
-        // @ts-expect-error
+            // @ts-expect-error
         } else if (!(value instanceof TrustedHTML)) {
             value = rewriteHtml(value);
         }
