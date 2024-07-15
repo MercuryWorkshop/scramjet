@@ -47,5 +47,6 @@ declare global {
 				xor: Codec;
 			};
 		};
+		WASM: string;
 	}
 }
