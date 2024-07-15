@@ -1,5 +1,7 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
 import IDBMap from "@webreflection/idb-map";
+import { ParseResultType } from "parse-domain";
+import { parse } from "path";
 
 declare global {
 	interface Window {
@@ -33,6 +35,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 			rewriteCss,
 			rewriteWorkers,
 		} = self.$scramjet.shared.rewrite;
+		const { parseDomain } = self.$scramjet.shared.util;
 
 		if (urlParam.has("url")) {
 			return Response.redirect(
@@ -69,23 +72,45 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 				let [key, value] = cookieParsed.shift();
 				value = value.replace('"', "");
 
-				const hostArg = cookieParsed.find(
-					(x) => x[0].toLowerCase() === "domain"
-				);
-				cookieParsed = cookieParsed.filter(
-					(x) => x[0].toLowerCase() !== "domain"
-				);
+				const hostArg = cookieParsed.find((x) => x[0] === "Domain");
+				cookieParsed = cookieParsed.filter((x) => x[0] !== "Domain");
 				let host = hostArg ? hostArg[1] : undefined;
+
+				if (url.protocol === "http" && cookieParsed.includes(["Secure"]))
+					continue;
+				if (
+					cookieParsed.includes(["SameSite", "None"]) &&
+					!cookieParsed.includes(["Secure"])
+				)
+					continue;
 
 				if (host && host !== url.host) {
 					if (host.startsWith(".")) host = host.slice(1);
+					const urlDomain = parseDomain(url.hostname);
+
+					if (urlDomain.type === ParseResultType.Listed) {
+						const { subDomains: _, domain, topLevelDomains } = urlDomain;
+						if (!host.endsWith([domain, ...topLevelDomains].join(".")))
+							continue;
+					} else {
+						continue;
+					}
+
 					const realCookieStore = new IDBMap(host, {
 						durability: "relaxed",
 						prefix: "Cookies",
 					});
-					realCookieStore.set(key, { value: value, args: cookieParsed });
+					realCookieStore.set(key, {
+						value: value,
+						args: cookieParsed,
+						subdomain: true,
+					});
 				} else {
-					cookieStore.set(key, { value: value, args: cookieParsed });
+					cookieStore.set(key, {
+						value: value,
+						args: cookieParsed,
+						subdomain: false,
+					});
 				}
 			}
 

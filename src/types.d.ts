@@ -7,6 +7,7 @@ import { rewriteWorkers } from "./shared/rewriters/worker";
 import { isScramjetFile } from "./shared/rewriters/html";
 import type { Codec } from "./codecs";
 import { BareClient } from "@mercuryworkshop/bare-mux";
+import { parseDomain } from "parse-domain";
 
 declare global {
 	interface Window {
@@ -27,6 +28,7 @@ declare global {
 				util: {
 					BareClient: typeof BareClient;
 					isScramjetFile: typeof isScramjetFile;
+					parseDomain: typeof parseDomain;
 				};
 			};
 			config: {

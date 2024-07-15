@@ -6,6 +6,7 @@ import { rewriteHeaders } from "./rewriters/headers";
 import { rewriteWorkers } from "./rewriters/worker";
 import { isScramjetFile } from "./rewriters/html";
 import { BareClient } from "@mercuryworkshop/bare-mux";
+import { parseDomain } from "parse-domain";
 
 if (!self.$scramjet) {
 	//@ts-expect-error really dumb workaround
@@ -14,6 +15,7 @@ if (!self.$scramjet) {
 self.$scramjet.shared = {
 	util: {
 		isScramjetFile,
+		parseDomain,
 		BareClient,
 	},
 	url: {
