@@ -1,8 +1,8 @@
-import { parseModule } from "meriyah";
-import { generate } from "astring";
-import { makeTraveler } from "astravel";
-import { encodeUrl } from "./url";
-import * as ESTree from "estree";
+// import { parseModule } from "meriyah";
+// import { generate } from "astring";
+// import { makeTraveler } from "astravel";
+// import { encodeUrl } from "./url";
+// import * as ESTree from "estree";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
 
@@ -19,9 +19,11 @@ import * as ESTree from "estree";
 import init, { rewrite_js } from "../../../rewriter/out/rewriter.js";
 init("/rewriter_bg.wasm");
 
-export function rewriteJs(js: string, origin?: URL) {
-	let f = rewrite_js(js);
+// Also can take in origin?: URL
+export function rewriteJs(js: string) {
+	const f = rewrite_js(js);
 	console.log(f)
+
 	return f
 }
 // try {

@@ -1,7 +1,7 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
 import IDBMap from "@webreflection/idb-map";
 import { ParseResultType } from "parse-domain";
-import { parse } from "path";
+// import { parse } from "path";
 
 declare global {
 	interface Window {
@@ -70,7 +70,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 				let cookieParsed = cookie.split(";").map((x) => x.trim().split("="));
 
 				let [key, value] = cookieParsed.shift();
-				value = value.replace('"', "");
+				value = value.replace("\"", "");
 
 				const hostArg = cookieParsed.find((x) => x[0] === "Domain");
 				cookieParsed = cookieParsed.filter((x) => x[0] !== "Domain");
@@ -89,7 +89,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 					const urlDomain = parseDomain(url.hostname);
 
 					if (urlDomain.type === ParseResultType.Listed) {
-						const { subDomains: _, domain, topLevelDomains } = urlDomain;
+						const { subDomains: domain, topLevelDomains } = urlDomain;
 						if (!host.endsWith([domain, ...topLevelDomains].join(".")))
 							continue;
 					} else {
@@ -114,7 +114,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 				}
 			}
 
-			for (let header in responseHeaders) {
+			for (const header in responseHeaders) {
 				// flatten everything past here
 				if (responseHeaders[header] instanceof Array)
 					responseHeaders[header] = responseHeaders[header][0];
@@ -135,7 +135,8 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 						}
 						break;
 					case "script":
-						responseBody = rewriteJs(await response.text(), url);
+						// responseBody = rewriteJs(await response.text(), url);
+						responseBody = rewriteJs(await response.text());
 						break;
 					case "style":
 						responseBody = rewriteCss(await response.text(), url);

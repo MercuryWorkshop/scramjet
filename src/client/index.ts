@@ -13,7 +13,7 @@ import "./css.ts";
 import "./history.ts";
 import "./worker.ts";
 import "./url.ts";
-import "./beacon.ts";
+import "./beacon.ts"
 
 declare global {
 	interface Window {
