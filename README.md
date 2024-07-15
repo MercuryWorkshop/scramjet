@@ -1,4 +1,8 @@
-# Scramjet
+<div align="center">
+  <img src="assets/scramjet.png" height="200" />
+</div>
+
+---
 
 Scramjet is an experimental web proxy that aims to be the successor to Ultraviolet.
 
@@ -18,5 +22,3 @@ Running `pnpm dev` will build Scramjet and start a dev server on localhost:1337.
 - Finish JS rewriting
   - Check imports/exports for values contained in the `importmap` array, don't rewrite the node value if present
 - Write client APIs
-- Fix `Illegal Invocation` when calling `addEventListener()` on the window proxy
-- Get rid of ESM builds and pollute the global namespace (maybe?)
