@@ -7,3 +7,5 @@ static/curl-client.js
 static/epoxy-client.js
 static/bare-mux-worker.js
 meta.json
+rewriter/target
+rewriter/out

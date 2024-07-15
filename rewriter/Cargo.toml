@@ -1,0 +1,15 @@
+[package]
+name = "rewriter"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+oxc_allocator = "0.20.0"
+oxc_ast = { version = "0.20.0", features = ["serialize"]}
+oxc_parser = { version = "0.20.0" }
+oxc_span = "0.20.0"
+oxc_syntax = "0.20.0"
+wasm-bindgen = "0.2.92"
