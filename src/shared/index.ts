@@ -1,16 +1,33 @@
-export { encodeUrl, decodeUrl } from "./rewriters/url";
-export { rewriteCss } from "./rewriters/css";
-export { rewriteHtml, rewriteSrcset } from "./rewriters/html";
-export { rewriteJs } from "./rewriters/js";
-export { rewriteHeaders } from "./rewriters/headers";
-export { rewriteWorkers } from "./rewriters/worker"
-export { BareClient } from "@mercuryworkshop/bare-mux"
+import { encodeUrl, decodeUrl } from "./rewriters/url";
+import { rewriteCss } from "./rewriters/css";
+import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
+import { rewriteJs } from "./rewriters/js";
+import { rewriteHeaders } from "./rewriters/headers";
+import { rewriteWorkers } from "./rewriters/worker";
+import { isScramjetFile } from "./rewriters/html";
+import { BareClient } from "@mercuryworkshop/bare-mux";
+import { parseDomain } from "parse-domain";
 
-export function isScramjetFile(src: string) {
-    let bool = false;
-    ["codecs", "client", "shared", "worker", "config"].forEach((file) => {
-        if (src === self.__scramjet$config[file]) bool = true;
-    });
-
-    return bool;
+if (!self.$scramjet) {
+	//@ts-expect-error really dumb workaround
+	self.$scramjet = {};
 }
+self.$scramjet.shared = {
+	util: {
+		isScramjetFile,
+		parseDomain,
+		BareClient,
+	},
+	url: {
+		encodeUrl,
+		decodeUrl,
+	},
+	rewrite: {
+		rewriteCss,
+		rewriteHtml,
+		rewriteSrcset,
+		rewriteJs,
+		rewriteHeaders,
+		rewriteWorkers,
+	},
+};

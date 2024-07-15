@@ -4,7 +4,7 @@
 // window.addEventListener = new Proxy(window.addEventListener, {
 //     apply (target, thisArg, argArray) {
 //         //
-        
+
 //         return Reflect.apply(target, thisArg, argArray);
 //     }
 // })
