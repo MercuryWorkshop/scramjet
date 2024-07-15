@@ -1,3 +1,4 @@
+import { encodeUrl } from "../shared/rewriters/url";
 import { locationProxy } from "./location";
 
 export const windowProxy = new Proxy(window, {
@@ -26,8 +27,12 @@ export const windowProxy = new Proxy(window, {
 
 
 		// this is bad! i don't know what the right thing to do is
-		if (typeof value === "function" && value != Object) {
-			return value.bind(target);
+		if (typeof value === "function") {
+			return new Proxy(value, {
+				apply(_target, thisArg, argArray) {
+					return value.apply(window, argArray);
+				},
+			});
 		}
 
 		return value;
@@ -60,9 +65,24 @@ export const documentProxy = new Proxy(document, {
 		const value = Reflect.get(target, prop);
 
 		if (typeof value === "function") {
-			return value.bind(target);
+			return new Proxy(value, {
+				apply(_target, thisArg, argArray) {
+					return value.apply(document, argArray);
+				},
+			});
 		}
 
 		return value;
+	},
+	set(target, prop, newValue) {
+		if (typeof prop === "string" && prop === "location") {
+
+			//@ts-ignore
+			location = new URL(encodeUrl(newValue));
+
+			return;
+		}
+
+		return Reflect.set(target, prop, newValue);
 	}
 });
