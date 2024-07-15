@@ -60,7 +60,7 @@ impl<'a> Visit<'a> for Rewriter {
                 if s.property.name.to_string() == "location" {
                     self.jschanges.push(JsChange::GenericChange {
                         span: s.property.span,
-                        text: "_location".to_string(),
+                        text: "$s(location)".to_string(),
                     });
                 }
             }
