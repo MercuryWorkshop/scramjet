@@ -1,4 +1,4 @@
-;import { rewriteJs } from "./js";
+import { rewriteJs } from "./js";
 
 function canParseUrl(url: string, origin?: URL) {
 	try {

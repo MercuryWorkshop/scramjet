@@ -1,3 +1,4 @@
+import { decodeUrl } from "../../shared/rewriters/url";
 import { BareClient } from "../shared";
 const client = new BareClient();
 
@@ -9,6 +10,7 @@ WebSocket = new Proxy(WebSocket, {
 			target,
 			{
 				"User-Agent": navigator.userAgent,
+				"Origin": new URL(decodeUrl(location.href)).origin,
 			},
 			ArrayBuffer.prototype
 		);

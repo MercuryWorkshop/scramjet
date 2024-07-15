@@ -62,11 +62,13 @@ impl<'a> Visit<'a> for Rewriter {
                 if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) {
                     self.jschanges.push(JsChange::GenericChange {
                         span: s.span,
-                        text: format!("$s({})", s.name),
+                        text: format!("(globalThis.$s({}))", s.name),
                     });
                 }
             }
-            _ => {}
+            _ => {
+                walk::walk_assignment_expression(self, expr);
+            }
         }
     }
     fn visit_variable_declarator(&mut self, it: &oxc_ast::ast::VariableDeclarator<'a>) {
@@ -75,27 +77,17 @@ impl<'a> Visit<'a> for Rewriter {
                 if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) {
                     self.jschanges.push(JsChange::GenericChange {
                         span: s.span,
-                        text: format!("$s({})", s.name),
+                        text: format!("(globalThis.$s({}))", s.name),
                     });
                 }
             }
-            _ => {}
+            _ => {
+                walk::walk_variable_declarator(self, it);
+            }
         }
     }
     fn visit_member_expression(&mut self, it: &MemberExpression<'a>) {
         self.trace_member(it);
-        // match it {
-        //     MemberExpression::StaticMemberExpression(s) => {
-        //         dbg!(s);
-        //         if s.property.name.to_string() == "location" {
-        //             self.jschanges.push(JsChange::GenericChange {
-        //                 span: s.property.span,
-        //                 text: "$s(location)".to_string(),
-        //             });
-        //         }
-        //     }
-        //     _ => {}
-        // }
     }
 }
 
@@ -119,14 +111,14 @@ impl Rewriter {
                     if UNSAFE_GLOBALS.contains(&obj.name.to_string().as_str()) {
                         self.jschanges.push(JsChange::GenericChange {
                             span: obj.span,
-                            text: format!("$s({})", obj.name),
+                            text: format!("(globalThis.$s({}))", obj.name),
                         });
                     }
                 }
                 Expression::ThisExpression(obj) => {
                     self.jschanges.push(JsChange::GenericChange {
                         span: obj.span,
-                        text: "$s(this)".to_string(),
+                        text: "(globalThis.$s(this))".to_string(),
                     });
                 }
                 _ => {
@@ -140,14 +132,14 @@ impl Rewriter {
                     if UNSAFE_GLOBALS.contains(&obj.name.to_string().as_str()) {
                         self.jschanges.push(JsChange::GenericChange {
                             span: obj.span,
-                            text: format!("$s({})", obj.name),
+                            text: format!("(globalThis.$s({}))", obj.name),
                         });
                     }
                 }
                 Expression::ThisExpression(obj) => {
                     self.jschanges.push(JsChange::GenericChange {
                         span: obj.span,
-                        text: "$s(this)".to_string(),
+                        text: "(globalThis.$s(this))".to_string(),
                     });
                 }
                 _ => {

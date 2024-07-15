@@ -187,6 +187,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 			if (!["document", "iframe"].includes(request.destination))
 				return new Response(undefined, { status: 500 });
 
+			console.log("FOUND ERROR");
 			console.error(err);
 
 			return renderError(err, decodeUrl(request.url));
@@ -200,8 +201,8 @@ function errorTemplate(trace: string, fetchedURL: string) {
         errorTrace.value = ${JSON.stringify(trace)};
         fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
         for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(
-					location.hostname
-				)};
+		location.hostname
+	)};
         reload.addEventListener("click", () => location.reload());
         version.textContent = "0.0.1";
     `;
@@ -238,9 +239,8 @@ function errorTemplate(trace: string, fetchedURL: string) {
         <button id="reload">Reload</button>
         <hr />
         <p><i>Scramjet v<span id="version"></span></i></p>
-        <script src="${
-					"data:application/javascript," + encodeURIComponent(script)
-				}"></script>
+        <script src="${"data:application/javascript," + encodeURIComponent(script)
+		}"></script>
         </body>
         </html>
         `;

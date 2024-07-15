@@ -9,3 +9,4 @@ static/bare-mux-worker.js
 meta.json
 rewriter/target
 rewriter/out
+static/wasm.js

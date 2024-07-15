@@ -24,7 +24,9 @@ export const windowProxy = new Proxy(window, {
 
 		const value = Reflect.get(target, prop);
 
-		if (typeof value === "function") {
+
+		// this is bad! i don't know what the right thing to do is
+		if (typeof value === "function" && value != Object) {
 			return value.bind(target);
 		}
 
@@ -44,4 +46,23 @@ export const windowProxy = new Proxy(window, {
 
 		return Reflect.set(target, prop, newValue);
 	},
+});
+
+
+export const documentProxy = new Proxy(document, {
+	get(target, prop) {
+		const propIsString = typeof prop === "string";
+
+		if (propIsString && prop === "location") {
+			return locationProxy;
+		}
+
+		const value = Reflect.get(target, prop);
+
+		if (typeof value === "function") {
+			return value.bind(target);
+		}
+
+		return value;
+	}
 });

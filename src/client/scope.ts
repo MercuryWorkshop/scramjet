@@ -1,11 +1,13 @@
 import { locationProxy } from "./location";
-import { windowProxy } from "./window";
+import { documentProxy, windowProxy } from "./window";
 
 function scope(identifier: any) {
 	if (identifier instanceof Window) {
 		return windowProxy;
 	} else if (identifier instanceof Location) {
 		return locationProxy;
+	} else if (identifier instanceof Document) {
+		return documentProxy;
 	}
 
 	return identifier;
