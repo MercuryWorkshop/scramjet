@@ -1,30 +1,30 @@
 {
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
-  "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
-  "rules": {
-    "no-await-in-loop": "warn",
-    "no-unused-labels": "error",
-    "no-unused-vars": "error",
-    "quotes": ["error", "double"],
-    "max-lines-per-function": [
-      "error",
-      {
-        "max": 200,
-        "skipComments": true
-      }
-    ],
-    "getter-return": "error",
-    "newline-before-return": "error",
-    "no-multiple-empty-lines": "error",
-    "no-var": "error",
-    "no-this-before-super": "warn",
-    "no-useless-return": "error",
-    "no-shadow": "error",
-    "prefer-const": "warn",
-    "no-unreachable": "warn",
-    "no-undef": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/ban-ts-comment": "off"
-  }
+	"extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+	"parser": "@typescript-eslint/parser",
+	"plugins": ["@typescript-eslint"],
+	"rules": {
+		"no-await-in-loop": "warn",
+		"no-unused-labels": "error",
+		"no-unused-vars": "error",
+		"quotes": ["error", "double"],
+		"max-lines-per-function": [
+			"error",
+			{
+				"max": 200,
+				"skipComments": true
+			}
+		],
+		"getter-return": "error",
+		"newline-before-return": "error",
+		"no-multiple-empty-lines": "error",
+		"no-var": "error",
+		"no-this-before-super": "warn",
+		"no-useless-return": "error",
+		"no-shadow": "error",
+		"prefer-const": "warn",
+		"no-unreachable": "warn",
+		"no-undef": "off",
+		"@typescript-eslint/no-explicit-any": "off",
+		"@typescript-eslint/ban-ts-comment": "off"
+	}
 }

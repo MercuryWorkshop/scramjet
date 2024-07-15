@@ -9,25 +9,25 @@ import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 
 if (!self.$scramjet) {
-  //@ts-expect-error really dumb workaround
-  self.$scramjet = {};
+	//@ts-expect-error really dumb workaround
+	self.$scramjet = {};
 }
 self.$scramjet.shared = {
-  util: {
-    isScramjetFile,
-    parseDomain,
-    BareClient,
-  },
-  url: {
-    encodeUrl,
-    decodeUrl,
-  },
-  rewrite: {
-    rewriteCss,
-    rewriteHtml,
-    rewriteSrcset,
-    rewriteJs,
-    rewriteHeaders,
-    rewriteWorkers,
-  },
+	util: {
+		isScramjetFile,
+		parseDomain,
+		BareClient,
+	},
+	url: {
+		encodeUrl,
+		decodeUrl,
+	},
+	rewrite: {
+		rewriteCss,
+		rewriteHtml,
+		rewriteSrcset,
+		rewriteJs,
+		rewriteHeaders,
+		rewriteWorkers,
+	},
 };

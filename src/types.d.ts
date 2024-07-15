@@ -10,42 +10,42 @@ import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 
 declare global {
-  interface Window {
-    $scramjet: {
-      shared: {
-        url: {
-          encodeUrl: typeof encodeUrl;
-          decodeUrl: typeof decodeUrl;
-        };
-        rewrite: {
-          rewriteCss: typeof rewriteCss;
-          rewriteHtml: typeof rewriteHtml;
-          rewriteSrcset: typeof rewriteSrcset;
-          rewriteJs: typeof rewriteJs;
-          rewriteHeaders: typeof rewriteHeaders;
-          rewriteWorkers: typeof rewriteWorkers;
-        };
-        util: {
-          BareClient: typeof BareClient;
-          isScramjetFile: typeof isScramjetFile;
-          parseDomain: typeof parseDomain;
-        };
-      };
-      config: {
-        prefix: string;
-        codec: Codec;
-        config: string;
-        shared: string;
-        worker: string;
-        client: string;
-        codecs: string;
-      };
-      codecs: {
-        none: Codec;
-        plain: Codec;
-        base64: Codec;
-        xor: Codec;
-      };
-    };
-  }
+	interface Window {
+		$scramjet: {
+			shared: {
+				url: {
+					encodeUrl: typeof encodeUrl;
+					decodeUrl: typeof decodeUrl;
+				};
+				rewrite: {
+					rewriteCss: typeof rewriteCss;
+					rewriteHtml: typeof rewriteHtml;
+					rewriteSrcset: typeof rewriteSrcset;
+					rewriteJs: typeof rewriteJs;
+					rewriteHeaders: typeof rewriteHeaders;
+					rewriteWorkers: typeof rewriteWorkers;
+				};
+				util: {
+					BareClient: typeof BareClient;
+					isScramjetFile: typeof isScramjetFile;
+					parseDomain: typeof parseDomain;
+				};
+			};
+			config: {
+				prefix: string;
+				codec: Codec;
+				config: string;
+				shared: string;
+				worker: string;
+				client: string;
+				codecs: string;
+			};
+			codecs: {
+				none: Codec;
+				plain: Codec;
+				base64: Codec;
+				xor: Codec;
+			};
+		};
+	}
 }

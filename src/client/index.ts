@@ -16,7 +16,7 @@ import "./url.ts";
 import "./beacon.ts";
 
 declare global {
-  interface Window {
-    $s: any;
-  }
+	interface Window {
+		$s: any;
+	}
 }
