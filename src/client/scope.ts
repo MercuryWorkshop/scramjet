@@ -2,7 +2,8 @@ import { locationProxy } from "./location";
 import { documentProxy, windowProxy } from "./window";
 
 function scope(identifier: any) {
-	if (identifier instanceof Window) {
+	// this will break iframe postmessage!
+	if (identifier instanceof Window || identifier instanceof top.window.Window || identifier instanceof parent.window.Window) {
 		return windowProxy;
 	} else if (identifier instanceof Location) {
 		return locationProxy;
