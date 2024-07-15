@@ -1,6 +1,14 @@
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128' cargo build --target wasm32-unknown-unknown -Z build-std=panic_abort,std --release
+RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std --release
 wasm-bindgen --weak-refs --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
 
-cd ../
-# pnpm build
-cp rewriter/out/rewriter_bg.wasm  ./static/
+sed -i 's/import.meta.url/""/g' out/rewriter.js
+
+cd ..
+
+WASM=rewriter/out/rewriter_bg.wasm
+
+time wasm-opt -Oz --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
+
+echo -n "self.WASM = '" > static/wasm.js
+base64 -w0 < "rewriter/out/optimized.wasm" >> static/wasm.js
+echo -n "';">> static/wasm.js
