@@ -1,5 +1,4 @@
-import { URL } from "../../client/url";
-import { rewriteJs } from "./js";
+;import { rewriteJs } from "./js";
 
 function canParseUrl(url: string, origin?: URL) {
 	try {
@@ -14,7 +13,7 @@ function canParseUrl(url: string, origin?: URL) {
 // something is broken with this but i didn't debug it
 export function encodeUrl(url: string | URL, origin?: URL) {
 	if (url instanceof URL) {
-		return url.toString();
+		url = url.href;
 	}
 
 	if (!origin) {
@@ -46,7 +45,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 // something is also broken with this but i didn't debug it
 export function decodeUrl(url: string | URL) {
 	if (url instanceof URL) {
-		return url.toString();
+		url = url.href;
 	}
 
 	if (/^(#|about|data|mailto|javascript)/.test(url)) {
