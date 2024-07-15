@@ -49,6 +49,6 @@ export default defineConfig({
 		//     }
 		// })
 	],
-	// watch: true,
+	watch: true,
 	target: "webworker"
 });
