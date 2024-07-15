@@ -70,6 +70,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 				let cookieParsed = cookie.split(";").map((x) => x.trim().split("="));
 
 				let [key, value] = cookieParsed.shift();
+				if (!value) continue;
 				value = value.replace("\"", "");
 
 				const hostArg = cookieParsed.find((x) => x[0] === "Domain");

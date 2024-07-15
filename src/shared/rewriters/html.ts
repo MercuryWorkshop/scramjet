@@ -81,7 +81,8 @@ function traverseParsedHtml(node, origin?: URL) {
 			node.attribs.content.includes("url")
 		) {
 			const contentArray = node.attribs.content.split("url=");
-			contentArray[1] = encodeUrl(contentArray[1].trim(), origin);
+			if (contentArray[1])
+				contentArray[1] = encodeUrl(contentArray[1].trim(), origin);
 			node.attribs.content = contentArray.join("url=");
 		}
 	}
