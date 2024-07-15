@@ -37,4 +37,3 @@ delete window.TrustedScriptURL;
 delete window.TrustedTypePolicy;
 delete window.TrustedTypePolicyFactory;
 delete window.trustedTypes;
-
