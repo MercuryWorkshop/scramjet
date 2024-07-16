@@ -25,7 +25,7 @@ fn main() -> std::io::Result<()> {
     let path = Path::new(&name);
     let source_text = std::fs::read_to_string(path)?;
 
-    println!("{}", rewrite(&source_text));
+    println!("{:#?}", rewrite(&source_text));
 
     Ok(())
 }
