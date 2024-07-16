@@ -42,6 +42,10 @@ function storageProxy(scope: Storage): Storage {
 				case "length":
 					return store.size;
 				default:
+					if (prop in Object.prototype) {
+						return Reflect.get(target, prop);
+					}
+
 					return store.get(prop);
 			}
 		},
