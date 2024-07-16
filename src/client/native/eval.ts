@@ -1,3 +1,4 @@
+/*
 import { rewriteJs } from "../shared";
 
 const FunctionProxy = new Proxy(Function, {
@@ -32,3 +33,4 @@ window.eval = new Proxy(window.eval, {
 		return Reflect.apply(target, thisArg, [rewriteJs(argArray[0])]);
 	},
 });
+*/
