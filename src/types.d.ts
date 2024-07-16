@@ -37,6 +37,7 @@ declare global {
 				config: string;
 				shared: string;
 				worker: string;
+				thread: string;
 				client: string;
 				codecs: string;
 			};

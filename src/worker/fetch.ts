@@ -115,8 +115,7 @@ export async function swfetch(this: ScramjetServiceWorker, { request }: FetchEve
           }
           break;
         case "script":
-          // responseBody = rewriteJs(await response.text(), url);
-          responseBody = rewriteJs(await response.text());
+          responseBody = await this.threadpool.rewriteJs(await response.arrayBuffer(), url.toString());
           break;
         case "style":
           responseBody = rewriteCss(await response.text(), url);

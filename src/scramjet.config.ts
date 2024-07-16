@@ -8,6 +8,7 @@ self.$scramjet.config = {
 	config: "/scram/scramjet.config.js",
 	shared: "/scram/scramjet.shared.js",
 	worker: "/scram/scramjet.worker.js",
+	thread: "/scram/scramjet.thread.js",
 	client: "/scram/scramjet.client.js",
 	codecs: "/scram/scramjet.codecs.js",
 };

@@ -7,10 +7,11 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
 	// change to production when needed
-	mode: "production",
+	mode: "development",
 	entry: {
 		shared: join(__dirname, "src/shared/index.ts"),
 		worker: join(__dirname, "src/worker/index.ts"),
+		thread: join(__dirname, "src/thread/thread.ts"),
 		client: join(__dirname, "src/client/index.ts"),
 		config: join(__dirname, "src/scramjet.config.ts"),
 		codecs: join(__dirname, "src/codecs/index.ts"),
