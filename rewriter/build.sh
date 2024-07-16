@@ -12,3 +12,4 @@ time wasm-opt -Oz --vacuum --dce --enable-threads --enable-bulk-memory --enable-
 echo -n "self.WASM = '" > static/wasm.js
 base64 -w0 < "rewriter/out/optimized.wasm" >> static/wasm.js
 echo -n "';">> static/wasm.js
+echo "Rewriter Build Complete!"
