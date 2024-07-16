@@ -117,7 +117,7 @@ self.ScramjetServiceWorker = class ScramjetServiceWorker {
 
 			for (const header in responseHeaders) {
 				// flatten everything past here
-				if (responseHeaders[header] instanceof Array)
+				if (Array.isArray(responseHeaders[header]))
 					responseHeaders[header] = responseHeaders[header][0];
 			}
 

@@ -20,7 +20,7 @@ import { initSync, rewrite_js } from "../../../rewriter/out/rewriter.js";
 import "../../../static/wasm.js";
 
 initSync(new WebAssembly.Module(
-	Uint8Array.from(atob(WASM), c => c.charCodeAt(0))
+	Uint8Array.from(atob(self.WASM), c => c.charCodeAt(0))
 ))
 
 export function rewriteJs(js: string) {
