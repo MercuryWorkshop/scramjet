@@ -50,7 +50,9 @@ for (const attr of attrs) {
 
 				if (["nonce", "integrity", "csp"].includes(attr)) {
 					return;
-				} else if (["src", "data", "href", "action", "formaction"].includes(attr)) {
+				} else if (
+					["src", "data", "href", "action", "formaction"].includes(attr)
+				) {
 					value = encodeUrl(value);
 				} else if (attr === "srcdoc") {
 					value = rewriteHtml(value);
@@ -88,7 +90,9 @@ Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
 			thisArg.__origattrs[argArray[0]] = argArray[1];
 			if (["nonce", "integrity", "csp"].includes(argArray[0])) {
 				return;
-			} else if (["src", "data", "href", "action", "formaction"].includes(argArray[0])) {
+			} else if (
+				["src", "data", "href", "action", "formaction"].includes(argArray[0])
+			) {
 				argArray[1] = encodeUrl(argArray[1]);
 			} else if (argArray[0] === "srcdoc") {
 				argArray[1] = rewriteHtml(argArray[1]);

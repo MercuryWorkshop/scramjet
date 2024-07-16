@@ -1,5 +1,5 @@
-import { encodeUrl } from "../shared/rewriters/url"
+import { encodeUrl } from "../shared/rewriters/url";
 
-window.$sImport = function(url) {
-  return (function() { }.constructor(`return import("${encodeUrl(url)}")`))();
-}
+window.$sImport = function (url) {
+	return function () {}.constructor(`return import("${encodeUrl(url)}")`)();
+};

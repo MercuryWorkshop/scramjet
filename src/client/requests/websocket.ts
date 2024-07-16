@@ -10,7 +10,7 @@ WebSocket = new Proxy(WebSocket, {
 			target,
 			{
 				"User-Agent": navigator.userAgent,
-				"Origin": new URL(decodeUrl(location.href)).origin,
+				Origin: new URL(decodeUrl(location.href)).origin,
 			},
 			ArrayBuffer.prototype
 		);

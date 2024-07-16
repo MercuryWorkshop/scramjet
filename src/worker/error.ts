@@ -1,17 +1,16 @@
-
 export function errorTemplate(trace: string, fetchedURL: string) {
-  // turn script into a data URI so we don"t have to escape any HTML values
-  const script = `
+	// turn script into a data URI so we don"t have to escape any HTML values
+	const script = `
         errorTrace.value = ${JSON.stringify(trace)};
         fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
         for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(
-    location.hostname
-  )};
+					location.hostname
+				)};
         reload.addEventListener("click", () => location.reload());
         version.textContent = "0.0.1";
     `;
 
-  return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
         <html>
         <head>
         <meta charset="utf-8" />
@@ -43,24 +42,24 @@ export function errorTemplate(trace: string, fetchedURL: string) {
         <button id="reload">Reload</button>
         <hr />
         <p><i>Scramjet v<span id="version"></span></i></p>
-        <script src="${"data:application/javascript," + encodeURIComponent(script)
-    }"></script>
+        <script src="${
+					"data:application/javascript," + encodeURIComponent(script)
+				}"></script>
         </body>
         </html>
         `;
 }
 
 export function renderError(err: unknown, fetchedURL: string) {
-  const headers = {
-    "content-type": "text/html",
-  };
-  if (crossOriginIsolated) {
-    headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-  }
+	const headers = {
+		"content-type": "text/html",
+	};
+	if (crossOriginIsolated) {
+		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+	}
 
-  return new Response(errorTemplate(String(err), fetchedURL), {
-    status: 500,
-    headers: headers,
-  });
+	return new Response(errorTemplate(String(err), fetchedURL), {
+		status: 500,
+		headers: headers,
+	});
 }
-
