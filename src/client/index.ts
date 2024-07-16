@@ -14,9 +14,11 @@ import "./history.ts";
 import "./worker.ts";
 import "./beacon.ts"
 import "./origin.ts";
+import "./import.ts";
 
 declare global {
 	interface Window {
 		$s: any;
+		$sImport: any;
 	}
 }
