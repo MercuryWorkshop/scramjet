@@ -8,9 +8,11 @@ export const windowProxy = new Proxy(window, {
 			return locationProxy;
 		} else if (
 			propIsString &&
-			["window", "top", "parent", "self", "globalThis"].includes(prop)
+			["window", "top", "self", "globalThis"].includes(prop)
 		) {
 			return windowProxy;
+		} else if (propIsString && prop == "parent") {
+			return window.parent
 		} else if (propIsString && prop === "$scramjet") {
 			return;
 		} else if (propIsString && prop === "addEventListener") {

@@ -23,7 +23,8 @@ initSync(new WebAssembly.Module(
 	Uint8Array.from(atob(self.WASM), c => c.charCodeAt(0))
 ))
 
-export function rewriteJs(js: string | ArrayBuffer) {
+global.rws = rewriteJs;
+export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 	let rewrites;
 
 	let before = performance.now();
@@ -36,22 +37,23 @@ export function rewriteJs(js: string | ArrayBuffer) {
 	let after = performance.now();
 
 	console.log("Rewrite took", Math.floor((after - before) * 10) / 10, "ms");
-
-	let offset = 0;
-
-	for (const rewrite of rewrites) {
-		if (rewrite.genericchange) {
-			let change = rewrite.genericchange;
-			let start = change.span.start + offset;
-			let end = change.span.end + offset;
-			let len = end - start;
-
-			js = js.slice(0, start) + change.text + js.slice(end);
-
-			offset += change.text.length - len;
-		}
-	}
-
+	//
+	// let offset = 0;
+	//
+	// for (const rewrite of rewrites) {
+	// 	if (rewrite.genericchange) {
+	// 		let change = rewrite.genericchange;
+	// 		let start = change.span.start + offset;
+	// 		let end = change.span.end + offset;
+	// 		let len = end - start;
+	//
+	// 		js = js.slice(0, start) + change.text + js.slice(end);
+	//
+	// 		offset += change.text.length - len;
+	// 	}
+	// }
+	// console.log(js)
+	//
 	return js;
 
 	// console.log(f)

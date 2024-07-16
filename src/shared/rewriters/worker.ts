@@ -10,3 +10,4 @@ export function rewriteWorkers(js: string, origin?: URL) {
 
 	return str;
 }
+

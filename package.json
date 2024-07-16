@@ -10,6 +10,7 @@
 	},
 	"scripts": {
 		"build": "rspack build",
+		"rewriter:build": "cd rewriter && sh build.sh && cd ..",
 		"dev": "node server.js",
 		"prepublish": "pnpm build",
 		"pub": "pnpm publish --no-git-checks --access public",
