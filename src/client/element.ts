@@ -48,13 +48,13 @@ for (const attr of attrs) {
 			set(value) {
 				this.__origattrs[attr] = value;
 
-				if (/nonce|integrity|csp/.test(attr)) {
+				if (["nonce", "integrity", "csp"].includes(attr)) {
 					return;
-				} else if (/src|href|data|action|formaction/.test(attr)) {
+				} else if (["src", "data", "href", "action", "formaction"].includes(attr)) {
 					value = encodeUrl(value);
 				} else if (attr === "srcdoc") {
 					value = rewriteHtml(value);
-				} else if (/(image)?srcset/.test(attr)) {
+				} else if (["srcset", "imagesrcset"].includes(attr)) {
 					value = rewriteSrcset(value);
 				}
 
@@ -86,13 +86,13 @@ Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
 	apply(target, thisArg, argArray) {
 		if (attrs.includes(argArray[0])) {
 			thisArg.__origattrs[argArray[0]] = argArray[1];
-			if (/nonce|integrity|csp/.test(argArray[0])) {
+			if (["nonce", "integrity", "csp"].includes(argArray[0])) {
 				return;
-			} else if (/src|href|data|action|formaction/.test(argArray[0])) {
+			} else if (["src", "data", "href", "action", "formaction"].includes(argArray[0])) {
 				argArray[1] = encodeUrl(argArray[1]);
 			} else if (argArray[0] === "srcdoc") {
 				argArray[1] = rewriteHtml(argArray[1]);
-			} else if (/(image)?srcset/.test(argArray[0])) {
+			} else if (["srcset", "imagesrcset"].includes(argArray[0])) {
 				argArray[1] = rewriteSrcset(argArray[1]);
 			} else if (argArray[1] === "style") {
 				argArray[1] = rewriteCss(argArray[1]);
@@ -114,6 +114,8 @@ Object.defineProperty(Element.prototype, "innerHTML", {
 			value = rewriteJs(value);
 		} else if (this instanceof HTMLStyleElement) {
 			value = rewriteCss(value);
+		} else {
+			value = rewriteHtml(value);
 		}
 
 		return innerHTML.set.call(this, value);
