@@ -11,7 +11,14 @@ extern "C" {
 
 #[wasm_bindgen]
 pub fn rewrite_js(js: &str) -> String {
-    log("hello from rust");
+    rewrite(js)
+}
+
+#[wasm_bindgen]
+pub fn rewrite_js_from_arraybuffer(js: &[u8]) -> String {
+    // technically slower than the c++ string conversion but it will create *less copies*
+
+    let js = unsafe { std::str::from_utf8_unchecked(js) };
 
     rewrite(js)
 }
