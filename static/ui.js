@@ -47,7 +47,7 @@ function App() {
     }
     iframe {
       border: 4px solid #313131;
-      background-color: #121212;
+      background-color: #fff;
       border-radius: 1rem;
       margin: 2em;
       margin-top: 0.5em;

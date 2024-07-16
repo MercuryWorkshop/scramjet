@@ -23,7 +23,7 @@ initSync(new WebAssembly.Module(
 	Uint8Array.from(atob(self.WASM), c => c.charCodeAt(0))
 ))
 
-export function rewriteJs(js: string) {
+export function rewriteJs(js: string, origin?: URL) {
 	const f = rewrite_js(js);
 
 	return f
