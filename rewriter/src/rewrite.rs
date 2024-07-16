@@ -17,6 +17,10 @@ enum JsChange {
         span: Span,
         text: String,
     },
+    UrlRewrite {
+        span: Span,
+        url: String,
+    },
     Assignment {
         name: String,
         entirespan: Span,
@@ -71,6 +75,21 @@ impl<'a> Visit<'a> for Rewriter {
             }
         }
     }
+    fn visit_import_declaration(&mut self, it: &oxc_ast::ast::ImportDeclaration<'a>) {
+        let url = it.source.value.to_string();
+        // self.jschanges.push(JsChange::GenericChange {
+        //     span: it.source.span,
+        //     text: format!("\"/scramjet/{}\"", urlencoded),
+        // });
+        walk::walk_import_declaration(self, it);
+    }
+    fn visit_import_expression(&mut self, it: &oxc_ast::ast::ImportExpression<'a>) {
+        self.jschanges.push(JsChange::GenericChange {
+            span: Span::new(it.span.start, it.span.start + 6),
+            text: "(globalThis.$sImport)".to_string(),
+        });
+        walk::walk_import_expression(self, it);
+    }
     fn visit_variable_declarator(&mut self, it: &oxc_ast::ast::VariableDeclarator<'a>) {
         match &it.init {
             Some(Expression::Identifier(s)) => {
@@ -86,6 +105,7 @@ impl<'a> Visit<'a> for Rewriter {
             }
         }
     }
+
     fn visit_member_expression(&mut self, it: &MemberExpression<'a>) {
         self.trace_member(it);
     }
@@ -124,6 +144,8 @@ impl Rewriter {
                 _ => {
                     if it.object().is_member_expression() {
                         self.trace_member(it.object().as_member_expression().unwrap());
+                    } else {
+                        walk::walk_member_expression(self, it);
                     }
                 }
             },
@@ -145,6 +167,8 @@ impl Rewriter {
                 _ => {
                     if it.object().is_member_expression() {
                         self.trace_member(it.object().as_member_expression().unwrap());
+                    } else {
+                        walk::walk_member_expression(self, it);
                     }
                 }
             },
@@ -168,7 +192,10 @@ pub fn rewrite(js: &str) -> String {
 
     // dbg!(&program);
 
-    let mut ast_pass = Rewriter::default();
+    let mut ast_pass = Rewriter {
+        jschanges: Vec::new(),
+    };
+
     ast_pass.visit_program(&program);
 
     // sorrt changse
@@ -180,6 +207,7 @@ pub fn rewrite(js: &str) -> String {
                 entirespan,
                 rhsspan,
             } => entirespan.start,
+            _ => 0,
         };
         let b = match b {
             JsChange::GenericChange { span, text } => span.start,
@@ -188,6 +216,7 @@ pub fn rewrite(js: &str) -> String {
                 entirespan,
                 rhsspan,
             } => entirespan.start,
+            _ => 0,
         };
         a.cmp(&b)
     });
@@ -222,6 +251,7 @@ pub fn rewrite(js: &str) -> String {
 
                 offset += text.len() - len;
             }
+            _ => {}
         }
     }
     return rewritten;
