@@ -11,7 +11,9 @@ function createLocation() {
 	return loc;
 }
 
-export const locationProxy = new Proxy({}, {
+export const locationProxy = new Proxy({
+	host: ""
+}, {
 	get(target, prop) {
 		const loc = createLocation();
 

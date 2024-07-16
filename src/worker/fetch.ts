@@ -115,7 +115,9 @@ export async function swfetch(this: ScramjetServiceWorker, { request }: FetchEve
           }
           break;
         case "script":
-          responseBody = await this.threadpool.rewriteJs(await response.arrayBuffer(), url.toString());
+          responseBody = rewriteJs(await response.arrayBuffer(), url);
+          // Disable threading for now, it's causing issues.
+          // responseBody = await this.threadpool.rewriteJs(responseBody, url.toString());
           break;
         case "style":
           responseBody = rewriteCss(await response.text(), url);
