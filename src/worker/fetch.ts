@@ -110,9 +110,9 @@ export async function swfetch(
 					}
 					break;
 				case "script":
-					responseBody = rewriteJs(await response.arrayBuffer(), url);
+					responseBody = rewriteJs(await response.text(), url);
 					// Disable threading for now, it's causing issues.
-					// responseBody = await this.threadpool.rewriteJs(responseBody, url.toString());
+					// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
 					break;
 				case "style":
 					responseBody = rewriteCss(await response.text(), url);

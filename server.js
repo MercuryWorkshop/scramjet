@@ -68,6 +68,7 @@ fastify.register(fastifyStatic, {
 });
 fastify.listen({
 	port: process.env.PORT || 1337,
+	host: "0.0.0.0"
 });
 
 const watch = spawn("pnpm", ["rspack", "-w"], {

@@ -185,13 +185,13 @@ impl Rewriter {
 }
 
 pub fn rewrite(js: &str, url: Url) -> String {
-    let source_text = js.to_string();
     let allocator = Allocator::default();
     let source_type = SourceType::default();
-    let ret = Parser::new(&allocator, &source_text, source_type).parse();
+    let ret = Parser::new(&allocator, &js, source_type).parse();
 
     for error in ret.errors {
-        let error = error.with_source_code(source_text.clone());
+        let cloned = js.to_string();
+        let error = error.with_source_code(cloned);
         println!("{error:?}");
     }
 
@@ -229,38 +229,59 @@ pub fn rewrite(js: &str, url: Url) -> String {
         a.cmp(&b)
     });
 
-    let mut rewritten = source_text.clone();
+    let original_len = js.len();
+    let mut difference = 0i32;
+
+    for change in &ast_pass.jschanges {
+        match &change {
+            JsChange::GenericChange { span, text } => {
+                difference += text.len() as i32 - (span.end - span.start) as i32;
+            }
+            _ => {}
+        }
+    }
+
+    let mut buffer = String::new();
+    // pre-allocate the space we need. should make copies faster
+    let size_estimate = (original_len as i32 + difference) as usize;
+    buffer.reserve(size_estimate);
+
     let mut offset = 0;
     for change in ast_pass.jschanges {
         match &change {
             JsChange::GenericChange { span, text } => {
                 let len = (span.end - span.start) as usize;
-                let start = span.start as usize + offset;
-                let end = span.end as usize + offset;
-                rewritten.replace_range(start..end, &text);
+                let start = span.start as usize;
+                let end = span.end as usize;
 
-                offset = (offset as i64 + (text.len() as i64 - len as i64)) as usize;
+                buffer.push_str(&js[offset..start]);
+                buffer.push_str(&text);
+                offset = end;
+
+                // offset = (offset as i64 + (text.len() as i64 - len as i64)) as usize;
             }
-            JsChange::Assignment {
-                name,
-                entirespan,
-                rhsspan,
-            } => {
-                let len = (entirespan.end - entirespan.start) as usize;
-                let start = entirespan.start as usize + offset;
-                let end = entirespan.end as usize + offset;
-
-                let text = format!(
-                    "$set({}, {})",
-                    name,
-                    &source_text[rhsspan.start as usize..rhsspan.end as usize]
-                );
-                rewritten.replace_range(start..end, &text);
-
-                offset += text.len() - len;
-            }
+            // JsChange::Assignment {
+            //     name,
+            //     entirespan,
+            //     rhsspan,
+            // } => {
+            //     let len = (entirespan.end - entirespan.start) as usize;
+            //     let start = entirespan.start as usize + offset;
+            //     let end = entirespan.end as usize + offset;
+            //
+            //     let text = format!(
+            //         "$set({}, {})",
+            //         name,
+            //         &js[rhsspan.start as usize..rhsspan.end as usize]
+            //     );
+            //     rewritten.replace_range(start..end, &text);
+            //
+            //     offset += text.len() - len;
+            // }
             _ => {}
         }
     }
-    return rewritten;
+    buffer.push_str(&js[offset..]);
+
+    return buffer;
 }

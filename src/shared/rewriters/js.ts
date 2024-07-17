@@ -1,8 +1,8 @@
-import { parseModule } from "meriyah";
-import { generate } from "astring";
-import { makeTraveler } from "astravel";
+// import { parseModule } from "meriyah";
+// import { generate } from "astring";
+// import { makeTraveler } from "astravel";
 import { decodeUrl, encodeUrl } from "./url";
-import * as ESTree from "estree";
+// import * as ESTree from "estree";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
 
