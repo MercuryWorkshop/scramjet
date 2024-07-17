@@ -3,6 +3,7 @@
 </div>
 
 ---
+<a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
 
 Scramjet is an experimental web proxy that aims to be the successor to Ultraviolet.
 

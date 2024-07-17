@@ -18,7 +18,6 @@ export class ScramjetServiceWorker {
 		this.config = config;
 
 		this.threadpool = new ScramjetThreadpool();
-
 	}
 
 	route({ request }: FetchEvent) {
@@ -28,7 +27,6 @@ export class ScramjetServiceWorker {
 	}
 
 	public fetch = swfetch;
-};
-
+}
 
 self.ScramjetServiceWorker = ScramjetServiceWorker;

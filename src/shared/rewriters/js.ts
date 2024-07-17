@@ -19,9 +19,11 @@ import * as ESTree from "estree";
 import { initSync, rewrite_js } from "../../../rewriter/out/rewriter.js";
 import "../../../static/wasm.js";
 
-initSync(new WebAssembly.Module(
-	Uint8Array.from(atob(self.WASM), c => c.charCodeAt(0))
-))
+initSync(
+	new WebAssembly.Module(
+		Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0))
+	)
+);
 
 global.rws = rewriteJs;
 export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
@@ -155,4 +157,3 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 	// 	return js;
 	// }
 }
-

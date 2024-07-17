@@ -12,7 +12,7 @@ export const windowProxy = new Proxy(window, {
 		) {
 			return windowProxy;
 		} else if (propIsString && prop == "parent") {
-			return window.parent
+			return window.parent;
 		} else if (propIsString && prop === "$scramjet") {
 			return;
 		} else if (propIsString && prop === "addEventListener") {
@@ -26,7 +26,6 @@ export const windowProxy = new Proxy(window, {
 		}
 
 		const value = Reflect.get(target, prop);
-
 
 		// this is bad! i don't know what the right thing to do is
 		if (typeof value === "function") {
@@ -55,7 +54,6 @@ export const windowProxy = new Proxy(window, {
 	},
 });
 
-
 export const documentProxy = new Proxy(document, {
 	get(target, prop) {
 		const propIsString = typeof prop === "string";
@@ -78,7 +76,6 @@ export const documentProxy = new Proxy(document, {
 	},
 	set(target, prop, newValue) {
 		if (typeof prop === "string" && prop === "location") {
-
 			//@ts-ignore
 			location = new URL(encodeUrl(newValue));
 
@@ -86,5 +83,5 @@ export const documentProxy = new Proxy(document, {
 		}
 
 		return Reflect.set(target, prop, newValue);
-	}
+	},
 });

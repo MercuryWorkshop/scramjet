@@ -20,6 +20,10 @@ Worklet.prototype.addModule = new Proxy(Worklet.prototype.addModule, {
 	},
 });
 
+if ("serviceWorker" in window.navigator) {
+	//@ts-expect-error temporary until nested sw support
+	delete window.Navigator.prototype.serviceWorker;
+}
 // broken
 
 // window.importScripts = new Proxy(window.importScripts, {

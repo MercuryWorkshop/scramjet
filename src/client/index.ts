@@ -12,7 +12,7 @@ import "./storage.ts";
 import "./css.ts";
 import "./history.ts";
 import "./worker.ts";
-import "./beacon.ts"
+import "./beacon.ts";
 import "./origin.ts";
 import "./import.ts";
 

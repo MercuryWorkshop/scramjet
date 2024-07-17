@@ -11,22 +11,27 @@ function createLocation() {
 	return loc;
 }
 
-export const locationProxy = new Proxy({}, {
-	get(target, prop) {
-		const loc = createLocation();
-
-		return loc[prop];
+export const locationProxy = new Proxy(
+	{
+		host: "",
 	},
+	{
+		get(target, prop) {
+			const loc = createLocation();
 
-	set(obj, prop, value) {
-		const loc = createLocation();
+			return loc[prop];
+		},
 
-		if (prop === "href") {
-			location.href = encodeUrl(value);
-		} else {
-			loc[prop] = value;
-		}
+		set(obj, prop, value) {
+			const loc = createLocation();
 
-		return true;
-	},
-});
+			if (prop === "href") {
+				location.href = encodeUrl(value);
+			} else {
+				loc[prop] = value;
+			}
+
+			return true;
+		},
+	}
+);
