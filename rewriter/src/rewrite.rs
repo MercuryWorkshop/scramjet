@@ -184,7 +184,7 @@ impl Rewriter {
     }
 }
 
-pub fn rewrite(js: &str, url: Url) -> String {
+pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
     let ret = Parser::new(&allocator, &js, source_type).parse();
@@ -241,10 +241,8 @@ pub fn rewrite(js: &str, url: Url) -> String {
         }
     }
 
-    let mut buffer = String::new();
-    // pre-allocate the space we need. should make copies faster
     let size_estimate = (original_len as i32 + difference) as usize;
-    buffer.reserve(size_estimate);
+    let mut buffer: Vec<u8> = Vec::with_capacity(size_estimate);
 
     let mut offset = 0;
     for change in ast_pass.jschanges {
@@ -254,8 +252,9 @@ pub fn rewrite(js: &str, url: Url) -> String {
                 let start = span.start as usize;
                 let end = span.end as usize;
 
-                buffer.push_str(&js[offset..start]);
-                buffer.push_str(&text);
+                buffer.extend_from_slice(unsafe { js.slice_unchecked(offset, start) }.as_bytes());
+
+                buffer.extend_from_slice(text.as_bytes());
                 offset = end;
 
                 // offset = (offset as i64 + (text.len() as i64 - len as i64)) as usize;
@@ -281,7 +280,7 @@ pub fn rewrite(js: &str, url: Url) -> String {
             _ => {}
         }
     }
-    buffer.push_str(&js[offset..]);
+    buffer.extend_from_slice(js[offset..].as_bytes());
 
     return buffer;
 }

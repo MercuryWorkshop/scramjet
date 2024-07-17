@@ -1,5 +1,9 @@
 #![allow(clippy::print_stdout)]
-use std::{env, path::Path, str::FromStr};
+use std::{
+    env,
+    path::Path,
+    str::{from_utf8, FromStr},
+};
 
 use oxc_allocator::Allocator;
 use oxc_ast::{
@@ -28,10 +32,15 @@ fn main() -> std::io::Result<()> {
 
     println!(
         "{}",
-        rewrite(
-            &source_text,
-            Url::from_str("https://google.com/glorngle/si.js").unwrap()
+        from_utf8(
+            rewrite(
+                &source_text,
+                Url::from_str("https://google.com/glorngle/si.js").unwrap()
+            )
+            .as_slice()
         )
+        .unwrap()
+        .to_string()
     );
 
     Ok(())
