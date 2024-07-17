@@ -34,19 +34,19 @@ for (const attr of attrs) {
 		const descriptor = Object.getOwnPropertyDescriptor(element.prototype, attr);
 		Object.defineProperty(element.prototype, attr, {
 			get() {
-				if (/src|href|data|action|formaction/.test(attr)) {
+				if (["src", "data", "href", "action", "formaction"].includes(attr)) {
 					return decodeUrl(descriptor.get.call(this));
 				}
 
-				if (this.__origattrs[attr]) {
-					return this.__origattrs[attr];
+				if (this.$origattrs[attr]) {
+					return this.$origattrs[attr];
 				}
 
 				return descriptor.get.call(this);
 			},
 
 			set(value) {
-				this.__origattrs[attr] = value;
+				this.$origattrs[attr] = value;
 
 				if (["nonce", "integrity", "csp"].includes(attr)) {
 					return;
@@ -68,16 +68,16 @@ for (const attr of attrs) {
 
 declare global {
 	interface Element {
-		__origattrs: Record<string, string>;
+		$origattrs: Record<string, string>;
 	}
 }
 
-Element.prototype.__origattrs = {};
+Element.prototype.$origattrs = {};
 
 Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
 	apply(target, thisArg, argArray) {
-		if (attrs.includes(argArray[0]) && thisArg.__origattrs[argArray[0]]) {
-			return thisArg.__origattrs[argArray[0]];
+		if (attrs.includes(argArray[0]) && thisArg.$origattrs[argArray[0]]) {
+			return thisArg.$origattrs[argArray[0]];
 		}
 
 		return Reflect.apply(target, thisArg, argArray);
@@ -87,7 +87,7 @@ Element.prototype.getAttribute = new Proxy(Element.prototype.getAttribute, {
 Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
 	apply(target, thisArg, argArray) {
 		if (attrs.includes(argArray[0])) {
-			thisArg.__origattrs[argArray[0]] = argArray[1];
+			thisArg.$origattrs[argArray[0]] = argArray[1];
 			if (["nonce", "integrity", "csp"].includes(argArray[0])) {
 				return;
 			} else if (
