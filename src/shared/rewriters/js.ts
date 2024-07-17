@@ -1,7 +1,7 @@
 import { parseModule } from "meriyah";
 import { generate } from "astring";
 import { makeTraveler } from "astravel";
-import { encodeUrl } from "./url";
+import { decodeUrl, encodeUrl } from "./url";
 import * as ESTree from "estree";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
@@ -25,14 +25,15 @@ initSync(new WebAssembly.Module(
 
 global.rws = rewriteJs;
 export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
-	let rewrites;
+	if ("window" in globalThis)
+		origin ??= new URL(decodeUrl(location.href));
 
 	let before = performance.now();
 	if (typeof js === "string") {
-		rewrites = rewrite_js(js);
+		js = rewrite_js(js, origin.toString());
 	} else {
 		js = new TextDecoder().decode(js);
-		rewrites = rewrite_js(js);
+		js = rewrite_js(js, origin.toString());
 	}
 	let after = performance.now();
 

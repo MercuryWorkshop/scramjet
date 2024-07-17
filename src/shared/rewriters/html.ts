@@ -71,7 +71,7 @@ function traverseParsedHtml(node, origin?: URL) {
 		let js = node.children[0].data;
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
-		node.children[0].data = rewriteJs(js);
+		node.children[0].data = rewriteJs(js, origin);
 	}
 	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
 		if (node.attribs["http-equiv"] === "content-security-policy") {

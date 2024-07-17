@@ -10,6 +10,8 @@ use oxc_ast::{
 use oxc_parser::Parser;
 use oxc_span::{SourceType, Span};
 use oxc_syntax::scope::ScopeFlags;
+use url::Url;
+use urlencoding::encode;
 
 #[derive(Debug)]
 enum JsChange {
@@ -28,9 +30,10 @@ enum JsChange {
     },
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Rewriter {
     jschanges: Vec<JsChange>,
+    base: Url,
 }
 
 impl<'a> Visit<'a> for Rewriter {
@@ -76,17 +79,21 @@ impl<'a> Visit<'a> for Rewriter {
         }
     }
     fn visit_import_declaration(&mut self, it: &oxc_ast::ast::ImportDeclaration<'a>) {
-        let url = it.source.value.to_string();
-        // self.jschanges.push(JsChange::GenericChange {
-        //     span: it.source.span,
-        //     text: format!("\"/scramjet/{}\"", urlencoded),
-        // });
+        let name = it.source.value.to_string();
+        let url = self.base.join(&name).unwrap();
+
+        let urlencoded = encode(url.as_str());
+
+        self.jschanges.push(JsChange::GenericChange {
+            span: it.source.span,
+            text: format!("\"/scramjet/{}\"", urlencoded),
+        });
         walk::walk_import_declaration(self, it);
     }
     fn visit_import_expression(&mut self, it: &oxc_ast::ast::ImportExpression<'a>) {
         self.jschanges.push(JsChange::GenericChange {
             span: Span::new(it.span.start, it.span.start + 6),
-            text: "(globalThis.$sImport)".to_string(),
+            text: format!("(globalThis.$sImport(\"{}\"))", self.base),
         });
         walk::walk_import_expression(self, it);
     }
@@ -177,7 +184,7 @@ impl Rewriter {
     }
 }
 
-pub fn rewrite(js: &str) -> String {
+pub fn rewrite(js: &str, url: Url) -> String {
     let source_text = js.to_string();
     let allocator = Allocator::default();
     let source_type = SourceType::default();
@@ -194,6 +201,7 @@ pub fn rewrite(js: &str) -> String {
 
     let mut ast_pass = Rewriter {
         jschanges: Vec::new(),
+        base: url,
     };
 
     ast_pass.visit_program(&program);

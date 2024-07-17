@@ -1,5 +1,5 @@
 #![allow(clippy::print_stdout)]
-use std::{env, path::Path};
+use std::{env, path::Path, str::FromStr};
 
 use oxc_allocator::Allocator;
 use oxc_ast::{
@@ -14,6 +14,7 @@ use oxc_syntax::scope::ScopeFlags;
 pub mod rewrite;
 
 use rewrite::rewrite;
+use url::Url;
 
 // Instruction:
 // create a `test.js`,
@@ -25,7 +26,13 @@ fn main() -> std::io::Result<()> {
     let path = Path::new(&name);
     let source_text = std::fs::read_to_string(path)?;
 
-    println!("{:#?}", rewrite(&source_text));
+    println!(
+        "{}",
+        rewrite(
+            &source_text,
+            Url::from_str("https://google.com/glorngle/si.js").unwrap()
+        )
+    );
 
     Ok(())
 }
