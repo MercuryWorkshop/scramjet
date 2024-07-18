@@ -12,6 +12,7 @@ import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { bareModulePath } from "@mercuryworkshop/bare-as-module3";
+import { writeFileSync } from "fs";
 
 const bare = createBareServer("/bare/", {
 	logErrors: true,
@@ -70,6 +71,11 @@ fastify.listen({
 	port: process.env.PORT || 1337,
 	host: "0.0.0.0",
 });
+
+
+writeFileSync(".git/hooks/pre-commit", "pnpm prettier . -w");
+
+
 
 const watch = spawn("pnpm", ["rspack", "-w"], {
 	detached: true,
