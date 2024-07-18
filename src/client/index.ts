@@ -15,6 +15,7 @@ import "./worker.ts";
 import "./beacon.ts";
 import "./origin.ts";
 import "./import.ts";
+import "./postmessage.ts";
 
 declare global {
 	interface Window {

@@ -8,3 +8,8 @@
 //         return Reflect.apply(target, thisArg, argArray);
 //     }
 // })
+// window.addEventListener = new Proxy(window.addEventListener, {
+//   apply(target1, thisArg, argArray) {
+//     window.addEventListener(argArray[0], argArray[1]);
+//   },
+// });
