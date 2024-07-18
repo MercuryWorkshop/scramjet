@@ -3,3 +3,4 @@ README.md
 tsconfig.json
 tests/
 dist/
+rewriter/

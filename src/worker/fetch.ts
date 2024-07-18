@@ -15,7 +15,6 @@ export async function swfetch(
 ) {
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
-
 	if (urlParam.has("url")) {
 		return Response.redirect(
 			encodeUrl(urlParam.get("url"), new URL(urlParam.get("url")))
@@ -37,7 +36,6 @@ export async function swfetch(
 			duplex: "half",
 		});
 
-
 		return await handleResponse(url, request.destination, response);
 	} catch (err) {
 		console.error("ERROR FROM SERVICE WORKER FETCH", err);
@@ -48,13 +46,15 @@ export async function swfetch(
 	}
 }
 
-
-async function handleResponse(url: URL, destination: RequestDestination, response: BareResponseFetch): Promise<Response> {
+async function handleResponse(
+	url: URL,
+	destination: RequestDestination,
+	response: BareResponseFetch
+): Promise<Response> {
 	let responseBody: string | ArrayBuffer | ReadableStream;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, url);
 
-
-	await handleCookies(url, (responseHeaders["set-cookie"] || []) as string[])
+	await handleCookies(url, (responseHeaders["set-cookie"] || []) as string[]);
 
 	for (const header in responseHeaders) {
 		// flatten everything past here
@@ -124,7 +124,6 @@ async function handleResponse(url: URL, destination: RequestDestination, respons
 	});
 }
 
-
 async function handleCookies(url: URL, headers: string[]) {
 	const cookieStore = new IDBMap(url.host, {
 		durability: "relaxed",
@@ -142,8 +141,7 @@ async function handleCookies(url: URL, headers: string[]) {
 		cookieParsed = cookieParsed.filter((x) => x[0] !== "Domain");
 		let host = hostArg ? hostArg[1] : undefined;
 
-		if (url.protocol === "http" && cookieParsed.includes(["Secure"]))
-			continue;
+		if (url.protocol === "http" && cookieParsed.includes(["Secure"])) continue;
 		if (
 			cookieParsed.includes(["SameSite", "None"]) &&
 			!cookieParsed.includes(["Secure"])

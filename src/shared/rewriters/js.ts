@@ -1,7 +1,11 @@
 import { decodeUrl } from "./url";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
-import { initSync, rewrite_js, rewrite_js_from_arraybuffer } from "../../../rewriter/out/rewriter.js";
+import {
+	initSync,
+	rewrite_js,
+	rewrite_js_from_arraybuffer,
+} from "../../../rewriter/out/rewriter.js";
 import "../../../static/wasm.js";
 
 initSync(
@@ -12,8 +16,7 @@ initSync(
 
 global.rws = rewriteJs;
 export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
-	if ("window" in globalThis)
-		origin ??= new URL(decodeUrl(location.href));
+	if ("window" in globalThis) origin ??= new URL(decodeUrl(location.href));
 
 	const before = performance.now();
 	if (typeof js === "string") {
