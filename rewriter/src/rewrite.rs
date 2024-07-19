@@ -35,6 +35,15 @@ struct Rewriter {
     jschanges: Vec<JsChange>,
     base: Url,
 }
+impl Rewriter {
+    fn rewrite_url(&mut self, url: String) -> String {
+        let url = self.base.join(&url).unwrap();
+
+        let urlencoded = encode(url.as_str());
+
+        return format!("\"/scramjet/{}\"", urlencoded);
+    }
+}
 
 impl<'a> Visit<'a> for Rewriter {
     fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
@@ -54,13 +63,10 @@ impl<'a> Visit<'a> for Rewriter {
 
     fn visit_import_declaration(&mut self, it: &oxc_ast::ast::ImportDeclaration<'a>) {
         let name = it.source.value.to_string();
-        let url = self.base.join(&name).unwrap();
-
-        let urlencoded = encode(url.as_str());
-
+        let text = self.rewrite_url(name);
         self.jschanges.push(JsChange::GenericChange {
             span: it.source.span,
-            text: format!("\"/scramjet/{}\"", urlencoded),
+            text,
         });
         walk::walk_import_declaration(self, it);
     }
@@ -70,6 +76,27 @@ impl<'a> Visit<'a> for Rewriter {
             text: format!("(globalThis.$sImport(\"{}\"))", self.base),
         });
         walk::walk_import_expression(self, it);
+    }
+
+    fn visit_export_all_declaration(&mut self, it: &oxc_ast::ast::ExportAllDeclaration<'a>) {
+        let name = it.source.value.to_string();
+        let text = self.rewrite_url(name);
+        self.jschanges.push(JsChange::GenericChange {
+            span: it.source.span,
+            text,
+        });
+    }
+
+    fn visit_export_named_declaration(&mut self, it: &oxc_ast::ast::ExportNamedDeclaration<'a>) {
+        if let Some(source) = &it.source {
+            let name = source.value.to_string();
+            let text = self.rewrite_url(name);
+            self.jschanges.push(JsChange::GenericChange {
+                span: source.span,
+                text,
+            });
+        }
+        walk::walk_export_named_declaration(self, it);
     }
 
     fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
