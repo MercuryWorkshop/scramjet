@@ -1,23 +1,17 @@
+import { client } from "..";
 import { encodeUrl, rewriteHeaders } from "../shared";
 
-XMLHttpRequest.prototype.open = new Proxy(XMLHttpRequest.prototype.open, {
-	apply(target, thisArg, argArray) {
-		if (argArray[1]) argArray[1] = encodeUrl(argArray[1]);
-
-		return Reflect.apply(target, thisArg, argArray);
+client.Proxy(XMLHttpRequest.prototype, "open", {
+	apply(ctx) {
+		if (ctx.args[1]) ctx.args[1] = encodeUrl(ctx.args[1]);
 	},
 });
 
-XMLHttpRequest.prototype.setRequestHeader = new Proxy(
-	XMLHttpRequest.prototype.setRequestHeader,
-	{
-		apply(target, thisArg, argArray) {
-			let headerObject = Object.fromEntries([argArray]);
-			headerObject = rewriteHeaders(headerObject);
+client.Proxy(XMLHttpRequest.prototype, "setRequestHeader", {
+	apply(ctx) {
+		let headerObject = Object.fromEntries([ctx.args]);
+		headerObject = rewriteHeaders(headerObject);
 
-			argArray = Object.entries(headerObject)[0];
-
-			return Reflect.apply(target, thisArg, argArray);
-		},
-	}
-);
+		ctx.args = Object.entries(headerObject)[0];
+	},
+});

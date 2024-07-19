@@ -1,17 +1,14 @@
+import { client } from ".";
 import { encodeUrl } from "./shared";
 
-window.history.pushState = new Proxy(window.history.pushState, {
-	apply(target, thisArg, argArray) {
-		argArray[2] = encodeUrl(argArray[2]);
-
-		return Reflect.apply(target, thisArg, argArray);
+client.Proxy(window.history, "pushState", {
+	apply(ctx) {
+		ctx.args[2] = encodeUrl(ctx.args[2]);
 	},
 });
 
-window.history.replaceState = new Proxy(window.history.replaceState, {
-	apply(target, thisArg, argArray) {
-		argArray[2] = encodeUrl(argArray[2]);
-
-		return Reflect.apply(target, thisArg, argArray);
+client.Proxy(window.history, "replaceState", {
+	apply(ctx) {
+		ctx.args[2] = encodeUrl(ctx.args[2]);
 	},
 });

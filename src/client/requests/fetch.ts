@@ -1,35 +1,28 @@
 // ts throws an error if you dont do window.fetch
 
+import { client } from "..";
 import { encodeUrl, rewriteHeaders } from "../shared";
 
-window.fetch = new Proxy(window.fetch, {
-	apply(target, thisArg, argArray) {
-		argArray[0] = encodeUrl(argArray[0]);
-
-		return Reflect.apply(target, thisArg, argArray);
+client.Proxy(window, "fetch", {
+	apply(ctx) {
+		ctx.args[0] = encodeUrl(ctx.args[0]);
 	},
 });
 
-Headers = new Proxy(Headers, {
-	construct(target, argArray, newTarget) {
-		argArray[0] = rewriteHeaders(argArray[0]);
-
-		return Reflect.construct(target, argArray, newTarget);
+client.Proxy(window, "Headers", {
+	construct(ctx) {
+		ctx.args[0] = rewriteHeaders(ctx.args[0]);
 	},
 });
 
-Request = new Proxy(Request, {
-	construct(target, argArray, newTarget) {
-		if (typeof argArray[0] === "string") argArray[0] = encodeUrl(argArray[0]);
-
-		return Reflect.construct(target, argArray, newTarget);
+client.Proxy(window, "Request", {
+	construct(ctx) {
+		if (typeof ctx.args[0] === "string") ctx.args[0] = encodeUrl(ctx.args[0]);
 	},
 });
 
-Response.redirect = new Proxy(Response.redirect, {
-	apply(target, thisArg, argArray) {
-		argArray[0] = encodeUrl(argArray[0]);
-
-		return Reflect.apply(target, thisArg, argArray);
+client.Proxy(Response, "redirect", {
+	apply(ctx) {
+		ctx.args[0] = encodeUrl(ctx.args[0]);
 	},
 });

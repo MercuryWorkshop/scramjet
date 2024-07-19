@@ -1,10 +1,8 @@
-// import { encodeUrl } from "./shared";
+import { client } from ".";
 
-navigator.sendBeacon = new Proxy(navigator.sendBeacon, {
-	apply() {
-		// argArray[0] = encodeUrl(argArray[0]);
-
-		// return Reflect.apply(target, thisArg, argArray);
-		return null;
+// goodybye spyware~
+client.Proxy(navigator, "sendBeacon", {
+	apply(ctx) {
+		ctx.return(null);
 	},
 });

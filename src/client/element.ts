@@ -127,18 +127,21 @@ Object.defineProperty(Element.prototype, "innerHTML", {
 	},
 });
 
-MutationObserver.prototype.observe = new Proxy(MutationObserver.prototype.observe, {
-	apply(target, thisArg, argArray) {
-		if (argArray[0] === documentProxy) argArray[0] = document;
+MutationObserver.prototype.observe = new Proxy(
+	MutationObserver.prototype.observe,
+	{
+		apply(target, thisArg, argArray) {
+			if (argArray[0] === documentProxy) argArray[0] = document;
 
-		return Reflect.apply(target, thisArg, argArray);
+			return Reflect.apply(target, thisArg, argArray);
+		},
 	}
-});
+);
 
 document.createTreeWalker = new Proxy(document.createTreeWalker, {
 	apply(target, thisArg, argArray) {
 		if (argArray[0] === documentProxy) argArray[0] = document;
 
 		return Reflect.apply(target, thisArg, argArray);
-	}
+	},
 });

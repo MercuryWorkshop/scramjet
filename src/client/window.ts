@@ -1,3 +1,4 @@
+import { client } from ".";
 import { encodeUrl } from "../shared/rewriters/url";
 import { locationProxy } from "./location";
 
@@ -78,38 +79,32 @@ export const documentProxy = new Proxy(document, {
 	},
 });
 
-Function.prototype.apply = new Proxy(Function.prototype.apply, {
-	apply(target, thisArg, argArray) {
-		if (argArray[0] === windowProxy) {
-			argArray[0] = window;
-		} else if (argArray[0] === documentProxy) {
-			argArray[0] = document;
+client.Proxy(Function.prototype, "apply", {
+	apply(ctx) {
+		if (ctx.args[0] === windowProxy) {
+			ctx.args[0] = window;
+		} else if (ctx.args[0] === documentProxy) {
+			ctx.args[0] = document;
 		}
-
-		return Reflect.apply(target, thisArg, argArray);
 	},
 });
 
-Function.prototype.call = new Proxy(Function.prototype.call, {
-	apply(target, thisArg, argArray) {
-		if (argArray[0] === windowProxy) {
-			argArray[0] = window;
-		} else if (argArray[0] === documentProxy) {
-			argArray[0] = document;
+client.Proxy(Function.prototype, "call", {
+	apply(ctx) {
+		if (ctx.args[0] === windowProxy) {
+			ctx.args[0] = window;
+		} else if (ctx.args[0] === documentProxy) {
+			ctx.args[0] = document;
 		}
-
-		return Reflect.apply(target, thisArg, argArray);
 	},
 });
 
-Function.prototype.bind = new Proxy(Function.prototype.bind, {
-	apply(target, thisArg, argArray) {
-		if (argArray[0] === windowProxy) {
-			argArray[0] = window;
-		} else if (argArray[0] === documentProxy) {
-			argArray[0] = document;
+client.Proxy(Function.prototype, "bind", {
+	apply(ctx) {
+		if (ctx.args[0] === windowProxy) {
+			ctx.args[0] = window;
+		} else if (ctx.args[0] === documentProxy) {
+			ctx.args[0] = document;
 		}
-
-		return Reflect.apply(target, thisArg, argArray);
 	},
 });
