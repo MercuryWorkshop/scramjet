@@ -8,10 +8,7 @@ const store = new IDBMapSync(locationProxy.host, {
 
 await store.sync();
 
-delete window.localStorage;
-delete window.sessionStorage;
-
-window.localStorage = new Proxy(localStorage, {
+const localStorageProxy =  new Proxy(window.localStorage, {
 	get(target, prop) {
 		switch (prop) {
 			case "getItem":
@@ -65,7 +62,7 @@ window.localStorage = new Proxy(localStorage, {
 	},
 });
 
-window.sessionStorage = new Proxy(sessionStorage, {
+const sessionStorageProxy = new Proxy(window.sessionStorage, {
 	get(target, prop) {
 		switch (prop) {
 			case "getItem":
@@ -117,3 +114,9 @@ window.sessionStorage = new Proxy(sessionStorage, {
 		return true;
 	},
 });
+
+delete window.localStorage;
+delete window.sessionStorage;
+
+window.localStorage = localStorageProxy;
+window.sessionStorage = sessionStorageProxy;
