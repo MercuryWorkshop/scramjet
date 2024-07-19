@@ -1,3 +1,5 @@
+import BareClient from "@mercuryworkshop/bare-mux";
+
 import "./scope.ts";
 import "./window.ts";
 import "./event.ts";
@@ -21,5 +23,10 @@ declare global {
 	interface Window {
 		$s: any;
 		$sImport: any;
+		$client: BareClient;
 	}
 }
+
+const client = new BareClient();
+
+export { client };
