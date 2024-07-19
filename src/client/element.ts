@@ -140,6 +140,6 @@ for (const target of [Node.prototype, MutationObserver.prototype, document]) {
 					},
 				});
 			}
-		} catch (e) { }
+		} catch (e) {}
 	}
 }

@@ -30,7 +30,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 	if (!url) url = origin.href;
 
 	if (url.startsWith("javascript:")) {
-		return "javascript:" + rewriteJs(url.slice("javascript:".length));
+		return "javascript:" + rewriteJs(url.slice("javascript:".length), origin);
 	} else if (/^(#|mailto|about|data|blob)/.test(url)) {
 		return url;
 	} else if (canParseUrl(url, origin)) {
