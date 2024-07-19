@@ -31,7 +31,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 
 	if (url.startsWith("javascript:")) {
 		return "javascript:" + rewriteJs(url.slice("javascript:".length));
-	} else if (/^(#|mailto|about|data)/.test(url)) {
+	} else if (/^(#|mailto|about|data|blob)/.test(url)) {
 		return url;
 	} else if (canParseUrl(url, origin)) {
 		return (
