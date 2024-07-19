@@ -37,7 +37,7 @@ function storageProxy(scope: Storage): Storage {
 
 				case "key":
 					return (index: number) => {
-						store.keys()[index];
+						return [...store.keys()][index];
 					};
 				case "length":
 					return store.size;
