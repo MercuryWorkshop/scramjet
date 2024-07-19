@@ -24,10 +24,17 @@ export async function swfetch(
 	try {
 		const url = new URL(decodeUrl(request.url));
 
+		let headers = new Headers();
+		for (const [key, value] of request.headers.entries()) {
+			headers.set(key, value);
+		}
+
+		headers.set("Referer", decodeUrl(request.referrer));
+
 		const response: BareResponseFetch = await this.client.fetch(url, {
 			method: request.method,
 			body: request.body,
-			headers: request.headers,
+			headers,
 			credentials: "omit",
 			mode: request.mode === "cors" ? request.mode : "same-origin",
 			cache: request.cache,
