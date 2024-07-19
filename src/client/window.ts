@@ -15,6 +15,12 @@ export const windowProxy = new Proxy(window, {
 			return window.parent;
 		} else if (propIsString && prop === "$scramjet") {
 			return;
+		} else if (propIsString && prop === "addEventListener") {
+			return new Proxy(window.addEventListener, {
+				apply(target1, thisArg, argArray) {
+					window.addEventListener(argArray[0], argArray[1]);
+				},
+			});
 		}
 
 		const value = Reflect.get(target, prop);

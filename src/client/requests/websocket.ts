@@ -1,5 +1,6 @@
 import { decodeUrl } from "../../shared/rewriters/url";
-import { client } from "../index";
+import { BareClient } from "../shared";
+const client = new BareClient();
 
 WebSocket = new Proxy(WebSocket, {
 	construct(target, args) {
