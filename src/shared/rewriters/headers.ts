@@ -37,7 +37,10 @@ export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
 
 	urlHeaders.forEach((header) => {
 		if (headers[header])
-			headers[header] = encodeUrl(headers[header] as string, origin);
+			headers[header] = encodeUrl(
+				headers[header]?.toString() as string,
+				origin
+			);
 	});
 
 	if (headers["link"]) {

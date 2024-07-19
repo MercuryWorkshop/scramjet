@@ -6,6 +6,7 @@ import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import wisp from "wisp-server-node";
 
 //transports
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
@@ -32,7 +33,7 @@ const fastify = Fastify({
 				if (bare.shouldRoute(req)) {
 					bare.routeUpgrade(req, socket, head);
 				} else {
-					socket.end();
+					wisp.routeRequest(req, socket, head);
 				}
 			});
 	},
@@ -72,7 +73,7 @@ fastify.listen({
 	host: "0.0.0.0",
 });
 
-writeFileSync(".git/hooks/pre-commit", "pnpm prettier . -w");
+writeFileSync(".git/hooks/pre-commit", "pnpm prettier . -w\ngit add -A");
 chmodSync(".git/hooks/pre-commit", 0o755);
 
 const watch = spawn("pnpm", ["rspack", "-w"], {
