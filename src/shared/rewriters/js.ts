@@ -17,7 +17,7 @@ initSync(
 
 init();
 
-Error.stackTraceLimit = 50
+Error.stackTraceLimit = 50;
 
 global.rws = rewriteJs;
 export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {

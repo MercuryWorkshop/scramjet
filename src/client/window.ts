@@ -77,3 +77,27 @@ export const documentProxy = new Proxy(document, {
 		return Reflect.set(target, prop, newValue);
 	},
 });
+
+Function.prototype.apply = new Proxy(Function.prototype.apply, {
+	apply(target, thisArg, argArray) {
+		if (argArray[0] === windowProxy) {
+			argArray[0] = window;
+		} else if (argArray[0] === documentProxy) {
+			argArray[0] = document;
+		}
+
+		return Reflect.apply(target, thisArg, argArray);
+	},
+});
+
+Function.prototype.call = new Proxy(Function.prototype.call, {
+	apply(target, thisArg, argArray) {
+		if (argArray[0] === windowProxy) {
+			argArray[0] = window;
+		} else if (argArray[0] === documentProxy) {
+			argArray[0] = document;
+		}
+
+		return Reflect.apply(target, thisArg, argArray);
+	},
+});
