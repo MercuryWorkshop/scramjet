@@ -52,8 +52,8 @@ importers:
         specifier: ^2.1.3
         version: 2.1.3(typescript@5.4.5)
       '@mercuryworkshop/libcurl-transport':
-        specifier: ^1.3.6
-        version: 1.3.6(typescript@5.4.5)
+        specifier: ^1.3.7
+        version: 1.3.7(typescript@5.4.5)
       '@rsdoctor/rspack-plugin':
         specifier: ^0.3.7
         version: 0.3.7(@rspack/core@0.7.5)(bufferutil@4.0.8)(utf-8-validate@6.0.4)
@@ -216,8 +216,8 @@ packages:
   '@mercuryworkshop/epoxy-transport@2.1.3':
     resolution: {integrity: sha512-cxuaPCVUmGnB1c/8cdoyhTIrZfL5feqH/sZRclkj8wFmrGz4PzzOHZRNMOrlzNoEiJDPYqHC4qJ6mNuiPC4vCw==}
 
-  '@mercuryworkshop/libcurl-transport@1.3.6':
-    resolution: {integrity: sha512-K4/TSfHlkjuzY6j0XXFmIbG8m3tpMoTxLga46fhmeuX8k3EJR/FVbW8JTXOD34Iofu0vCZuuY8n/ywNCcB6XjA==}
+  '@mercuryworkshop/libcurl-transport@1.3.7':
+    resolution: {integrity: sha512-Ef2BpZRPzkWaCf6FDv63uYyocz96sIwbScI2GrU/Oiu5Etyyq5bOo0mA6sHh8KCwioFSulvh61lO2MbfaEzH9g==}
 
   '@module-federation/runtime-tools@0.1.6':
     resolution: {integrity: sha512-7ILVnzMIa0Dlc0Blck5tVZG1tnk1MmLnuZpLOMpbdW+zl+N6wdMjjHMjEZFCUAJh2E5XJ3BREwfX8Ets0nIkLg==}
@@ -1658,8 +1658,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  libcurl.js@0.6.10:
-    resolution: {integrity: sha512-GDyxCRi7+R7XFhcCRFAsNYxg3x91LiwiBISo+pWfUXfgO45J/9ZWcHqjKQg8/FbWHRkV1wwSCyPOZ8pLlbdivg==}
+  libcurl.js@0.6.11:
+    resolution: {integrity: sha512-mCYCfjb5hnThNq0qzKPDUCRnHkDZENpCqGZ1flh4npu+zqWGun2/gsDmXCi+0J3TOsCDjmyMEt+W/eGNvqEHvQ==}
 
   light-my-request@5.13.0:
     resolution: {integrity: sha512-9IjUN9ZyCS9pTG+KqTDEQo68Sui2lHsYBrfMyVUTTZ3XhH8PMZq7xO94Kr+eP9dhi/kcKsx4N41p2IXEBil1pQ==}
@@ -2741,10 +2741,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@mercuryworkshop/libcurl-transport@1.3.6(typescript@5.4.5)':
+  '@mercuryworkshop/libcurl-transport@1.3.7(typescript@5.4.5)':
     dependencies:
       esbuild-plugin-umd-wrapper: 2.0.0
-      libcurl.js: 0.6.10
+      libcurl.js: 0.6.11
       rollup: 4.17.2
       rollup-plugin-node-resolve: 5.2.0(rollup@4.17.2)
       rollup-plugin-typescript2: 0.36.0(rollup@4.17.2)(typescript@5.4.5)
@@ -4441,7 +4441,7 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  libcurl.js@0.6.10: {}
+  libcurl.js@0.6.11: {}
 
   light-my-request@5.13.0:
     dependencies:

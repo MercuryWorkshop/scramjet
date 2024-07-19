@@ -9,7 +9,7 @@ use oxc_ast::{
 };
 use oxc_parser::Parser;
 use oxc_span::{SourceType, Span};
-use oxc_syntax::scope::ScopeFlags;
+use oxc_syntax::{operator::AssignmentOperator, scope::ScopeFlags};
 use url::Url;
 use urlencoding::encode;
 
@@ -27,6 +27,7 @@ enum JsChange {
         name: String,
         entirespan: Span,
         rhsspan: Span,
+        op: AssignmentOperator,
     },
 }
 
@@ -122,6 +123,76 @@ impl<'a> Visit<'a> for Rewriter {
 
         walk::walk_object_expression(self, it);
     }
+
+    fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
+        match &it.left {
+            AssignmentTarget::AssignmentTargetIdentifier(s) => {
+                if ["location"].contains(&s.name.to_string().as_str()) {
+                    self.jschanges.push(JsChange::Assignment {
+                        name: s.name.to_string(),
+                        entirespan: it.span,
+                        rhsspan: expression_span(&it.right),
+                        op: it.operator,
+                    });
+
+                    // avoid walking rest of tree, i would need to figure out nested rewrites
+                    // somehow
+                    return;
+                }
+            }
+            _ => {}
+        }
+        walk::walk_assignment_expression(self, it);
+    }
+}
+
+fn expression_span(e: &Expression) -> Span {
+    // enums.split("\n").filter(f=>f).map(p=>p.trimLeft()).filter(p=>!p.startsWith("#")).map(p=>p.replace(/\(.*/,"")).map(p=>`E::${p}(s) => s.span`).join(",\n")
+    use Expression as E;
+    match e {
+        E::BooleanLiteral(s) => s.span,
+        E::NullLiteral(s) => s.span,
+        E::NumericLiteral(s) => s.span,
+        E::BigIntLiteral(s) => s.span,
+        E::RegExpLiteral(s) => s.span,
+        E::StringLiteral(s) => s.span,
+        E::TemplateLiteral(s) => s.span,
+        E::Identifier(s) => s.span,
+        E::MetaProperty(s) => s.span,
+        E::Super(s) => s.span,
+        E::ArrayExpression(s) => s.span,
+        E::ArrowFunctionExpression(s) => s.span,
+        E::AssignmentExpression(s) => s.span,
+        E::AwaitExpression(s) => s.span,
+        E::BinaryExpression(s) => s.span,
+        E::CallExpression(s) => s.span,
+        E::ChainExpression(s) => s.span,
+        E::ClassExpression(s) => s.span,
+        E::ConditionalExpression(s) => s.span,
+        E::FunctionExpression(s) => s.span,
+        E::ImportExpression(s) => s.span,
+        E::LogicalExpression(s) => s.span,
+        E::NewExpression(s) => s.span,
+        E::ObjectExpression(s) => s.span,
+        E::ParenthesizedExpression(s) => s.span,
+        E::SequenceExpression(s) => s.span,
+        E::TaggedTemplateExpression(s) => s.span,
+        E::ThisExpression(s) => s.span,
+        E::UnaryExpression(s) => s.span,
+        E::UpdateExpression(s) => s.span,
+        E::YieldExpression(s) => s.span,
+        E::PrivateInExpression(s) => s.span,
+        E::JSXElement(s) => s.span,
+        E::JSXFragment(s) => s.span,
+        E::TSAsExpression(s) => s.span,
+        E::TSSatisfiesExpression(s) => s.span,
+        E::TSTypeAssertion(s) => s.span,
+        E::TSNonNullExpression(s) => s.span,
+        E::TSInstantiationExpression(s) => s.span,
+        E::ComputedMemberExpression(s) => s.span,
+        E::StaticMemberExpression(s) => s.span,
+        E::PrivateFieldExpression(s) => s.span,
+    }
 }
 
 // js MUST not be able to get a reference to any of these because sbx
@@ -166,6 +237,7 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
                 name,
                 entirespan,
                 rhsspan,
+                op,
             } => entirespan.start,
             _ => 0,
         };
@@ -175,6 +247,7 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
                 name,
                 entirespan,
                 rhsspan,
+                op,
             } => entirespan.start,
             _ => 0,
         };
@@ -189,6 +262,12 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
             JsChange::GenericChange { span, text } => {
                 difference += text.len() as i32 - (span.end - span.start) as i32;
             }
+            JsChange::Assignment {
+                name,
+                entirespan,
+                rhsspan,
+                op,
+            } => difference += entirespan.size() as i32 + name.len() as i32 + 10,
             _ => {}
         }
     }
@@ -200,7 +279,6 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     for change in ast_pass.jschanges {
         match &change {
             JsChange::GenericChange { span, text } => {
-                let len = (span.end - span.start) as usize;
                 let start = span.start as usize;
                 let end = span.end as usize;
 
@@ -208,8 +286,47 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
 
                 buffer.extend_from_slice(text.as_bytes());
                 offset = end;
+            }
+            JsChange::Assignment {
+                name,
+                entirespan,
+                rhsspan,
+                op,
+            } => {
+                let start = entirespan.start as usize;
+                buffer.extend_from_slice(&js[offset..start].as_bytes());
 
-                // offset = (offset as i64 + (text.len() as i64 - len as i64)) as usize;
+                let opstr = match op {
+                    AssignmentOperator::Assign => "=",
+                    AssignmentOperator::Addition => "+=",
+                    AssignmentOperator::Subtraction => "-=",
+                    AssignmentOperator::Multiplication => "*=",
+                    AssignmentOperator::Division => "/=",
+                    AssignmentOperator::Remainder => "%=",
+                    AssignmentOperator::Exponential => "**=",
+                    AssignmentOperator::ShiftLeft => "<<=",
+                    AssignmentOperator::ShiftRight => ">>=",
+                    AssignmentOperator::ShiftRightZeroFill => ">>>=",
+                    AssignmentOperator::BitwiseAnd => "&=",
+                    AssignmentOperator::BitwiseXOR => "^=",
+                    AssignmentOperator::BitwiseOR => "|=",
+                    AssignmentOperator::LogicalAnd => "&&=",
+                    AssignmentOperator::LogicalOr => "||=",
+                    AssignmentOperator::LogicalNullish => "??=",
+                };
+
+                buffer.extend_from_slice(
+                    format!(
+                        "((t)=>$tryset({},\"{}\",t)||{}=t)({})",
+                        name,
+                        opstr,
+                        name,
+                        &js[rhsspan.start as usize..rhsspan.end as usize]
+                    )
+                    .as_bytes(),
+                );
+
+                offset = entirespan.end as usize;
             }
             _ => {}
         }

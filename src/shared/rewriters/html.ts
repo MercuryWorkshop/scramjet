@@ -54,6 +54,10 @@ function traverseParsedHtml(node, origin?: URL) {
 		}
 	}
 
+	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
+		node.attribs["http-equiv"] = "a";
+	}
+
 	if (hasAttrib(node, "srcdoc"))
 		node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, origin);
 	if (hasAttrib(node, "style"))

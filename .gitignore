@@ -10,3 +10,5 @@ meta.json
 rewriter/target
 rewriter/out
 static/wasm.js
+rewriter/*.js
+pnpm-lock.yaml

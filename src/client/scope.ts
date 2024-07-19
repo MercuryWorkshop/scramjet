@@ -20,3 +20,12 @@ function scope(identifier: any) {
 
 // shorthand because this can get out of hand reall quickly
 window.$s = scope;
+
+window.$tryset = function (lhs: any, op: string, rhs: any) {
+	if (lhs instanceof Location) {
+		// @ts-ignore
+		locationProxy.href = rhs;
+
+		return true;
+	}
+};

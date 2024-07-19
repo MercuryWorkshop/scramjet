@@ -3,6 +3,7 @@ import { decodeUrl } from "./shared";
 declare global {
 	interface Window {
 		$s: any;
+		$tryset: any;
 		$sImport: any;
 	}
 }
