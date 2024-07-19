@@ -6,6 +6,7 @@ import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import wisp from "wisp-server-node";
 
 //transports
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
@@ -32,7 +33,7 @@ const fastify = Fastify({
 				if (bare.shouldRoute(req)) {
 					bare.routeUpgrade(req, socket, head);
 				} else {
-					socket.end();
+					wisp.routeRequest(req, socket, head);
 				}
 			});
 	},
