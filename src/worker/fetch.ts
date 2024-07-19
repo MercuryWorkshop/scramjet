@@ -74,7 +74,7 @@ async function handleResponse(
 			case "iframe":
 			case "document":
 				if (
-					responseHeaders["content-type"]?.toString()?.startsWith("text/html")
+					responseHeaders["content-type"]?.startsWith("text/html")
 				) {
 					responseBody = rewriteHtml(await response.text(), url);
 				} else {
