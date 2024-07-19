@@ -15,12 +15,6 @@ export const windowProxy = new Proxy(window, {
 			return window.parent;
 		} else if (propIsString && prop === "$scramjet") {
 			return;
-		} else if (propIsString && prop === "addEventListener") {
-			return new Proxy(window.addEventListener, {
-				apply(target1, thisArg, argArray) {
-					window.addEventListener(argArray[0], argArray[1]);
-				},
-			});
 		}
 
 		const value = Reflect.get(target, prop);
@@ -97,6 +91,18 @@ Function.prototype.apply = new Proxy(Function.prototype.apply, {
 });
 
 Function.prototype.call = new Proxy(Function.prototype.call, {
+	apply(target, thisArg, argArray) {
+		if (argArray[0] === windowProxy) {
+			argArray[0] = window;
+		} else if (argArray[0] === documentProxy) {
+			argArray[0] = document;
+		}
+
+		return Reflect.apply(target, thisArg, argArray);
+	},
+});
+
+Function.prototype.bind = new Proxy(Function.prototype.bind, {
 	apply(target, thisArg, argArray) {
 		if (argArray[0] === windowProxy) {
 			argArray[0] = window;
