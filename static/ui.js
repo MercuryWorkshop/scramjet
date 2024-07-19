@@ -28,7 +28,11 @@ const col = css`
 const store = $store(
 	{
 		url: "https://google.com",
-		wispurl: (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/",
+		wispurl:
+			(location.protocol === "https:" ? "wss" : "ws") +
+			"://" +
+			location.host +
+			"/wisp/",
 		bareurl:
 			(location.protocol === "https:" ? "https" : "http") +
 			"://" +

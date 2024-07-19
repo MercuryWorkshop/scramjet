@@ -151,7 +151,6 @@ for (const target of [Node.prototype, document]) {
 					},
 				});
 			}
-		} catch (e) { }
+		} catch (e) {}
 	}
 }
-

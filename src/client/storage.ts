@@ -8,7 +8,7 @@ const store = new IDBMapSync(locationProxy.host, {
 
 await store.sync();
 
-const localStorageProxy =  new Proxy(window.localStorage, {
+const localStorageProxy = new Proxy(window.localStorage, {
 	get(target, prop) {
 		switch (prop) {
 			case "getItem":
@@ -68,17 +68,17 @@ const sessionStorageProxy = new Proxy(window.sessionStorage, {
 			case "getItem":
 				return (key: string) => {
 					return target.getItem(locationProxy.host + "@" + key);
-				}
+				};
 
 			case "setItem":
 				return (key: string, value: string) => {
 					target.setItem(locationProxy.host + "@" + key, value);
-				}
+				};
 
 			case "removeItem":
 				return (key: string) => {
 					target.removeItem(locationProxy.host + "@" + key);
-				}
+				};
 
 			case "clear":
 				return () => {
@@ -87,14 +87,16 @@ const sessionStorageProxy = new Proxy(window.sessionStorage, {
 							target.removeItem(key);
 						}
 					}
-				}
+				};
 
 			case "key":
 				return (index: number) => {
-					const keys = Object.keys(target).filter((key) => key.startsWith(locationProxy.host));
+					const keys = Object.keys(target).filter((key) =>
+						key.startsWith(locationProxy.host)
+					);
 
 					return target.getItem(keys[index]);
-				}
+				};
 
 			case "length":
 				return target.length;
@@ -109,8 +111,11 @@ const sessionStorageProxy = new Proxy(window.sessionStorage, {
 	},
 
 	defineProperty(target, property, attributes) {
-		target.setItem(locationProxy.host + "@" + (property as string), attributes.value);
-		
+		target.setItem(
+			locationProxy.host + "@" + (property as string),
+			attributes.value
+		);
+
 		return true;
 	},
 });
