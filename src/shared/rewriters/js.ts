@@ -2,6 +2,7 @@ import { decodeUrl } from "./url";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import {
+	init,
 	initSync,
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
@@ -13,6 +14,10 @@ initSync(
 		Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0))
 	)
 );
+
+init();
+
+Error.stackTraceLimit = 50
 
 global.rws = rewriteJs;
 export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {

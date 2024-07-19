@@ -1,6 +1,9 @@
 pub mod rewrite;
 
-use std::str::{from_utf8, FromStr};
+use std::{
+    panic,
+    str::{from_utf8, FromStr},
+};
 
 use js_sys::Uint8Array;
 use rewrite::rewrite;
@@ -11,6 +14,11 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn init() {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
 #[wasm_bindgen]

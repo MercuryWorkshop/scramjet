@@ -7,6 +7,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
 js-sys = "0.3.69"
 oxc_allocator = "0.20.0"
 oxc_ast = { version = "0.20.0", features = ["serialize"]}

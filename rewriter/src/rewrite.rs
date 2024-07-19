@@ -2,7 +2,7 @@ use oxc_allocator::Allocator;
 use oxc_ast::{
     ast::{
         AssignmentTarget, Class, Expression, Function, IdentifierReference, MemberExpression,
-        TSImportType,
+        ObjectExpression, ObjectProperty, ObjectPropertyKind, TSImportType,
     },
     visit::walk,
     Visit,
@@ -37,47 +37,21 @@ struct Rewriter {
 }
 
 impl<'a> Visit<'a> for Rewriter {
-    fn visit_assignment_expression(&mut self, expr: &oxc_ast::ast::AssignmentExpression<'a>) {
-        // if expr.left.is_simple_assignment_target() {
-        //     let name = expr
-        //         .left
-        //         .as_simple_assignment_target()
-        //         .unwrap()
-        //         .get_identifier()
-        //         .unwrap();
-        //     if name == "location" {
-        //         use oxc_ast::ast::Expression as E;
-        //         let span = match &expr.right {
-        //             E::Super(s) => s.span,
-        //             E::ThisExpression(s) => s.span,
-        //             E::Identifier(s) => s.span,
-        //             E::NumericLiteral(s) => s.span,
-        //             E::AssignmentExpression(s) => s.span,
-        //
-        //             _ => todo!("{:?}", expr.right),
-        //         };
-        //         self.jschanges.push(JsChange::Assignment {
-        //             name: name.to_string(),
-        //             entirespan: expr.span,
-        //             rhsspan: span,
-        //         });
-        //     }
-        // }
-
-        match &expr.right {
-            Expression::Identifier(s) => {
-                if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) {
-                    self.jschanges.push(JsChange::GenericChange {
-                        span: s.span,
-                        text: format!("(globalThis.$s({}))", s.name),
-                    });
-                }
-            }
-            _ => {
-                walk::walk_assignment_expression(self, expr);
-            }
+    fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
+        if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
+            self.jschanges.push(JsChange::GenericChange {
+                span: it.span,
+                text: format!("(globalThis.$s({}))", it.name),
+            });
         }
     }
+    fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
+        self.jschanges.push(JsChange::GenericChange {
+            span: it.span,
+            text: "(globalThis.$s(this))".to_string(),
+        });
+    }
+
     fn visit_import_declaration(&mut self, it: &oxc_ast::ast::ImportDeclaration<'a>) {
         let name = it.source.value.to_string();
         let url = self.base.join(&name).unwrap();
@@ -97,24 +71,29 @@ impl<'a> Visit<'a> for Rewriter {
         });
         walk::walk_import_expression(self, it);
     }
-    fn visit_variable_declarator(&mut self, it: &oxc_ast::ast::VariableDeclarator<'a>) {
-        match &it.init {
-            Some(Expression::Identifier(s)) => {
-                if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) {
-                    self.jschanges.push(JsChange::GenericChange {
-                        span: s.span,
-                        text: format!("(globalThis.$s({}))", s.name),
-                    });
-                }
-            }
-            _ => {
-                walk::walk_variable_declarator(self, it);
+
+    fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
+        for prop in &it.properties {
+            match prop {
+                ObjectPropertyKind::ObjectProperty(p) => match &p.value {
+                    Expression::Identifier(s) => {
+                        if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) {
+                            if p.shorthand {
+                                self.jschanges.push(JsChange::GenericChange {
+                                    span: s.span,
+                                    text: format!("{}: (globalThis.$s({}))", s.name, s.name),
+                                });
+                                return;
+                            }
+                        }
+                    }
+                    _ => {}
+                },
+                _ => {}
             }
         }
-    }
 
-    fn visit_member_expression(&mut self, it: &MemberExpression<'a>) {
-        self.trace_member(it);
+        walk::walk_object_expression(self, it);
     }
 }
 
@@ -129,60 +108,6 @@ const UNSAFE_GLOBALS: [&str; 8] = [
     "location",
     "document",
 ];
-
-impl Rewriter {
-    fn trace_member<'a>(&mut self, it: &MemberExpression<'a>) {
-        match &it {
-            MemberExpression::StaticMemberExpression(s) => match &s.object {
-                Expression::Identifier(obj) => {
-                    if UNSAFE_GLOBALS.contains(&obj.name.to_string().as_str()) {
-                        self.jschanges.push(JsChange::GenericChange {
-                            span: obj.span,
-                            text: format!("(globalThis.$s({}))", obj.name),
-                        });
-                    }
-                }
-                Expression::ThisExpression(obj) => {
-                    self.jschanges.push(JsChange::GenericChange {
-                        span: obj.span,
-                        text: "(globalThis.$s(this))".to_string(),
-                    });
-                }
-                _ => {
-                    if it.object().is_member_expression() {
-                        self.trace_member(it.object().as_member_expression().unwrap());
-                    } else {
-                        walk::walk_member_expression(self, it);
-                    }
-                }
-            },
-            MemberExpression::ComputedMemberExpression(s) => match &s.object {
-                Expression::Identifier(obj) => {
-                    if UNSAFE_GLOBALS.contains(&obj.name.to_string().as_str()) {
-                        self.jschanges.push(JsChange::GenericChange {
-                            span: obj.span,
-                            text: format!("(globalThis.$s({}))", obj.name),
-                        });
-                    }
-                }
-                Expression::ThisExpression(obj) => {
-                    self.jschanges.push(JsChange::GenericChange {
-                        span: obj.span,
-                        text: "(globalThis.$s(this))".to_string(),
-                    });
-                }
-                _ => {
-                    if it.object().is_member_expression() {
-                        self.trace_member(it.object().as_member_expression().unwrap());
-                    } else {
-                        walk::walk_member_expression(self, it);
-                    }
-                }
-            },
-            _ => {}
-        }
-    }
-}
 
 pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     let allocator = Allocator::default();
@@ -259,24 +184,6 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
 
                 // offset = (offset as i64 + (text.len() as i64 - len as i64)) as usize;
             }
-            // JsChange::Assignment {
-            //     name,
-            //     entirespan,
-            //     rhsspan,
-            // } => {
-            //     let len = (entirespan.end - entirespan.start) as usize;
-            //     let start = entirespan.start as usize + offset;
-            //     let end = entirespan.end as usize + offset;
-            //
-            //     let text = format!(
-            //         "$set({}, {})",
-            //         name,
-            //         &js[rhsspan.start as usize..rhsspan.end as usize]
-            //     );
-            //     rewritten.replace_range(start..end, &text);
-            //
-            //     offset += text.len() - len;
-            // }
             _ => {}
         }
     }
