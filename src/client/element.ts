@@ -128,18 +128,7 @@ Object.defineProperty(Element.prototype, "innerHTML", {
 	},
 });
 
-MutationObserver.prototype.observe = new Proxy(
-	MutationObserver.prototype.observe,
-	{
-		apply(target, thisArg, argArray) {
-			if (argArray[0] === documentProxy) argArray[0] = document;
-
-			return Reflect.apply(target, thisArg, argArray);
-		},
-	}
-);
-
-for (const target of [Node.prototype, document]) {
+for (const target of [Node.prototype, MutationObserver.prototype, document]) {
 	for (const prop in target) {
 		try {
 			if (typeof target[prop] === "function") {
@@ -154,4 +143,3 @@ for (const target of [Node.prototype, document]) {
 		} catch (e) { }
 	}
 }
-
