@@ -1,3 +1,4 @@
+import { client } from ".";
 import { decodeUrl } from "../shared/rewriters/url";
 import {
 	encodeUrl,
@@ -138,10 +139,19 @@ MutationObserver.prototype.observe = new Proxy(
 	}
 );
 
-document.createTreeWalker = new Proxy(document.createTreeWalker, {
-	apply(target, thisArg, argArray) {
-		if (argArray[0] === documentProxy) argArray[0] = document;
+for (const target of [Node.prototype, document]) {
+	for (const prop in target) {
+		try {
+			if (typeof target[prop] === "function") {
+				client.Proxy(target, prop, {
+					apply(ctx) {
+						for (const i in ctx.args) {
+							if (ctx.args[i] === documentProxy) ctx.args[i] = document;
+						}
+					},
+				});
+			}
+		} catch (e) { }
+	}
+}
 
-		return Reflect.apply(target, thisArg, argArray);
-	},
-});
