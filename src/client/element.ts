@@ -6,6 +6,7 @@ import {
 	rewriteJs,
 	rewriteSrcset,
 } from "./shared";
+import { documentProxy } from "./window";
 
 const attrObject = {
 	nonce: [HTMLElement],
@@ -124,4 +125,20 @@ Object.defineProperty(Element.prototype, "innerHTML", {
 
 		return innerHTML.set.call(this, value);
 	},
+});
+
+MutationObserver.prototype.observe = new Proxy(MutationObserver.prototype.observe, {
+	apply(target, thisArg, argArray) {
+		if (argArray[0] === documentProxy) argArray[0] = document;
+
+		return Reflect.apply(target, thisArg, argArray);
+	}
+});
+
+document.createTreeWalker = new Proxy(document.createTreeWalker, {
+	apply(target, thisArg, argArray) {
+		if (argArray[0] === documentProxy) argArray[0] = document;
+
+		return Reflect.apply(target, thisArg, argArray);
+	}
 });
