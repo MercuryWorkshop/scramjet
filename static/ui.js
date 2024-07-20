@@ -18,6 +18,25 @@ navigator.serviceWorker.ready.then((reg) => {
 	}
 });
 
+navigator.serviceWorker.onmessage = ({ data }) => {
+	if (data.scramjet$type === "getLocalStorage") {
+		const pairs = Object.entries(localStorage);
+		navigator.serviceWorker.controller.postMessage({
+			scramjet$type: "getLocalStorage",
+			scramjet$token: data.scramjet$token,
+			data: pairs,
+		});
+	} else if (data.scramjet$type === "setLocalStorage") {
+		for (const [key, value] of data.data) {
+			localStorage.setItem(key, value);
+		}
+		navigator.serviceWorker.controller.postMessage({
+			scramjet$type: "setLocalStorage",
+			scramjet$token: data.scramjet$token,
+		});
+	}
+};
+
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
 	display: flex;

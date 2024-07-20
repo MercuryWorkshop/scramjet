@@ -12,12 +12,74 @@ export class ScramjetServiceWorker {
 	config: typeof self.$scramjet.config;
 	threadpool: ScramjetThreadpool;
 
+	syncPool: Record<number, (val?: any) => void> = {};
+	synctoken = 0;
+
 	constructor(config = self.$scramjet.config) {
 		this.client = new self.$scramjet.shared.util.BareClient();
 		if (!config.prefix) config.prefix = "/scramjet/";
 		this.config = config;
 
 		this.threadpool = new ScramjetThreadpool();
+
+		addEventListener("message", ({ data }) => {
+			if (!("scramjet$token" in data)) return;
+
+			const resolve = this.syncPool[data.scramjet$token];
+			delete this.syncPool[data.scramjet$token];
+			if (data.scramjet$type === "getLocalStorage") {
+				resolve(data.data);
+			} else if (data.scramjet$type === "setLocalStorage") {
+				resolve();
+			}
+		});
+	}
+
+	async getLocalStorage(): Promise<Record<string, string>> {
+		let clients = await self.clients.matchAll();
+		clients = clients.filter(
+			(client) =>
+				client.type === "window" &&
+				!new URL(client.url).pathname.startsWith(this.config.prefix)
+		);
+
+		if (clients.length === 0) throw new Error("No clients found");
+
+		const token = this.synctoken++;
+		for (const client of clients) {
+			client.postMessage({
+				scramjet$type: "getLocalStorage",
+				scramjet$token: token,
+			});
+		}
+
+		return new Promise((resolve) => {
+			this.syncPool[token] = resolve;
+		});
+	}
+
+	async setLocalStorage(data: Record<string, string>): Promise<void> {
+		let clients = await self.clients.matchAll();
+		clients = clients.filter(
+			(client) =>
+				client.type === "window" &&
+				!new URL(client.url).pathname.startsWith(this.config.prefix)
+		);
+
+		if (clients.length === 0) throw new Error("No clients found");
+
+		const token = this.synctoken++;
+		for (const client of clients) {
+			client.postMessage({
+				scramjet$type: "setLocalStorage",
+				scramjet$token: token,
+				data,
+			});
+		}
+
+		return new Promise((resolve) => {
+			this.syncPool[token] = resolve;
+		});
 	}
 
 	route({ request }: FetchEvent) {
