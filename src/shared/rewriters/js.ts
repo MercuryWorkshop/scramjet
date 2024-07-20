@@ -35,3 +35,26 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 
 	return js;
 }
+
+// 1. does not work with modules
+// 2. cannot proxy import()
+// 3. disables "use strict" optimizations
+// 4. `location = ...` will fail
+// 5. i think the global state can get clobbered somehow
+//
+// if you can ensure all the preconditions are met this is faster than full rewrites
+export function rewriteJsNaiive(js: string | ArrayBuffer, origin?: URL) {
+	if ("window" in globalThis) origin ??= new URL(decodeUrl(location.href));
+
+	if (typeof js !== "string") {
+		js = new TextDecoder().decode(js);
+	}
+
+	return `
+		with ($s(window)) {
+
+			${js}
+
+		}
+	`;
+}
