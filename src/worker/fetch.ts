@@ -1,5 +1,5 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import IDBMap from "@webreflection/idb-map";
+import IDBMap from "idb-map-entries";
 import { ParseResultType } from "parse-domain";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";

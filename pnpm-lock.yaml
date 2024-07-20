@@ -11,9 +11,6 @@ importers:
       '@mercuryworkshop/bare-mux':
         specifier: ^2.0.2
         version: 2.0.2
-      '@webreflection/idb-map':
-        specifier: ^0.3.1
-        version: 0.3.1
       astravel:
         specifier: ^0.6.1
         version: 0.6.1
@@ -32,6 +29,9 @@ importers:
       htmlparser2:
         specifier: ^9.1.0
         version: 9.1.0
+      idb-map-entries:
+        specifier: ^0.3.2
+        version: 0.3.2
       meriyah:
         specifier: ^4.4.2
         version: 4.4.2
@@ -639,9 +639,6 @@ packages:
 
   '@webassemblyjs/wast-printer@1.12.1':
     resolution: {integrity: sha512-+X4WAlOisVWQMikjbcvY2e0rwPsKQ9F688lksZhBcPycBBuii3O7m8FACbDMWDojpAqvjIncrG8J0XHKyQfVeA==}
-
-  '@webreflection/idb-map@0.3.1':
-    resolution: {integrity: sha512-lRCanqwR7tHHFohJHAMSMEZnoNPvgjcKr0f5e4y+lTJA+fctT61EZ+f5pT5/+8+wlSsMAvXjzfKRLT6o9aqxbA==}
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -1499,6 +1496,9 @@ packages:
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
     engines: {node: '>=0.10.0'}
+
+  idb-map-entries@0.3.2:
+    resolution: {integrity: sha512-ytqa9ACEDhytNkxzg76ZwKw4bo3fXCw4ps6Patte8Dy4GhLFZFDAipcbrXsW1bdoa5N9ALqS1GftIgex8cdGgw==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -3366,8 +3366,6 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
-  '@webreflection/idb-map@0.3.1': {}
-
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
@@ -4311,6 +4309,8 @@ snapshots:
   iconv-lite@0.4.24:
     dependencies:
       safer-buffer: 2.1.2
+
+  idb-map-entries@0.3.2: {}
 
   ieee754@1.2.1: {}
 
