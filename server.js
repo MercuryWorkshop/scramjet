@@ -73,7 +73,10 @@ fastify.listen({
 	host: "0.0.0.0",
 });
 
-writeFileSync(".git/hooks/pre-commit", "pnpm prettier . -w\ngit add -A");
+writeFileSync(
+	".git/hooks/pre-commit",
+	"pnpm prettier . -w\ngit update-index --again"
+);
 chmodSync(".git/hooks/pre-commit", 0o755);
 
 const watch = spawn("pnpm", ["rspack", "-w"], {
