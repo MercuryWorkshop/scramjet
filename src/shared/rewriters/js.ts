@@ -39,8 +39,7 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 // 1. does not work with modules
 // 2. cannot proxy import()
 // 3. disables "use strict" optimizations
-// 4. `location = ...` will fail
-// 5. i think the global state can get clobbered somehow
+// 4. i think the global state can get clobbered somehow
 //
 // if you can ensure all the preconditions are met this is faster than full rewrites
 export function rewriteJsNaiive(js: string | ArrayBuffer, origin?: URL) {
