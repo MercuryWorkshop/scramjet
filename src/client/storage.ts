@@ -1,89 +1,27 @@
-import IDBMapSync from "idb-map-entries/sync";
-import { locationProxy } from "./location";
+import { client } from ".";
 
-const store = new IDBMapSync(locationProxy.host, {
-	prefix: "Storage",
-	durability: "relaxed",
-});
-
-await store.sync();
-
-const localStorageProxy = new Proxy(window.localStorage, {
+const handler: ProxyHandler<Storage> = {
 	get(target, prop) {
 		switch (prop) {
 			case "getItem":
 				return (key: string) => {
-					return store.get(key);
+					return target.getItem(client.url.host + "@" + key);
 				};
 
 			case "setItem":
 				return (key: string, value: string) => {
-					store.set(key, value);
-					store.sync();
+					return target.setItem(client.url.host + "@" + key, value);
 				};
 
 			case "removeItem":
 				return (key: string) => {
-					store.delete(key);
-					store.sync();
-				};
-
-			case "clear":
-				return () => {
-					store.clear();
-					store.sync();
-				};
-
-			case "key":
-				return (index: number) => {
-					return [...store.keys()][index];
-				};
-			case "length":
-				return store.size;
-			default:
-				if (prop in Object.prototype) {
-					return Reflect.get(target, prop);
-				}
-
-				return store.get(prop);
-		}
-	},
-
-	//@ts-ignore
-	set(target, prop, value) {
-		store.set(prop, value);
-		store.sync();
-	},
-
-	defineProperty(target, property, attributes) {
-		store.set(property as string, attributes.value);
-
-		return true;
-	},
-});
-
-const sessionStorageProxy = new Proxy(window.sessionStorage, {
-	get(target, prop) {
-		switch (prop) {
-			case "getItem":
-				return (key: string) => {
-					return target.getItem(locationProxy.host + "@" + key);
-				};
-
-			case "setItem":
-				return (key: string, value: string) => {
-					target.setItem(locationProxy.host + "@" + key, value);
-				};
-
-			case "removeItem":
-				return (key: string) => {
-					target.removeItem(locationProxy.host + "@" + key);
+					return target.removeItem(client.url.host + "@" + key);
 				};
 
 			case "clear":
 				return () => {
 					for (const key in Object.keys(target)) {
-						if (key.startsWith(locationProxy.host)) {
+						if (key.startsWith(client.url.host)) {
 							target.removeItem(key);
 						}
 					}
@@ -92,33 +30,65 @@ const sessionStorageProxy = new Proxy(window.sessionStorage, {
 			case "key":
 				return (index: number) => {
 					const keys = Object.keys(target).filter((key) =>
-						key.startsWith(locationProxy.host)
+						key.startsWith(client.url.host)
 					);
 
 					return target.getItem(keys[index]);
 				};
 
 			case "length":
-				return target.length;
+				return Object.keys(target).filter((key) =>
+					key.startsWith(client.url.host)
+				).length;
 
 			default:
 				if (prop in Object.prototype) {
 					return Reflect.get(target, prop);
 				}
+				console.log("GET", prop, target == realLocalStorage);
 
-				return target.getItem(locationProxy.host + "@" + (prop as string));
+				return target.getItem(client.url.host + "@" + (prop as string));
 		}
+	},
+
+	set(target, prop, value) {
+		if (target == realLocalStorage)
+			console.log("SET", prop, value, target === realLocalStorage);
+		target.setItem(client.url.host + "@" + (prop as string), value);
+
+		return true;
+	},
+
+	ownKeys(target) {
+		return Reflect.ownKeys(target)
+			.filter((f) => typeof f === "string" && f.startsWith(client.url.host))
+			.map((f) => f.substring(client.url.host.length + 1));
+	},
+
+	getOwnPropertyDescriptor(target, property) {
+		return {
+			value: target.getItem(client.url.host + "@" + (property as string)),
+			enumerable: true,
+			configurable: true,
+			writable: true,
+		};
 	},
 
 	defineProperty(target, property, attributes) {
 		target.setItem(
-			locationProxy.host + "@" + (property as string),
+			client.url.host + "@" + (property as string),
 			attributes.value
 		);
 
 		return true;
 	},
-});
+};
+
+const realLocalStorage = window.localStorage;
+const realSessionStorage = window.sessionStorage;
+
+const localStorageProxy = new Proxy(window.localStorage, handler);
+const sessionStorageProxy = new Proxy(window.sessionStorage, handler);
 
 delete window.localStorage;
 delete window.sessionStorage;
