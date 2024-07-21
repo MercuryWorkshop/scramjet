@@ -50,7 +50,6 @@ export default defineConfig({
 		path: join(__dirname, "dist"),
 		libraryTarget: "es2022",
 		iife: true,
-		strict: false,
 		clean: true,
 	},
 	plugins: [
