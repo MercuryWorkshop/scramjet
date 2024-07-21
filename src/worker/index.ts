@@ -1,3 +1,4 @@
+import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
 
@@ -15,6 +16,8 @@ export class ScramjetServiceWorker {
 	syncPool: Record<number, (val?: any) => void> = {};
 	synctoken = 0;
 
+	serviceWorkers: FakeServiceWorker[] = [];
+
 	constructor(config = self.$scramjet.config) {
 		this.client = new self.$scramjet.shared.util.BareClient();
 		if (!config.prefix) config.prefix = "/scramjet/";
@@ -23,6 +26,14 @@ export class ScramjetServiceWorker {
 		this.threadpool = new ScramjetThreadpool();
 
 		addEventListener("message", ({ data }) => {
+			if (!("scramjet$type" in data)) return;
+
+			if (data.scramjet$type === "registerServiceWorker") {
+				this.serviceWorkers.push(new FakeServiceWorker(data.port));
+
+				return;
+			}
+
 			if (!("scramjet$token" in data)) return;
 
 			const resolve = this.syncPool[data.scramjet$token];

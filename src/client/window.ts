@@ -45,6 +45,14 @@ export const windowProxy = new Proxy(self, {
 
 		return Reflect.set(target, prop, newValue);
 	},
+	defineProperty(target, property, attributes) {
+		if (!attributes.get && !attributes.set) {
+			attributes.writable = true;
+		}
+		attributes.configurable = true;
+
+		return Reflect.defineProperty(target, property, attributes);
+	},
 });
 
 export const documentProxy = new Proxy(self.document || {}, {
