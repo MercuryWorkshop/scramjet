@@ -142,7 +142,7 @@ impl<'a> Visit<'a> for Rewriter {
             }
             _ => {}
         }
-        walk::walk_assignment_expression(self, it);
+        walk::walk_expression(self, &it.right);
     }
 }
 
