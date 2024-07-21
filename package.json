@@ -48,15 +48,16 @@
 	"type": "module",
 	"dependencies": {
 		"@mercuryworkshop/bare-mux": "^2.0.2",
-		"idb-map-entries": "^0.3.2",
 		"astravel": "^0.6.1",
 		"astring": "^1.8.6",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.1.0",
 		"htmlparser2": "^9.1.0",
+		"idb-map-entries": "^0.3.2",
 		"meriyah": "^4.4.2",
 		"parse-domain": "^8.0.2",
+		"set-cookie-parser": "^2.6.0",
 		"wisp-server-node": "^1.1.1"
 	}
 }

@@ -38,6 +38,9 @@ importers:
       parse-domain:
         specifier: ^8.0.2
         version: 8.0.2
+      set-cookie-parser:
+        specifier: ^2.6.0
+        version: 2.6.0
       wisp-server-node:
         specifier: ^1.1.1
         version: 1.1.1
