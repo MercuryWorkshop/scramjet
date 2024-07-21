@@ -145,6 +145,29 @@ function App() {
     `;
 }
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
 	document.body.appendChild(h(App));
+	function b64(buffer) {
+		let binary = "";
+		let bytes = new Uint8Array(buffer);
+		let len = bytes.byteLength;
+		for (let i = 0; i < len; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+
+		return btoa(binary);
+	}
+	const arraybuffer = await (await fetch("/scramjet.png")).arrayBuffer();
+	console.log(
+		"%cb",
+		`
+background-image: url(data:image/png;base64,${b64(arraybuffer)});
+color: transparent;
+padding-left: 200px;
+padding-bottom: 100px;
+background-size: contain;
+background-position: center center;
+background-repeat: no-repeat;
+`
+	);
 });

@@ -1,25 +1,24 @@
-const _dbg = {
+export default {
 	fmt: function (severity: string, message: string, ...args: any[]) {
 		const old = Error.prepareStackTrace;
 
 		Error.prepareStackTrace = (_, stack) => {
 			stack.shift(); // stack();
 			stack.shift(); // fmt();
+			stack.shift();
 
-			for (let i = 0; i < stack.length; i++) {
-				if (Object.values(this).includes(stack[i].getFunction())) {
-					stack.splice(i, 1);
+			let fmt = "";
+			for (let i = 1; i < Math.min(2, stack.length); i++) {
+				if (stack[i].getFunctionName()) {
+					// const f = stack[i].getThis()?.constructor?.name;
+					// if (f) fmt += `${f}.`
+					fmt += `${stack[i].getFunctionName()} -> ` + fmt;
 				}
 			}
 
-			let frame = stack[0];
-			while (!frame?.getFunctionName() || !frame) {
-				frame = stack.shift();
-			}
+			fmt += stack[0].getFunctionName();
 
-			const fn = stack[0].getFunctionName();
-
-			return `${fn}()`;
+			return fmt;
 		};
 
 		const fmt = (function stack() {
@@ -59,6 +58,8 @@ background-color: ${bg};
 color: ${fg};
 padding: ${padding}px;
 font-weight: bold;
+font-family: monospace;
+font-size: 0.9em;
 `,
 			`
 ${severity === "debug" ? "color: gray" : ""}
@@ -79,10 +80,3 @@ ${severity === "debug" ? "color: gray" : ""}
 		this.fmt("debug", message, ...args);
 	},
 };
-
-for (const key in _dbg) {
-	_dbg[key] = (0, eval)("(" + _dbg[key].toString() + ")");
-}
-self._dbg = _dbg;
-
-export default _dbg;

@@ -1,6 +1,6 @@
 import { encodeUrl } from "../shared/rewriters/url";
 
-window.$sImport = function (base) {
+self.$sImport = function (base) {
 	return function (url) {
 		const resolved = new URL(url, base).href;
 

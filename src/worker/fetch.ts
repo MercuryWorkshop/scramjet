@@ -89,7 +89,7 @@ async function handleResponse(
 				break;
 			case "sharedworker":
 			case "worker":
-				responseBody = rewriteWorkers(await response.text(), url);
+				responseBody = rewriteWorkers(await response.arrayBuffer(), url);
 				break;
 			default:
 				responseBody = response.body;

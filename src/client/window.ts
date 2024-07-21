@@ -2,7 +2,7 @@ import { client } from ".";
 import { encodeUrl } from "../shared/rewriters/url";
 import { locationProxy } from "./location";
 
-export const windowProxy = new Proxy(window, {
+export const windowProxy = new Proxy(self, {
 	get(target, prop) {
 		const propIsString = typeof prop === "string";
 		if (propIsString && prop === "location") {
@@ -13,7 +13,7 @@ export const windowProxy = new Proxy(window, {
 		) {
 			return windowProxy;
 		} else if (propIsString && prop == "parent") {
-			return window.parent;
+			return self.parent;
 		} else if (propIsString && prop === "$scramjet") {
 			return;
 		}
@@ -24,7 +24,7 @@ export const windowProxy = new Proxy(window, {
 		if (typeof value === "function") {
 			return new Proxy(value, {
 				apply(_target, thisArg, argArray) {
-					return value.apply(window, argArray);
+					return value.apply(self, argArray);
 				},
 			});
 		}
@@ -47,7 +47,7 @@ export const windowProxy = new Proxy(window, {
 	},
 });
 
-export const documentProxy = new Proxy(document, {
+export const documentProxy = new Proxy(self.document || {}, {
 	get(target, prop) {
 		const propIsString = typeof prop === "string";
 
@@ -60,7 +60,7 @@ export const documentProxy = new Proxy(document, {
 		if (typeof value === "function") {
 			return new Proxy(value, {
 				apply(_target, thisArg, argArray) {
-					return value.apply(document, argArray);
+					return value.apply(self.document, argArray);
 				},
 			});
 		}
@@ -79,32 +79,16 @@ export const documentProxy = new Proxy(document, {
 	},
 });
 
-client.Proxy(Function.prototype, "apply", {
-	apply(ctx) {
-		if (ctx.args[0] === windowProxy) {
-			ctx.args[0] = window;
-		} else if (ctx.args[0] === documentProxy) {
-			ctx.args[0] = document;
-		}
-	},
-});
-
-client.Proxy(Function.prototype, "call", {
-	apply(ctx) {
-		if (ctx.args[0] === windowProxy) {
-			ctx.args[0] = window;
-		} else if (ctx.args[0] === documentProxy) {
-			ctx.args[0] = document;
-		}
-	},
-});
-
-client.Proxy(Function.prototype, "bind", {
-	apply(ctx) {
-		if (ctx.args[0] === windowProxy) {
-			ctx.args[0] = window;
-		} else if (ctx.args[0] === documentProxy) {
-			ctx.args[0] = document;
-		}
-	},
-});
+client.Proxy(
+	[
+		"Function.prototype.call",
+		"Function.prototype.bind",
+		"Function.prototype.apply",
+	],
+	{
+		apply(ctx) {
+			if (ctx.args[0] === windowProxy) ctx.args[0] = window;
+			if (ctx.args[0] === documentProxy) ctx.args[0] = document;
+		},
+	}
+);

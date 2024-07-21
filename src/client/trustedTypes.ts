@@ -30,10 +30,12 @@
 // 	},
 // });
 
-//@ts-nocheck
-delete window.TrustedHTML;
-delete window.TrustedScript;
-delete window.TrustedScriptURL;
-delete window.TrustedTypePolicy;
-delete window.TrustedTypePolicyFactory;
-delete window.trustedTypes;
+if ("window" in self) {
+	//@ts-nocheck
+	delete window.TrustedHTML;
+	delete window.TrustedScript;
+	delete window.TrustedScriptURL;
+	delete window.TrustedTypePolicy;
+	delete window.TrustedTypePolicyFactory;
+	delete window.trustedTypes;
+}

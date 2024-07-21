@@ -1,37 +1,38 @@
+import { client } from ".";
 import { encodeUrl } from "./shared";
 
-Worker = new Proxy(Worker, {
-	construct(target, argArray) {
-		argArray[0] = encodeUrl(argArray[0]);
+client.Proxy("Worker", {
+	construct({ args }) {
+		if (args[0] instanceof URL) args[0] = args[0].href;
+		if (args[0].startsWith("blob:") || args[0].startsWith("data:")) {
+			// TODO
+			return;
+		}
 
-		// target is a reference to the object that you are proxying
-		// Reflect.construct is just a wrapper for calling target
-		// you could do new target(...argArray) and it would work the same effectively
+		args[0] = encodeUrl(args[0]) + "?dest=worker";
 
-		return Reflect.construct(target, argArray);
+		if (args[1] && args[1].type === "module") {
+			args[0] += "&type=module";
+		}
 	},
 });
 
-Worklet.prototype.addModule = new Proxy(Worklet.prototype.addModule, {
-	apply(target, thisArg, argArray) {
-		argArray[0] = encodeUrl(argArray[0]);
+if ("window" in self) {
+	Worklet.prototype.addModule = new Proxy(Worklet.prototype.addModule, {
+		apply(target, thisArg, argArray) {
+			argArray[0] = encodeUrl(argArray[0]);
 
-		return Reflect.apply(target, thisArg, argArray);
-	},
-});
-
-if ("serviceWorker" in window.navigator) {
+			return Reflect.apply(target, thisArg, argArray);
+		},
+	});
 	//@ts-expect-error temporary until nested sw support
 	delete window.Navigator.prototype.serviceWorker;
 }
-// broken
 
-// window.importScripts = new Proxy(window.importScripts, {
-//     apply(target, thisArg, argArray) {
-//         for (const i in argArray) {
-//             argArray[i] = encodeUrl(argArray[i]);
-//         }
-
-//         return Reflect.apply(target, thisArg, argArray);
-//     },
-// });
+client.Proxy("importScripts", {
+	apply(ctx) {
+		for (const i in ctx.args) {
+			ctx.args[i] = encodeUrl(ctx.args[i]);
+		}
+	},
+});

@@ -46,16 +46,16 @@ const plain = {
 
 /*
 const aes = {
-    encode: (str: string | undefined) => {
-        if (!str) return str;
+		encode: (str: string | undefined) => {
+				if (!str) return str;
 
-        return encodeURIComponent(enc(str, "dynamic").substring(10));
-    },
-    decode: (str: string | undefined) => {
-        if (!str) return str;
+				return encodeURIComponent(enc(str, "dynamic").substring(10));
+		},
+		decode: (str: string | undefined) => {
+				if (!str) return str;
 
-        return dec("U2FsdGVkX1" + decodeURIComponent(str), "dynamic");
-    }
+				return dec("U2FsdGVkX1" + decodeURIComponent(str), "dynamic");
+		}
 }
 */
 

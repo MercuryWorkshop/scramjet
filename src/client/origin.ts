@@ -1,18 +1,25 @@
+import { client } from ".";
 import { decodeUrl } from "../shared/rewriters/url";
 
-// const descriptor = Object.getOwnPropertyDescriptor(window, "origin");
-delete window.origin;
-
-Object.defineProperty(window, "origin", {
+client.Trap("origin", {
 	get() {
-		return new URL(decodeUrl(location.href)).origin;
+		return client.url.origin;
 	},
 	set() {
 		return false;
 	},
 });
 
-Object.defineProperty(document, "URL", {
+client.Trap("document.URL", {
+	get() {
+		return client.url;
+	},
+	set() {
+		return false;
+	},
+});
+
+client.Trap("document.baseURI", {
 	get() {
 		return decodeUrl(location.href);
 	},
@@ -21,18 +28,9 @@ Object.defineProperty(document, "URL", {
 	},
 });
 
-Object.defineProperty(document, "baseURI", {
+client.Trap("document.domain", {
 	get() {
-		return decodeUrl(location.href);
-	},
-	set() {
-		return false;
-	},
-});
-
-Object.defineProperty(document, "domain", {
-	get() {
-		return new URL(decodeUrl(location.href)).hostname;
+		return client.url.hostname;
 	},
 	set() {
 		return false;

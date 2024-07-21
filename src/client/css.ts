@@ -14,7 +14,7 @@ const cssProperties = [
 ];
 // const jsProperties = ["background", "backgroundImage", "mask", "maskImage", "listStyle", "listStyleImage", "borderImage", "borderImageSource", "cursor"];
 
-client.Proxy(CSSStyleDeclaration.prototype, "setProperty", {
+client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
 	apply(ctx) {
 		if (cssProperties.includes(ctx.args[0]))
 			ctx.args[1] = rewriteCss(ctx.args[1]);
