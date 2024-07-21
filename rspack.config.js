@@ -1,4 +1,5 @@
 import { defineConfig } from "@rspack/cli";
+import { rspack } from "@rspack/core";
 // import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { join } from "path";
 import { fileURLToPath } from "url";
@@ -23,13 +24,21 @@ export default defineConfig({
 		rules: [
 			{
 				test: /\.ts$/,
-				use: "builtin:swc-loader",
+				loader: "builtin:swc-loader",
 				exclude: ["/node_modules/"],
 				options: {
+					asdasdasds: new Error(),
 					jsc: {
 						parser: {
 							syntax: "typescript",
 						},
+						target: "es2022",
+					},
+					strictMode: false,
+					module: {
+						type: "es6",
+						strict: false,
+						strictMode: false,
 					},
 				},
 				type: "javascript/auto",
@@ -39,10 +48,15 @@ export default defineConfig({
 	output: {
 		filename: "scramjet.[name].js",
 		path: join(__dirname, "dist"),
+		libraryTarget: "es2022",
 		iife: true,
+		strict: false,
 		clean: true,
 	},
 	plugins: [
+		new rspack.ProvidePlugin({
+			dbg: [join(__dirname, "src/log.ts"), "default"],
+		}),
 		// new RsdoctorRspackPlugin({
 		//     supports: {
 		//         parseBundle: true,

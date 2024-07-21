@@ -7,12 +7,13 @@ declare global {
 		$sImport: any;
 	}
 }
+type AnyFunction = (...args: any[]) => any;
 
 type ProxyCtx = {
-	fn: Function;
+	fn: AnyFunction;
 	this: any;
 	args: any[];
-	newTarget: Function;
+	newTarget: AnyFunction;
 	return: (r: any) => void;
 };
 
@@ -25,6 +26,9 @@ class ScramjetClient {
 			apply?(ctx: ProxyCtx): any;
 		}
 	) {
+		if (!target) return;
+		if (!Reflect.has(target, prop)) return;
+
 		const value = Reflect.get(target, prop);
 		delete target[prop];
 
@@ -34,7 +38,7 @@ class ScramjetClient {
 			h.construct = function (
 				target: any,
 				argArray: any[],
-				newTarget: Function
+				newTarget: AnyFunction
 			) {
 				let returnValue: any = null;
 
@@ -89,8 +93,30 @@ class ScramjetClient {
 		return new URL(decodeUrl(location.href));
 	}
 
-	init() {
-		console.log("SCRAMJET INIT");
+	async init() {
+		function b64(buffer) {
+			let binary = "";
+			let bytes = new Uint8Array(buffer);
+			let len = bytes.byteLength;
+			for (let i = 0; i < len; i++) {
+				binary += String.fromCharCode(bytes[i]);
+			}
+
+			return window.btoa(binary);
+		}
+		const arraybuffer = await (await fetch("/scramjet.png")).arrayBuffer();
+		console.log(
+			"%cb",
+			`
+background-image: url(data:image/png;base64,${b64(arraybuffer)});
+color: transparent;
+padding-left: 200px;
+padding-bottom: 100px;
+background-size: contain;
+background-position: center center;
+background-repeat: no-repeat;
+`
+		);
 	}
 }
 

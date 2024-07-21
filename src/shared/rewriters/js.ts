@@ -31,7 +31,7 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 	}
 	const after = performance.now();
 
-	console.log("Rewrite took", Math.floor((after - before) * 10) / 10, "ms");
+	dbg.debug("Rewrite took", Math.floor((after - before) * 10) / 10, "ms");
 
 	return js;
 }
