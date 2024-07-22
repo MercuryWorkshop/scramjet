@@ -17,6 +17,7 @@ import { chmodSync, writeFileSync } from "fs";
 
 const bare = createBareServer("/bare/", {
 	logErrors: true,
+	blockLocal: false,
 });
 
 const fastify = Fastify({
