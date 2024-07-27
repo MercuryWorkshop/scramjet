@@ -40,8 +40,7 @@ pub fn rewrite_js(js: &str, url: &str, encode: Function) -> Vec<u8> {
 
 #[wasm_bindgen]
 pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, encode: Function) -> Vec<u8> {
-    // technically slower than the c++ string conversion but it will create *less copies*
-
+    // we know that this is a valid utf-8 string
     let js = unsafe { std::str::from_utf8_unchecked(js) };
 
     rewrite(

@@ -58,8 +58,6 @@ export class ScramjetClient {
 	}
 
 	hook() {
-		dbg.log("hwat");
-
 		// @ts-ignore
 		const context = import.meta.webpackContext(".", {
 			recursive: true,
@@ -72,7 +70,6 @@ export class ScramjetClient {
 				(key.startsWith("./worker/") && "WorkerGlobalScope" in self) ||
 				key.startsWith("./shared/")
 			) {
-				console.log("??", key);
 				const module = context(key);
 				module.default(this, this.global);
 			}

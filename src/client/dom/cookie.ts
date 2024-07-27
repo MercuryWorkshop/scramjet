@@ -5,7 +5,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Document.prototype.cookie", {
 		get(ctx) {
 			const cookiestring = ctx.get();
-			dbg.log("original cookiestring", cookiestring);
+			// dbg.log("original cookiestring", cookiestring);
 			//
 			// 	if (!cookiestring) return "";
 			//

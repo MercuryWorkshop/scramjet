@@ -14,7 +14,6 @@ declare global {
 	}
 }
 export default function (client: ScramjetClient, self: typeof window) {
-	dbg.log("RAN");
 	const attrObject = {
 		nonce: [self.HTMLElement],
 		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
