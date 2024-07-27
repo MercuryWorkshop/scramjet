@@ -2,6 +2,7 @@ pub mod rewrite;
 
 use std::{panic, str::FromStr};
 
+use js_sys::encode_uri_component;
 use rewrite::rewrite;
 use url::Url;
 use wasm_bindgen::prelude::*;
@@ -12,6 +13,11 @@ extern "C" {
     fn log(s: &str);
 }
 
+// import the SCRAM!!! jet encoder here later
+fn encode(s: String) -> String {
+    encode_uri_component(&s).into()
+}
+
 #[wasm_bindgen]
 pub fn init() {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -19,7 +25,7 @@ pub fn init() {
 
 #[wasm_bindgen]
 pub fn rewrite_js(js: &str, url: &str) -> Vec<u8> {
-    rewrite(js, Url::from_str(url).unwrap())
+    rewrite(js, Url::from_str(url).unwrap(), Box::new(encode))
 }
 
 #[wasm_bindgen]
@@ -28,5 +34,5 @@ pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str) -> Vec<u8> {
 
     let js = unsafe { std::str::from_utf8_unchecked(js) };
 
-    rewrite(js, Url::from_str(url).unwrap())
+    rewrite(js, Url::from_str(url).unwrap(), Box::new(encode))
 }

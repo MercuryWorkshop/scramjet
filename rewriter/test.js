@@ -24,4 +24,6 @@ location += "http://example.com";
 function f() { return import("x") }
 
 
+let window = (1, window);
+
 

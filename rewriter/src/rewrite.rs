@@ -8,7 +8,6 @@ use oxc_parser::Parser;
 use oxc_span::{SourceType, Span};
 use oxc_syntax::operator::AssignmentOperator;
 use url::Url;
-use urlencoding::encode;
 
 #[derive(Debug)]
 enum JsChange {
@@ -28,16 +27,17 @@ enum JsChange {
     },
 }
 
-#[derive(Debug)]
+type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
     jschanges: Vec<JsChange>,
     base: Url,
+    encode: EncodeFn,
 }
 impl Rewriter {
     fn rewrite_url(&mut self, url: String) -> String {
         let url = self.base.join(&url).unwrap();
 
-        let urlencoded = encode(url.as_str());
+        let urlencoded = (self.encode)(url.to_string());
 
         format!("\"/scramjet/{}\"", urlencoded)
     }
@@ -204,7 +204,7 @@ const UNSAFE_GLOBALS: [&str; 8] = [
     "document",
 ];
 
-pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
+pub fn rewrite(js: &str, url: Url, encode: EncodeFn) -> Vec<u8> {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
     let ret = Parser::new(&allocator, js, source_type).parse();
@@ -222,6 +222,7 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     let mut ast_pass = Rewriter {
         jschanges: Vec::new(),
         base: url,
+        encode,
     };
 
     ast_pass.visit_program(&program);

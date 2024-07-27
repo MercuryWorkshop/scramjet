@@ -1,6 +1,5 @@
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std --release
+RUSTFLAGS='-C target-feature=+atomics,+bulk-memory' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std --release
 wasm-bindgen --weak-refs --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
-# wasm-bindgen --keep-debug --weak-refs --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
 
 sed -i 's/import.meta.url/""/g' out/rewriter.js
 
