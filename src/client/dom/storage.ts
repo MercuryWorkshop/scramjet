@@ -1,6 +1,6 @@
-import { client } from ".";
+import { ScramjetClient } from "../client";
 
-if ("window" in self) {
+export default function (client: ScramjetClient, self: typeof window) {
 	const handler: ProxyHandler<Storage> = {
 		get(target, prop) {
 			switch (prop) {
@@ -85,15 +85,15 @@ if ("window" in self) {
 		},
 	};
 
-	const realLocalStorage = window.localStorage;
-	const realSessionStorage = window.sessionStorage;
+	const realLocalStorage = self.localStorage;
+	const realSessionStorage = self.sessionStorage;
 
-	const localStorageProxy = new Proxy(window.localStorage, handler);
-	const sessionStorageProxy = new Proxy(window.sessionStorage, handler);
+	const localStorageProxy = new Proxy(self.localStorage, handler);
+	const sessionStorageProxy = new Proxy(self.sessionStorage, handler);
 
-	delete window.localStorage;
-	delete window.sessionStorage;
+	delete self.localStorage;
+	delete self.sessionStorage;
 
-	window.localStorage = localStorageProxy;
-	window.sessionStorage = sessionStorageProxy;
+	self.localStorage = localStorageProxy;
+	self.sessionStorage = sessionStorageProxy;
 }

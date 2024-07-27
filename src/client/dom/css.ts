@@ -1,5 +1,5 @@
-import { client } from ".";
-import { rewriteCss } from "./shared";
+import { ScramjetClient } from "../client";
+import { rewriteCss } from "../shared";
 
 const cssProperties = [
 	"background",
@@ -14,9 +14,11 @@ const cssProperties = [
 ];
 // const jsProperties = ["background", "backgroundImage", "mask", "maskImage", "listStyle", "listStyleImage", "borderImage", "borderImageSource", "cursor"];
 
-client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
-	apply(ctx) {
-		if (cssProperties.includes(ctx.args[0]))
-			ctx.args[1] = rewriteCss(ctx.args[1]);
-	},
-});
+export default function (client: ScramjetClient) {
+	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
+		apply(ctx) {
+			if (cssProperties.includes(ctx.args[0]))
+				ctx.args[1] = rewriteCss(ctx.args[1]);
+		},
+	});
+}

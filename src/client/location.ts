@@ -1,37 +1,44 @@
 // @ts-nocheck
+import { ScramjetClient } from "./client";
 import { encodeUrl, decodeUrl } from "./shared";
 
-function createLocation() {
-	const loc = new URL(decodeUrl(location.href));
-	loc.assign = (url: string) => location.assign(encodeUrl(url));
-	loc.reload = () => location.reload();
-	loc.replace = (url: string) => location.replace(encodeUrl(url));
-	loc.toString = () => loc.href;
+export function createLocationProxy(
+	client: ScramjetClient,
+	self: typeof globalThis
+) {
+	function createLocation() {
+		const loc = new URL(client.url.href);
 
-	return loc;
-}
+		loc.assign = (url: string) => self.location.assign(encodeUrl(url));
+		loc.reload = () => self.location.reload();
+		loc.replace = (url: string) => self.location.replace(encodeUrl(url));
+		loc.toString = () => loc.href;
 
-export const locationProxy = new Proxy(
-	{
-		host: "",
-	},
-	{
-		get(target, prop) {
-			const loc = createLocation();
-
-			return loc[prop];
-		},
-
-		set(obj, prop, value) {
-			const loc = createLocation();
-
-			if (prop === "href") {
-				location.href = encodeUrl(value);
-			} else {
-				loc[prop] = value;
-			}
-
-			return true;
-		},
+		return loc;
 	}
-);
+
+	return new Proxy(
+		{
+			host: "",
+		},
+		{
+			get(target, prop) {
+				const loc = createLocation();
+
+				return loc[prop];
+			},
+
+			set(obj, prop, value) {
+				const loc = createLocation();
+
+				if (prop === "href") {
+					self.location.href = encodeUrl(value);
+				} else {
+					loc[prop] = value;
+				}
+
+				return true;
+			},
+		}
+	);
+}

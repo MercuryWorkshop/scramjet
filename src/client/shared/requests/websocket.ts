@@ -1,7 +1,7 @@
-import { client } from "..";
-import { BareClient } from "../shared";
+import { ScramjetClient } from "../../client";
+import { BareClient } from "../../shared";
 
-if ("window" in self) {
+export default function (client: ScramjetClient, self: typeof globalThis) {
 	const bare = new BareClient();
 
 	client.Proxy("WebSocket", {
@@ -12,7 +12,7 @@ if ("window" in self) {
 					ctx.args[1],
 					ctx.fn as typeof WebSocket,
 					{
-						"User-Agent": navigator.userAgent,
+						"User-Agent": self.navigator.userAgent,
 						Origin: client.url.origin,
 					},
 					ArrayBuffer.prototype
