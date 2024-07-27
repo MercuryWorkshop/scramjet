@@ -8,7 +8,6 @@ import {
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
 import "../../../static/wasm.js";
-import { importfn, wrapfn } from "../../client/shared/wrap";
 
 initSync(
 	new WebAssembly.Module(
@@ -32,8 +31,8 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 				origin.toString(),
 				self.$scramjet.config.prefix,
 				self.$scramjet.config.codec.encode as any,
-				wrapfn,
-				importfn
+				"$scramjet$wrap",
+				"$scramjet$import"
 			)
 		);
 	} else {
@@ -42,8 +41,8 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 			origin.toString(),
 			self.$scramjet.config.prefix,
 			self.$scramjet.config.codec.encode as any,
-			wrapfn,
-			importfn
+			"$scramjet$wrap",
+			"$scramjet$import"
 		);
 	}
 	const after = performance.now();

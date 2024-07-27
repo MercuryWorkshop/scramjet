@@ -1,7 +1,8 @@
 import { encodeUrl } from "../shared";
+import { importfn } from "./wrap";
 
 export default function (client, self) {
-	self.$sImport = function (base) {
+	self[importfn] = function (base) {
 		return function (url) {
 			const resolved = new URL(url, base).href;
 

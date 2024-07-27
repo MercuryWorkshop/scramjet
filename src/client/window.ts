@@ -1,5 +1,6 @@
 import { encodeUrl } from "../shared/rewriters/url";
 import { ScramjetClient } from "./client";
+import { wrapfn } from "./shared/wrap";
 
 export function createWindowProxy(
 	client: ScramjetClient,
@@ -12,11 +13,9 @@ export function createWindowProxy(
 				return client.locationProxy;
 			} else if (
 				propIsString &&
-				["window", "top", "self", "globalThis"].includes(prop)
+				["window", "top", "self", "globalThis", "parent"].includes(prop)
 			) {
-				return client.windowProxy;
-			} else if (propIsString && prop == "parent") {
-				return self.parent;
+				return self[wrapfn](self[prop]);
 			} else if (propIsString && prop === "$scramjet") {
 				return;
 			}
