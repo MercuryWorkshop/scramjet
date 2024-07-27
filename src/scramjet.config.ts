@@ -4,7 +4,7 @@ if (!self.$scramjet) {
 }
 self.$scramjet.config = {
 	prefix: "/scramjet/",
-	codec: self.$scramjet.codecs.plain,
+	codec: self.$scramjet.codecs.base64,
 	config: "/scram/scramjet.config.js",
 	shared: "/scram/scramjet.shared.js",
 	worker: "/scram/scramjet.worker.js",

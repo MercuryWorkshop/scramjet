@@ -27,7 +27,7 @@ enum JsChange {
     },
 }
 
-type EncodeFn = Box<dyn Fn(String) -> String>;
+pub type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
     jschanges: Vec<JsChange>,
     base: Url,

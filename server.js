@@ -50,6 +50,11 @@ fastify.register(fastifyStatic, {
 	decorateReply: false,
 });
 fastify.register(fastifyStatic, {
+	root: join(fileURLToPath(new URL(".", import.meta.url)), "./assets"),
+	prefix: "/assets/",
+	decorateReply: false,
+});
+fastify.register(fastifyStatic, {
 	root: baremuxPath,
 	prefix: "/baremux/",
 	decorateReply: false,

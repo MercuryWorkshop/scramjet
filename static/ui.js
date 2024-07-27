@@ -157,7 +157,7 @@ window.addEventListener("load", async () => {
 
 		return btoa(binary);
 	}
-	const arraybuffer = await (await fetch("/scramjet.png")).arrayBuffer();
+	const arraybuffer = await (await fetch("/assets/scramjet.png")).arrayBuffer();
 	console.log(
 		"%cb",
 		`

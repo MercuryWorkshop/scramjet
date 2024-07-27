@@ -36,5 +36,6 @@ const tasks = {
 };
 
 function taskRewriteJs(js: ArrayBuffer, origin: string): string {
-	return rewriteJs(js, new URL(origin));
+	// idk how to get the codec from here
+	return rewriteJs(js, new URL(origin), () => {});
 }

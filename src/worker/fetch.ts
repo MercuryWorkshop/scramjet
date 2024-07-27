@@ -80,7 +80,11 @@ async function handleResponse(
 				}
 				break;
 			case "script":
-				responseBody = rewriteJs(await response.arrayBuffer(), url);
+				responseBody = rewriteJs(
+					await response.arrayBuffer(),
+					url,
+					self.$scramjet.config.codec.encode
+				);
 				// Disable threading for now, it's causing issues.
 				// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
 				break;
