@@ -48,13 +48,13 @@ export class ScramjetClient {
 
 	constructor(public global: typeof globalThis) {
 		if ("document" in self) {
-			this.documentProxy = createDocumentProxy(this, self);
+			this.documentProxy = createDocumentProxy(this, global);
 		}
 
-		this.locationProxy = createLocationProxy(this, self);
-		this.windowProxy = createWindowProxy(this, self);
+		this.locationProxy = createLocationProxy(this, global);
+		this.windowProxy = createWindowProxy(this, global);
 
-		self[ScramjetClient.SCRAMJET] = this;
+		global[ScramjetClient.SCRAMJET] = this;
 	}
 
 	hook() {

@@ -140,6 +140,22 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap("HTMLIFrameElement.prototype.contentWindow", {
+		get(ctx) {
+			const realwin = ctx.get() as Window;
+
+			if (ScramjetClient.SCRAMJET in realwin.self) {
+				return realwin.self[ScramjetClient.SCRAMJET].windowProxy;
+			} else {
+				// hook the iframe
+				const newclient = new ScramjetClient(realwin.self);
+				newclient.hook();
+
+				return newclient.windowProxy;
+			}
+		},
+	});
+
 	for (const target of [
 		self.Node.prototype,
 		self.MutationObserver.prototype,
