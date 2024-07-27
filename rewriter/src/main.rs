@@ -5,16 +5,6 @@ use std::{
     str::{from_utf8, FromStr},
 };
 
-use oxc_allocator::Allocator;
-use oxc_ast::{
-    ast::{AssignmentTarget, Class, Function, IdentifierReference, MemberExpression, TSImportType},
-    visit::walk,
-    Visit,
-};
-use oxc_parser::Parser;
-use oxc_span::{SourceType, Span};
-use oxc_syntax::scope::ScopeFlags;
-
 pub mod rewrite;
 
 use rewrite::rewrite;
@@ -40,7 +30,6 @@ fn main() -> std::io::Result<()> {
             .as_slice()
         )
         .unwrap()
-        .to_string()
     );
 
     Ok(())

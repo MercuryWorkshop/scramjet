@@ -1,11 +1,7 @@
 pub mod rewrite;
 
-use std::{
-    panic,
-    str::{from_utf8, FromStr},
-};
+use std::{panic, str::FromStr};
 
-use js_sys::Uint8Array;
 use rewrite::rewrite;
 use url::Url;
 use wasm_bindgen::prelude::*;

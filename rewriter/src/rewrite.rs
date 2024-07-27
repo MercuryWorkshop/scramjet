@@ -1,15 +1,12 @@
 use oxc_allocator::Allocator;
 use oxc_ast::{
-    ast::{
-        AssignmentTarget, Class, Expression, Function, IdentifierReference, MemberExpression,
-        ObjectExpression, ObjectProperty, ObjectPropertyKind, TSImportType,
-    },
+    ast::{AssignmentTarget, Expression, IdentifierReference, ObjectPropertyKind},
     visit::walk,
     Visit,
 };
 use oxc_parser::Parser;
 use oxc_span::{SourceType, Span};
-use oxc_syntax::{operator::AssignmentOperator, scope::ScopeFlags};
+use oxc_syntax::operator::AssignmentOperator;
 use url::Url;
 use urlencoding::encode;
 
@@ -42,7 +39,7 @@ impl Rewriter {
 
         let urlencoded = encode(url.as_str());
 
-        return format!("\"/scramjet/{}\"", urlencoded);
+        format!("\"/scramjet/{}\"", urlencoded)
     }
 }
 
@@ -102,17 +99,16 @@ impl<'a> Visit<'a> for Rewriter {
 
     fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
         for prop in &it.properties {
+            #[allow(clippy::single_match)]
             match prop {
                 ObjectPropertyKind::ObjectProperty(p) => match &p.value {
                     Expression::Identifier(s) => {
-                        if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) {
-                            if p.shorthand {
-                                self.jschanges.push(JsChange::GenericChange {
-                                    span: s.span,
-                                    text: format!("{}: (globalThis.$s({}))", s.name, s.name),
-                                });
-                                return;
-                            }
+                        if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
+                            self.jschanges.push(JsChange::GenericChange {
+                                span: s.span,
+                                text: format!("{}: (globalThis.$s({}))", s.name, s.name),
+                            });
+                            return;
                         }
                     }
                     _ => {}
@@ -125,6 +121,7 @@ impl<'a> Visit<'a> for Rewriter {
     }
 
     fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
+        #[allow(clippy::single_match)]
         match &it.left {
             AssignmentTarget::AssignmentTargetIdentifier(s) => {
                 if ["location"].contains(&s.name.to_string().as_str()) {
@@ -210,7 +207,7 @@ const UNSAFE_GLOBALS: [&str; 8] = [
 pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
-    let ret = Parser::new(&allocator, &js, source_type).parse();
+    let ret = Parser::new(&allocator, js, source_type).parse();
 
     for error in ret.errors {
         let cloned = js.to_string();
@@ -232,22 +229,22 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     // sorrt changse
     ast_pass.jschanges.sort_by(|a, b| {
         let a = match a {
-            JsChange::GenericChange { span, text } => span.start,
+            JsChange::GenericChange { span, text: _ } => span.start,
             JsChange::Assignment {
-                name,
+                name: _,
                 entirespan,
-                rhsspan,
-                op,
+                rhsspan: _,
+                op: _,
             } => entirespan.start,
             _ => 0,
         };
         let b = match b {
-            JsChange::GenericChange { span, text } => span.start,
+            JsChange::GenericChange { span, text: _ } => span.start,
             JsChange::Assignment {
-                name,
+                name: _,
                 entirespan,
-                rhsspan,
-                op,
+                rhsspan: _,
+                op: _,
             } => entirespan.start,
             _ => 0,
         };
@@ -265,8 +262,8 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
             JsChange::Assignment {
                 name,
                 entirespan,
-                rhsspan,
-                op,
+                rhsspan: _,
+                op: _,
             } => difference += entirespan.size() as i32 + name.len() as i32 + 10,
             _ => {}
         }
@@ -282,7 +279,7 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
                 let start = span.start as usize;
                 let end = span.end as usize;
 
-                buffer.extend_from_slice(unsafe { js.slice_unchecked(offset, start) }.as_bytes());
+                buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
 
                 buffer.extend_from_slice(text.as_bytes());
                 offset = end;
@@ -294,7 +291,7 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
                 op,
             } => {
                 let start = entirespan.start as usize;
-                buffer.extend_from_slice(&js[offset..start].as_bytes());
+                buffer.extend_from_slice(js[offset..start].as_bytes());
 
                 let opstr = match op {
                     AssignmentOperator::Assign => "=",
@@ -333,5 +330,5 @@ pub fn rewrite(js: &str, url: Url) -> Vec<u8> {
     }
     buffer.extend_from_slice(js[offset..].as_bytes());
 
-    return buffer;
+    buffer
 }
