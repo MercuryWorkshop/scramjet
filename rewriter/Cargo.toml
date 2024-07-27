@@ -6,6 +6,13 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+[profile.speed]
+inherits = "release"
+opt-level = 3
+
+[profile.release]
+opt-level = "z"
+
 [dependencies]
 console_error_panic_hook = "0.1.7"
 js-sys = "0.3.69"

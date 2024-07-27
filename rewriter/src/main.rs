@@ -112,7 +112,10 @@ fn main() -> std::io::Result<()> {
             rewrite(
                 &source_text,
                 Url::from_str("https://google.com/glorngle/si.js").unwrap(),
-                Box::new(encode_string)
+                "/scrammedjet/".to_string(),
+                Box::new(encode_string),
+                "$wrap".to_string(),
+                "$import".to_string(),
             )
             .as_slice()
         )

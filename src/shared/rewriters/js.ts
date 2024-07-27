@@ -8,6 +8,7 @@ import {
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
 import "../../../static/wasm.js";
+import { importfn, wrapfn } from "../../client/shared/wrap";
 
 initSync(
 	new WebAssembly.Module(
@@ -25,9 +26,25 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 
 	const before = performance.now();
 	if (typeof js === "string") {
-		js = new TextDecoder().decode(rewrite_js(js, origin.toString()));
+		js = new TextDecoder().decode(
+			rewrite_js(
+				js,
+				origin.toString(),
+				self.$scramjet.config.prefix,
+				self.$scramjet.config.codec.encode as any,
+				wrapfn,
+				importfn
+			)
+		);
 	} else {
-		js = rewrite_js_from_arraybuffer(new Uint8Array(js), origin.toString());
+		js = rewrite_js_from_arraybuffer(
+			new Uint8Array(js),
+			origin.toString(),
+			self.$scramjet.config.prefix,
+			self.$scramjet.config.codec.encode as any,
+			wrapfn,
+			importfn
+		);
 	}
 	const after = performance.now();
 

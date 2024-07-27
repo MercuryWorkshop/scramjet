@@ -31,6 +31,9 @@ pub type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
     jschanges: Vec<JsChange>,
     base: Url,
+    prefix: String,
+    wrapfn: String,
+    importfn: String,
     encode: EncodeFn,
 }
 impl Rewriter {
@@ -39,7 +42,7 @@ impl Rewriter {
 
         let urlencoded = (self.encode)(url.to_string());
 
-        format!("\"/scramjet/{}\"", urlencoded)
+        format!("\"{}{}\"", self.prefix, urlencoded)
     }
 }
 
@@ -48,14 +51,14 @@ impl<'a> Visit<'a> for Rewriter {
         if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
             self.jschanges.push(JsChange::GenericChange {
                 span: it.span,
-                text: format!("(globalThis.$s({}))", it.name),
+                text: format!("({}({}))", self.wrapfn, it.name),
             });
         }
     }
     fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
         self.jschanges.push(JsChange::GenericChange {
             span: it.span,
-            text: "(globalThis.$s(this))".to_string(),
+            text: format!("({}(this))", self.wrapfn),
         });
     }
 
@@ -71,7 +74,7 @@ impl<'a> Visit<'a> for Rewriter {
     fn visit_import_expression(&mut self, it: &oxc_ast::ast::ImportExpression<'a>) {
         self.jschanges.push(JsChange::GenericChange {
             span: Span::new(it.span.start, it.span.start + 6),
-            text: format!("(globalThis.$sImport(\"{}\"))", self.base),
+            text: format!("({}(\"{}\"))", self.importfn, self.base),
         });
         walk::walk_import_expression(self, it);
     }
@@ -106,7 +109,7 @@ impl<'a> Visit<'a> for Rewriter {
                         if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
                             self.jschanges.push(JsChange::GenericChange {
                                 span: s.span,
-                                text: format!("{}: (globalThis.$s({}))", s.name, s.name),
+                                text: format!("{}: ({}({}))", s.name, self.wrapfn, s.name),
                             });
                             return;
                         }
@@ -139,7 +142,7 @@ impl<'a> Visit<'a> for Rewriter {
             }
             _ => {}
         }
-        walk::walk_expression(self, &it.right);
+        walk::walk_assignment_expression(self, &it);
     }
 }
 
@@ -204,7 +207,14 @@ const UNSAFE_GLOBALS: [&str; 8] = [
     "document",
 ];
 
-pub fn rewrite(js: &str, url: Url, encode: EncodeFn) -> Vec<u8> {
+pub fn rewrite(
+    js: &str,
+    url: Url,
+    prefix: String,
+    encode: EncodeFn,
+    wrapfn: String,
+    importfn: String,
+) -> Vec<u8> {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
     let ret = Parser::new(&allocator, js, source_type).parse();
@@ -222,7 +232,10 @@ pub fn rewrite(js: &str, url: Url, encode: EncodeFn) -> Vec<u8> {
     let mut ast_pass = Rewriter {
         jschanges: Vec::new(),
         base: url,
+        prefix,
         encode,
+        wrapfn,
+        importfn,
     };
 
     ast_pass.visit_program(&program);
@@ -294,31 +307,13 @@ pub fn rewrite(js: &str, url: Url, encode: EncodeFn) -> Vec<u8> {
                 let start = entirespan.start as usize;
                 buffer.extend_from_slice(js[offset..start].as_bytes());
 
-                let opstr = match op {
-                    AssignmentOperator::Assign => "=",
-                    AssignmentOperator::Addition => "+=",
-                    AssignmentOperator::Subtraction => "-=",
-                    AssignmentOperator::Multiplication => "*=",
-                    AssignmentOperator::Division => "/=",
-                    AssignmentOperator::Remainder => "%=",
-                    AssignmentOperator::Exponential => "**=",
-                    AssignmentOperator::ShiftLeft => "<<=",
-                    AssignmentOperator::ShiftRight => ">>=",
-                    AssignmentOperator::ShiftRightZeroFill => ">>>=",
-                    AssignmentOperator::BitwiseAnd => "&=",
-                    AssignmentOperator::BitwiseXOR => "^=",
-                    AssignmentOperator::BitwiseOR => "|=",
-                    AssignmentOperator::LogicalAnd => "&&=",
-                    AssignmentOperator::LogicalOr => "||=",
-                    AssignmentOperator::LogicalNullish => "??=",
-                };
-
-                buffer.extend_from_slice(
+                let opstr = buffer.extend_from_slice(
                     format!(
-                        "((t)=>$tryset({},\"{}\",t)||{}=t)({})",
+                        "((t)=>$scramjet$tryset({},\"{}\",t)||{}{}t)({})",
                         name,
-                        opstr,
+                        fmt_op(*op),
                         name,
+                        fmt_op(*op),
                         &js[rhsspan.start as usize..rhsspan.end as usize]
                     )
                     .as_bytes(),
@@ -332,4 +327,25 @@ pub fn rewrite(js: &str, url: Url, encode: EncodeFn) -> Vec<u8> {
     buffer.extend_from_slice(js[offset..].as_bytes());
 
     buffer
+}
+
+fn fmt_op(op: AssignmentOperator) -> &'static str {
+    match op {
+        AssignmentOperator::Assign => "=",
+        AssignmentOperator::Addition => "+=",
+        AssignmentOperator::Subtraction => "-=",
+        AssignmentOperator::Multiplication => "*=",
+        AssignmentOperator::Division => "/=",
+        AssignmentOperator::Remainder => "%=",
+        AssignmentOperator::Exponential => "**=",
+        AssignmentOperator::ShiftLeft => "<<=",
+        AssignmentOperator::ShiftRight => ">>=",
+        AssignmentOperator::ShiftRightZeroFill => ">>>=",
+        AssignmentOperator::BitwiseAnd => "&=",
+        AssignmentOperator::BitwiseXOR => "^=",
+        AssignmentOperator::BitwiseOR => "|=",
+        AssignmentOperator::LogicalAnd => "&&=",
+        AssignmentOperator::LogicalOr => "||=",
+        AssignmentOperator::LogicalNullish => "??=",
+    }
 }

@@ -30,22 +30,42 @@ fn create_encode_function(encode: Function) -> EncodeFn {
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js(js: &str, url: &str, encode: Function) -> Vec<u8> {
+pub fn rewrite_js(
+    js: &str,
+    url: &str,
+    prefix: String,
+    encode: Function,
+    wrapfn: String,
+    importfn: String,
+) -> Vec<u8> {
     rewrite(
         js,
         Url::from_str(url).unwrap(),
+        prefix,
         create_encode_function(encode),
+        wrapfn,
+        importfn,
     )
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, encode: Function) -> Vec<u8> {
+pub fn rewrite_js_from_arraybuffer(
+    js: &[u8],
+    url: &str,
+    prefix: String,
+    encode: Function,
+    wrapfn: String,
+    importfn: String,
+) -> Vec<u8> {
     // we know that this is a valid utf-8 string
     let js = unsafe { std::str::from_utf8_unchecked(js) };
 
     rewrite(
         js,
         Url::from_str(url).unwrap(),
+        prefix,
         create_encode_function(encode),
+        wrapfn,
+        importfn,
     )
 }
