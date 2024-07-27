@@ -44,6 +44,7 @@ const flex = css`
 const col = css`
 	flex-direction: column;
 `;
+
 const store = $store(
 	{
 		url: "https://google.com",
@@ -57,6 +58,7 @@ const store = $store(
 			"://" +
 			location.host +
 			"/bare/",
+		proxy: "",
 	},
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
 );
@@ -83,7 +85,7 @@ function App() {
     }
     iframe {
       border: 4px solid #313131;
-      background-color: #fff;
+      background-color: #121212;
       border-radius: 1rem;
       margin: 2em;
       margin-top: 0.5em;
@@ -120,6 +122,9 @@ function App() {
       outline: none;
       padding: 0.45em;
     }
+    .input_row input {
+      flex-grow: 1
+    }
   `;
 
 	return html`
@@ -127,18 +132,33 @@ function App() {
       <h1>Percury Unblocker</h1>
       <p>surf the unblocked and mostly buggy web</p>
 
-      <div class=${`${flex} ${col} cfg`}>
-        <input bind:value=${use(store.wispurl)}></input>
-        <input bind:value=${use(store.bareurl)}></input>
+      <div class=${[flex, col, "cfg"]}>
+        <div class=${[flex, "input_row"]}>
+          <label for="wisp_url_input">Wisp URL:</label>
+          <input id="wisp_url_input" bind:value=${use(store.wispurl)}></input>
+        </div>
+        <div class=${[flex, "input_row"]}>
+          <label for="bare_url_input">Bare URL:</label>
+          <input id="bare_url_input" bind:value=${use(store.bareurl)}></input>
+        </div>
+        <div class=${[flex, "input_row"]}>
+          <label for="proxy_url_input">SOCKS/HTTP Proxy URL:</label>
+          <input id="proxy_url_input" bind:value=${use(store.proxy)}></input>
+        </div>
 
-
-        <div class=${`${flex} buttons`}>
-          <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
-          <button on:click=${() => connection.setTransport("/libcurl/index.mjs", [{ wisp: store.wispurl }])}>use libcurl.js</button>
-          <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
+        <div class=${[flex, "buttons"]}>
+          <button on:click=${() => connection.setTransport("/uv/baremod.js", [store.bareurl])}>use bare server 3</button>
+          <button on:click=${() =>
+						connection.setTransport("/uv/curlmod.js", [
+							{
+								wisp: store.wispurl,
+								proxy: store.proxy ? store.proxy : undefined,
+							},
+						])}>use libcurl.js</button>
+          <button on:click=${() => connection.setTransport("/uv/epxmod.js", [{ wisp: store.wispurl }])}>use epoxy</button>
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
-      </div>
+    </div>
       <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value)))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
