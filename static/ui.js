@@ -147,15 +147,15 @@ function App() {
         </div>
 
         <div class=${[flex, "buttons"]}>
-          <button on:click=${() => connection.setTransport("/uv/baremod.js", [store.bareurl])}>use bare server 3</button>
+          <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
           <button on:click=${() =>
-						connection.setTransport("/uv/curlmod.js", [
+						connection.setTransport("/libcurl/index.mjs", [
 							{
 								wisp: store.wispurl,
 								proxy: store.proxy ? store.proxy : undefined,
 							},
 						])}>use libcurl.js</button>
-          <button on:click=${() => connection.setTransport("/uv/epxmod.js", [{ wisp: store.wispurl }])}>use epoxy</button>
+          <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
     </div>
