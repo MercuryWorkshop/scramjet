@@ -55,7 +55,16 @@ function traverseParsedHtml(node, origin?: URL) {
 	}
 
 	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
-		node.attribs["http-equiv"] = "a";
+		const content = node.attribs.content;
+
+		const regex =
+			/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/;
+
+		if (regex.test(content)) {
+			const url = content.match(regex)[0];
+
+			node.attribs.content = content.replace(url, encodeUrl(url, origin));
+		}
 	}
 
 	if (hasAttrib(node, "srcdoc"))
