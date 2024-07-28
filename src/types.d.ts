@@ -51,5 +51,3 @@ declare global {
 		WASM: string;
 	}
 }
-
-type Self = Window & typeof globalThis;

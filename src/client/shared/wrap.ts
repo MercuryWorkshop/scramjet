@@ -1,21 +1,16 @@
+import { iswindow, isworker, trysetfn, wrapfn } from "..";
 import { ScramjetClient } from "../client";
-
-export const iswindow = "window" in self;
-export const isworker = "WorkerGlobalScope" in self;
-export const issw = "ServiceWorkerGlobalScope" in self;
-export const isdedicated = "DedicatedWorkerGlobalScope" in self;
-export const isshared = "SharedWorkerGlobalScope" in self;
-
-export const wrapfn = "$scramjet$wrap";
-export const trysetfn = "$scramjet$tryset";
-export const importfn = "$scramjet$import";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	// the main magic of the proxy. all attempts to access any "banned objects" will be redirected here, and instead served a proxy object
 	// this contrasts from how other proxies will leave the root object alone and instead attempt to catch every member access
 	// this presents some issues (see element.ts), but makes us a good bit faster at runtime!
 	Object.defineProperty(self, wrapfn, {
-		value: function (identifier: any) {
+		value: function (identifier: any, args: any) {
+			if (args && typeof args === "object" && args.length === 0)
+				for (const arg of args) {
+					argdbg(arg);
+				}
 			if (iswindow && identifier instanceof self.Window) {
 				return client.windowProxy;
 			} else if (iswindow && identifier instanceof self.parent.self.Window) {
@@ -75,4 +70,15 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		writable: false,
 		configurable: false,
 	});
+
+	function argdbg(arg) {
+		switch (typeof arg) {
+			case "string":
+				if (arg.includes("scramjet")) debugger;
+				break;
+			case "object":
+				for (let ar of arg) argdbg(ar);
+				break;
+		}
+	}
 }

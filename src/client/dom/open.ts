@@ -25,7 +25,7 @@ export default function (client: ScramjetClient) {
 		get(ctx) {
 			const realwin = ctx.get() as Window;
 
-			if (ScramjetClient.SCRAMJET in realwin.self) {
+			if (realwin && ScramjetClient.SCRAMJET in realwin.self) {
 				return realwin.self[ScramjetClient.SCRAMJET].windowProxy;
 			} else {
 				// the opener has to have been already hooked, so if we reach here then it's a real window

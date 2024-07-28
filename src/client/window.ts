@@ -1,6 +1,6 @@
 import { encodeUrl } from "../shared/rewriters/url";
 import { ScramjetClient } from "./client";
-import { wrapfn } from "./shared/wrap";
+import { wrapfn } from ".";
 
 export function createWindowProxy(
 	client: ScramjetClient,

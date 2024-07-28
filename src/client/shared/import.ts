@@ -1,5 +1,5 @@
 import { encodeUrl } from "../shared";
-import { importfn } from "./wrap";
+import { importfn } from "../";
 
 export default function (client, self) {
 	self[importfn] = function (base) {
