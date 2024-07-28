@@ -155,6 +155,19 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap("TreeWalker.prototype.currentNode", {
+		get(ctx) {
+			return ctx.get();
+		},
+		set(ctx, value) {
+			if (value == client.documentProxy) {
+				return ctx.set(self.document);
+			}
+
+			return ctx.set(value);
+		},
+	});
+
 	for (const target of [
 		self.Node.prototype,
 		self.MutationObserver.prototype,
