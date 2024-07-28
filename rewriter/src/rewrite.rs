@@ -15,9 +15,8 @@ enum JsChange {
         span: Span,
         text: String,
     },
-    UrlRewrite {
+    DebugInject {
         span: Span,
-        url: String,
     },
     Assignment {
         name: String,
@@ -48,6 +47,13 @@ impl Rewriter {
 
 impl<'a> Visit<'a> for Rewriter {
     fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
+        // self.jschanges.push(JsChange::GenericChange {
+        //     span: it.span,
+        //     text: format!(
+        //         "({}(typeof {} == 'undefined' || {}, (()=>{{ try {{return arguments}} catch(_){{}} }})()))",
+        //         self.wrapfn, it.name, it.name
+        //     ),
+        // });
         if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
             self.jschanges.push(JsChange::GenericChange {
                 span: it.span,
@@ -97,7 +103,7 @@ impl<'a> Visit<'a> for Rewriter {
                 text,
             });
         }
-        walk::walk_export_named_declaration(self, it);
+        // do not walk further, we don't want to rewrite the identifiers
     }
 
     fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
@@ -123,6 +129,26 @@ impl<'a> Visit<'a> for Rewriter {
         walk::walk_object_expression(self, it);
     }
 
+    fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
+        self.jschanges.push(JsChange::DebugInject {
+            span: Span::new(it.span.start + 6, it.span.start + 6),
+        });
+        walk::walk_return_statement(self, it);
+    }
+
+    // we don't want to rewrite the identifiers here because of a very specific edge case
+    fn visit_for_in_statement(&mut self, it: &oxc_ast::ast::ForInStatement<'a>) {
+        walk::walk_statement(self, &it.body);
+    }
+    fn visit_for_of_statement(&mut self, it: &oxc_ast::ast::ForOfStatement<'a>) {
+        walk::walk_statement(self, &it.body);
+    }
+
+    fn visit_update_expression(&mut self, it: &oxc_ast::ast::UpdateExpression<'a>) {
+        // then no, don't walk it, we don't care
+        return;
+    }
+
     fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
         #[allow(clippy::single_match)]
         match &it.left {
@@ -140,9 +166,18 @@ impl<'a> Visit<'a> for Rewriter {
                     return;
                 }
             }
-            _ => {}
+            AssignmentTarget::ArrayAssignmentTarget(_) => {
+                // [location] = ["https://example.com"]
+                // this is such a ridiculously specific edge case. just ignore it
+                return;
+            }
+            _ => {
+                // only walk the left side if it isn't an identifier, we can't replace the
+                // identifier with a function obviously
+                walk::walk_assignment_target(self, &it.left);
+            }
         }
-        walk::walk_assignment_expression(self, &it);
+        walk::walk_expression(self, &it.right);
     }
 }
 
@@ -250,6 +285,7 @@ pub fn rewrite(
                 rhsspan: _,
                 op: _,
             } => entirespan.start,
+            JsChange::DebugInject { span } => span.start,
             _ => 0,
         };
         let b = match b {
@@ -260,6 +296,7 @@ pub fn rewrite(
                 rhsspan: _,
                 op: _,
             } => entirespan.start,
+            JsChange::DebugInject { span } => span.start,
             _ => 0,
         };
         a.cmp(&b)
@@ -320,6 +357,12 @@ pub fn rewrite(
                 );
 
                 offset = entirespan.end as usize;
+            }
+            JsChange::DebugInject { span } => {
+                let start = span.start as usize;
+                buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
+
+                offset = span.end as usize;
             }
             _ => {}
         }
