@@ -38,7 +38,22 @@ function traverseParsedHtml(node, origin?: URL) {
 
 	/* url attributes */
 	for (const urlAttr of ["src", "href", "action", "formaction"]) {
-		if (hasAttrib(node, urlAttr) && !isScramjetFile(node.attribs[urlAttr])) {
+		if (
+			hasAttrib(node, urlAttr) &&
+			!isScramjetFile(node.attribs[urlAttr]) &&
+			[
+				"iframe",
+				"embed",
+				"script",
+				"a",
+				"img",
+				"link",
+				"object",
+				"form",
+				"media",
+				"source",
+			].includes(node.name)
+		) {
 			const value = node.attribs[urlAttr];
 			node.attribs[`data-${urlAttr}`] = value;
 			node.attribs[urlAttr] = encodeUrl(value, origin);
@@ -76,7 +91,7 @@ function traverseParsedHtml(node, origin?: URL) {
 		node.children[0].data = rewriteCss(node.children[0].data, origin);
 	if (
 		node.name === "script" &&
-		/(application|text)\/javascript|importmap|undefined/.test(
+		/(application|text)\/javascript|module|importmap|undefined/.test(
 			node.attribs.type
 		) &&
 		node.children[0] !== undefined
