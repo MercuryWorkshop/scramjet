@@ -11,6 +11,8 @@ pub mod rewrite;
 use rewrite::rewrite;
 use url::Url;
 
+use crate::rewrite::Config;
+
 // Instruction:
 // create a `test.js`,
 // run `cargo run -p oxc_parser --example visitor`
@@ -112,10 +114,13 @@ fn main() -> std::io::Result<()> {
             rewrite(
                 &source_text,
                 Url::from_str("https://google.com/glorngle/si.js").unwrap(),
-                "/scrammedjet/".to_string(),
-                Box::new(encode_string),
-                "$wrap".to_string(),
-                "$import".to_string(),
+                Config {
+                    prefix: "/scrammedjet/".to_string(),
+                    encode: Box::new(encode_string),
+                    wrapfn: "$wrap".to_string(),
+                    importfn: "$import".to_string(),
+                    rewritefn: "$rewrite".to_string(),
+                }
             )
             .as_slice()
         )

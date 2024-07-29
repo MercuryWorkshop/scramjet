@@ -5,6 +5,10 @@ if (!self.$scramjet) {
 self.$scramjet.config = {
 	prefix: "/scramjet/",
 	codec: self.$scramjet.codecs.plain,
+	wrapfn: "$scramjet$wrap",
+	trysetfn: "$scramjet$tryset",
+	importfn: "$scramjet$import",
+	rewritefn: "$scramjet$rewrite",
 	config: "/scram/scramjet.config.js",
 	shared: "/scram/scramjet.shared.js",
 	worker: "/scram/scramjet.worker.js",

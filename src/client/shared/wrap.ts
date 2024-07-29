@@ -1,11 +1,12 @@
-import { iswindow, isworker, trysetfn, wrapfn } from "..";
+import { iswindow, isworker } from "..";
 import { ScramjetClient } from "../client";
+import { config } from "../shared";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	// the main magic of the proxy. all attempts to access any "banned objects" will be redirected here, and instead served a proxy object
 	// this contrasts from how other proxies will leave the root object alone and instead attempt to catch every member access
 	// this presents some issues (see element.ts), but makes us a good bit faster at runtime!
-	Object.defineProperty(self, wrapfn, {
+	Object.defineProperty(self, config.wrapfn, {
 		value: function (identifier: any, args: any) {
 			if (args && typeof args === "object" && args.length === 0)
 				for (const arg of args) {
@@ -58,7 +59,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	// ((t)=>$scramjet$tryset(location,"+=",t)||location+=t)(...);
 	// it has to be a discrete function because there's always the possibility that "location" is a local variable
 	// we have to use an IIFE to avoid duplicating side-effects in the getter
-	Object.defineProperty(self, trysetfn, {
+	Object.defineProperty(self, config.trysetfn, {
 		value: function (lhs: any, op: string, rhs: any) {
 			if (lhs instanceof Location) {
 				// @ts-ignore

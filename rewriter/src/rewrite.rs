@@ -30,18 +30,24 @@ pub type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
     jschanges: Vec<JsChange>,
     base: Url,
-    prefix: String,
-    wrapfn: String,
-    importfn: String,
-    encode: EncodeFn,
+    config: Config,
 }
+
+pub struct Config {
+    pub prefix: String,
+    pub wrapfn: String,
+    pub importfn: String,
+    pub rewritefn: String,
+    pub encode: EncodeFn,
+}
+
 impl Rewriter {
     fn rewrite_url(&mut self, url: String) -> String {
         let url = self.base.join(&url).unwrap();
 
-        let urlencoded = (self.encode)(url.to_string());
+        let urlencoded = (self.config.encode)(url.to_string());
 
-        format!("\"{}{}\"", self.prefix, urlencoded)
+        format!("\"{}{}\"", self.config.prefix, urlencoded)
     }
 }
 
@@ -57,22 +63,47 @@ impl<'a> Visit<'a> for Rewriter {
         if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
             self.jschanges.push(JsChange::GenericChange {
                 span: it.span,
-                text: format!("({}({}))", self.wrapfn, it.name),
+                text: format!("({}({}))", self.config.wrapfn, it.name),
             });
         }
     }
     fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
         self.jschanges.push(JsChange::GenericChange {
             span: it.span,
-            text: format!("({}(this))", self.wrapfn),
+            text: format!("({}(this))", self.config.wrapfn),
         });
     }
 
     fn visit_debugger_statement(&mut self, it: &oxc_ast::ast::DebuggerStatement) {
+        // delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
         self.jschanges.push(JsChange::GenericChange {
             span: it.span,
             text: "".to_string(),
         });
+    }
+
+    // we can't overwrite window.eval in the normal way because that would make everything an
+    // indirect eval, which could break things. we handle that edge case here
+    fn visit_call_expression(&mut self, it: &oxc_ast::ast::CallExpression<'a>) {
+        if let Expression::Identifier(s) = &it.callee {
+            // if it's optional that actually makes it an indirect eval which is handled separately
+            if s.name == "eval" && !it.optional {
+                self.jschanges.push(JsChange::GenericChange {
+                    span: Span::new(s.span.start, s.span.end + 1),
+                    text: format!("eval({}(", self.config.rewritefn),
+                });
+                self.jschanges.push(JsChange::GenericChange {
+                    span: Span::new(it.span.end, it.span.end),
+                    text: ")".to_string(),
+                });
+
+                // then we walk the arguments, but not the callee, since we want it to resolve to
+                // the real eval
+                walk::walk_arguments(self, &it.arguments);
+                return;
+            }
+        }
+        walk::walk_call_expression(self, it);
     }
 
     fn visit_import_declaration(&mut self, it: &oxc_ast::ast::ImportDeclaration<'a>) {
@@ -87,7 +118,7 @@ impl<'a> Visit<'a> for Rewriter {
     fn visit_import_expression(&mut self, it: &oxc_ast::ast::ImportExpression<'a>) {
         self.jschanges.push(JsChange::GenericChange {
             span: Span::new(it.span.start, it.span.start + 6),
-            text: format!("({}(\"{}\"))", self.importfn, self.base),
+            text: format!("({}(\"{}\"))", self.config.importfn, self.base),
         });
         walk::walk_import_expression(self, it);
     }
@@ -122,7 +153,7 @@ impl<'a> Visit<'a> for Rewriter {
                         if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
                             self.jschanges.push(JsChange::GenericChange {
                                 span: s.span,
-                                text: format!("{}: ({}({}))", s.name, self.wrapfn, s.name),
+                                text: format!("{}: ({}({}))", s.name, self.config.wrapfn, s.name),
                             });
                             return;
                         }
@@ -238,7 +269,7 @@ fn expression_span(e: &Expression) -> Span {
 }
 
 // js MUST not be able to get a reference to any of these because sbx
-const UNSAFE_GLOBALS: [&str; 8] = [
+const UNSAFE_GLOBALS: [&str; 9] = [
     "window",
     "self",
     "globalThis",
@@ -247,16 +278,10 @@ const UNSAFE_GLOBALS: [&str; 8] = [
     "top",
     "location",
     "document",
+    "eval",
 ];
 
-pub fn rewrite(
-    js: &str,
-    url: Url,
-    prefix: String,
-    encode: EncodeFn,
-    wrapfn: String,
-    importfn: String,
-) -> Vec<u8> {
+pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
     let ret = Parser::new(&allocator, js, source_type).parse();
@@ -274,10 +299,7 @@ pub fn rewrite(
     let mut ast_pass = Rewriter {
         jschanges: Vec::new(),
         base: url,
-        prefix,
-        encode,
-        wrapfn,
-        importfn,
+        config,
     };
 
     ast_pass.visit_program(&program);

@@ -10,3 +10,5 @@ export const {
 		rewriteWorkers,
 	},
 } = self.$scramjet.shared;
+
+export const config = self.$scramjet.config;

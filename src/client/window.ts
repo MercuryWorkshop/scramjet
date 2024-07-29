@@ -1,6 +1,7 @@
 import { encodeUrl } from "../shared/rewriters/url";
 import { ScramjetClient } from "./client";
-import { wrapfn } from ".";
+import { indirectEval } from "./shared/eval";
+import { config } from "./shared";
 
 export function createWindowProxy(
 	client: ScramjetClient,
@@ -9,16 +10,17 @@ export function createWindowProxy(
 	return new Proxy(self, {
 		get(target, prop) {
 			const propIsString = typeof prop === "string";
-			if (propIsString && prop === "location") {
-				return client.locationProxy;
-			} else if (
+			if (prop === "location") return client.locationProxy;
+
+			if (
 				propIsString &&
 				["window", "top", "self", "globalThis", "parent"].includes(prop)
-			) {
-				return self[wrapfn](self[prop]);
-			} else if (propIsString && prop === "$scramjet") {
-				return;
-			}
+			)
+				return self[config.wrapfn](self[prop]);
+
+			if (prop === "$scramjet") return;
+
+			if (prop === "eval") return indirectEval.bind(client);
 
 			const value = Reflect.get(target, prop);
 

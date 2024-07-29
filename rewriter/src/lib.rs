@@ -2,8 +2,8 @@ pub mod rewrite;
 
 use std::{panic, str::FromStr};
 
-use js_sys::Function;
-use rewrite::{rewrite, EncodeFn};
+use js_sys::{Function, Object, Reflect};
+use rewrite::{rewrite, Config, EncodeFn};
 use url::Url;
 use wasm_bindgen::prelude::*;
 
@@ -30,42 +30,58 @@ fn create_encode_function(encode: Function) -> EncodeFn {
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js(
-    js: &str,
-    url: &str,
-    prefix: String,
-    encode: Function,
-    wrapfn: String,
-    importfn: String,
-) -> Vec<u8> {
+pub fn rewrite_js(js: &str, url: &str, config: Object) -> Vec<u8> {
     rewrite(
         js,
         Url::from_str(url).unwrap(),
-        prefix,
-        create_encode_function(encode),
-        wrapfn,
-        importfn,
+        Config {
+            prefix: Reflect::get(&config, &"prefix".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            encode: create_encode_function(Reflect::get(&config, &"encode".into()).unwrap().into()),
+            wrapfn: Reflect::get(&config, &"wrapfn".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            importfn: Reflect::get(&config, &"importfn".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            rewritefn: Reflect::get(&config, &"rewritefn".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+        },
     )
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js_from_arraybuffer(
-    js: &[u8],
-    url: &str,
-    prefix: String,
-    encode: Function,
-    wrapfn: String,
-    importfn: String,
-) -> Vec<u8> {
+pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, config: Object) -> Vec<u8> {
     // we know that this is a valid utf-8 string
     let js = unsafe { std::str::from_utf8_unchecked(js) };
 
     rewrite(
         js,
         Url::from_str(url).unwrap(),
-        prefix,
-        create_encode_function(encode),
-        wrapfn,
-        importfn,
+        Config {
+            prefix: Reflect::get(&config, &"prefix".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            encode: create_encode_function(Reflect::get(&config, &"encode".into()).unwrap().into()),
+            wrapfn: Reflect::get(&config, &"wrapfn".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            importfn: Reflect::get(&config, &"importfn".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            rewritefn: Reflect::get(&config, &"rewritefn".into())
+                .unwrap()
+                .as_string()
+                .unwrap(),
+        },
     )
 }

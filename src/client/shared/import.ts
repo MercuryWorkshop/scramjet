@@ -1,8 +1,7 @@
-import { encodeUrl } from "../shared";
-import { importfn } from "../";
+import { config, encodeUrl } from "../shared";
 
 export default function (client, self) {
-	self[importfn] = function (base) {
+	self[config.importfn] = function (base) {
 		return function (url) {
 			const resolved = new URL(url, base).href;
 

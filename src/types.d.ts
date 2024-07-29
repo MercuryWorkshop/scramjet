@@ -34,6 +34,10 @@ declare global {
 			config: {
 				prefix: string;
 				codec: Codec;
+				wrapfn: string;
+				trysetfn: string;
+				importfn: string;
+				rewritefn: string;
 				config: string;
 				shared: string;
 				worker: string;
