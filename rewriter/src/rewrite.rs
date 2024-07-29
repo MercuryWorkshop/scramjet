@@ -1,6 +1,9 @@
 use oxc_allocator::Allocator;
 use oxc_ast::{
-    ast::{AssignmentTarget, Expression, IdentifierReference, ObjectPropertyKind},
+    ast::{
+        AssignmentTarget, BindingPattern, BindingPatternKind, Expression, IdentifierReference,
+        ObjectPropertyKind,
+    },
     visit::walk,
     Visit,
 };
@@ -142,6 +145,22 @@ impl<'a> Visit<'a> for Rewriter {
             });
         }
         // do not walk further, we don't want to rewrite the identifiers
+    }
+
+    #[cfg(feature = "debug")]
+    fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
+        // for debugging we need to know what the error was
+
+        if let Some(h) = &it.handler {
+            if let Some(name) = &h.param {
+                if let Some(name) = name.pattern.get_identifier() {
+                    self.jschanges.push(JsChange::GenericChange {
+                        span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
+                        text: format!("$scramerr({});", name),
+                    });
+                }
+            }
+        }
     }
 
     fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {

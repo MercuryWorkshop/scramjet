@@ -82,4 +82,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				break;
 		}
 	}
+
+	window.$scramerr = function scramerr(e) {
+		console.error("CAUGHT ERROR", e);
+	};
 }

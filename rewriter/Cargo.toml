@@ -6,6 +6,10 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+default = ["debug"]
+debug = []
+
 [profile.speed]
 inherits = "release"
 opt-level = 3
