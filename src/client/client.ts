@@ -11,26 +11,26 @@ declare global {
 }
 
 //eslint-disable-next-line
-type AnyFunction = Function;
+export type AnyFunction = Function;
 
-type ProxyCtx = {
+export type ProxyCtx = {
 	fn: AnyFunction;
 	this: any;
 	args: any[];
 	newTarget: AnyFunction;
 	return: (r: any) => void;
 };
-type Proxy = {
+export type Proxy = {
 	construct?(ctx: ProxyCtx): any;
 	apply?(ctx: ProxyCtx): any;
 };
 
-type TrapCtx<T> = {
+export type TrapCtx<T> = {
 	this: any;
 	get: () => T;
 	set: (v: T) => void;
 };
-type Trap<T> = {
+export type Trap<T> = {
 	writable?: boolean;
 	value?: any;
 	enumerable?: boolean;
