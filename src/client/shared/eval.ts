@@ -2,11 +2,9 @@ import { ScramjetClient, ProxyCtx } from "../client";
 import { rewriteJs } from "../shared";
 
 function rewriteFunction(ctx: ProxyCtx) {
-    for (const i in ctx.args) {
-        ctx.args[i] = rewriteJs(ctx.args[i]);
-    }
+    const stringifiedFunction = ctx.fn(...ctx.args).toString();
 
-    ctx.return(ctx.fn(...ctx.args));
+    ctx.return(ctx.fn(`return ${rewriteJs(stringifiedFunction)}`)());
 }
 
 export default function (client: ScramjetClient, self: Self) {
