@@ -72,6 +72,8 @@ export default function (client: ScramjetClient, self: Self) {
 					set(ctx, value: any) {
 						this[realOnEvent] = value;
 
+						if (typeof value !== "function") return ctx.set(value);
+
 						ctx.set(wraplistener(value));
 					},
 				});
