@@ -1,7 +1,11 @@
+import { isworker } from "../..";
 import { ScramjetClient } from "../../client";
 import { BareClient } from "../../shared";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
+	// r58 please fix
+	if (isworker) return;
+
 	const bare = new BareClient();
 
 	client.Proxy("WebSocket", {
