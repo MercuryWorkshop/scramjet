@@ -33,36 +33,39 @@ fn create_encode_function(encode: JsValue) -> EncodeFn {
 	})
 }
 
-fn get_obj(config: &JsValue, k: &str) -> JsValue {
-	Reflect::get(config, &k.into()).unwrap()
+fn get_obj(obj: &JsValue, k: &str) -> JsValue {
+	Reflect::get(obj, &k.into()).unwrap()
 }
 
-fn get_str(config: &JsValue, k: &str) -> String {
-	Reflect::get(config, &k.into())
+fn get_str(obj: &JsValue, k: &str) -> String {
+	Reflect::get(obj, &k.into())
 		.unwrap()
 		.as_string()
 		.unwrap()
 }
 
-fn get_config(config: Object) -> Config {
+fn get_config(scramjet: &Object) -> Config {
+	let codec = &get_obj(scramjet, "codec");
+	let config = &get_obj(scramjet, "config");
+
 	Config {
-		prefix: get_str(&config, "prefix"),
-		encode: create_encode_function(get_obj(&get_obj(&config, "codec"), "encode")),
-		wrapfn: get_str(&config, "wrapfn"),
-		importfn: get_str(&config, "importfn"),
-		rewritefn: get_str(&config, "rewritefn"),
+		prefix: get_str(config, "prefix"),
+		encode: create_encode_function(get_obj(codec, "encode")),
+		wrapfn: get_str(config, "wrapfn"),
+		importfn: get_str(config, "importfn"),
+		rewritefn: get_str(config, "rewritefn"),
 	}
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js(js: &str, url: &str, config: Object) -> Vec<u8> {
-	rewrite(js, Url::from_str(url).unwrap(), get_config(config))
+pub fn rewrite_js(js: &str, url: &str, scramjet: &Object) -> Vec<u8> {
+	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet))
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, config: Object) -> Vec<u8> {
+pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> Vec<u8> {
 	// we know that this is a valid utf-8 string
 	let js = unsafe { std::str::from_utf8_unchecked(js) };
 
-	rewrite(js, Url::from_str(url).unwrap(), get_config(config))
+	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet))
 }
