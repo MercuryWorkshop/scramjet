@@ -7,7 +7,7 @@ cd ..
 
 WASM=rewriter/out/rewriter_bg.wasm
 
-time wasm-opt -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
+time wasm-opt -g -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
 # cp "$WASM" rewriter/out/optimized.wasm
 
 echo -n "self.WASM = '" > static/wasm.js

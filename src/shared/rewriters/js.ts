@@ -24,21 +24,15 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 	if ("window" in globalThis) origin ??= new URL(decodeUrl(location.href));
 
 	const before = performance.now();
-	const cfg = {
-		prefix: self.$scramjet.config.prefix,
-		codec: self.$scramjet.config.codec.encode,
-		wrapfn: self.$scramjet.config.wrapfn,
-		trysetfn: self.$scramjet.config.trysetfn,
-		importfn: self.$scramjet.config.importfn,
-		rewritefn: self.$scramjet.config.rewritefn,
-	};
 	if (typeof js === "string") {
-		js = new TextDecoder().decode(rewrite_js(js, origin.toString(), cfg));
+		js = new TextDecoder().decode(
+			rewrite_js(js, origin.toString(), self.$scramjet.config)
+		);
 	} else {
 		js = rewrite_js_from_arraybuffer(
 			new Uint8Array(js),
 			origin.toString(),
-			cfg
+			self.$scramjet.config
 		);
 	}
 	const after = performance.now();
