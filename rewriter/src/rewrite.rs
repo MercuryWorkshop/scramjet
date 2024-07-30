@@ -6,7 +6,7 @@ use oxc_ast::{
 };
 use oxc_parser::Parser;
 use oxc_span::{SourceType, Span};
-use oxc_syntax::operator::AssignmentOperator;
+use oxc_syntax::operator::{AssignmentOperator, UnaryOperator};
 use url::Url;
 
 #[derive(Debug)]
@@ -184,17 +184,25 @@ impl<'a> Visit<'a> for Rewriter {
 	}
 
 	fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
-		if let Some(arg) = &it.argument {
-			self.jschanges.push(JsChange::GenericChange {
-				span: Span::new(it.span.start + 6, it.span.start + 6),
-				text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
-			});
-			self.jschanges.push(JsChange::GenericChange {
-				span: Span::new(expression_span(arg).end, expression_span(arg).end),
-				text: format!("))"),
-			});
-		}
+		// if let Some(arg) = &it.argument {
+		// 	self.jschanges.push(JsChange::GenericChange {
+		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
+		// 		text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
+		// 	});
+		// 	self.jschanges.push(JsChange::GenericChange {
+		// 		span: Span::new(expression_span(arg).end, expression_span(arg).end),
+		// 		text: format!("))"),
+		// 	});
+		// }
 		walk::walk_return_statement(self, it);
+	}
+
+	fn visit_unary_expression(&mut self, it: &oxc_ast::ast::UnaryExpression<'a>) {
+		if matches!(it.operator, UnaryOperator::Typeof) {
+			// don't walk to identifier rewrites since it won't matter
+			return;
+		}
+		walk::walk_unary_expression(self, it);
 	}
 
 	// we don't want to rewrite the identifiers here because of a very specific edge case
