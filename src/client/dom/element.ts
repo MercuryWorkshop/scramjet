@@ -185,7 +185,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 						},
 					});
 				}
-			} catch (e) {}
+			} catch (e) {
+				console.log(e);
+			}
 		}
 	}
 }

@@ -37,7 +37,7 @@ function traverseParsedHtml(node, origin?: URL) {
 	}
 
 	/* url attributes */
-	for (const urlAttr of ["src", "href", "action", "formaction"]) {
+	for (const urlAttr of ["src", "href", "action", "formaction", "poster"]) {
 		if (
 			hasAttrib(node, urlAttr) &&
 			!isScramjetFile(node.attribs[urlAttr]) &&
@@ -52,6 +52,7 @@ function traverseParsedHtml(node, origin?: URL) {
 				"form",
 				"media",
 				"source",
+				"video",
 			].includes(node.name)
 		) {
 			const value = node.attribs[urlAttr];
