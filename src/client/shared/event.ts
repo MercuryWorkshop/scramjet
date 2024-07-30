@@ -1,5 +1,6 @@
 import { iswindow } from "..";
 import { ScramjetClient } from "../client";
+import { unproxy } from "./unproxy";
 
 const realOnEvent = Symbol.for("scramjet original onevent function");
 
@@ -45,6 +46,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
+			unproxy(ctx, client);
 			if (typeof ctx.args[1] === "object")
 				ctx.args[1] = wraplistener(ctx.args[1]);
 		},

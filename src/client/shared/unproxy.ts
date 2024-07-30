@@ -1,5 +1,5 @@
 import { iswindow } from "..";
-import { ScramjetClient } from "../client";
+import { ProxyCtx, ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	// an automated approach to cleaning the documentProxy from dom functions
@@ -11,11 +11,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (typeof target[prop] === "function") {
 					client.RawProxy(target, prop, {
 						apply(ctx) {
-							if (ctx.this == client.windowProxy) ctx.this = self;
-							for (const i in ctx.args) {
-								if (ctx.args[i] === client.windowProxy)
-									ctx.args[i] = self.global;
-							}
+							unproxy(ctx, client);
 						},
 					});
 				}
@@ -35,15 +31,22 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (typeof target[prop] === "function") {
 					client.RawProxy(target, prop, {
 						apply(ctx) {
-							for (const i in ctx.args) {
-								if (ctx.args[i] === client.documentProxy)
-									ctx.args[i] = self.document;
-								if (ctx.this === client.documentProxy) ctx.this = self.document;
-							}
+							unproxy(ctx, client);
 						},
 					});
 				}
 			} catch (e) {}
 		}
+	}
+}
+
+export function unproxy(ctx: ProxyCtx, client: ScramjetClient) {
+	const self = client.global;
+	if (ctx.this === client.windowProxy) ctx.this = self;
+	if (ctx.this === client.documentProxy) ctx.this = self.document;
+
+	for (const i in ctx.args) {
+		if (ctx.args[i] === client.documentProxy) ctx.args[i] = self.document;
+		if (ctx.args[i] === client.windowProxy) ctx.args[i] = self;
 	}
 }
