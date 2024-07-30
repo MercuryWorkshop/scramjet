@@ -33,7 +33,11 @@ fn create_encode_function(encode: JsValue) -> EncodeFn {
 	})
 }
 
-fn get_str(config: &Object, k: &str) -> String {
+fn get_obj(config: &JsValue, k: &str) -> JsValue {
+	Reflect::get(config, &k.into()).unwrap()
+}
+
+fn get_str(config: &JsValue, k: &str) -> String {
 	Reflect::get(config, &k.into())
 		.unwrap()
 		.as_string()
@@ -43,7 +47,7 @@ fn get_str(config: &Object, k: &str) -> String {
 fn get_config(config: Object) -> Config {
 	Config {
 		prefix: get_str(&config, "prefix"),
-		encode: create_encode_function(Reflect::get(&config, &"encode".into()).unwrap()),
+		encode: create_encode_function(get_obj(&get_obj(&config, "codec"), "encode")),
 		wrapfn: get_str(&config, "wrapfn"),
 		importfn: get_str(&config, "importfn"),
 		rewritefn: get_str(&config, "rewritefn"),
