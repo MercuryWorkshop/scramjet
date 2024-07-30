@@ -17,13 +17,16 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 	}
 
 	if (!origin) {
-		origin = new URL(
-			self.$scramjet.config.codec.decode(
-				location.href.slice(
-					(location.origin + self.$scramjet.config.prefix).length
+		if (location.pathname.startsWith(self.$scramjet.config.prefix + "worker")) {
+			origin = new URL(new URL(location.href).searchParams.get("origin"));
+		} else
+			origin = new URL(
+				self.$scramjet.config.codec.decode(
+					location.href.slice(
+						(location.origin + self.$scramjet.config.prefix).length
+					)
 				)
-			)
-		);
+			);
 	}
 
 	// is this the correct behavior?
