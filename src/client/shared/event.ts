@@ -45,9 +45,12 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
-			ctx.args[1] = wraplistener(ctx.args[1]);
+			if (typeof ctx.args[1] === "object")
+				ctx.args[1] = wraplistener(ctx.args[1]);
 		},
 	});
+
+	// TODO: removeEventListener
 
 	if (!iswindow) return;
 
