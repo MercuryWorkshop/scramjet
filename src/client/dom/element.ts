@@ -192,9 +192,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 						},
 					});
 				}
-			} catch (e) {
-				console.log(e);
-			}
+			} catch (e) {}
 		}
 	}
 }
