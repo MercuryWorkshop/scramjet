@@ -25,13 +25,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return "sp_t=00246e00653d39d1341bbe9d10f138c4; OptanonConsent=isGpcEnabled=0&datestamp=Sat+Jul+20+2024+16%3A11%3A26+GMT-0400+(Eastern+Daylight+Time)&version=202405.2.0&browserGpcFlag=0&isIABGlobal=false&hosts=&landingPath=https%3A%2F%2Fopen.spotify.com%2F&groups=BG169%3A1%2Ct00%3A1%2Ci00%3A1%2CBG170%3A1%2Cs00%3A1%2Cf00%3A1%2Cm00%3A1%2Cf11%3A1";
 		},
 		set(ctx, value: string) {
-			dbg.debug("setting cookie", value);
+			// dbg.debug("setting cookie", value);
 			const cookie = parse(value)[0];
 
 			let date = new Date();
 			let expires = cookie.expires;
 
-			dbg.error("expires", expires);
+			// dbg.error("expires", expires);
 			// if (expires instanceof Date) {
 			// 	if (isNaN(expires.getTime())) return;
 			// 	if (expires.getTime() < date.getTime()) return;
