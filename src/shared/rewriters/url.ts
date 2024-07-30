@@ -51,6 +51,13 @@ export function decodeUrl(url: string | URL) {
 		url = url.href;
 	}
 
+	if (
+		URL.canParse(url) &&
+		new URL(url).pathname.startsWith(self.$scramjet.config.prefix + "worker")
+	) {
+		return new URL(new URL(url).searchParams.get("origin"));
+	}
+
 	if (/^(#|about|data|mailto|javascript)/.test(url)) {
 		return url;
 	} else if (canParseUrl(url)) {
