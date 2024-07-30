@@ -24,15 +24,6 @@ export function createWindowProxy(
 
 			const value = Reflect.get(target, prop);
 
-			// this is bad! i don't know what the right thing to do is
-			if (typeof value === "function") {
-				return new Proxy(value, {
-					apply(_target, thisArg, argArray) {
-						return value.apply(self, argArray);
-					},
-				});
-			}
-
 			return value;
 		},
 
@@ -73,14 +64,6 @@ export function createDocumentProxy(
 			}
 
 			const value = Reflect.get(target, prop);
-
-			if (typeof value === "function") {
-				return new Proxy(value, {
-					apply(_target, thisArg, argArray) {
-						return value.apply(self.document, argArray);
-					},
-				});
-			}
 
 			return value;
 		},
