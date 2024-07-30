@@ -175,6 +175,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	// an automated approach to cleaning the documentProxy from dom functions
+	// it will trigger an illegal invocation if you pass the proxy to c++ code, we gotta hotswap it out with the real one
 	for (const target of [
 		self.Node.prototype,
 		self.MutationObserver.prototype,

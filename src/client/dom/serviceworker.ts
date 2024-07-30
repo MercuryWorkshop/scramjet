@@ -2,9 +2,29 @@ import { encodeUrl } from "../../shared/rewriters/url";
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: Self) {
+	let fakeregistrations = new WeakSet();
+
 	client.Proxy("Worklet.prototype.addModule", {
 		apply(ctx) {
 			ctx.args[0] = encodeUrl(ctx.args[0]);
+		},
+	});
+
+	client.Proxy("addEventListener", {
+		apply(ctx) {
+			if (fakeregistrations.has(ctx.this)) {
+				// do nothing
+				ctx.return(undefined);
+			}
+		},
+	});
+
+	client.Proxy("removeEventListener", {
+		apply(ctx) {
+			if (fakeregistrations.has(ctx.this)) {
+				// do nothing
+				ctx.return(undefined);
+			}
 		},
 	});
 
@@ -54,6 +74,7 @@ export default function (client: ScramjetClient, self: Self) {
 					},
 				}
 			);
+			fakeregistrations.add(fakeRegistration);
 
 			ctx.return(new Promise((resolve) => resolve(fakeRegistration)));
 		},
