@@ -38,7 +38,7 @@ export default function (client: ScramjetClient, self: Self) {
 					}
 				}
 
-				return listener.apply(self, argArray);
+				return Reflect.apply(target, thisArg, argArray);
 			},
 		});
 	}
@@ -60,7 +60,11 @@ export default function (client: ScramjetClient, self: Self) {
 		const keys = Reflect.ownKeys(target);
 
 		for (const key of keys) {
-			if (typeof key === "string" && key.startsWith("on")) {
+			if (
+				typeof key === "string" &&
+				key.startsWith("on") &&
+				handlers[key.slice(2)]
+			) {
 				const descriptor = Object.getOwnPropertyDescriptor(target, key);
 				if (!descriptor.get || !descriptor.set || !descriptor.configurable)
 					continue;
