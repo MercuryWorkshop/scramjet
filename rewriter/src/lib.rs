@@ -3,9 +3,10 @@ pub mod rewrite;
 use std::{panic, str::FromStr};
 
 use js_sys::{Function, Object, Reflect};
+use oxc_ast::ast::Function;
 use rewrite::{rewrite, Config, EncodeFn};
 use url::Url;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, throw_str};
 
 #[wasm_bindgen]
 extern "C" {
@@ -18,7 +19,11 @@ pub fn init() {
 	panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
-fn create_encode_function(encode: Function) -> EncodeFn {
+fn create_encode_function(encode: JsValue) -> EncodeFn {
+	let Ok(encode) = encode.dyn_into::<Function>() else {
+		throw_str("invalid encode function");
+	};
+
 	Box::new(move |str| {
 		encode
 			.call1(&JsValue::NULL, &str.into())
@@ -39,7 +44,7 @@ fn get_str(config: &Object, k: &str) -> String {
 fn get_config(config: Object) -> Config {
 	Config {
 		prefix: get_str(&config, "prefix"),
-		encode: create_encode_function(Reflect::get(&config, &"encode".into()).unwrap().into()),
+		encode: create_encode_function(Reflect::get(&config, &"encode".into()).unwrap()),
 		wrapfn: get_str(&config, "wrapfn"),
 		importfn: get_str(&config, "importfn"),
 		rewritefn: get_str(&config, "rewritefn"),
