@@ -13,6 +13,28 @@ export async function swfetch(
 	this: ScramjetServiceWorker,
 	{ request }: FetchEvent
 ) {
+	if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
+		const dataurl = new URL(request.url).searchParams.get("data");
+		const res = await fetch(dataurl);
+		const ab = await res.arrayBuffer();
+
+		const ismodule = new URL(request.url).searchParams.get("type") === "module";
+
+		const origin = new URL(
+			decodeURIComponent(new URL(request.url).searchParams.get("origin"))
+		);
+
+		if (ismodule) origin.searchParams.set("type", "module");
+
+		const rewritten = rewriteWorkers(ab, new URL(origin));
+
+		return new Response(rewritten, {
+			headers: {
+				"Content-Type": "application/javascript",
+			},
+		});
+	}
+
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {
