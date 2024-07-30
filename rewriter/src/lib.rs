@@ -3,7 +3,6 @@ pub mod rewrite;
 use std::{panic, str::FromStr};
 
 use js_sys::{Function, Object, Reflect};
-use oxc_ast::ast::Function;
 use rewrite::{rewrite, Config, EncodeFn};
 use url::Url;
 use wasm_bindgen::{prelude::*, throw_str};
