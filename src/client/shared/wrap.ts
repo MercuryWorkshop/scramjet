@@ -75,15 +75,33 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	function argdbg(arg) {
 		switch (typeof arg) {
 			case "string":
-				if (arg.includes("scramjet")) debugger;
+				if (arg.includes("scramjet") && !arg.includes("\n")) debugger;
 				break;
 			case "object":
-				for (let ar of arg) argdbg(ar);
+				if (arg instanceof Location) debugger;
+				if (
+					arg &&
+					arg[Symbol.iterator] &&
+					typeof arg[Symbol.iterator] === "function"
+				)
+					for (let ar of arg) argdbg(ar);
 				break;
 		}
 	}
 
+	client.Trap("Error.prototype.stack", {
+		get(ctx) {
+			debugger;
+		},
+	});
+
 	window.$scramerr = function scramerr(e) {
-		console.error("CAUGHT ERROR", e);
+		// console.error("CAUGHT ERROR", e);
+	};
+
+	window.$scramdbg = function scramdbg(args, t) {
+		if (args && typeof args === "object" && args.length > 0) argdbg(args);
+		argdbg(t);
+		return t;
 	};
 }

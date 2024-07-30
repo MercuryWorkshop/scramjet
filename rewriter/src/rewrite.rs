@@ -187,9 +187,16 @@ impl<'a> Visit<'a> for Rewriter {
     }
 
     fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
-        self.jschanges.push(JsChange::DebugInject {
-            span: Span::new(it.span.start + 6, it.span.start + 6),
-        });
+        if let Some(arg) = &it.argument {
+            self.jschanges.push(JsChange::GenericChange {
+                span: Span::new(it.span.start + 6, it.span.start + 6),
+                text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
+            });
+            self.jschanges.push(JsChange::GenericChange {
+                span: Span::new(expression_span(arg).end, expression_span(arg).end),
+                text: format!("))"),
+            });
+        }
         walk::walk_return_statement(self, it);
     }
 
