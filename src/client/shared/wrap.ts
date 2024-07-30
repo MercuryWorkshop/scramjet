@@ -88,18 +88,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				break;
 		}
 	}
-
-	client.Trap("Error.prototype.stack", {
-		get(ctx) {
-			debugger;
-		},
-	});
-
-	window.$scramerr = function scramerr(e) {
+	self.$scramerr = function scramerr(e) {
 		// console.error("CAUGHT ERROR", e);
 	};
 
-	window.$scramdbg = function scramdbg(args, t) {
+	self.$scramdbg = function scramdbg(args, t) {
 		if (args && typeof args === "object" && args.length > 0) argdbg(args);
 		argdbg(t);
 		return t;
