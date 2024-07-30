@@ -1,9 +1,6 @@
 use oxc_allocator::Allocator;
 use oxc_ast::{
-    ast::{
-        AssignmentTarget, BindingPattern, BindingPatternKind, Expression, IdentifierReference,
-        ObjectPropertyKind,
-    },
+    ast::{AssignmentTarget, Expression, IdentifierReference, ObjectPropertyKind},
     visit::walk,
     Visit,
 };
@@ -201,9 +198,8 @@ impl<'a> Visit<'a> for Rewriter {
         walk::walk_statement(self, &it.body);
     }
 
-    fn visit_update_expression(&mut self, it: &oxc_ast::ast::UpdateExpression<'a>) {
+    fn visit_update_expression(&mut self, _it: &oxc_ast::ast::UpdateExpression<'a>) {
         // then no, don't walk it, we don't care
-        return;
     }
 
     fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
@@ -334,7 +330,6 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
                 op: _,
             } => entirespan.start,
             JsChange::DebugInject { span } => span.start,
-            _ => 0,
         };
         let b = match b {
             JsChange::GenericChange { span, text: _ } => span.start,
@@ -345,7 +340,6 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
                 op: _,
             } => entirespan.start,
             JsChange::DebugInject { span } => span.start,
-            _ => 0,
         };
         a.cmp(&b)
     });
@@ -392,7 +386,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
                 let start = entirespan.start as usize;
                 buffer.extend_from_slice(js[offset..start].as_bytes());
 
-                let opstr = buffer.extend_from_slice(
+                buffer.extend_from_slice(
                     format!(
                         "((t)=>$scramjet$tryset({},\"{}\",t)||{}{}t)({})",
                         name,
@@ -412,7 +406,6 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
                 offset = span.end as usize;
             }
-            _ => {}
         }
     }
     buffer.extend_from_slice(js[offset..].as_bytes());
