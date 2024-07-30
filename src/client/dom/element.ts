@@ -82,6 +82,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 		self.Element.prototype.getAttribute,
 		{
 			apply(target, thisArg, argArray) {
+				if (
+					attrs.includes(argArray[0]) &&
+					thisArg.hasAttribute(`data-${argArray[0]}`)
+				) {
+					return thisArg.getAttribute(`data-${argArray[0]}`);
+				}
+
 				if (attrs.includes(argArray[0]) && thisArg.$origattrs[argArray[0]]) {
 					return thisArg.$origattrs[argArray[0]];
 				}
