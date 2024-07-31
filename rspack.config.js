@@ -16,7 +16,7 @@ export default defineConfig({
 		client: join(__dirname, "src/client/index.ts"),
 		config: join(__dirname, "src/scramjet.config.ts"),
 		codecs: join(__dirname, "src/codecs/index.ts"),
-		bootstrapper: join(__dirname, "src/bootsrapper/index.ts")
+		bootstrapper: join(__dirname, "src/bootsrapper/index.ts"),
 	},
 	resolve: {
 		extensions: [".ts", ".js"],
@@ -47,9 +47,9 @@ export default defineConfig({
 		],
 		parser: {
 			javascript: {
-				dynamicImportMode: "eager"
-			}
-		}
+				dynamicImportMode: "eager",
+			},
+		},
 	},
 	output: {
 		filename: "scramjet.[name].js",

@@ -48,14 +48,14 @@ export class ScramjetServiceWorker {
 
 	loadConfig() {
 		const store = new IDBMap("config", {
-			prefix: "scramjet"
+			prefix: "scramjet",
 		});
 
 		if (store.has("config")) {
 			store.get("config").then((config) => {
 				this.config = config;
 				self.$scramjet.config = config;
-				self.$scramjet.codec = self.$scramjet.codecs[config.codec]
+				self.$scramjet.codec = self.$scramjet.codecs[config.codec];
 			});
 		}
 	}
