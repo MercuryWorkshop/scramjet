@@ -1,4 +1,4 @@
-import { ScramjetBootstrapper } from "./bootsrapper/index";
+import { ScramjetController } from "./bootsrapper/index";
 import { encodeUrl, decodeUrl } from "./shared/rewriters/url";
 import { rewriteCss } from "./shared/rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "./shared/rewriters/html";
@@ -56,6 +56,6 @@ declare global {
 			codec: Codec;
 		};
 		WASM: string;
-		ScramjetBootstrapper: typeof ScramjetBootstrapper;
+		ScramjetController: typeof ScramjetController;
 	}
 }

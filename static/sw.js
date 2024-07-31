@@ -7,6 +7,7 @@ importScripts(
 const scramjet = new ScramjetServiceWorker();
 
 async function handleRequest(event) {
+	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
 		return scramjet.fetch(event);
 	}

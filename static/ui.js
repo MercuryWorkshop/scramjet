@@ -1,4 +1,4 @@
-const bootstrapper = new ScramjetBootstrapper({
+const scramjet = new ScramjetController({
 	codecs: "/scram/scramjet.codecs.js",
 	worker: "/scram/scramjet.worker.js",
 	thread: "/scram/scramjet.thread.js",
@@ -6,23 +6,23 @@ const bootstrapper = new ScramjetBootstrapper({
 	shared: "/scram/scramjet.shared.js",
 });
 
-bootstrapper.registerSw("./sw.js");
+scramjet.init("./sw.js");
 
-navigator.serviceWorker.ready.then((reg) => {
-	for (let i = 0; i < 20; i++) {
-		const thread = new SharedWorker($scramjet.config.thread, {
-			name: "thread" + i,
-		});
-
-		reg.active.postMessage(
-			{
-				scramjet$type: "add",
-				handle: thread.port,
-			},
-			[thread.port]
-		);
-	}
-});
+// navigator.serviceWorker.ready.then((reg) => {
+// 	for (let i = 0; i < 20; i++) {
+// 		const thread = new SharedWorker($scramjet.config.thread, {
+// 			name: "thread" + i,
+// 		});
+//
+// 		reg.active.postMessage(
+// 			{
+// 				scramjet$type: "add",
+// 				handle: thread.port,
+// 			},
+// 			[thread.port]
+// 		);
+// 	}
+// });
 
 navigator.serviceWorker.onmessage = ({ data }) => {
 	if (data.scramjet$type === "getLocalStorage") {
@@ -133,6 +133,8 @@ function App() {
     }
   `;
 
+	let frame = scramjet.createFrame();
+
 	return html`
       <div>
       <h1>Percury Unblocker</h1>
@@ -165,8 +167,8 @@ function App() {
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
     </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.codec.encode(e.target.value)))}></input>
-      <iframe src=${use(this.urlencoded)}></iframe>
+      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && frame.go(e.target.value)}></input>
+      ${frame.frame}
     </div>
     `;
 }
@@ -175,8 +177,8 @@ window.addEventListener("load", async () => {
 	document.body.appendChild(h(App));
 	function b64(buffer) {
 		let binary = "";
-		let bytes = new Uint8Array(buffer);
-		let len = bytes.byteLength;
+		const bytes = new Uint8Array(buffer);
+		const len = bytes.byteLength;
 		for (let i = 0; i < len; i++) {
 			binary += String.fromCharCode(bytes[i]);
 		}
