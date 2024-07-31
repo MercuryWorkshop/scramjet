@@ -16,7 +16,7 @@ export default defineConfig({
 		client: join(__dirname, "src/client/index.ts"),
 		config: join(__dirname, "src/scramjet.config.ts"),
 		codecs: join(__dirname, "src/codecs/index.ts"),
-		bootstrapper: join(__dirname, "src/bootsrapper/index.ts"),
+		controller: join(__dirname, "src/controller/index.ts"),
 	},
 	resolve: {
 		extensions: [".ts", ".js"],
@@ -61,6 +61,7 @@ export default defineConfig({
 	plugins: [
 		new rspack.ProvidePlugin({
 			dbg: [join(__dirname, "src/log.ts"), "default"],
+			Function: [join(__dirname, "src/snapshot.ts"), "Function"],
 		}),
 		// new RsdoctorRspackPlugin({
 		//     supports: {
