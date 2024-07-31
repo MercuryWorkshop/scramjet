@@ -2,13 +2,15 @@ import { rewriteJs } from "./js";
 
 const clientscripts = ["codecs", "shared", "client"];
 export function rewriteWorkers(js: string | ArrayBuffer, origin?: URL) {
-	let dest = origin.searchParams.get("dest");
-	let type = origin.searchParams.get("type");
+	const dest = origin.searchParams.get("dest");
+	const type = origin.searchParams.get("type");
 
 	origin.search = "";
 
 	let str = "";
 
+	str += `self.$scramjet = {}; self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};\n`;
+	str += "";
 	if (type === "module") {
 		for (const script of clientscripts) {
 			console.log("Import", script, self.$scramjet);
@@ -24,9 +26,10 @@ export function rewriteWorkers(js: string | ArrayBuffer, origin?: URL) {
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
 	}
-	str += `self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
-		self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];\n`;
-	str += "\n" + rewritten;
+
+	str +=
+		"self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];\n";
+	str += rewritten;
 
 	dbg.log("Rewrite", type, dest, str);
 

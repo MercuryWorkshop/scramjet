@@ -5,9 +5,7 @@ export default function (client, self) {
 		return function (url) {
 			const resolved = new URL(url, base).href;
 
-			return function () {}.constructor(
-				`return import("${encodeUrl(resolved)}")`
-			)();
+			return Function(`return import("${encodeUrl(resolved)}")`)();
 		};
 	};
 }

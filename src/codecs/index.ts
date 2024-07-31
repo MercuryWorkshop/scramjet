@@ -77,7 +77,7 @@ const base64 = {
 	},
 };
 
-if (!self.$scramjet) {
+if (typeof self.$scramjet === "undefined") {
 	//@ts-expect-error really dumb workaround
 	self.$scramjet = {};
 }

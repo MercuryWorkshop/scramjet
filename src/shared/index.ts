@@ -8,10 +8,6 @@ import { isScramjetFile } from "./rewriters/html";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 
-if (!self.$scramjet) {
-	//@ts-expect-error really dumb workaround
-	self.$scramjet = {};
-}
 self.$scramjet.shared = {
 	util: {
 		isScramjetFile,
