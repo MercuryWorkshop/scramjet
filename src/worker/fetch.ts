@@ -102,11 +102,7 @@ async function handleResponse(
 				}
 				break;
 			case "script":
-				responseBody = rewriteJs(
-					await response.arrayBuffer(),
-					url,
-					self.$scramjet.config.codec.encode
-				);
+				responseBody = rewriteJs(await response.arrayBuffer(), url);
 				// Disable threading for now, it's causing issues.
 				// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
 				break;
@@ -144,6 +140,10 @@ async function handleResponse(
 	if (responseHeaders["accept"] === "text/event-stream") {
 		responseHeaders["content-type"] = "text/event-stream";
 	}
+
+	// scramjet runtime can use features that permissions-policy blocks
+	delete responseHeaders["permissions-policy"];
+
 	if (crossOriginIsolated) {
 		responseHeaders["Cross-Origin-Embedder-Policy"] = "require-corp";
 	}
