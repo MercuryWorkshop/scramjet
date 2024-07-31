@@ -1,6 +1,6 @@
 import { rewriteJs } from "./js";
 
-const clientscripts = ["codecs", "config", "shared", "client"];
+const clientscripts = ["codecs", "shared", "client"];
 export function rewriteWorkers(js: string | ArrayBuffer, origin?: URL) {
 	let dest = origin.searchParams.get("dest");
 	let type = origin.searchParams.get("type");
@@ -24,6 +24,8 @@ export function rewriteWorkers(js: string | ArrayBuffer, origin?: URL) {
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
 	}
+	str += `self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
+		self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];\n`;
 	str += "\n" + rewritten;
 
 	dbg.log("Rewrite", type, dest, str);

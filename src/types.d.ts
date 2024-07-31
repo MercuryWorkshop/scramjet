@@ -1,3 +1,4 @@
+import { ScramjetBootstrapper } from "./bootsrapper/index";
 import { encodeUrl, decodeUrl } from "./shared/rewriters/url";
 import { rewriteCss } from "./shared/rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "./shared/rewriters/html";
@@ -8,6 +9,20 @@ import { isScramjetFile } from "./shared/rewriters/html";
 import type { Codec } from "./codecs";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
+
+interface ScramjetConfig {
+	prefix: string;
+	codec: string;
+	wrapfn: string;
+	trysetfn: string;
+	importfn: string;
+	rewritefn: string;
+	shared: string;
+	worker: string;
+	thread: string;
+	client: string;
+	codecs: string;
+}
 
 declare global {
 	interface Window {
@@ -31,27 +46,16 @@ declare global {
 					parseDomain: typeof parseDomain;
 				};
 			};
-			config: {
-				prefix: string;
-				codec: Codec;
-				wrapfn: string;
-				trysetfn: string;
-				importfn: string;
-				rewritefn: string;
-				config: string;
-				shared: string;
-				worker: string;
-				thread: string;
-				client: string;
-				codecs: string;
-			};
+			config: ScramjetConfig;
 			codecs: {
 				none: Codec;
 				plain: Codec;
 				base64: Codec;
 				xor: Codec;
 			};
+			codec: Codec;
 		};
 		WASM: string;
+		ScramjetBootstrapper: typeof ScramjetBootstrapper;
 	}
 }

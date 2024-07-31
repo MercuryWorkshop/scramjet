@@ -46,7 +46,7 @@ export async function swfetch(
 	try {
 		const url = new URL(decodeUrl(request.url));
 
-		let headers = new Headers();
+		const headers = new Headers();
 		for (const [key, value] of request.headers.entries()) {
 			headers.set(key, value);
 		}

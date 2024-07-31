@@ -21,7 +21,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 			origin = new URL(new URL(location.href).searchParams.get("origin"));
 		} else
 			origin = new URL(
-				self.$scramjet.config.codec.decode(
+				self.$scramjet.codec.decode(
 					location.href.slice(
 						(location.origin + self.$scramjet.config.prefix).length
 					)
@@ -40,7 +40,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 		return (
 			location.origin +
 			self.$scramjet.config.prefix +
-			self.$scramjet.config.codec.encode(new URL(url, origin).href)
+			self.$scramjet.codec.encode(new URL(url, origin).href)
 		);
 	}
 }
@@ -55,13 +55,13 @@ export function decodeUrl(url: string | URL) {
 		URL.canParse(url) &&
 		new URL(url).pathname.startsWith(self.$scramjet.config.prefix + "worker")
 	) {
-		return new URL(new URL(url).searchParams.get("origin"));
+		return new URL(new URL(url).searchParams.get("origin")).href;
 	}
 
 	if (/^(#|about|data|mailto|javascript)/.test(url)) {
 		return url;
 	} else if (canParseUrl(url)) {
-		return self.$scramjet.config.codec.decode(
+		return self.$scramjet.codec.decode(
 			url.slice((location.origin + self.$scramjet.config.prefix).length)
 		);
 	} else {
