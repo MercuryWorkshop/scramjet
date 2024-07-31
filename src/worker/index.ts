@@ -1,4 +1,4 @@
-import IDBMap from "idb-map-entries";
+import IDBMap from "@webreflection/idb-map";
 import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
@@ -20,7 +20,6 @@ export class ScramjetServiceWorker {
 	serviceWorkers: FakeServiceWorker[] = [];
 
 	constructor() {
-		this.loadConfig();
 		this.client = new self.$scramjet.shared.util.BareClient();
 
 		this.threadpool = new ScramjetThreadpool();
@@ -46,17 +45,18 @@ export class ScramjetServiceWorker {
 		});
 	}
 
-	loadConfig() {
+	async loadConfig() {
+		if (this.config) return;
+
 		const store = new IDBMap("config", {
 			prefix: "scramjet",
 		});
 
 		if (store.has("config")) {
-			store.get("config").then((config) => {
-				this.config = config;
-				self.$scramjet.config = config;
-				self.$scramjet.codec = self.$scramjet.codecs[config.codec];
-			});
+			const config = await store.get("config");
+			this.config = config;
+			self.$scramjet.config = config;
+			self.$scramjet.codec = self.$scramjet.codecs[config.codec];
 		}
 	}
 
