@@ -90,12 +90,12 @@ function App() {
       margin-bottom: 0;
     }
     iframe {
-      border: 4px solid #313131;
+      border: 2px solid #313131;
       background-color: #121212;
-      border-radius: 1rem;
-      margin: 2em;
+      border-radius: 0.5rem;
+      margin: 1em;
       margin-top: 0.5em;
-      width: calc(100% - 4em);
+      width: calc(100% - 2em);
       height: calc(100% - 8em);
     }
 
@@ -104,17 +104,24 @@ function App() {
       outline: none;
       color: #fff;
       height: 2em;
-      width: 60%;
       text-align: center;
       border-radius: 0.75em;
       background-color: #313131;
-      padding: 0.45em;
+      padding: 0.30em;
+    }
+    .input_row > label {
+      font-size: 0.7rem;
+      color: gray;
+    }
+    p {
+      margin: 0;
+      margin-top: 0.2em;
     }
     .cfg * {
       margin: 2px;
     }
     .buttons button {
-      border: 2px solid #4c8bf5;
+      border: 1px solid #4c8bf5;
       background-color: #313131;
       border-radius: 0.75em;
       color: #fff;
@@ -131,6 +138,16 @@ function App() {
     .input_row input {
       flex-grow: 1
     }
+
+    .nav button {
+      margin-right: 0.25em;
+      margin-left: 0.25em;
+      color: #fff;
+      outline: none;
+      border: none;
+      border-radius: 0.75em;
+      background-color: #313131;
+    }
   `;
 
 	let frame = scramjet.createFrame();
@@ -140,34 +157,36 @@ function App() {
       <h1>Percury Unblocker</h1>
       <p>surf the unblocked and mostly buggy web</p>
 
-      <div class=${[flex, col, "cfg"]}>
-        <div class=${[flex, "input_row"]}>
+      <div class=${[flex, "cfg"]}>
+       
+        <div style="align-self: end">
+          <div class=${[flex, "buttons"]}>
+            <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
+            <button on:click=${() =>
+							connection.setTransport("/libcurl/index.mjs", [
+								{
+									wisp: store.wispurl,
+									proxy: store.proxy ? store.proxy : undefined,
+								},
+							])}>use libcurl.js</button>
+            <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
+            <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
+          </div>
+        </div>
+ <div class=${[flex, col, "input_row"]}>
           <label for="wisp_url_input">Wisp URL:</label>
           <input id="wisp_url_input" bind:value=${use(store.wispurl)}></input>
         </div>
-        <div class=${[flex, "input_row"]}>
+        <div class=${[flex, col, "input_row"]}>
           <label for="bare_url_input">Bare URL:</label>
           <input id="bare_url_input" bind:value=${use(store.bareurl)}></input>
         </div>
-        <div class=${[flex, "input_row"]}>
-          <label for="proxy_url_input">SOCKS/HTTP Proxy URL:</label>
-          <input id="proxy_url_input" bind:value=${use(store.proxy)}></input>
-        </div>
-
-        <div class=${[flex, "buttons"]}>
-          <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
-          <button on:click=${() =>
-						connection.setTransport("/libcurl/index.mjs", [
-							{
-								wisp: store.wispurl,
-								proxy: store.proxy ? store.proxy : undefined,
-							},
-						])}>use libcurl.js</button>
-          <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
-          <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
-        </div>
     </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && frame.go(e.target.value)}></input>
+      <div class=${[flex, "nav"]} style="width: 60%">
+        <button on:click=${() => frame.back()}>&lt;-</button>
+        <input class="bar" style="flex: 1" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && frame.go(e.target.value)}></input>
+        <button on:click=${() => frame.forward()}>-&gt;</button>
+      </div>
       ${frame.frame}
     </div>
     `;
