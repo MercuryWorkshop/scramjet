@@ -125,10 +125,16 @@ function traverseParsedHtml(node, origin?: URL) {
 			src: self.$scramjet.config["codecs"],
 			"data-scramjet": "true",
 		});
+		const config = new Element("script", {
+			src:
+				"data:application/javascript;base64," +
+				btoa(
+					`self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)}; self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];`
+				),
+			"data-scramjet": "true",
+		});
 		const shared = new Element("script", {
 			src: self.$scramjet.config["shared"],
-			onload: `self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
-		self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];`,
 			"data-scramjet": "true",
 		});
 		const client = new Element("script", {
@@ -136,7 +142,7 @@ function traverseParsedHtml(node, origin?: URL) {
 			"data-scramjet": "true",
 		});
 
-		scripts.push(codecs, shared, client);
+		scripts.push(codecs, config, shared, client);
 
 		node.children.unshift(...scripts);
 	}
