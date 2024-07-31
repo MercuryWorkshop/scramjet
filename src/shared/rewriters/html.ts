@@ -95,14 +95,14 @@ function traverseParsedHtml(node, origin?: URL) {
 		/(application|text)\/javascript|module|importmap|undefined/.test(
 			node.attribs.type
 		) &&
-		node.children[0] !== undefined
-		&& !(node.attribs["data-scramjet"])
+		node.children[0] !== undefined &&
+		!node.attribs["data-scramjet"]
 	) {
 		let js = node.children[0].data;
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
 		node.children[0].data = rewriteJs(js, origin);
-		console.log(node.children)
+		console.log(node.children);
 	}
 	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
 		if (node.attribs["http-equiv"] === "content-security-policy") {
@@ -121,15 +121,22 @@ function traverseParsedHtml(node, origin?: URL) {
 	if (node.name === "head") {
 		const scripts = [];
 
-		const codecs = new Element("script", { src: self.$scramjet.config["codecs"], "data-scramjet": "true" });
-		const config = new Element("script", { "data-scramjet": "true" }, [], ElementType.Script);
-		config.children[0] = new Text(`self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
-		self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];`);
-		console.log(config.children[0]);
-		const shared = new Element("script", { src: self.$scramjet.config["shared"], "data-scramjet": "true" });
-		const client = new Element("script", { src: self.$scramjet.config["client"], "data-scramjet": "true" });
+		const codecs = new Element("script", {
+			src: self.$scramjet.config["codecs"],
+			"data-scramjet": "true",
+		});
+		const shared = new Element("script", {
+			src: self.$scramjet.config["shared"],
+			onload: `self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
+		self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];`,
+			"data-scramjet": "true",
+		});
+		const client = new Element("script", {
+			src: self.$scramjet.config["client"],
+			"data-scramjet": "true",
+		});
 
-		scripts.push(codecs, config, shared, client);
+		scripts.push(codecs, shared, client);
 
 		node.children.unshift(...scripts);
 	}
