@@ -46,7 +46,7 @@ export async function swfetch(
 	try {
 		const url = new URL(decodeUrl(request.url));
 
-		let headers = new Headers();
+		const headers = new Headers();
 		for (const [key, value] of request.headers.entries()) {
 			headers.set(key, value);
 		}
@@ -104,8 +104,7 @@ async function handleResponse(
 			case "script":
 				responseBody = rewriteJs(
 					await response.arrayBuffer(),
-					url,
-					self.$scramjet.config.codec.encode
+					url
 				);
 				// Disable threading for now, it's causing issues.
 				// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
@@ -166,7 +165,7 @@ async function handleCookies(url: URL, headers: string[]) {
 
 		let [key, value] = cookieParsed.shift();
 		if (!value) continue;
-		value = value.replace('"', "");
+		value = value.replace("\"", "");
 
 		const hostArg = cookieParsed.find((x) => x[0] === "Domain");
 		cookieParsed = cookieParsed.filter((x) => x[0] !== "Domain");

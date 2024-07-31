@@ -1,3 +1,4 @@
+import IDBMap from "idb-map-entries";
 import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
@@ -18,10 +19,9 @@ export class ScramjetServiceWorker {
 
 	serviceWorkers: FakeServiceWorker[] = [];
 
-	constructor(config = self.$scramjet.config) {
+	constructor() {
+		this.loadConfig();
 		this.client = new self.$scramjet.shared.util.BareClient();
-		if (!config.prefix) config.prefix = "/scramjet/";
-		this.config = config;
 
 		this.threadpool = new ScramjetThreadpool();
 
@@ -44,6 +44,20 @@ export class ScramjetServiceWorker {
 				resolve();
 			}
 		});
+	}
+
+	loadConfig() {
+		const store = new IDBMap("config", {
+			prefix: "scramjet"
+		});
+
+		if (store.has("config")) {
+			store.get("config").then((config) => {
+				this.config = config;
+				self.$scramjet.config = config;
+				self.$scramjet.codec = self.$scramjet.codecs[config.codec]
+			});
+		}
 	}
 
 	async getLocalStorage(): Promise<Record<string, string>> {

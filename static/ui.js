@@ -1,6 +1,12 @@
-navigator.serviceWorker.register("./sw.js").then((reg) => {
-	reg.update();
+const bootstrapper = new ScramjetBootstrapper({
+  codecs: "/scram/scramjet.codecs.js",
+  worker: "/scram/scramjet.worker.js",
+  thread: "/scram/scramjet.thread.js",
+  client: "/scram/scramjet.client.js",
+  shared: "/scram/scramjet.shared.js",
 });
+
+bootstrapper.registerSw("./sw.js");
 
 navigator.serviceWorker.ready.then((reg) => {
 	for (let i = 0; i < 20; i++) {
@@ -159,7 +165,7 @@ function App() {
           <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
         </div>
     </div>
-      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.config.codec.encode(e.target.value)))}></input>
+      <input class="bar" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && console.log((this.urlencoded = $scramjet.config.prefix + $scramjet.codec.encode(e.target.value)))}></input>
       <iframe src=${use(this.urlencoded)}></iframe>
     </div>
     `;

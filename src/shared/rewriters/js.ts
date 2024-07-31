@@ -26,13 +26,13 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 	const before = performance.now();
 	if (typeof js === "string") {
 		js = new TextDecoder().decode(
-			rewrite_js(js, origin.toString(), self.$scramjet.config)
+			rewrite_js(js, origin.toString(), self.$scramjet)
 		);
 	} else {
 		js = rewrite_js_from_arraybuffer(
 			new Uint8Array(js),
 			origin.toString(),
-			self.$scramjet.config
+			self.$scramjet
 		);
 	}
 	const after = performance.now();
