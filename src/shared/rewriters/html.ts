@@ -55,6 +55,8 @@ function traverseParsedHtml(node, origin?: URL) {
 				"video",
 			].includes(node.name)
 		) {
+			if (["_parent", "_top", "_unfencedTop"].includes(node.attribs["target"]))
+				node.attribs["target"] = "_self";
 			const value = node.attribs[urlAttr];
 			node.attribs[`data-${urlAttr}`] = value;
 			node.attribs[urlAttr] = encodeUrl(value, origin);

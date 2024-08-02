@@ -6,7 +6,10 @@ export default function (client: ScramjetClient) {
 		apply(ctx) {
 			if (ctx.args[0]) ctx.args[0] = encodeUrl(ctx.args[0]);
 
-			const realwin = ctx.fn.apply(this, ctx.args);
+			if (["_parent", "_top", "_unfencedTop"].includes(ctx.args[1]))
+				ctx.args[1] = "_self";
+
+			const realwin = ctx.fn.apply(ctx.this, ctx.args);
 
 			if (ScramjetClient.SCRAMJET in realwin.self) {
 				return ctx.return(realwin.self[ScramjetClient.SCRAMJET].windowProxy);
