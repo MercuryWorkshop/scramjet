@@ -17,6 +17,10 @@ opt-level = 3
 
 [profile.release]
 opt-level = "z"
+debug = true
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [dependencies]
 console_error_panic_hook = "0.1.7"
