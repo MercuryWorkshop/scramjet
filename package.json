@@ -52,12 +52,16 @@
 		"@webreflection/idb-map": "^0.3.1",
 		"astravel": "^0.6.1",
 		"astring": "^1.8.6",
+		"devtools-detector": "^2.0.20",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.1.0",
 		"htmlparser2": "^9.1.0",
+		"javascript-obfuscator": "^4.1.1",
 		"meriyah": "^4.4.2",
 		"parse-domain": "^8.0.2",
-		"set-cookie-parser": "^2.6.0"
+		"set-cookie-parser": "^2.6.0",
+		"uglifyjs-webpack-plugin": "^2.2.0",
+		"webpack-obfuscator": "^3.5.1"
 	}
 }
