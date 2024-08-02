@@ -53,9 +53,16 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
+			unproxy(ctx, client);
 			// if (ctx.args[0] === "message" && iswindow) debugger;
 			if (typeof ctx.args[1] === "function")
 				ctx.args[1] = wraplistener(ctx.args[1]);
+		},
+	});
+
+	client.Proxy("EventTarget.prototype.dispatchEvent", {
+		apply(ctx) {
+			unproxy(ctx, client);
 		},
 	});
 

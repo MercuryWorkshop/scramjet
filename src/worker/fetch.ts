@@ -45,6 +45,11 @@ export async function swfetch(
 
 	try {
 		const url = new URL(decodeUrl(request.url));
+		if (url.origin == new URL(request.url).origin) {
+			throw new Error(
+				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
+			);
+		}
 
 		const headers = new Headers();
 		for (const [key, value] of request.headers.entries()) {
