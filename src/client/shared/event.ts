@@ -8,10 +8,17 @@ export default function (client: ScramjetClient, self: Self) {
 	const handlers = {
 		message: {
 			origin() {
-				return this.data.$scramjet$origin;
+				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
+					return this.data.$scramjet$origin;
+
+				// then it must be from a worker, which we aren't currently rewriting
+				return client.url.origin;
 			},
 			data() {
-				return this.data.$scramjet$data;
+				if (typeof this.data === "object" && "$scramjet$data" in this.data)
+					return this.data.$scramjet$data;
+
+				return this.data;
 			},
 		},
 	};
@@ -46,8 +53,8 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
-			unproxy(ctx, client);
-			if (typeof ctx.args[1] === "object")
+			// if (ctx.args[0] === "message" && iswindow) debugger;
+			if (typeof ctx.args[1] === "function")
 				ctx.args[1] = wraplistener(ctx.args[1]);
 		},
 	});

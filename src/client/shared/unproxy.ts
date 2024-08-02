@@ -1,6 +1,9 @@
 import { iswindow } from "..";
 import { ProxyCtx, ScramjetClient } from "../client";
 
+// we don't want to end up overriding a property on window that's derived from a prototype until we've proxied the prototype
+export const order = 3;
+
 export default function (client: ScramjetClient, self: typeof window) {
 	// an automated approach to cleaning the documentProxy from dom functions
 	// it will trigger an illegal invocation if you pass the proxy to c++ code, we gotta hotswap it out with the real one

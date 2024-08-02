@@ -1,8 +1,8 @@
-import { isworker } from "../..";
+import { iswindow, isworker } from "../..";
 import { ScramjetClient } from "../../client";
 import { BareClient } from "../../shared";
 
-const bare = new BareClient();
+const bare = iswindow && new BareClient();
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	// r58 please fix

@@ -63,16 +63,29 @@ export class ScramjetClient {
 			recursive: true,
 		});
 
+		let modules = [];
+
 		for (const key of context.keys()) {
+			const module = context(key);
 			if (!key.endsWith(".ts")) continue;
 			if (
 				(key.startsWith("./dom/") && "window" in self) ||
 				(key.startsWith("./worker/") && "WorkerGlobalScope" in self) ||
 				key.startsWith("./shared/")
 			) {
-				const module = context(key);
-				module.default(this, this.global);
+				modules.push(module);
 			}
+		}
+
+		modules.sort((a, b) => {
+			const aorder = a.order || 0;
+			const border = b.order || 0;
+
+			return aorder - border;
+		});
+
+		for (const module of modules) {
+			module.default(this, this.global);
 		}
 	}
 
