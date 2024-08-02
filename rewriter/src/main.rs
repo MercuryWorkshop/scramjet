@@ -107,29 +107,138 @@ fn encode_string(s: String) -> String {
 	encode(&s).to_string()
 }
 
+fn dorewrite(source_text: &str) -> String {
+	from_utf8(
+		rewrite(
+			&source_text,
+			Url::from_str("https://google.com/glorngle/si.js").unwrap(),
+			Config {
+				prefix: "/scrammedjet/".to_string(),
+				encode: Box::new(encode_string),
+				wrapfn: "$wrap".to_string(),
+				importfn: "$import".to_string(),
+				rewritefn: "$rewrite".to_string(),
+			},
+		)
+		.as_slice(),
+	)
+	.unwrap()
+	.to_string()
+}
+
 fn main() -> std::io::Result<()> {
 	let name = env::args().nth(1).unwrap_or_else(|| "test.js".to_string());
 	let path = Path::new(&name);
 	let source_text = std::fs::read_to_string(path)?;
 
-	println!(
-		"{}",
-		from_utf8(
-			rewrite(
-				&source_text,
-				Url::from_str("https://google.com/glorngle/si.js").unwrap(),
-				Config {
-					prefix: "/scrammedjet/".to_string(),
-					encode: Box::new(encode_string),
-					wrapfn: "$wrap".to_string(),
-					importfn: "$import".to_string(),
-					rewritefn: "$rewrite".to_string(),
-				}
-			)
-			.as_slice()
-		)
-		.unwrap()
-	);
+	println!("{}", dorewrite(&source_text));
 
 	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use std::{fs, path::Path};
+
+	use boa_engine::{
+		js_str, js_string,
+		object::ObjectInitializer,
+		property::{Attribute, PropertyDescriptorBuilder},
+		Context, NativeFunction, Source,
+	};
+
+	use crate::dorewrite;
+
+	#[test]
+	fn google() {
+		// sanity check- just making sure it won't crash
+		let source_text = include_str!("../sample/google.js");
+		dorewrite(source_text);
+	}
+
+	#[test]
+	fn test() {
+		let files = fs::read_dir("./tests").unwrap();
+
+		for file in files {
+			if !file
+				.as_ref()
+				.unwrap()
+				.file_name()
+				.to_str()
+				.unwrap()
+				.ends_with(".js")
+			{
+				continue;
+			}
+
+			let content = fs::read_to_string(file.unwrap().path()).unwrap();
+
+			let mut context = Context::default();
+
+			let window = ObjectInitializer::new(&mut context).build();
+			context
+				.register_global_property(js_str!("window"), window, Attribute::READONLY)
+				.unwrap();
+			context
+				.global_object()
+				.define_property_or_throw(
+					js_str!("location"),
+					PropertyDescriptorBuilder::new()
+						.get(
+							NativeFunction::from_copy_closure(|_, _, _| {
+								Ok(js_str!("location").into())
+							})
+							.to_js_function(context.realm()),
+						)
+						.set(
+							NativeFunction::from_copy_closure(|_, _, _| {
+								panic!("fail: window.location got set")
+							})
+							.to_js_function(context.realm()),
+						)
+						.build(),
+					&mut context,
+				)
+				.unwrap();
+
+			context
+				.register_global_callable(
+					js_string!("fail"),
+					0,
+					NativeFunction::from_copy_closure(|_, _, _| {
+						panic!("fail");
+					}),
+				)
+				.unwrap();
+
+			let result = context
+				.eval(Source::from_bytes(
+					br#"
+function $wrap(val) {
+	if (val === window || val === "location" || val === globalThis) return "";
+
+    return val;
+}
+
+function assert(val) {
+	if (!val) fail();
+}
+
+function check(val) {
+    if (val === window || val === "location") fail();
+}
+			    "#,
+				))
+				.unwrap();
+
+			let rewritten = dorewrite(&content);
+			println!("{}", rewritten);
+
+			context
+				.eval(Source::from_bytes(rewritten.as_bytes()))
+				.unwrap();
+			println!("PASS");
+		}
+	}
 }

@@ -38,10 +38,7 @@ fn get_obj(obj: &JsValue, k: &str) -> JsValue {
 }
 
 fn get_str(obj: &JsValue, k: &str) -> String {
-	Reflect::get(obj, &k.into())
-		.unwrap()
-		.as_string()
-		.unwrap()
+	Reflect::get(obj, &k.into()).unwrap().as_string().unwrap()
 }
 
 fn get_config(scramjet: &Object) -> Config {
@@ -57,13 +54,33 @@ fn get_config(scramjet: &Object) -> Config {
 	}
 }
 
+#[cfg(feature = "drm")]
+#[inline(always)]
+fn drmcheck() -> bool {
+	use js_sys::global;
+	use obfstr::obfstr;
+
+	let true_origin = get_str(&get_obj(&global(), obfstr!("location")), obfstr!("origin"));
+	return vec![obfstr!("http://localhost:1337")].contains(&true_origin.as_str());
+}
+
 #[wasm_bindgen]
 pub fn rewrite_js(js: &str, url: &str, scramjet: &Object) -> Vec<u8> {
+	#[cfg(feature = "drm")]
+	if !drmcheck() {
+		return Vec::new();
+	}
+
 	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet))
 }
 
 #[wasm_bindgen]
 pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> Vec<u8> {
+	#[cfg(feature = "drm")]
+	if !drmcheck() {
+		return Vec::new();
+	}
+
 	// we know that this is a valid utf-8 string
 	let js = unsafe { std::str::from_utf8_unchecked(js) };
 

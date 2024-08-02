@@ -1,0 +1,8 @@
+
+let reached = false
+let eval = (t) => t === "location = 1" && (reached = true)
+
+// testing to make sure this doesn't get rewritten
+eval("location = 1")
+
+if (!reached) fail();
