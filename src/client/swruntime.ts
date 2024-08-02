@@ -1,4 +1,4 @@
-import { encodeUrl } from "../shared/rewriters/url";
+import { encodeUrl } from "./shared";
 
 class ScramjetServiceWorkerRuntime {
 	constructor() {
