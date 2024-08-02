@@ -1,4 +1,5 @@
 importScripts(
+	"/scram/scramjet.wasm.js",
 	"/scram/scramjet.codecs.js",
 	"/scram/scramjet.shared.js",
 	"/scram/scramjet.worker.js"

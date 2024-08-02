@@ -8,7 +8,7 @@ import { rewriteJs } from "./js";
 
 export function isScramjetFile(src: string) {
 	let bool = false;
-	["codecs", "client", "shared", "worker"].forEach((file) => {
+	["wasm", "codecs", "client", "shared", "worker"].forEach((file) => {
 		if (src === self.$scramjet.config[file]) bool = true;
 	});
 
@@ -122,6 +122,12 @@ function traverseParsedHtml(node, origin?: URL) {
 	if (node.name === "head") {
 		const scripts = [];
 
+		scripts.push(
+			new Element("script", {
+				src: self.$scramjet.config["wasm"],
+				"data-scramjet": "true",
+			})
+		);
 		const codecs = new Element("script", {
 			src: self.$scramjet.config["codecs"],
 			"data-scramjet": "true",

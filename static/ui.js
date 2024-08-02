@@ -1,4 +1,5 @@
 const scramjet = new ScramjetController({
+	wasm: "/scram/scramjet.wasm.js",
 	codecs: "/scram/scramjet.codecs.js",
 	worker: "/scram/scramjet.worker.js",
 	thread: "/scram/scramjet.thread.js",

@@ -1,6 +1,6 @@
 import { rewriteJs } from "./js";
 
-const clientscripts = ["codecs", "shared", "client"];
+const clientscripts = ["wasm", "codecs", "shared", "client"];
 export function rewriteWorkers(js: string | ArrayBuffer, origin?: URL) {
 	const dest = origin.searchParams.get("dest");
 	const type = origin.searchParams.get("type");

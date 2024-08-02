@@ -7,7 +7,6 @@ import {
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
-import "../../../static/wasm.js";
 
 initSync(
 	new WebAssembly.Module(
