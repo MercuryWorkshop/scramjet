@@ -8,27 +8,9 @@ export interface Codec {
 	decode: (str: string | undefined) => string;
 }
 
-const xor = {
-	encode: (str: string | undefined, key: number = 2) => {
-		if (!str) return str;
-
-		return encodeURIComponent(
-			str
-				.split("")
-				.map((e, i) =>
-					i % key ? String.fromCharCode(e.charCodeAt(0) ^ key) : e
-				)
-				.join("")
-		);
-	},
-	decode: (str: string | undefined, key: number = 2) => {
-		if (!str) return str;
-
-		return decodeURIComponent(str)
-			.split("")
-			.map((e, i) => (i % key ? String.fromCharCode(e.charCodeAt(0) ^ key) : e))
-			.join("");
-	},
+const none = {
+	encode: (str: string | undefined) => str,
+	decode: (str: string | undefined) => str,
 };
 
 const plain = {
@@ -41,6 +23,45 @@ const plain = {
 		if (!str) return str;
 
 		return decodeURIComponent(str);
+	},
+};
+
+const xor = {
+	encode: (str: string | undefined, key: number = 2) => {
+		if (!str) return str;
+
+		let result = "";
+		for (let i = 0; i < str.length; i++) {
+			result += i % key ? String.fromCharCode(str.charCodeAt(i) ^ key) : str[i];
+		}
+
+		return encodeURIComponent(result);
+	},
+	decode: (str: string | undefined, key: number = 2) => {
+		if (!str) return str;
+
+		const [input, ...search] = str.split("?");
+		let result = "";
+		const decoded = decodeURIComponent(input);
+		for (let i = 0; i < decoded.length; i++) {
+			result +=
+				i % key ? String.fromCharCode(decoded.charCodeAt(i) ^ key) : decoded[i];
+		}
+
+		return result + (search.length ? "?" + search.join("?") : "");
+	},
+};
+
+const base64 = {
+	encode: (str: string | undefined) => {
+		if (!str) return str;
+
+		return decodeURIComponent(btoa(str));
+	},
+	decode: (str: string | undefined) => {
+		if (!str) return str;
+
+		return atob(str);
 	},
 };
 
@@ -59,24 +80,6 @@ const aes = {
 }
 */
 
-const none = {
-	encode: (str: string | undefined) => str,
-	decode: (str: string | undefined) => str,
-};
-
-const base64 = {
-	encode: (str: string | undefined) => {
-		if (!str) return str;
-
-		return decodeURIComponent(btoa(str));
-	},
-	decode: (str: string | undefined) => {
-		if (!str) return str;
-
-		return atob(str);
-	},
-};
-
 if (typeof self.$scramjet === "undefined") {
 	//@ts-expect-error really dumb workaround
 	self.$scramjet = {};
@@ -84,6 +87,6 @@ if (typeof self.$scramjet === "undefined") {
 self.$scramjet.codecs = {
 	none,
 	plain,
-	base64,
 	xor,
+	base64,
 };

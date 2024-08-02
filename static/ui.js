@@ -68,7 +68,7 @@ const store = $store(
 	},
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
 );
-connection.setTransport("/baremod/index.mjs", [store.bareurl]);
+connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
 function App() {
 	this.urlencoded = "";
 	this.css = `
@@ -150,7 +150,7 @@ function App() {
     }
   `;
 
-	let frame = scramjet.createFrame();
+	const frame = scramjet.createFrame();
 
 	return html`
       <div>
