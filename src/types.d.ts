@@ -9,6 +9,7 @@ import { isScramjetFile } from "./shared/rewriters/html";
 import type { Codec } from "./codecs";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
+import { ScramjetHeaders } from "./shared/headers";
 
 interface ScramjetConfig {
 	prefix: string;
@@ -43,6 +44,7 @@ declare global {
 				};
 				util: {
 					BareClient: typeof BareClient;
+					ScramjetHeaders: typeof ScramjetHeaders;
 					isScramjetFile: typeof isScramjetFile;
 					parseDomain: typeof parseDomain;
 				};
