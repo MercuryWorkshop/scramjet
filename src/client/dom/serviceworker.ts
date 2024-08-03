@@ -13,7 +13,7 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.Proxy("addEventListener", {
+	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			if (fakeregistrations.has(ctx.this)) {
 				// do nothing
@@ -22,7 +22,7 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.Proxy("removeEventListener", {
+	client.Proxy("EventTarget.prototype.removeEventListener", {
 		apply(ctx) {
 			if (fakeregistrations.has(ctx.this)) {
 				// do nothing
@@ -38,9 +38,10 @@ export default function (client: ScramjetClient, self: Self) {
 			if (ctx.args[1] && ctx.args[1].type === "module") {
 				url += "&type=module";
 			}
-			let worker = new SharedWorker(url);
 
-			let handle = worker.port;
+			const worker = new SharedWorker(url);
+
+			const handle = worker.port;
 
 			navigator.serviceWorker.controller.postMessage(
 				{

@@ -24,24 +24,17 @@ export class ScramjetServiceWorker {
 
 		this.threadpool = new ScramjetThreadpool();
 
-		addEventListener("message", ({ data }) => {
+		addEventListener("message", ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
 
 			if (data.scramjet$type === "registerServiceWorker") {
-				this.serviceWorkers.push(new FakeServiceWorker(data.port));
+				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
 
 				return;
 			}
 
-			if (!("scramjet$token" in data)) return;
-
 			const resolve = this.syncPool[data.scramjet$token];
 			delete this.syncPool[data.scramjet$token];
-			if (data.scramjet$type === "getLocalStorage") {
-				resolve(data.data);
-			} else if (data.scramjet$type === "setLocalStorage") {
-				resolve();
-			}
 		});
 	}
 
@@ -117,3 +110,21 @@ export class ScramjetServiceWorker {
 }
 
 self.ScramjetServiceWorker = ScramjetServiceWorker;
+
+type RegisterServiceWorkerMessage = {
+	scramjet$type: "registerServiceWorker";
+	port: MessagePort;
+	origin: string;
+};
+
+type MessageCommon = {
+	scramjet$type: string;
+	scramjet$token: number;
+};
+
+type MessageTypeC2W = RegisterServiceWorkerMessage;
+type MessageTypeW2C = never;
+
+// c2w: client to (service) worker
+export type MessageC2W = MessageCommon & MessageTypeC2W;
+export type MessageW2C = MessageCommon & MessageTypeW2C;

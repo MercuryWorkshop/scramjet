@@ -29,6 +29,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap("document.documentURI", {
+		get() {
+			return decodeUrl(self.location.href);
+		},
+		set() {
+			return false;
+		},
+	});
+
 	client.Trap("document.domain", {
 		get() {
 			return client.url.hostname;

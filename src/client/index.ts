@@ -1,6 +1,7 @@
 // entrypoint for scramjet.client.js
 
 import { ScramjetClient } from "./client";
+import { ScramjetServiceWorkerRuntime } from "./swruntime";
 
 export const iswindow = "window" in self;
 export const isworker = "WorkerGlobalScope" in self;
@@ -13,4 +14,9 @@ dbg.log("scrammin");
 if (!(ScramjetClient.SCRAMJET in self)) {
 	const client = new ScramjetClient(self);
 	client.hook();
+
+	if (issw) {
+		const runtime = new ScramjetServiceWorkerRuntime(client);
+		runtime.hook();
+	}
 }

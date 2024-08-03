@@ -7,6 +7,14 @@ const realOnEvent = Symbol.for("scramjet original onevent function");
 export default function (client: ScramjetClient, self: Self) {
 	const handlers = {
 		message: {
+			_init() {
+				if (typeof this.data === "object" && "$scramjet$type" in this.data) {
+					// this is a ctl message
+					return false;
+				}
+
+				return true;
+			},
 			origin() {
 				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
 					return this.data.$scramjet$origin;
@@ -33,7 +41,12 @@ export default function (client: ScramjetClient, self: Self) {
 					const type = realEvent.type;
 
 					if (type in handlers) {
-						let handler = handlers[type];
+						const handler = handlers[type];
+
+						if (handler._init) {
+							if (handler._init.call(realEvent) === false) return;
+						}
+
 						argArray[0] = new Proxy(realEvent, {
 							get(_target, prop, reciever) {
 								if (prop in handler) {
@@ -54,9 +67,41 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			unproxy(ctx, client);
-			// if (ctx.args[0] === "message" && iswindow) debugger;
-			if (typeof ctx.args[1] === "function")
-				ctx.args[1] = wraplistener(ctx.args[1]);
+			if (typeof ctx.args[1] !== "function") return;
+
+			const origlistener = ctx.args[1];
+			const proxylistener = wraplistener(origlistener);
+
+			ctx.args[1] = proxylistener;
+
+			let arr = client.eventcallbacks.get(ctx.this);
+			arr ||= [] as any;
+			arr.push({
+				event: ctx.args[0] as string,
+				originalCallback: origlistener,
+				proxiedCallback: proxylistener,
+			});
+			client.eventcallbacks.set(ctx.this, arr);
+		},
+	});
+
+	client.Proxy("EventTarget.prototype.removeEventListener", {
+		apply(ctx) {
+			unproxy(ctx, client);
+			if (typeof ctx.args[1] !== "function") return;
+
+			const arr = client.eventcallbacks.get(ctx.this);
+			if (!arr) return;
+
+			const i = arr.findIndex(
+				(e) => e.event === ctx.args[0] && e.originalCallback === ctx.args[1]
+			);
+			if (i === -1) return;
+
+			arr.splice(i, 1);
+			client.eventcallbacks.set(ctx.this, arr);
+
+			ctx.args[1] = arr[i].proxiedCallback;
 		},
 	});
 
@@ -65,8 +110,6 @@ export default function (client: ScramjetClient, self: Self) {
 			unproxy(ctx, client);
 		},
 	});
-
-	// TODO: removeEventListener
 
 	if (!iswindow) return;
 

@@ -35,6 +35,14 @@ export async function swfetch(
 		});
 	}
 
+	const activeWorker = this.serviceWorkers.find(
+		(w) => w.origin === new URL(request.url).origin
+	);
+	if (activeWorker) {
+		// TODO: check scope
+		return await activeWorker.fetch(request);
+	}
+
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {
