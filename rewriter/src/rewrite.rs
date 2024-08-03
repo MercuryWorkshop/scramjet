@@ -144,21 +144,22 @@ impl<'a> Visit<'a> for Rewriter {
 		// do not walk further, we don't want to rewrite the identifiers
 	}
 
-	// #[cfg(feature = "debug")]
-	// fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
-	// 	// for debugging we need to know what the error was
-	//
-	// 	if let Some(h) = &it.handler {
-	// 		if let Some(name) = &h.param {
-	// 			if let Some(name) = name.pattern.get_identifier() {
-	// 				self.jschanges.push(JsChange::GenericChange {
-	// 					span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
-	// 					text: format!("$scramerr({});", name),
-	// 				});
-	// 			}
-	// 		}
-	// 	}
-	// }
+	#[cfg(feature = "debug")]
+	fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
+		// for debugging we need to know what the error was
+
+		if let Some(h) = &it.handler {
+			if let Some(name) = &h.param {
+				if let Some(name) = name.pattern.get_identifier() {
+					self.jschanges.push(JsChange::GenericChange {
+						span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
+						text: format!("$scramerr({});", name),
+					});
+				}
+			}
+		}
+		walk::walk_try_statement(self, it);
+	}
 
 	fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
 		for prop in &it.properties {
