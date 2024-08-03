@@ -6,7 +6,7 @@ import { type MessageC2W } from "../../worker";
 export const order = 2;
 
 export default function (client: ScramjetClient, self: Self) {
-	let fakeregistrations = new WeakSet();
+	let registration;
 
 	client.Proxy("Worklet.prototype.addModule", {
 		apply(ctx) {
@@ -16,7 +16,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
-			if (fakeregistrations.has(ctx.this)) {
+			if (registration === ctx.this) {
 				// do nothing
 				ctx.return(undefined);
 			}
@@ -25,10 +25,16 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.removeEventListener", {
 		apply(ctx) {
-			if (fakeregistrations.has(ctx.this)) {
+			if (registration === ctx.this) {
 				// do nothing
 				ctx.return(undefined);
 			}
+		},
+	});
+
+	client.Proxy("navigator.serviceWorker.getRegistration", {
+		apply(ctx) {
+			ctx.return(new Promise((resolve) => resolve(registration)));
 		},
 	});
 
@@ -80,11 +86,9 @@ export default function (client: ScramjetClient, self: Self) {
 					},
 				}
 			);
-			fakeregistrations.add(fakeRegistration);
+			registration = fakeRegistration;
 
 			ctx.return(new Promise((resolve) => resolve(fakeRegistration)));
 		},
 	});
-
-	// delete self.navigator.serviceWorker;
 }

@@ -92,7 +92,7 @@ function App() {
     }
     iframe {
       border: 2px solid #313131;
-      background-color: #121212;
+      background-color: #fff;
       border-radius: 0.5rem;
       margin: 1em;
       margin-top: 0.5em;

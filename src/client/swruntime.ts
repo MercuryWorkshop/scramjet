@@ -47,6 +47,9 @@ export class ScramjetServiceWorkerRuntime {
 			installing: null,
 			waiting: null,
 		};
+
+		// @ts-ignore
+		this.client.global.ServiceWorkerGlobalScope = this.client.global;
 	}
 }
 
