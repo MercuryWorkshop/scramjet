@@ -63,6 +63,10 @@ export function createDocumentProxy(
 				return client.locationProxy;
 			}
 
+			if (propIsString && prop === "defaultView") {
+				return client.windowProxy;
+			}
+
 			const value = Reflect.get(target, prop);
 
 			return value;
