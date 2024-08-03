@@ -4,7 +4,7 @@ export class FakeServiceWorker {
 	syncToken = 0;
 	promises: Record<number, (val?: MessageR2W) => void> = {};
 	messageChannel = new MessageChannel();
-	alreadytransfered = false;
+	connected = false;
 
 	constructor(
 		public handle: MessagePort,
@@ -12,10 +12,22 @@ export class FakeServiceWorker {
 	) {
 		this.messageChannel.port1.addEventListener("message", (event) => {
 			if ("scramjet$type" in event.data) {
-				this.handleMessage(event.data);
+				if (event.data.scramjet$type === "init") {
+					this.connected = true;
+				} else {
+					this.handleMessage(event.data);
+				}
 			}
 		});
 		this.messageChannel.port1.start();
+
+		this.handle.postMessage(
+			{
+				scramjet$type: "init",
+				scramjet$port: this.messageChannel.port2,
+			},
+			[this.messageChannel.port2]
+		);
 	}
 
 	handleMessage(data: MessageR2W) {
@@ -26,13 +38,12 @@ export class FakeServiceWorker {
 		}
 	}
 
-	async fetch(request: Request): Promise<Response> {
+	async fetch(request: Request): Promise<Response | false> {
 		const token = this.syncToken++;
 
 		const message: MessageW2R = {
 			scramjet$type: "fetch",
 			scramjet$token: token,
-			scramjet$port: !this.alreadytransfered && this.messageChannel.port2,
 			scramjet$request: {
 				url: request.url,
 				body: request.body,
@@ -43,18 +54,15 @@ export class FakeServiceWorker {
 			},
 		};
 
-		const transfer: any = request.body ? [request.body] : [];
-
-		if (!this.alreadytransfered) {
-			this.alreadytransfered = true;
-			transfer.push(this.messageChannel.port2);
-		}
+		const transfer = request.body ? [request.body] : [];
 
 		this.handle.postMessage(message, transfer);
 
 		const { scramjet$response: r } = (await new Promise((resolve) => {
 			this.promises[token] = resolve;
 		})) as MessageR2W;
+
+		if (!r) return false;
 
 		return new Response(r.body, {
 			headers: r.headers,

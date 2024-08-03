@@ -51,9 +51,10 @@ export async function swfetch(
 			(w) => w.origin === url.origin
 		);
 
-		if (activeWorker) {
+		if (activeWorker && activeWorker.connected) {
 			// TODO: check scope
-			return await activeWorker.fetch(request);
+			const r = await activeWorker.fetch(request);
+			if (r) return r;
 		}
 		if (url.origin == new URL(request.url).origin) {
 			throw new Error(

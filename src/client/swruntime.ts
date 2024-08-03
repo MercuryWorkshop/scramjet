@@ -12,7 +12,12 @@ export class ScramjetServiceWorkerRuntime {
 			port.addEventListener("message", (event) => {
 				console.log("sw", event.data);
 				if ("scramjet$type" in event.data) {
-					handleMessage.call(this, client, event.data);
+					if (event.data.scramjet$type === "init") {
+						this.recvport = event.data.scramjet$port;
+						this.recvport.postMessage({ scramjet$type: "init" });
+					} else {
+						handleMessage.call(this, client, event.data);
+					}
 				}
 			});
 
@@ -20,7 +25,27 @@ export class ScramjetServiceWorkerRuntime {
 		};
 	}
 
-	hook() {}
+	hook() {
+		this.client.global.registration = {
+			// TODO IMPLEMENT SCOPES
+			scope: this.client.url.href,
+			active: {
+				scriptURL: this.client.url.href,
+				state: "activated",
+				onstatechange: null,
+				onerror: null,
+
+				postMessage: () => {},
+				addEventListener: () => {},
+				removeEventListener: () => {},
+				dispatchEvent: (_e: Event) => {},
+			},
+			unregister: async () => true,
+			update: async () => {},
+			installing: null,
+			waiting: null,
+		};
+	}
 }
 
 function handleMessage(
@@ -28,7 +53,6 @@ function handleMessage(
 	client: ScramjetClient,
 	data: MessageW2R
 ) {
-	if (data.scramjet$port) this.recvport = data.scramjet$port;
 	const port = this.recvport;
 	const type = data.scramjet$type;
 	const token = data.scramjet$token;
@@ -54,25 +78,35 @@ function handleMessage(
 			// TODO: clean up, maybe put into a class
 			const fakeFetchEvent: any = new Event("fetch");
 			fakeFetchEvent.request = fakeRequest;
-			fakeFetchEvent.respondWith = async (
-				response: Response | Promise<Response>
-			) => {
-				response = await response;
-				const message: MessageR2W = {
-					scramjet$type: "fetch",
-					scramjet$token: token,
-					scramjet$response: {
-						body: response.body,
-						headers: Array.from(response.headers.entries()),
-						status: response.status,
-						statusText: response.statusText,
-					},
-				};
+			let responded = false;
+			fakeFetchEvent.respondWith = (response: Response | Promise<Response>) => {
+				responded = true;
+				(async () => {
+					response = await response;
+					const message: MessageR2W = {
+						scramjet$type: "fetch",
+						scramjet$token: token,
+						scramjet$response: {
+							body: response.body,
+							headers: Array.from(response.headers.entries()),
+							status: response.status,
+							statusText: response.statusText,
+						},
+					};
 
-				port.postMessage(message, [response.body]);
+					dbg.log("sw", "responding", message);
+					port.postMessage(message, [response.body]);
+				})();
 			};
 
 			handler.proxiedCallback(trustEvent(fakeFetchEvent));
+			if (!responded) {
+				port.postMessage({
+					scramjet$type: "fetch",
+					scramjet$token: token,
+					scramjet$response: false,
+				});
+			}
 		}
 	}
 }
@@ -125,4 +159,4 @@ type MessageCommon = {
 
 export type MessageR2W = MessageCommon & MessageTypeR2W;
 export type MessageW2R = MessageCommon &
-	MessageTypeW2R & { scramjet$port: MessagePort | undefined };
+	MessageTypeW2R & { scramjet$port?: MessagePort };
