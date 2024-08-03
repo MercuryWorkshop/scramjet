@@ -98,10 +98,10 @@ export default function (client: ScramjetClient, self: Self) {
 			);
 			if (i === -1) return;
 
-			arr.splice(i, 1);
+			const r = arr.splice(i, 1);
 			client.eventcallbacks.set(ctx.this, arr);
 
-			ctx.args[1] = arr[i].proxiedCallback;
+			ctx.args[1] = r[0].proxiedCallback;
 		},
 	});
 
