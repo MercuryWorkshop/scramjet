@@ -51,7 +51,11 @@ export async function swfetch(
 			(w) => w.origin === url.origin
 		);
 
-		if (activeWorker && activeWorker.connected) {
+		if (
+			activeWorker &&
+			activeWorker.connected &&
+			urlParam.get("from") !== "swruntime"
+		) {
 			// TODO: check scope
 			const r = await activeWorker.fetch(request);
 			if (r) return r;

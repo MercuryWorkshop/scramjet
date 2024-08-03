@@ -1,5 +1,6 @@
+import { Request } from "../snapshot";
 import { ScramjetClient } from "./client";
-import { encodeUrl } from "./shared";
+import { decodeUrl, encodeUrl } from "./shared";
 
 export class ScramjetServiceWorkerRuntime {
 	recvport: MessagePort;
@@ -40,6 +41,7 @@ export class ScramjetServiceWorkerRuntime {
 				removeEventListener: () => {},
 				dispatchEvent: (_e: Event) => {},
 			},
+			showNotification: async () => {},
 			unregister: async () => true,
 			update: async () => {},
 			installing: null,
@@ -63,8 +65,10 @@ function handleMessage(
 		if (!fetchhandlers) return;
 
 		for (const handler of fetchhandlers) {
+			if (handler.event !== "fetch") continue;
+
 			const request = data.scramjet$request;
-			const fakeRequest = new Request(request.url, {
+			const fakeRequest = new Request(decodeUrl(request.url), {
 				body: request.body,
 				headers: new Headers(request.headers),
 				method: request.method,
@@ -99,8 +103,10 @@ function handleMessage(
 				})();
 			};
 
+			dbg.log("to fn", fakeFetchEvent);
 			handler.proxiedCallback(trustEvent(fakeFetchEvent));
 			if (!responded) {
+				console.log("sw", "no response");
 				port.postMessage({
 					scramjet$type: "fetch",
 					scramjet$token: token,
