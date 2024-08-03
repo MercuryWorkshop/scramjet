@@ -7,12 +7,14 @@ import { rewriteWorkers } from "./rewriters/worker";
 import { isScramjetFile } from "./rewriters/html";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
+import { ScramjetHeaders } from "./headers";
 
 self.$scramjet.shared = {
 	util: {
 		isScramjetFile,
 		parseDomain,
 		BareClient,
+		ScramjetHeaders,
 	},
 	url: {
 		encodeUrl,

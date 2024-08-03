@@ -7,7 +7,7 @@ import { renderError } from "./error";
 const { encodeUrl, decodeUrl } = self.$scramjet.shared.url;
 const { rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } =
 	self.$scramjet.shared.rewrite;
-const { parseDomain } = self.$scramjet.shared.util;
+const { parseDomain, ScramjetHeaders } = self.$scramjet.shared.util;
 
 export async function swfetch(
 	this: ScramjetServiceWorker,
@@ -59,17 +59,31 @@ export async function swfetch(
 			);
 		}
 
-		const headers = new Headers();
+		const headers = new ScramjetHeaders();
 		for (const [key, value] of request.headers.entries()) {
 			headers.set(key, value);
 		}
 
 		headers.set("Referer", decodeUrl(request.referrer));
 
+		const cookieStore = new IDBMap(url.host, {
+			durability: "relaxed",
+			prefix: "Cookies",
+		});
+
+		let cookies = await cookieStore.entries();
+		if (url.protocol !== "https:") {
+			cookies = cookies.filter(([_k, v]) => !v.args.includes(["Secure"]));
+		}
+		cookies = Array.from(cookies.map(([k, v]) => `${k}=${v.value}`));
+		if (cookies.length) {
+			headers.set("Cookie", cookies.join(";"));
+		}
+
 		const response: BareResponseFetch = await this.client.fetch(url, {
 			method: request.method,
 			body: request.body,
-			headers,
+			headers: headers.headers,
 			credentials: "omit",
 			mode: request.mode === "cors" ? request.mode : "same-origin",
 			cache: request.cache,
@@ -168,11 +182,13 @@ async function handleResponse(
 	});
 }
 
-async function handleCookies(url: URL, headers: string[]) {
+async function handleCookies(url: URL, maybeHeaders: string[] | string) {
 	const cookieStore = new IDBMap(url.host, {
 		durability: "relaxed",
 		prefix: "Cookies",
 	});
+
+	let headers = maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders];
 
 	for (const cookie of headers) {
 		let cookieParsed = cookie.split(";").map((x) => x.trim().split("="));
@@ -185,7 +201,7 @@ async function handleCookies(url: URL, headers: string[]) {
 		cookieParsed = cookieParsed.filter((x) => x[0] !== "Domain");
 		let host = hostArg ? hostArg[1] : undefined;
 
-		if (url.protocol === "http" && cookieParsed.includes(["Secure"])) continue;
+		if (url.protocol === "http:" && cookieParsed.includes(["Secure"])) continue;
 		if (
 			cookieParsed.includes(["SameSite", "None"]) &&
 			!cookieParsed.includes(["Secure"])
