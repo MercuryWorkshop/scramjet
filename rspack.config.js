@@ -104,7 +104,7 @@ export default defineConfig({
 				});
 			},
 		},
-		process.env
+		process.env.DEBUG === "true"
 			? new RsdoctorRspackPlugin({
 					supports: {
 						parseBundle: true,
