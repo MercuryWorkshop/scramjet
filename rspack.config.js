@@ -104,12 +104,14 @@ export default defineConfig({
 				});
 			},
 		},
-		// new RsdoctorRspackPlugin({
-		// 	supports: {
-		// 		parseBundle: true,
-		// 		banner: true,
-		// 	},
-		// }),
+		process.env
+			? new RsdoctorRspackPlugin({
+					supports: {
+						parseBundle: true,
+						banner: true,
+					},
+				})
+			: null,
 	],
 	target: "webworker",
 });
