@@ -3,32 +3,30 @@ import { encodeUrl } from "./shared";
 
 export class ScramjetServiceWorkerRuntime {
 	constructor(public client: ScramjetClient) {
-		addEventListener("connect", (cevent: MessageEvent) => {
+		// @ts-ignore
+		self.onconnect = (cevent: MessageEvent) => {
 			const port = cevent.ports[0];
 
 			port.addEventListener("message", (event) => {
 				if ("scramjet$type" in event.data) {
-					handleMessage(client, event.data, port);
+					handleMessage(client, event.data);
 				}
 			});
 
 			port.start();
-		});
+		};
 	}
 
 	hook() {}
 }
 
-function handleMessage(
-	client: ScramjetClient,
-	data: MessageW2R,
-	port: MessagePort
-) {
+function handleMessage(client: ScramjetClient, data: MessageW2R) {
+	const port = data.scramjet$port;
 	const type = data.scramjet$type;
 	const token = data.scramjet$token;
 
 	if (type === "fetch") {
-		const fetchhandlers = client.eventcallbacks.get("fetch");
+		const fetchhandlers = client.eventcallbacks.get(self);
 		if (!fetchhandlers) return;
 
 		for (const handler of fetchhandlers) {
@@ -37,24 +35,21 @@ function handleMessage(
 				body: request.body,
 				headers: new Headers(request.headers),
 				method: request.method,
-				mode: request.mode,
+				mode: "same-origin",
 			});
 
 			Object.defineProperty(fakeRequest, "destination", {
 				value: request.destinitation,
 			});
 
-			const fakeFetchEvent = new FetchEvent("fetch", {
-				request: fakeRequest,
-			});
-
+			// TODO: clean up, maybe put into a class
+			const fakeFetchEvent: any = new Event("fetch");
+			fakeFetchEvent.request = fakeRequest;
 			fakeFetchEvent.respondWith = async (
 				response: Response | Promise<Response>
 			) => {
 				response = await response;
-
-				response.body;
-				port.postMessage({
+				const message: MessageR2W = {
 					scramjet$type: "fetch",
 					scramjet$token: token,
 					scramjet$response: {
@@ -63,7 +58,9 @@ function handleMessage(
 						status: response.status,
 						statusText: response.statusText,
 					},
-				} as MessageR2W);
+				};
+
+				port.postMessage(message, [response.body]);
 			};
 
 			handler.proxiedCallback(trustEvent(fakeFetchEvent));
@@ -76,7 +73,7 @@ function trustEvent(event: Event): Event {
 		get(target, prop, reciever) {
 			if (prop === "isTrusted") return true;
 
-			return Reflect.get(target, prop, reciever);
+			return Reflect.get(target, prop);
 		},
 	});
 }
@@ -118,4 +115,5 @@ type MessageCommon = {
 };
 
 export type MessageR2W = MessageCommon & MessageTypeR2W;
-export type MessageW2R = MessageCommon & MessageTypeW2R;
+export type MessageW2R = MessageCommon &
+	MessageTypeW2R & { scramjet$port: MessagePort };

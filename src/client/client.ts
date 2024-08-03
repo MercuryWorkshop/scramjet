@@ -46,7 +46,7 @@ export class ScramjetClient {
 	windowProxy: any;
 	locationProxy: any;
 
-	eventcallbacks: WeakMap<
+	eventcallbacks: Map<
 		any,
 		[
 			{
@@ -55,7 +55,7 @@ export class ScramjetClient {
 				proxiedCallback: AnyFunction;
 			},
 		]
-	> = new WeakMap();
+	> = new Map();
 
 	constructor(public global: typeof globalThis) {
 		if ("document" in self) {

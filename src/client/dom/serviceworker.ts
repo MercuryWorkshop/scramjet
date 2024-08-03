@@ -1,5 +1,6 @@
 import { encodeUrl } from "../shared";
 import { ScramjetClient } from "../client";
+import { type MessageC2W } from "../../worker";
 
 // we need a late order because we're mangling with addEventListener at a higher level
 export const order = 2;
@@ -47,7 +48,8 @@ export default function (client: ScramjetClient, self: Self) {
 				{
 					scramjet$type: "registerServiceWorker",
 					port: handle,
-				},
+					origin: client.url.origin,
+				} as MessageC2W,
 				[handle]
 			);
 

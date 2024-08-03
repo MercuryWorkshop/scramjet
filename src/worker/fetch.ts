@@ -3,6 +3,7 @@ import IDBMap from "@webreflection/idb-map";
 import { ParseResultType } from "parse-domain";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
+import { FakeServiceWorker } from "./fakesw";
 
 const { encodeUrl, decodeUrl } = self.$scramjet.shared.url;
 const { rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } =
@@ -35,14 +36,6 @@ export async function swfetch(
 		});
 	}
 
-	const activeWorker = this.serviceWorkers.find(
-		(w) => w.origin === new URL(request.url).origin
-	);
-	if (activeWorker) {
-		// TODO: check scope
-		return await activeWorker.fetch(request);
-	}
-
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {
@@ -53,6 +46,15 @@ export async function swfetch(
 
 	try {
 		const url = new URL(decodeUrl(request.url));
+
+		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
+			(w) => w.origin === url.origin
+		);
+
+		if (activeWorker) {
+			// TODO: check scope
+			return await activeWorker.fetch(request);
+		}
 		if (url.origin == new URL(request.url).origin) {
 			throw new Error(
 				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"

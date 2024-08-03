@@ -15,7 +15,9 @@ if (!(ScramjetClient.SCRAMJET in self)) {
 	const client = new ScramjetClient(self);
 	client.hook();
 
-	if (issw) {
+	if (
+		new URL(self.location.href).searchParams.get("dest") === "serviceworker"
+	) {
 		const runtime = new ScramjetServiceWorkerRuntime(client);
 		runtime.hook();
 	}

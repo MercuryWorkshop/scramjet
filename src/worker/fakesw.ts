@@ -3,18 +3,18 @@ import { type MessageW2R, type MessageR2W } from "../client/swruntime";
 export class FakeServiceWorker {
 	syncToken = 0;
 	promises: Record<number, (val?: MessageR2W) => void> = {};
+	messageChannel = new MessageChannel();
 
 	constructor(
 		public handle: MessagePort,
 		public origin: string
 	) {
-		this.handle.start();
-
-		this.handle.addEventListener("message", (event) => {
+		this.messageChannel.port1.addEventListener("message", (event) => {
 			if ("scramjet$type" in event.data) {
 				this.handleMessage(event.data);
 			}
 		});
+		this.messageChannel.port1.start();
 	}
 
 	handleMessage(data: MessageR2W) {
@@ -31,6 +31,7 @@ export class FakeServiceWorker {
 		const message: MessageW2R = {
 			scramjet$type: "fetch",
 			scramjet$token: token,
+			scramjet$port: this.messageChannel.port2,
 			scramjet$request: {
 				url: request.url,
 				body: request.body,
@@ -41,7 +42,10 @@ export class FakeServiceWorker {
 			},
 		};
 
-		this.handle.postMessage(message);
+		const transfer: any = request.body ? [request.body] : [];
+		transfer.push(this.messageChannel.port2);
+
+		this.handle.postMessage(message, transfer);
 
 		const { scramjet$response: r } = (await new Promise((resolve) => {
 			this.promises[token] = resolve;
