@@ -2,14 +2,17 @@ import { ScramjetClient } from "./client";
 import { encodeUrl } from "./shared";
 
 export class ScramjetServiceWorkerRuntime {
+	recvport: MessagePort;
 	constructor(public client: ScramjetClient) {
 		// @ts-ignore
 		self.onconnect = (cevent: MessageEvent) => {
 			const port = cevent.ports[0];
+			dbg.log("sw", "connected");
 
 			port.addEventListener("message", (event) => {
+				console.log("sw", event.data);
 				if ("scramjet$type" in event.data) {
-					handleMessage(client, event.data);
+					handleMessage.call(this, client, event.data);
 				}
 			});
 
@@ -20,12 +23,18 @@ export class ScramjetServiceWorkerRuntime {
 	hook() {}
 }
 
-function handleMessage(client: ScramjetClient, data: MessageW2R) {
-	const port = data.scramjet$port;
+function handleMessage(
+	this: ScramjetServiceWorkerRuntime,
+	client: ScramjetClient,
+	data: MessageW2R
+) {
+	if (data.scramjet$port) this.recvport = data.scramjet$port;
+	const port = this.recvport;
 	const type = data.scramjet$type;
 	const token = data.scramjet$token;
 
 	if (type === "fetch") {
+		dbg.log("ee", data);
 		const fetchhandlers = client.eventcallbacks.get(self);
 		if (!fetchhandlers) return;
 
@@ -116,4 +125,4 @@ type MessageCommon = {
 
 export type MessageR2W = MessageCommon & MessageTypeR2W;
 export type MessageW2R = MessageCommon &
-	MessageTypeW2R & { scramjet$port: MessagePort };
+	MessageTypeW2R & { scramjet$port: MessagePort | undefined };

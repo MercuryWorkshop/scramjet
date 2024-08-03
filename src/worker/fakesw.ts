@@ -4,6 +4,7 @@ export class FakeServiceWorker {
 	syncToken = 0;
 	promises: Record<number, (val?: MessageR2W) => void> = {};
 	messageChannel = new MessageChannel();
+	alreadytransfered = false;
 
 	constructor(
 		public handle: MessagePort,
@@ -31,7 +32,7 @@ export class FakeServiceWorker {
 		const message: MessageW2R = {
 			scramjet$type: "fetch",
 			scramjet$token: token,
-			scramjet$port: this.messageChannel.port2,
+			scramjet$port: !this.alreadytransfered && this.messageChannel.port2,
 			scramjet$request: {
 				url: request.url,
 				body: request.body,
@@ -43,7 +44,11 @@ export class FakeServiceWorker {
 		};
 
 		const transfer: any = request.body ? [request.body] : [];
-		transfer.push(this.messageChannel.port2);
+
+		if (!this.alreadytransfered) {
+			this.alreadytransfered = true;
+			transfer.push(this.messageChannel.port2);
+		}
 
 		this.handle.postMessage(message, transfer);
 
