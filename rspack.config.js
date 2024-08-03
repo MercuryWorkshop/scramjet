@@ -60,7 +60,6 @@ export default defineConfig({
 		path: join(__dirname, "dist"),
 		libraryTarget: "es2022",
 		iife: true,
-		clean: true,
 	},
 	plugins: [
 		new rspack.ProvidePlugin({
@@ -105,12 +104,14 @@ export default defineConfig({
 				});
 			},
 		},
-		// new RsdoctorRspackPlugin({
-		// 	supports: {
-		// 		parseBundle: true,
-		// 		banner: true,
-		// 	},
-		// }),
+		process.env.DEBUG === "true"
+			? new RsdoctorRspackPlugin({
+					supports: {
+						parseBundle: true,
+						banner: true,
+					},
+				})
+			: null,
 	],
 	target: "webworker",
 });
