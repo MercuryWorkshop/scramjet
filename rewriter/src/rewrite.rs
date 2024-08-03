@@ -54,11 +54,11 @@ impl Rewriter {
 impl<'a> Visit<'a> for Rewriter {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
 		// self.jschanges.push(JsChange::GenericChange {
-		//     span: it.span,
-		//     text: format!(
-		//         "({}(typeof {} == 'undefined' || {}, (()=>{{ try {{return arguments}} catch(_){{}} }})()))",
-		//         self.wrapfn, it.name, it.name
-		//     ),
+		// 	span: it.span,
+		// 	text: format!(
+		// 		"({}({}, (()=>{{ try {{return arguments}} catch(_){{}} }})()))",
+		// 		self.config.wrapfn, it.name
+		// 	),
 		// });
 		if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
 			self.jschanges.push(JsChange::GenericChange {
@@ -144,21 +144,21 @@ impl<'a> Visit<'a> for Rewriter {
 		// do not walk further, we don't want to rewrite the identifiers
 	}
 
-	#[cfg(feature = "debug")]
-	fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
-		// for debugging we need to know what the error was
-
-		if let Some(h) = &it.handler {
-			if let Some(name) = &h.param {
-				if let Some(name) = name.pattern.get_identifier() {
-					self.jschanges.push(JsChange::GenericChange {
-						span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
-						text: format!("$scramerr({});", name),
-					});
-				}
-			}
-		}
-	}
+	// #[cfg(feature = "debug")]
+	// fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
+	// 	// for debugging we need to know what the error was
+	//
+	// 	if let Some(h) = &it.handler {
+	// 		if let Some(name) = &h.param {
+	// 			if let Some(name) = name.pattern.get_identifier() {
+	// 				self.jschanges.push(JsChange::GenericChange {
+	// 					span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
+	// 					text: format!("$scramerr({});", name),
+	// 				});
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
 		for prop in &it.properties {
@@ -183,19 +183,19 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_object_expression(self, it);
 	}
 
-	fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
-		// if let Some(arg) = &it.argument {
-		// 	self.jschanges.push(JsChange::GenericChange {
-		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
-		// 		text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
-		// 	});
-		// 	self.jschanges.push(JsChange::GenericChange {
-		// 		span: Span::new(expression_span(arg).end, expression_span(arg).end),
-		// 		text: format!("))"),
-		// 	});
-		// }
-		walk::walk_return_statement(self, it);
-	}
+	// fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
+	// 	if let Some(arg) = &it.argument {
+	// 		self.jschanges.push(JsChange::GenericChange {
+	// 			span: Span::new(it.span.start + 6, it.span.start + 6),
+	// 			text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
+	// 		});
+	// 		self.jschanges.push(JsChange::GenericChange {
+	// 			span: Span::new(expression_span(arg).end, expression_span(arg).end),
+	// 			text: format!("))"),
+	// 		});
+	// 	}
+	// 	// walk::walk_return_statement(self, it);
+	// }
 
 	fn visit_unary_expression(&mut self, it: &oxc_ast::ast::UnaryExpression<'a>) {
 		if matches!(it.operator, UnaryOperator::Typeof) {
@@ -403,7 +403,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 				buffer.extend_from_slice(
 					format!(
-						"((t)=>$scramjet$tryset({},\"{}\",t)||{}{}t)({})",
+						"((t)=>$scramjet$tryset({},\"{}\",t)||({}{}t))({})",
 						name,
 						fmt_op(*op),
 						name,
