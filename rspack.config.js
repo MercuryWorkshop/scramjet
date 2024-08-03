@@ -60,7 +60,6 @@ export default defineConfig({
 		path: join(__dirname, "dist"),
 		libraryTarget: "es2022",
 		iife: true,
-		clean: true,
 	},
 	plugins: [
 		new rspack.ProvidePlugin({
