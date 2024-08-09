@@ -18,6 +18,7 @@ interface ScramjetConfig {
 	trysetfn: string;
 	importfn: string;
 	rewritefn: string;
+	metafn: string;
 	wasm: string;
 	shared: string;
 	worker: string;

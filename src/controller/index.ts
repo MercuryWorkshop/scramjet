@@ -15,6 +15,7 @@ export class ScramjetController {
 			trysetfn: "$scramjet$tryset",
 			importfn: "$scramjet$import",
 			rewritefn: "$scramjet$rewrite",
+			metafn: "$scramjet$meta",
 			wasm: "/scramjet.wasm.js",
 			shared: "/scramjet.shared.js",
 			worker: "/scramjet.worker.js",

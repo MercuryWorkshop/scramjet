@@ -118,6 +118,7 @@ fn dorewrite(source_text: &str) -> String {
 				wrapfn: "$wrap".to_string(),
 				importfn: "$import".to_string(),
 				rewritefn: "$rewrite".to_string(),
+				metafn: "$meta".to_string(),
 			},
 		)
 		.as_slice(),

@@ -38,6 +38,7 @@ pub struct Config {
 	pub wrapfn: String,
 	pub importfn: String,
 	pub rewritefn: String,
+	pub metafn: String,
 	pub encode: EncodeFn,
 }
 
@@ -57,6 +58,23 @@ impl Rewriter {
 				text: format!("({}({}))", self.config.wrapfn, name),
 			});
 		}
+	}
+
+	fn walk_member_expression(&mut self, it: &Expression) -> bool {
+		if match it {
+			Expression::Identifier(s) => {
+				self.rewrite_ident(&s.name, s.span);
+				true
+			}
+			Expression::StaticMemberExpression(s) => self.walk_member_expression(&s.object),
+			Expression::ComputedMemberExpression(s) => self.walk_member_expression(&s.object),
+			_ => false,
+		} {
+			return true;
+		}
+		// TODO: WE SHOULD PROBABLY WALK THE REST OF THE TREE
+		// walk::walk_expression(self, it);
+		false
 	}
 }
 
@@ -79,28 +97,7 @@ impl<'a> Visit<'a> for Rewriter {
 
 	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
 	fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
-		match &it.callee {
-			Expression::Identifier(s) => {
-				self.rewrite_ident(&s.name, s.span);
-				return;
-			}
-			Expression::StaticMemberExpression(s) => match &s.object {
-				Expression::Identifier(s) => {
-					self.rewrite_ident(&s.name, s.span);
-					return;
-				}
-				_ => {}
-			},
-			Expression::ComputedMemberExpression(s) => match &s.object {
-				Expression::Identifier(s) => {
-					self.rewrite_ident(&s.name, s.span);
-					return;
-				}
-				_ => {}
-			},
-			_ => {}
-		}
-		walk::walk_new_expression(self, it);
+		self.walk_member_expression(&it.callee);
 	}
 	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
 		self.jschanges.push(JsChange::GenericChange {
@@ -251,6 +248,15 @@ impl<'a> Visit<'a> for Rewriter {
 
 	fn visit_update_expression(&mut self, _it: &oxc_ast::ast::UpdateExpression<'a>) {
 		// then no, don't walk it, we don't care
+	}
+
+	fn visit_meta_property(&mut self, it: &oxc_ast::ast::MetaProperty<'a>) {
+		if it.meta.name == "import" {
+			self.jschanges.push(JsChange::GenericChange {
+				span: it.span,
+				text: format!("{}(\"{}\")", self.config.metafn, self.base),
+			});
+		}
 	}
 
 	fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
