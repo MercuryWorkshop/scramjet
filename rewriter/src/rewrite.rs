@@ -445,7 +445,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 				buffer.extend_from_slice(
 					format!(
-						"((t)=>$scramjet$tryset({},\"{}\",t)||{}{}t)({})",
+						"((t)=>$scramjet$tryset({},\"{}\",t)||({}{}t))({})",
 						name,
 						fmt_op(*op),
 						name,
