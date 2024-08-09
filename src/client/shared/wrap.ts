@@ -97,4 +97,15 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		argdbg(t);
 		return t;
 	};
+
+	client.Proxy("Promise.prototype.catch", {
+		apply(ctx) {
+			ctx.args[0] = new Proxy(ctx.args[0], {
+				apply(target, thisArg, argArray) {
+					console.warn("CAUGHT PROMISE REJECTION", argArray);
+					Reflect.apply(target, thisArg, argArray);
+				},
+			});
+		},
+	});
 }
