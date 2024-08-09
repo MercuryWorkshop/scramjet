@@ -55,7 +55,7 @@ export function rewriteJsNaiive(js: string | ArrayBuffer, origin?: URL) {
 	}
 
 	return `
-		with ($s(window)) {
+		with (${self.$scramjet.config.wrapfn}(globalThis)) {
 
 			${js}
 
