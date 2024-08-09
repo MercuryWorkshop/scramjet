@@ -22,7 +22,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("document.baseURI", {
 		get() {
-			return decodeUrl(self.location.href);
+			const base = self.document.querySelector("base");
+			if (base) {
+				return new URL(base.href, client.url).href;
+			}
+
+			return client.url.href;
 		},
 		set() {
 			return false;
