@@ -5,7 +5,7 @@ use oxc_ast::{
 	Visit,
 };
 use oxc_parser::Parser;
-use oxc_span::{SourceType, Span};
+use oxc_span::{Atom, SourceType, Span};
 use oxc_syntax::operator::{AssignmentOperator, UnaryOperator};
 use url::Url;
 
@@ -49,28 +49,63 @@ impl Rewriter {
 
 		format!("\"{}{}\"", self.config.prefix, urlencoded)
 	}
+
+	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
+		if UNSAFE_GLOBALS.contains(&name.to_string().as_str()) {
+			self.jschanges.push(JsChange::GenericChange {
+				span,
+				text: format!("({}({}))", self.config.wrapfn, name),
+			});
+		}
+	}
 }
 
 impl<'a> Visit<'a> for Rewriter {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
 		// self.jschanges.push(JsChange::GenericChange {
-		// 	span: it.span,
-		// 	text: format!(
-		// 		"({}({}, (()=>{{ try {{return arguments}} catch(_){{}} }})()))",
-		// 		self.config.wrapfn, it.name
-		// 	),
+		//     span: it.span,
+		//     text: format!(
+		//         "({}(typeof {} == 'undefined' || {}, (()=>{{ try {{return arguments}} catch(_){{}} }})()))",
+		//         self.wrapfn, it.name, it.name
+		//     ),
 		// });
 		if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
 			self.jschanges.push(JsChange::GenericChange {
 				span: it.span,
-				text: format!("({}({}))", self.config.wrapfn, it.name),
+				text: format!("{}({})", self.config.wrapfn, it.name),
 			});
 		}
+	}
+
+	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
+	fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
+		match &it.callee {
+			Expression::Identifier(s) => {
+				self.rewrite_ident(&s.name, s.span);
+				return;
+			}
+			Expression::StaticMemberExpression(s) => match &s.object {
+				Expression::Identifier(s) => {
+					self.rewrite_ident(&s.name, s.span);
+					return;
+				}
+				_ => {}
+			},
+			Expression::ComputedMemberExpression(s) => match &s.object {
+				Expression::Identifier(s) => {
+					self.rewrite_ident(&s.name, s.span);
+					return;
+				}
+				_ => {}
+			},
+			_ => {}
+		}
+		walk::walk_new_expression(self, it);
 	}
 	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
 		self.jschanges.push(JsChange::GenericChange {
 			span: it.span,
-			text: format!("({}(this))", self.config.wrapfn),
+			text: format!("{}(this)", self.config.wrapfn),
 		});
 	}
 
@@ -184,19 +219,19 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_object_expression(self, it);
 	}
 
-	// fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
-	// 	if let Some(arg) = &it.argument {
-	// 		self.jschanges.push(JsChange::GenericChange {
-	// 			span: Span::new(it.span.start + 6, it.span.start + 6),
-	// 			text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
-	// 		});
-	// 		self.jschanges.push(JsChange::GenericChange {
-	// 			span: Span::new(expression_span(arg).end, expression_span(arg).end),
-	// 			text: format!("))"),
-	// 		});
-	// 	}
-	// 	// walk::walk_return_statement(self, it);
-	// }
+	fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
+		// if let Some(arg) = &it.argument {
+		// 	self.jschanges.push(JsChange::GenericChange {
+		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
+		// 		text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
+		// 	});
+		// 	self.jschanges.push(JsChange::GenericChange {
+		// 		span: Span::new(expression_span(arg).end, expression_span(arg).end),
+		// 		text: format!("))"),
+		// 	});
+		// }
+		walk::walk_return_statement(self, it);
+	}
 
 	fn visit_unary_expression(&mut self, it: &oxc_ast::ast::UnaryExpression<'a>) {
 		if matches!(it.operator, UnaryOperator::Typeof) {
@@ -404,7 +439,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 				buffer.extend_from_slice(
 					format!(
-						"((t)=>$scramjet$tryset({},\"{}\",t)||({}{}t))({})",
+						"((t)=>$scramjet$tryset({},\"{}\",t)||{}{}t)({})",
 						name,
 						fmt_op(*op),
 						name,
