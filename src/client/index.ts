@@ -22,3 +22,7 @@ if (!(ScramjetClient.SCRAMJET in self)) {
 		runtime.hook();
 	}
 }
+
+if ("document" in self && document.currentScript) {
+	document.currentScript.remove();
+}

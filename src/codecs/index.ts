@@ -90,3 +90,7 @@ self.$scramjet.codecs = {
 	xor,
 	base64,
 };
+
+if ("document" in self && document.currentScript) {
+	document.currentScript.remove();
+}

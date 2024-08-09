@@ -19,7 +19,12 @@ fi
 
 time wasm-opt $WASMOPTFLAGS -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
 
-echo -n "self.WASM = '" > dist/scramjet.wasm.js
+cat <<EOF > dist/scramjet.wasm.js
+if ("document" in self && document.currentScript) {
+	document.currentScript.remove();
+}
+EOF
+echo -n "self.WASM = '" >> dist/scramjet.wasm.js
 base64 -w0 < "rewriter/out/optimized.wasm" >> dist/scramjet.wasm.js
 echo -n "';">> dist/scramjet.wasm.js
 echo "Rewriter Build Complete!"

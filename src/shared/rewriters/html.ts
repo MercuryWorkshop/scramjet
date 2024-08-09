@@ -136,7 +136,13 @@ function traverseParsedHtml(node, origin?: URL) {
 			src:
 				"data:application/javascript;base64," +
 				btoa(
-					`self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)}; self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];`
+					`
+					self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
+					self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
+					if ("document" in self && document.currentScript) {
+						document.currentScript.remove();
+					}
+					`
 				),
 			"data-scramjet": "true",
 		});

@@ -29,3 +29,7 @@ self.$scramjet.shared = {
 		rewriteWorkers,
 	},
 };
+
+if ("document" in self && document.currentScript) {
+	document.currentScript.remove();
+}
