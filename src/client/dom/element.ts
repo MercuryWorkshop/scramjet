@@ -174,4 +174,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return ctx.set(value);
 		},
 	});
+
+	client.Trap("Node.prototype.ownerDocument", {
+		get() {
+			return client.documentProxy;
+		},
+	});
 }
