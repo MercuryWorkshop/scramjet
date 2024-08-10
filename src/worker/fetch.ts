@@ -4,6 +4,8 @@ import { ParseResultType } from "parse-domain";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
+import parse from "set-cookie-parser";
+import { cookieStore } from "./cookie";
 
 const { encodeUrl, decodeUrl } = self.$scramjet.shared.url;
 const { rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } =
@@ -73,29 +75,30 @@ export async function swfetch(
 
 		headers.set("Referer", decodeUrl(request.referrer));
 
-		const cookieStore = new IDBMap(url.host, {
-			durability: "relaxed",
-			prefix: "Cookies",
-		});
+		let cookies = [...(await cookieStore.entries())];
+		console.log("cookies", cookies);
+		// if (url.protocol !== "https:") {
+		// 	cookies = cookies.filter(([_k, v]) => !v.args.includes(["Secure"]));
+		// }
+		cookies = cookies.filter(
+			([_k, v]) =>
+				v.args.domain.includes(url.hostname) ||
+				url.hostname.includes(v.args.domain)
+		);
 
-		let cookies = await cookieStore.entries();
-		if (url.protocol !== "https:") {
-			cookies = cookies.filter(([_k, v]) => !v.args.includes(["Secure"]));
-		}
+		cookies = cookies.filter(([_k, v]) => v.value !== "");
+
 		cookies = Array.from(cookies.map(([k, v]) => `${k}=${v.value}`));
+
 		if (cookies.length) {
-			headers.set("Cookie", cookies.join(";"));
-		}
-		if (url.href.includes("bulk")) {
-			console.log(url, {
-				headers: Object.entries(headers.headers),
-				bod: request.body,
-			});
+			headers.set("Cookie", cookies.join("; "));
 		}
 
 		// TODO this is wrong somehow
 		headers.set("Sec-Fetch-Mode", "navigate");
 		headers.set("Sec-Fetch-Site", "same-origin");
+
+		dbg.log(url.toString(), headers.headers);
 
 		const response: BareResponseFetch = await this.client.fetch(url, {
 			method: request.method,
@@ -200,57 +203,13 @@ async function handleResponse(
 }
 
 async function handleCookies(url: URL, maybeHeaders: string[] | string) {
-	const cookieStore = new IDBMap(url.host, {
-		durability: "relaxed",
-		prefix: "Cookies",
-	});
-
-	let headers = maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders];
+	const cookies = await cookieStore.load();
+	const headers = maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders];
 
 	for (const cookie of headers) {
-		let cookieParsed = cookie.split(";").map((x) => x.trim().split("="));
+		const parsed = parse(cookie)[0];
+		console.error("set-cookie", parsed);
 
-		let [key, value] = cookieParsed.shift();
-		if (!value) continue;
-		value = value.replace('"', "");
-
-		const hostArg = cookieParsed.find((x) => x[0] === "Domain");
-		cookieParsed = cookieParsed.filter((x) => x[0] !== "Domain");
-		let host = hostArg ? hostArg[1] : undefined;
-
-		if (url.protocol === "http:" && cookieParsed.includes(["Secure"])) continue;
-		if (
-			cookieParsed.includes(["SameSite", "None"]) &&
-			!cookieParsed.includes(["Secure"])
-		)
-			continue;
-
-		if (host && host !== url.host) {
-			if (host.startsWith(".")) host = host.slice(1);
-			const urlDomain = parseDomain(url.hostname);
-
-			if (urlDomain.type === ParseResultType.Listed) {
-				const { subDomains: domain, topLevelDomains } = urlDomain;
-				if (!host.endsWith([domain, ...topLevelDomains].join("."))) continue;
-			} else {
-				continue;
-			}
-
-			const realCookieStore = new IDBMap(host, {
-				durability: "relaxed",
-				prefix: "Cookies",
-			});
-			realCookieStore.set(key, {
-				value: value,
-				args: cookieParsed,
-				subdomain: true,
-			});
-		} else {
-			cookieStore.set(key, {
-				value: value,
-				args: cookieParsed,
-				subdomain: false,
-			});
-		}
+		cookies.push(parsed);
 	}
 }
