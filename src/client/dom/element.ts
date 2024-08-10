@@ -177,7 +177,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Node.prototype.ownerDocument", {
 		get(ctx) {
-			return self[config.rewritefn](ctx.get());
+			return client.documentProxy;
 		},
 	});
 }

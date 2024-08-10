@@ -88,8 +88,6 @@ export async function swfetch(
 		if (new URL(request.referrer).pathname != "/")
 			headers.set("Origin", new URL(request.referrer).origin);
 
-		headers.set("User-Agent", "https://accounts.google.com");
-
 		dbg.log(url.toString(), headers.headers);
 
 		const response: BareResponseFetch = await this.client.fetch(url, {
