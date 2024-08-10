@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { decodeUrl } from "../shared";
+import { config, decodeUrl } from "../shared";
 import {
 	encodeUrl,
 	rewriteCss,
@@ -176,8 +176,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	client.Trap("Node.prototype.ownerDocument", {
-		get() {
-			return client.documentProxy;
+		get(ctx) {
+			return self[config.rewritefn](ctx.get());
 		},
 	});
 }
