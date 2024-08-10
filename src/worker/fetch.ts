@@ -86,12 +86,6 @@ export async function swfetch(
 		if (cookies.length) {
 			headers.set("Cookie", cookies.join(";"));
 		}
-		if (url.href.includes("bulk")) {
-			console.log(url, {
-				headers: Object.entries(headers.headers),
-				bod: request.body,
-			});
-		}
 
 		// TODO this is wrong somehow
 		headers.set("Sec-Fetch-Mode", "navigate");
@@ -103,7 +97,7 @@ export async function swfetch(
 			credentials: "omit",
 			mode: request.mode === "cors" ? request.mode : "same-origin",
 			cache: request.cache,
-			redirect: "manual",
+			redirect: request.redirect,
 			//@ts-ignore why the fuck is this not typed mircosoft
 			duplex: "half",
 		});
