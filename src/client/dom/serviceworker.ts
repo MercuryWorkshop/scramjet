@@ -52,7 +52,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("navigator.serviceWorker.controller", {
 		get(ctx) {
-			return registration.active;
+			return registration?.active;
 		},
 	});
 
