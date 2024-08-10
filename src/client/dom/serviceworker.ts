@@ -38,6 +38,24 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
+	client.Proxy("navigator.serviceWorker.getRegistrations", {
+		apply(ctx) {
+			ctx.return(new Promise((resolve) => resolve([registration])));
+		},
+	});
+
+	client.Trap("navigator.serviceWorker.ready", {
+		get(ctx) {
+			return new Promise((resolve) => resolve(registration));
+		},
+	});
+
+	client.Trap("navigator.serviceWorker.controller", {
+		get(ctx) {
+			return registration.active;
+		},
+	});
+
 	client.Proxy("navigator.serviceWorker.register", {
 		apply(ctx) {
 			if (ctx.args[0] instanceof URL) ctx.args[0] = ctx.args[0].href;
@@ -76,6 +94,9 @@ export default function (client: ScramjetClient, self: Self) {
 						}
 						if (prop === "scope") {
 							return ctx.args[0];
+						}
+						if (prop === "unregister") {
+							return () => {};
 						}
 
 						if (prop === "addEventListener") {

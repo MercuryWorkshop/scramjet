@@ -11,6 +11,8 @@ export default function (client: ScramjetClient) {
 
 			const realwin = ctx.fn.apply(ctx.this, ctx.args);
 
+			if (!realwin) return ctx.return(realwin);
+
 			if (ScramjetClient.SCRAMJET in realwin.self) {
 				return ctx.return(realwin.self[ScramjetClient.SCRAMJET].windowProxy);
 			} else {
