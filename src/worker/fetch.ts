@@ -72,7 +72,8 @@ export async function swfetch(
 			headers.set(key, value);
 		}
 
-		headers.set("Referer", decodeUrl(request.referrer));
+		if (new URL(request.referrer).pathname != "/")
+			headers.set("Referer", decodeUrl(request.referrer));
 
 		const cookies = this.cookieStore.getCookies(url, false);
 
@@ -83,6 +84,11 @@ export async function swfetch(
 		// TODO this is wrong somehow
 		headers.set("Sec-Fetch-Mode", "navigate");
 		headers.set("Sec-Fetch-Site", "same-origin");
+
+		if (new URL(request.referrer).pathname != "/")
+			headers.set("Origin", new URL(request.referrer).origin);
+
+		headers.set("User-Agent", "https://accounts.google.com");
 
 		dbg.log(url.toString(), headers.headers);
 
