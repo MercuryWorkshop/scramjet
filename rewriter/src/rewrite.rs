@@ -98,6 +98,7 @@ impl<'a> Visit<'a> for Rewriter {
 	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
 	fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
 		self.walk_member_expression(&it.callee);
+		walk::walk_arguments(self, &it.arguments);
 	}
 	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
 		self.jschanges.push(JsChange::GenericChange {
