@@ -10,6 +10,7 @@ import type { Codec } from "./codecs";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./shared/headers";
+import { CookieStore } from "./shared/cookie";
 
 interface ScramjetConfig {
 	prefix: string;
@@ -49,6 +50,7 @@ declare global {
 					isScramjetFile: typeof isScramjetFile;
 					parseDomain: typeof parseDomain;
 				};
+				CookieStore: typeof CookieStore;
 			};
 			config: ScramjetConfig;
 			codecs: {
@@ -59,6 +61,7 @@ declare global {
 			};
 			codec: Codec;
 		};
+		COOKIE: string;
 		WASM: string;
 		ScramjetController: typeof ScramjetController;
 	}

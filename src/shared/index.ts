@@ -8,6 +8,7 @@ import { isScramjetFile } from "./rewriters/html";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./headers";
+import { CookieStore } from "./cookie";
 
 self.$scramjet.shared = {
 	util: {
@@ -28,6 +29,7 @@ self.$scramjet.shared = {
 		rewriteHeaders,
 		rewriteWorkers,
 	},
+	CookieStore,
 };
 
 if ("document" in self && document.currentScript) {

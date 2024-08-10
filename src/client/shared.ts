@@ -9,6 +9,7 @@ export const {
 		rewriteHeaders,
 		rewriteWorkers,
 	},
+	CookieStore,
 } = self.$scramjet.shared;
 
 export const config = self.$scramjet.config;

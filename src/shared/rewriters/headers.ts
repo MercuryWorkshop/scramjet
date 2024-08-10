@@ -43,11 +43,11 @@ export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
 			);
 	});
 
-	if (headers["link"]) {
-		headers["link"] = headers["link"].replace(/<(.*?)>/gi, (match) =>
-			encodeUrl(match, origin)
-		);
-	}
+	// if (headers["link"]) {
+	// 	headers["link"] = headers["link"].replace(/<(.*?)>/gi, (match) =>
+	// 		encodeUrl(match, origin)
+	// 	);
+	// }
 
 	return headers;
 }

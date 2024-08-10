@@ -4,8 +4,7 @@ import { ParseResultType } from "parse-domain";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
-import parse from "set-cookie-parser";
-import { cookieStore } from "./cookie";
+import { CookieStore } from "../shared/cookie";
 
 const { encodeUrl, decodeUrl } = self.$scramjet.shared.url;
 const { rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } =
@@ -75,23 +74,10 @@ export async function swfetch(
 
 		headers.set("Referer", decodeUrl(request.referrer));
 
-		let cookies = [...(await cookieStore.entries())];
-		console.log("cookies", cookies);
-		// if (url.protocol !== "https:") {
-		// 	cookies = cookies.filter(([_k, v]) => !v.args.includes(["Secure"]));
-		// }
-		cookies = cookies.filter(
-			([_k, v]) =>
-				v.args.domain.includes(url.hostname) ||
-				url.hostname.includes(v.args.domain)
-		);
-
-		cookies = cookies.filter(([_k, v]) => v.value !== "");
-
-		cookies = Array.from(cookies.map(([k, v]) => `${k}=${v.value}`));
+		const cookies = this.cookieStore.getCookies(url, false);
 
 		if (cookies.length) {
-			headers.set("Cookie", cookies.join("; "));
+			headers.set("Cookie", cookies);
 		}
 
 		// TODO this is wrong somehow
@@ -112,7 +98,12 @@ export async function swfetch(
 			duplex: "half",
 		});
 
-		return await handleResponse(url, request.destination, response);
+		return await handleResponse(
+			url,
+			request.destination,
+			response,
+			this.cookieStore
+		);
 	} catch (err) {
 		console.error("ERROR FROM SERVICE WORKER FETCH", err);
 		if (!["document", "iframe"].includes(request.destination))
@@ -125,12 +116,17 @@ export async function swfetch(
 async function handleResponse(
 	url: URL,
 	destination: RequestDestination,
-	response: BareResponseFetch
+	response: BareResponseFetch,
+	cookieStore: CookieStore
 ): Promise<Response> {
 	let responseBody: string | ArrayBuffer | ReadableStream;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, url);
 
-	await handleCookies(url, (responseHeaders["set-cookie"] || []) as string[]);
+	await handleCookies(
+		url,
+		cookieStore,
+		(responseHeaders["set-cookie"] || []) as string[]
+	);
 
 	for (const header in responseHeaders) {
 		// flatten everything past here
@@ -143,7 +139,7 @@ async function handleResponse(
 			case "iframe":
 			case "document":
 				if (responseHeaders["content-type"]?.startsWith("text/html")) {
-					responseBody = rewriteHtml(await response.text(), url);
+					responseBody = rewriteHtml(await response.text(), cookieStore, url);
 				} else {
 					responseBody = response.body;
 				}
@@ -202,14 +198,12 @@ async function handleResponse(
 	});
 }
 
-async function handleCookies(url: URL, maybeHeaders: string[] | string) {
-	const cookies = await cookieStore.load();
+async function handleCookies(
+	url: URL,
+	cookieStore: CookieStore,
+	maybeHeaders: string[] | string
+) {
 	const headers = maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders];
 
-	for (const cookie of headers) {
-		const parsed = parse(cookie)[0];
-		console.error("set-cookie", parsed);
-
-		cookies.push(parsed);
-	}
+	await cookieStore.setCookies(headers, url);
 }

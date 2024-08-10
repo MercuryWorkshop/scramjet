@@ -17,6 +17,8 @@ export class ScramjetServiceWorker {
 	syncPool: Record<number, (val?: any) => void> = {};
 	synctoken = 0;
 
+	cookieStore = new self.$scramjet.shared.CookieStore();
+
 	serviceWorkers: FakeServiceWorker[] = [];
 
 	constructor() {

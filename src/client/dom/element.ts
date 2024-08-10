@@ -65,7 +65,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					) {
 						value = encodeUrl(value);
 					} else if (attr === "srcdoc") {
-						value = rewriteHtml(value);
+						value = rewriteHtml(value, client.cookieStore);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value);
 					}
@@ -114,7 +114,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 						argArray[1] = encodeUrl(argArray[1]);
 					} else if (argArray[0] === "srcdoc") {
 						// TODO: this will rewrite with the wrong url in mind for iframes!!
-						argArray[1] = rewriteHtml(argArray[1]);
+						argArray[1] = rewriteHtml(argArray[1], client.cookieStore);
 					} else if (["srcset", "imagesrcset"].includes(argArray[0])) {
 						argArray[1] = rewriteSrcset(argArray[1]);
 					} else if (argArray[1] === "style") {
@@ -139,7 +139,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			} else if (this instanceof self.HTMLStyleElement) {
 				value = rewriteCss(value);
 			} else {
-				value = rewriteHtml(value);
+				value = rewriteHtml(value, client.cookieStore);
 			}
 
 			return innerHTML.set.call(this, value);

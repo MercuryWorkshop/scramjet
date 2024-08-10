@@ -1,5 +1,5 @@
 import { createLocationProxy } from "./location";
-import { decodeUrl } from "./shared";
+import { CookieStore, decodeUrl } from "./shared";
 import { createDocumentProxy, createWindowProxy } from "./window";
 
 declare global {
@@ -46,6 +46,8 @@ export class ScramjetClient {
 	windowProxy: any;
 	locationProxy: any;
 
+	cookieStore = new CookieStore();
+
 	eventcallbacks: Map<
 		any,
 		[
@@ -68,13 +70,17 @@ export class ScramjetClient {
 		global[ScramjetClient.SCRAMJET] = this;
 	}
 
+	loadcookies(cookiestr: string) {
+		this.cookieStore.load(cookiestr);
+	}
+
 	hook() {
 		// @ts-ignore
 		const context = import.meta.webpackContext(".", {
 			recursive: true,
 		});
 
-		let modules = [];
+		const modules = [];
 
 		for (const key of context.keys()) {
 			const module = context(key);

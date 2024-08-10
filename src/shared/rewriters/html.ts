@@ -5,6 +5,7 @@ import render from "dom-serializer";
 import { encodeUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
+import { CookieStore } from "../cookie";
 
 export function isScramjetFile(src: string) {
 	let bool = false;
@@ -15,19 +16,23 @@ export function isScramjetFile(src: string) {
 	return bool;
 }
 
-export function rewriteHtml(html: string, origin?: URL) {
+export function rewriteHtml(
+	html: string,
+	cookieStore: CookieStore,
+	origin?: URL
+) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
 
 	parser.write(html);
 	parser.end();
 
-	return render(traverseParsedHtml(handler.root, origin));
+	return render(traverseParsedHtml(handler.root, cookieStore, origin));
 }
 
 // i need to add the attributes in during rewriting
 
-function traverseParsedHtml(node, origin?: URL) {
+function traverseParsedHtml(node, cookieStore: CookieStore, origin?: URL) {
 	/* csp attributes */
 	for (const cspAttr of ["nonce", "integrity", "csp"]) {
 		if (hasAttrib(node, cspAttr)) {
@@ -86,7 +91,7 @@ function traverseParsedHtml(node, origin?: URL) {
 	}
 
 	if (hasAttrib(node, "srcdoc"))
-		node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, origin);
+		node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, cookieStore, origin);
 	if (hasAttrib(node, "style"))
 		node.attribs.style = rewriteCss(node.attribs.style, origin);
 
@@ -122,6 +127,8 @@ function traverseParsedHtml(node, origin?: URL) {
 	if (node.name === "head") {
 		const scripts = [];
 
+		const dump = JSON.stringify(cookieStore.dump());
+
 		scripts.push(
 			new Element("script", {
 				src: self.$scramjet.config["wasm"],
@@ -137,6 +144,7 @@ function traverseParsedHtml(node, origin?: URL) {
 				"data:application/javascript;base64," +
 				btoa(
 					`
+					self.COOKIE = ${dump};
 					self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
 					self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
 					if ("document" in self && document.currentScript) {
@@ -164,6 +172,7 @@ function traverseParsedHtml(node, origin?: URL) {
 		for (const childNode in node.childNodes) {
 			node.childNodes[childNode] = traverseParsedHtml(
 				node.childNodes[childNode],
+				cookieStore,
 				origin
 			);
 		}
