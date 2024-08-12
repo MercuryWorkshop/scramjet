@@ -52,7 +52,7 @@ export function decodeUrl(url: string | URL) {
 	}
 
 	if (
-		URL.canParse(url) &&
+		canParseUrl(url) &&
 		new URL(url).pathname.startsWith(self.$scramjet.config.prefix + "worker")
 	) {
 		return new URL(new URL(url).searchParams.get("origin")).href;
