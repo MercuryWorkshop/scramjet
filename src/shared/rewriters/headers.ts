@@ -25,8 +25,7 @@ const cspHeaders = [
 const urlHeaders = ["location", "content-location", "referer"];
 
 function rewriteLinkHeader(link: string, origin?: URL) {
-	return link
-		.replace(/<(.*)>/gi, (match) => encodeUrl(match, origin));
+	return link.replace(/<(.*)>/gi, (match) => encodeUrl(match, origin));
 }
 
 export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
@@ -49,7 +48,7 @@ export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
 	});
 
 	if (typeof headers["link"] === "string") {
-		headers["link"] = rewriteLinkHeader(headers["link"], origin)
+		headers["link"] = rewriteLinkHeader(headers["link"], origin);
 	} else if (Array.isArray(headers["link"])) {
 		headers["link"] = headers["link"].map((link) =>
 			rewriteLinkHeader(link, origin)

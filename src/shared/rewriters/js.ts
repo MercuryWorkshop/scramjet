@@ -20,7 +20,8 @@ Error.stackTraceLimit = 50;
 
 global.rws = rewriteJs;
 export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
-	if ("window" in globalThis) origin ??= new URL(decodeUrl(location.href));
+	if ("window" in globalThis)
+		origin = origin ?? new URL(decodeUrl(location.href));
 
 	const before = performance.now();
 	if (typeof js === "string") {
@@ -48,7 +49,8 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 //
 // if you can ensure all the preconditions are met this is faster than full rewrites
 export function rewriteJsNaiive(js: string | ArrayBuffer, origin?: URL) {
-	if ("window" in globalThis) origin ??= new URL(decodeUrl(location.href));
+	if ("window" in globalThis)
+		origin = origin ?? new URL(decodeUrl(location.href));
 
 	if (typeof js !== "string") {
 		js = new TextDecoder().decode(js);
