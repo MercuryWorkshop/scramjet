@@ -1,12 +1,10 @@
 import { rewriteJs } from "./js";
 
-function canParseUrl(url: string, origin?: URL) {
+function tryCanParseURL(url: string, origin?: string | URL): URL | null {
 	try {
-		new URL(url, origin);
-
-		return true;
+		return new URL(url, origin);
 	} catch {
-		return false;
+		return null;
 	}
 }
 
@@ -36,7 +34,7 @@ export function encodeUrl(url: string | URL, origin?: URL) {
 		return "javascript:" + rewriteJs(url.slice("javascript:".length), origin);
 	} else if (/^(#|mailto|about|data|blob)/.test(url)) {
 		return url;
-	} else if (canParseUrl(url, origin)) {
+	} else if (tryCanParseURL(url, origin)) {
 		return (
 			location.origin +
 			self.$scramjet.config.prefix +
@@ -52,15 +50,16 @@ export function decodeUrl(url: string | URL) {
 	}
 
 	if (
-		URL.canParse(url) &&
-		new URL(url).pathname.startsWith(self.$scramjet.config.prefix + "worker")
+		tryCanParseURL(url)?.pathname.startsWith(
+			self.$scramjet.config.prefix + "worker"
+		)
 	) {
 		return new URL(new URL(url).searchParams.get("origin")).href;
 	}
 
 	if (/^(#|about|data|mailto|javascript)/.test(url)) {
 		return url;
-	} else if (canParseUrl(url)) {
+	} else if (tryCanParseURL(url)) {
 		return self.$scramjet.codec.decode(
 			url.slice((location.origin + self.$scramjet.config.prefix).length)
 		);

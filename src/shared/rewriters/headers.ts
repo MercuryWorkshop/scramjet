@@ -24,6 +24,10 @@ const cspHeaders = [
 
 const urlHeaders = ["location", "content-location", "referer"];
 
+function rewriteLinkHeader(link: string, origin?: URL) {
+	return link.replace(/<(.*)>/gi, (match) => encodeUrl(match, origin));
+}
+
 export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
 	const headers = {};
 
@@ -43,11 +47,13 @@ export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
 			);
 	});
 
-	// if (headers["link"]) {
-	// 	headers["link"] = headers["link"].replace(/<(.*?)>/gi, (match) =>
-	// 		encodeUrl(match, origin)
-	// 	);
-	// }
+	if (typeof headers["link"] === "string") {
+		headers["link"] = rewriteLinkHeader(headers["link"], origin);
+	} else if (Array.isArray(headers["link"])) {
+		headers["link"] = headers["link"].map((link) =>
+			rewriteLinkHeader(link, origin)
+		);
+	}
 
 	return headers;
 }
