@@ -1,7 +1,7 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
 import IDBMap from "@webreflection/idb-map";
 import { ParseResultType } from "parse-domain";
-import { ScramjetServiceWorker } from ".";
+import { MessageW2C, ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
 import { CookieStore } from "../shared/cookie";
@@ -13,22 +13,22 @@ const { parseDomain, ScramjetHeaders } = self.$scramjet.shared.util;
 
 export async function swfetch(
 	this: ScramjetServiceWorker,
-	{ request }: FetchEvent
+	{ request, clientId }: FetchEvent
 ) {
 	if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
 		const dataurl = new URL(request.url).searchParams.get("data");
 		const res = await fetch(dataurl);
 		const ab = await res.arrayBuffer();
 
-		const ismodule = new URL(request.url).searchParams.get("type") === "module";
-
 		const origin = new URL(
 			decodeURIComponent(new URL(request.url).searchParams.get("origin"))
 		);
 
-		if (ismodule) origin.searchParams.set("type", "module");
-
-		const rewritten = rewriteWorkers(ab, new URL(origin));
+		const rewritten = rewriteWorkers(
+			ab,
+			new URL(request.url).searchParams.get("type"),
+			new URL(origin)
+		);
 
 		return new Response(rewritten, {
 			headers: {
@@ -46,7 +46,16 @@ export async function swfetch(
 	}
 
 	try {
-		const url = new URL(decodeUrl(request.url));
+		const requesturl = new URL(request.url);
+		let workertype = "";
+		if (requesturl.searchParams.has("type")) {
+			workertype = requesturl.searchParams.get("type") as string;
+			requesturl.searchParams.delete("type");
+		}
+		if (requesturl.searchParams.has("dest")) {
+			requesturl.searchParams.delete("dest");
+		}
+		const url = new URL(decodeUrl(requesturl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
 			(w) => w.origin === url.origin
@@ -72,7 +81,10 @@ export async function swfetch(
 			headers.set(key, value);
 		}
 
-		if (new URL(request.referrer).pathname != "/")
+		if (
+			URL.canParse(request.referrer) &&
+			new URL(request.referrer).pathname != "/"
+		)
 			headers.set("Referer", decodeUrl(request.referrer));
 
 		const cookies = this.cookieStore.getCookies(url, false);
@@ -82,13 +94,15 @@ export async function swfetch(
 		}
 
 		// TODO this is wrong somehow
-		headers.set("Sec-Fetch-Mode", "navigate");
+		headers.set("Sec-Fetch-Mode", "cors");
 		headers.set("Sec-Fetch-Site", "same-origin");
+		headers.set("Sec-Fetch-Dest", "empty");
 
-		if (new URL(request.referrer).pathname != "/")
+		if (
+			URL.canParse(request.referrer) &&
+			new URL(request.referrer).pathname != "/"
+		)
 			headers.set("Origin", new URL(request.referrer).origin);
-
-		dbg.log(url.toString(), headers.headers);
 
 		const response: BareResponseFetch = await this.client.fetch(url, {
 			method: request.method,
@@ -104,9 +118,11 @@ export async function swfetch(
 
 		return await handleResponse(
 			url,
+			workertype,
 			request.destination,
 			response,
-			this.cookieStore
+			this.cookieStore,
+			await self.clients.get(clientId)
 		);
 	} catch (err) {
 		console.error("ERROR FROM SERVICE WORKER FETCH", err);
@@ -119,17 +135,27 @@ export async function swfetch(
 
 async function handleResponse(
 	url: URL,
+	workertype: string,
 	destination: RequestDestination,
 	response: BareResponseFetch,
-	cookieStore: CookieStore
+	cookieStore: CookieStore,
+	client: Client
 ): Promise<Response> {
 	let responseBody: string | ArrayBuffer | ReadableStream;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, url);
 
-	await handleCookies(
-		url,
-		cookieStore,
-		(responseHeaders["set-cookie"] || []) as string[]
+	let maybeHeaders = responseHeaders["set-cookie"] || [];
+	for (const cookie in maybeHeaders) {
+		client.postMessage({
+			scramjet$type: "cookie",
+			cookie,
+			url: url.href,
+		} as MessageW2C);
+	}
+
+	await cookieStore.setCookies(
+		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
+		url
 	);
 
 	for (const header in responseHeaders) {
@@ -158,7 +184,11 @@ async function handleResponse(
 				break;
 			case "sharedworker":
 			case "worker":
-				responseBody = rewriteWorkers(await response.arrayBuffer(), url);
+				responseBody = rewriteWorkers(
+					await response.arrayBuffer(),
+					workertype,
+					url
+				);
 				break;
 			default:
 				responseBody = response.body;
@@ -200,14 +230,4 @@ async function handleResponse(
 		status: response.status,
 		statusText: response.statusText,
 	});
-}
-
-async function handleCookies(
-	url: URL,
-	cookieStore: CookieStore,
-	maybeHeaders: string[] | string
-) {
-	const headers = maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders];
-
-	await cookieStore.setCookies(headers, url);
 }
