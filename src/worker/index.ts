@@ -31,12 +31,16 @@ export class ScramjetServiceWorker {
 
 			if (data.scramjet$type === "registerServiceWorker") {
 				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
-
 				return;
 			}
 
-			const resolve = this.syncPool[data.scramjet$token];
-			delete this.syncPool[data.scramjet$token];
+			if (data.scramjet$type === "cookie") {
+				this.cookieStore.setCookies([data.cookie], new URL(data.url));
+				return;
+			}
+
+			// const resolve = this.syncPool[data.scramjet$token];
+			// delete this.syncPool[data.scramjet$token];
 		});
 	}
 
@@ -119,13 +123,19 @@ type RegisterServiceWorkerMessage = {
 	origin: string;
 };
 
+type CookieMessage = {
+	scramjet$type: "cookie";
+	cookie: string;
+	url: string;
+};
+
 type MessageCommon = {
 	scramjet$type: string;
 	scramjet$token: number;
 };
 
-type MessageTypeC2W = RegisterServiceWorkerMessage;
-type MessageTypeW2C = never;
+type MessageTypeC2W = RegisterServiceWorkerMessage | CookieMessage;
+type MessageTypeW2C = CookieMessage;
 
 // c2w: client to (service) worker
 export type MessageC2W = MessageCommon & MessageTypeC2W;

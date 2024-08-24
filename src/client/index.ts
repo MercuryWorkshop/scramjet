@@ -16,8 +16,7 @@ dbg.log("scrammin");
 if (!(ScramjetClient.SCRAMJET in self)) {
 	const client = new ScramjetClient(self);
 
-	client.loadcookies(self.COOKIE);
-	delete self.COOKIE;
+	if (self.COOKIE) client.loadcookies(self.COOKIE);
 
 	client.hook();
 
