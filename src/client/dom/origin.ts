@@ -13,7 +13,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("document.URL", {
 		get() {
-			return client.url;
+			return client.url.href;
 		},
 		set() {
 			return false;
