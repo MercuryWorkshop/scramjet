@@ -177,7 +177,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Node.prototype.ownerDocument", {
 		get(ctx) {
-			return client.documentProxy;
+			let doc = ctx.get() as Document | null;
+			if (!doc) return null;
+
+			let scram: ScramjetClient = doc[ScramjetClient.SCRAMJET];
+			if (!scram) return doc; // ??
+
+			return scram.documentProxy;
 		},
 	});
 }
