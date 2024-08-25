@@ -165,7 +165,12 @@ async function handleResponse(
 			case "iframe":
 			case "document":
 				if (responseHeaders["content-type"]?.startsWith("text/html")) {
-					responseBody = rewriteHtml(await response.text(), cookieStore, url);
+					responseBody = rewriteHtml(
+						await response.text(),
+						cookieStore,
+						url,
+						true
+					);
 				} else {
 					responseBody = response.body;
 				}

@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { config, decodeUrl } from "../shared";
+import { config, decodeUrl, htmlRules } from "../shared";
 import {
 	encodeUrl,
 	rewriteCss,
@@ -48,16 +48,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 						return decodeUrl(descriptor.get.call(this));
 					}
 
-					if (this.$origattrs[attr]) {
-						return this.$origattrs[attr];
-					}
-
 					return descriptor.get.call(this);
 				},
 
 				set(value) {
-					this.$origattrs[attr] = value;
-
 					if (["nonce", "integrity", "csp"].includes(attr)) {
 						return;
 					} else if (
@@ -65,7 +59,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					) {
 						value = encodeUrl(value);
 					} else if (attr === "srcdoc") {
-						value = rewriteHtml(value, client.cookieStore);
+						value = rewriteHtml(value, client.cookieStore, undefined, true);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value);
 					}
@@ -76,56 +70,35 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	}
 
-	self.Element.prototype.$origattrs = {};
+	client.Proxy("Element.prototype.setAttribute", {
+		apply(ctx) {
+			const [name, value] = ctx.args;
 
-	self.Element.prototype.getAttribute = new Proxy(
-		self.Element.prototype.getAttribute,
-		{
-			apply(target, thisArg, argArray) {
-				if (
-					attrs.includes(argArray[0]) &&
-					thisArg.hasAttribute(`data-${argArray[0]}`)
-				) {
-					return thisArg.getAttribute(`data-${argArray[0]}`);
-				}
+			const rule = htmlRules.find((rule) => {
+				let r = rule[name];
+				if (!r) return false;
+				if (r === "*") return true;
+				if (typeof r === "function") return false; // this can't happen but ts
 
-				if (attrs.includes(argArray[0]) && thisArg.$origattrs[argArray[0]]) {
-					return thisArg.$origattrs[argArray[0]];
-				}
+				return r.includes(ctx.this.tagName.toLowerCase());
+			});
 
-				return Reflect.apply(target, thisArg, argArray);
-			},
-		}
-	);
+			if (rule) {
+				ctx.args[1] = rule.fn(value, client.url, client.cookieStore);
+				ctx.fn.call(ctx.this, `data-scramjet-${ctx.args[0]}`, value);
+			}
+		},
+	});
 
-	self.Element.prototype.setAttribute = new Proxy(
-		self.Element.prototype.setAttribute,
-		{
-			apply(target, thisArg, argArray) {
-				if (attrs.includes(argArray[0])) {
-					thisArg.$origattrs[argArray[0]] = argArray[1];
-					if (["nonce", "integrity", "csp"].includes(argArray[0])) {
-						return;
-					} else if (
-						["src", "data", "href", "action", "formaction"].includes(
-							argArray[0]
-						)
-					) {
-						argArray[1] = encodeUrl(argArray[1]);
-					} else if (argArray[0] === "srcdoc") {
-						// TODO: this will rewrite with the wrong url in mind for iframes!!
-						argArray[1] = rewriteHtml(argArray[1], client.cookieStore);
-					} else if (["srcset", "imagesrcset"].includes(argArray[0])) {
-						argArray[1] = rewriteSrcset(argArray[1]);
-					} else if (argArray[1] === "style") {
-						argArray[1] = rewriteCss(argArray[1]);
-					}
-				}
+	client.Proxy("Element.prototype.getAttribute", {
+		apply(ctx) {
+			const [name] = ctx.args;
 
-				return Reflect.apply(target, thisArg, argArray);
-			},
-		}
-	);
+			if (ctx.fn.call(ctx.this, `data-scramjet-${name}`)) {
+				ctx.return(ctx.fn.call(ctx.this, `data-scramjet-${name}`));
+			}
+		},
+	});
 
 	const innerHTML = Object.getOwnPropertyDescriptor(
 		self.Element.prototype,

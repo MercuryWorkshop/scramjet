@@ -1,116 +1,178 @@
 import { ElementType, Parser } from "htmlparser2";
-import { DomHandler, Element, Text } from "domhandler";
-import { hasAttrib } from "domutils";
+import { ChildNode, DomHandler, Element, Node, Text } from "domhandler";
 import render from "dom-serializer";
 import { encodeUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
 
-export function isScramjetFile(src: string) {
-	let bool = false;
-	["wasm", "codecs", "client", "shared", "worker"].forEach((file) => {
-		if (src === self.$scramjet.config[file]) bool = true;
-	});
-
-	return bool;
-}
-
 export function rewriteHtml(
 	html: string,
 	cookieStore: CookieStore,
-	origin?: URL
+	origin?: URL,
+	fromTop: boolean = false
 ) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
 
 	parser.write(html);
 	parser.end();
+	traverseParsedHtml(handler.root, cookieStore, origin);
 
-	return render(traverseParsedHtml(handler.root, cookieStore, origin));
+	function findhead(node) {
+		if (node.type === ElementType.Tag && node.name === "head") {
+			return node as Element;
+		} else if (node.childNodes) {
+			for (const child of node.childNodes) {
+				const head = findhead(child);
+				if (head) return head;
+			}
+		}
+		return null;
+	}
+
+	if (fromTop) {
+		let head = findhead(handler.root);
+		if (!head) {
+			head = new Element("head", {}, []);
+			handler.root.children.unshift(head);
+		}
+
+		const dump = JSON.stringify(cookieStore.dump());
+		const injected = `
+			self.COOKIE = ${dump};
+			self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
+			self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
+			if ("document" in self && document.currentScript) {
+				document.currentScript.remove();
+			}
+		`;
+
+		head.children.unshift(
+			new Element("script", {
+				src: self.$scramjet.config["wasm"],
+			}),
+			new Element("script", {
+				src: self.$scramjet.config["codecs"],
+			}),
+			new Element("script", {
+				src: "data:application/javascript;base64," + btoa(injected),
+			}),
+			new Element("script", {
+				src: self.$scramjet.config["shared"],
+			}),
+			new Element("script", {
+				src: self.$scramjet.config["client"],
+			})
+		);
+	}
+
+	return render(handler.root);
 }
+
+export const htmlRules: {
+	[key: string]: "*" | string[] | Function;
+	fn: (
+		value: string,
+		origin: URL | null,
+		cookieStore: CookieStore
+	) => string | null;
+}[] = [
+	{
+		fn: (value: string, origin: URL) => {
+			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+
+			console.log(value, origin);
+			return encodeUrl(value, origin);
+		},
+
+		// url rewrites
+		src: [
+			"embed",
+			"script",
+			"img",
+			"iframe",
+			"source",
+			"video",
+			"audio",
+			"input",
+			"track",
+		],
+		href: ["a", "link", "base", "area"],
+		data: ["object"],
+		action: ["form"],
+		formaction: ["button", "input", "textarea", "submit"],
+		poster: ["video"],
+	},
+	{
+		fn: () => null,
+
+		// csp stuff that must be deleted
+		nonce: "*",
+		integrity: ["script", "link"],
+		csp: ["iframe"],
+	},
+	{
+		fn: (value: string, origin?: URL) => rewriteSrcset(value, origin),
+
+		// srcset
+		srcset: ["img", "source"],
+		imagesrcset: ["link"],
+	},
+	{
+		fn: (value: string, origin: URL, cookieStore: CookieStore) =>
+			rewriteHtml(value, cookieStore, origin, true),
+
+		// srcdoc
+		srcdoc: ["iframe"],
+	},
+	{
+		fn: (value: string, origin?: URL) => rewriteCss(value, origin),
+		style: "*",
+	},
+];
 
 // i need to add the attributes in during rewriting
 
-function traverseParsedHtml(node, cookieStore: CookieStore, origin?: URL) {
-	/* csp attributes */
-	for (const cspAttr of ["nonce", "integrity", "csp"]) {
-		if (hasAttrib(node, cspAttr)) {
-			node.attribs[`data-${cspAttr}`] = node.attribs[cspAttr];
-			delete node.attribs[cspAttr];
+function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
+	if (node.attribs)
+		for (const rule of htmlRules) {
+			for (const attr in rule) {
+				const sel = rule[attr];
+				if (typeof sel === "function") continue;
+
+				if (sel === "*" || sel.includes(node.name)) {
+					if (node.attribs[attr] !== undefined) {
+						const value = node.attribs[attr];
+						let v = rule.fn(value, origin, cookieStore);
+
+						if (v === null) delete node.attribs[attr];
+						else {
+							node.attribs[attr] = v;
+							node.attribs[`data-scramjet-${attr}`] = value;
+						}
+					}
+				}
+			}
 		}
-	}
-
-	/* url attributes */
-	for (const urlAttr of ["src", "href", "action", "formaction", "poster"]) {
-		if (
-			hasAttrib(node, urlAttr) &&
-			!isScramjetFile(node.attribs[urlAttr]) &&
-			[
-				"iframe",
-				"embed",
-				"script",
-				"a",
-				"img",
-				"link",
-				"object",
-				"form",
-				"media",
-				"source",
-				"video",
-			].includes(node.name)
-		) {
-			if (["_parent", "_top", "_unfencedTop"].includes(node.attribs["target"]))
-				node.attribs["target"] = "_self";
-			const value = node.attribs[urlAttr];
-			node.attribs[`data-${urlAttr}`] = value;
-			node.attribs[urlAttr] = encodeUrl(value, origin);
-		}
-	}
-
-	/* other */
-	for (const srcsetAttr of ["srcset", "imagesrcset"]) {
-		if (hasAttrib(node, srcsetAttr)) {
-			const value = node.attribs[srcsetAttr];
-			node.attribs[`data-${srcsetAttr}`] = value;
-			node.attribs[srcsetAttr] = rewriteSrcset(value, origin);
-		}
-	}
-
-	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
-		const content = node.attribs.content;
-
-		const regex =
-			/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/;
-
-		if (regex.test(content)) {
-			const url = content.match(regex)[0];
-
-			node.attribs.content = content.replace(url, encodeUrl(url, origin));
-		}
-	}
-
-	if (hasAttrib(node, "srcdoc"))
-		node.attribs.srcdoc = rewriteHtml(node.attribs.srcdoc, cookieStore, origin);
-	if (hasAttrib(node, "style"))
-		node.attribs.style = rewriteCss(node.attribs.style, origin);
 
 	if (node.name === "style" && node.children[0] !== undefined)
 		node.children[0].data = rewriteCss(node.children[0].data, origin);
+
 	if (
 		node.name === "script" &&
 		/(application|text)\/javascript|module|importmap|undefined/.test(
 			node.attribs.type
 		) &&
-		node.children[0] !== undefined &&
-		!node.attribs["data-scramjet"]
+		node.children[0] !== undefined
 	) {
 		let js = node.children[0].data;
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
 		node.children[0].data = rewriteJs(js, origin);
 	}
-	if (node.name === "meta" && hasAttrib(node, "http-equiv")) {
+
+	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {
 		if (node.attribs["http-equiv"] === "content-security-policy") {
 			node = {};
 		} else if (
@@ -122,50 +184,6 @@ function traverseParsedHtml(node, cookieStore: CookieStore, origin?: URL) {
 				contentArray[1] = encodeUrl(contentArray[1].trim(), origin);
 			node.attribs.content = contentArray.join("url=");
 		}
-	}
-
-	if (node.name === "head") {
-		const scripts = [];
-
-		const dump = JSON.stringify(cookieStore.dump());
-
-		scripts.push(
-			new Element("script", {
-				src: self.$scramjet.config["wasm"],
-				"data-scramjet": "true",
-			})
-		);
-		const codecs = new Element("script", {
-			src: self.$scramjet.config["codecs"],
-			"data-scramjet": "true",
-		});
-		const config = new Element("script", {
-			src:
-				"data:application/javascript;base64," +
-				btoa(
-					`
-					self.COOKIE = ${dump};
-					self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
-					self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
-					if ("document" in self && document.currentScript) {
-						document.currentScript.remove();
-					}
-					`
-				),
-			"data-scramjet": "true",
-		});
-		const shared = new Element("script", {
-			src: self.$scramjet.config["shared"],
-			"data-scramjet": "true",
-		});
-		const client = new Element("script", {
-			src: self.$scramjet.config["client"],
-			"data-scramjet": "true",
-		});
-
-		scripts.push(codecs, config, shared, client);
-
-		node.children.unshift(...scripts);
 	}
 
 	if (node.childNodes) {

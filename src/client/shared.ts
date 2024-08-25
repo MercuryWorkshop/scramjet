@@ -1,5 +1,5 @@
 export const {
-	util: { isScramjetFile, BareClient },
+	util: { BareClient },
 	url: { encodeUrl, decodeUrl },
 	rewrite: {
 		rewriteCss,
@@ -8,6 +8,7 @@ export const {
 		rewriteJs,
 		rewriteHeaders,
 		rewriteWorkers,
+		htmlRules,
 	},
 	CookieStore,
 } = self.$scramjet.shared;

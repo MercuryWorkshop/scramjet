@@ -1,16 +1,19 @@
 import { ScramjetController } from "./bootsrapper/index";
 import { encodeUrl, decodeUrl } from "./shared/rewriters/url";
 import { rewriteCss } from "./shared/rewriters/css";
-import { rewriteHtml, rewriteSrcset } from "./shared/rewriters/html";
+import { htmlRules, rewriteHtml, rewriteSrcset } from "./shared/rewriters/html";
 import { rewriteJs } from "./shared/rewriters/js";
 import { rewriteHeaders } from "./shared/rewriters/headers";
 import { rewriteWorkers } from "./shared/rewriters/worker";
-import { isScramjetFile } from "./shared/rewriters/html";
 import type { Codec } from "./codecs";
 import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./shared/headers";
 import { CookieStore } from "./shared/cookie";
+
+type ScramjetFlags = {
+	serviceworkers: boolean;
+};
 
 interface ScramjetConfig {
 	prefix: string;
@@ -26,6 +29,7 @@ interface ScramjetConfig {
 	thread: string;
 	client: string;
 	codecs: string;
+	flags: ScramjetFlags;
 }
 
 declare global {
@@ -43,11 +47,11 @@ declare global {
 					rewriteJs: typeof rewriteJs;
 					rewriteHeaders: typeof rewriteHeaders;
 					rewriteWorkers: typeof rewriteWorkers;
+					htmlRules: typeof htmlRules;
 				};
 				util: {
 					BareClient: typeof BareClient;
 					ScramjetHeaders: typeof ScramjetHeaders;
-					isScramjetFile: typeof isScramjetFile;
 					parseDomain: typeof parseDomain;
 				};
 				CookieStore: typeof CookieStore;

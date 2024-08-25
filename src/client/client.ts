@@ -1,6 +1,7 @@
+import { createDocumentProxy } from "./document";
+import { createGlobalProxy } from "./global";
 import { createLocationProxy } from "./location";
 import { CookieStore, decodeUrl } from "./shared";
-import { createDocumentProxy, createGlobalProxy } from "./window";
 
 declare global {
 	interface Window {
