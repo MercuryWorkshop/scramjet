@@ -17,11 +17,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 		set(ctx, value: string) {
 			client.cookieStore.setCookies([value], client.url);
 
-			client.serviceWorker.controller!.postMessage({
-				scramjet$type: "cookie",
-				cookie: value,
-				url: client.url.href,
-			});
+			if (client.serviceWorker.controller) {
+				client.serviceWorker.controller!.postMessage({
+					scramjet$type: "cookie",
+					cookie: value,
+					url: client.url.href,
+				});
+			}
 		},
 	});
 
