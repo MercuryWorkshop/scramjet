@@ -33,6 +33,7 @@ export async function swfetch(
 		});
 	}
 
+	const client = await self.clients.get(clientId);
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {
@@ -78,10 +79,14 @@ export async function swfetch(
 		}
 
 		if (
-			URL.canParse(request.referrer) &&
-			new URL(request.referrer).pathname != "/"
-		)
-			headers.set("Referer", decodeUrl(request.referrer));
+			client &&
+			new URL(client.url).pathname.startsWith(self.$scramjet.config.prefix)
+		) {
+			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
+			let url = new URL(decodeUrl(client.url));
+			headers.set("Referer", url.toString());
+			headers.set("Origin", url.origin);
+		}
 
 		const cookies = this.cookieStore.getCookies(url, false);
 
@@ -90,15 +95,9 @@ export async function swfetch(
 		}
 
 		// TODO this is wrong somehow
-		headers.set("Sec-Fetch-Mode", "cors");
-		headers.set("Sec-Fetch-Site", "same-origin");
-		headers.set("Sec-Fetch-Dest", "empty");
-
-		if (
-			URL.canParse(request.referrer) &&
-			new URL(request.referrer).pathname != "/"
-		)
-			headers.set("Origin", new URL(request.referrer).origin);
+		// headers.set("Sec-Fetch-Mode", "cors");
+		// headers.set("Sec-Fetch-Site", "same-origin");
+		// headers.set("Sec-Fetch-Dest", "empty");
 
 		const response: BareResponseFetch = await this.client.fetch(url, {
 			method: request.method,
@@ -118,7 +117,7 @@ export async function swfetch(
 			request.destination,
 			response,
 			this.cookieStore,
-			await self.clients.get(clientId)
+			client
 		);
 	} catch (err) {
 		console.error("ERROR FROM SERVICE WORKER FETCH", err);
