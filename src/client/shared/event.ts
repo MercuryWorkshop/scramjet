@@ -15,6 +15,17 @@ export default function (client: ScramjetClient, self: Self) {
 
 				return true;
 			},
+			ports() {
+				// don't know why i have to do this?
+				return this.ports;
+			},
+			source() {
+				let scram: ScramjetClient = this.source[ScramjetClient.SCRAMJET];
+
+				if (scram) return scram.windowProxy;
+
+				return this.source;
+			},
 			origin() {
 				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
 					return this.data.$scramjet$origin;

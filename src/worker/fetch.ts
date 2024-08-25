@@ -24,11 +24,7 @@ export async function swfetch(
 			decodeURIComponent(new URL(request.url).searchParams.get("origin"))
 		);
 
-		const rewritten = rewriteWorkers(
-			ab,
-			new URL(request.url).searchParams.get("type"),
-			new URL(origin)
-		);
+		const rewritten = rewriteWorkers(ab, new URL(origin));
 
 		return new Response(rewritten, {
 			headers: {
@@ -184,11 +180,7 @@ async function handleResponse(
 				break;
 			case "sharedworker":
 			case "worker":
-				responseBody = rewriteWorkers(
-					await response.arrayBuffer(),
-					workertype,
-					url
-				);
+				responseBody = rewriteWorkers(await response.arrayBuffer(), url);
 				break;
 			default:
 				responseBody = response.body;
