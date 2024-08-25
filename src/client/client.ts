@@ -47,6 +47,9 @@ export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
 
+	nativeDescriptors: Record<string, PropertyDescriptor> = {};
+	natives: Record<string, any> = {};
+
 	cookieStore = new CookieStore();
 
 	eventcallbacks: Map<
@@ -76,7 +79,7 @@ export class ScramjetClient {
 	}
 
 	hook() {
-		this.serviceWorker = navigator.serviceWorker;
+		this.serviceWorker = this.global.navigator.serviceWorker;
 		// @ts-ignore
 		const context = import.meta.webpackContext(".", {
 			recursive: true,
@@ -120,6 +123,9 @@ export class ScramjetClient {
 		const split = name.split(".");
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
+		const original = Reflect.get(target, prop);
+		this.natives[prop] = original;
+
 		this.RawProxy(target, prop, handler);
 	}
 	RawProxy(target: any, prop: string, handler: Proxy) {
@@ -186,7 +192,7 @@ export class ScramjetClient {
 
 		target[prop] = new Proxy(value, h);
 	}
-	Trap<T>(name: string | string[], descriptor: Trap<T>) {
+	Trap<T>(name: string | string[], descriptor: Trap<T>): PropertyDescriptor {
 		if (Array.isArray(name)) {
 			for (const n of name) {
 				this.Trap(n, descriptor);
@@ -199,9 +205,16 @@ export class ScramjetClient {
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
 
-		this.RawTrap(target, prop, descriptor);
+		const original = Object.getOwnPropertyDescriptor(target, prop);
+		this.nativeDescriptors[name] = original;
+
+		return this.RawTrap(target, prop, descriptor);
 	}
-	RawTrap<T>(target: any, prop: string, descriptor: Trap<T>) {
+	RawTrap<T>(
+		target: any,
+		prop: string,
+		descriptor: Trap<T>
+	): PropertyDescriptor {
 		if (!target) return;
 		if (!prop) return;
 		if (!Reflect.has(target, prop)) return;
@@ -250,6 +263,8 @@ export class ScramjetClient {
 			desc.configurable = oldDescriptor.configurable;
 
 		Object.defineProperty(target, prop, desc);
+
+		return oldDescriptor;
 	}
 
 	get url(): URL {

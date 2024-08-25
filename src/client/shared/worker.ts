@@ -8,7 +8,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			if (args[0].startsWith("blob:") || args[0].startsWith("data:")) {
 				if (args[0].startsWith("blob:")) {
 					args[0] =
-						"data:application/javascript;base64," + btoa(syncfetch(args[0]));
+						"data:application/javascript;base64," +
+						btoa(syncfetch(client, args[0]));
 				}
 
 				args[0] = "/scramjet/worker?data=" + args[0];
@@ -30,9 +31,12 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	});
 }
 
-function syncfetch(url: string) {
+function syncfetch(client: ScramjetClient, url: string) {
 	const xhr = new XMLHttpRequest();
-	xhr.open("GET", url, false);
+
+	const realOpen = client.natives["XMLHttpRequest.prototype.open"].bind(xhr);
+
+	realOpen("GET", url, false);
 	xhr.send();
 
 	return xhr.responseText;

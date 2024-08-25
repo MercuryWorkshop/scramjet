@@ -1,4 +1,3 @@
-import { Request } from "../snapshot";
 import { ScramjetClient } from "./client";
 import { decodeUrl, encodeUrl } from "./shared";
 
@@ -71,6 +70,8 @@ function handleMessage(
 			if (handler.event !== "fetch") continue;
 
 			const request = data.scramjet$request;
+
+			const Request = client.natives["Request"];
 			const fakeRequest = new Request(decodeUrl(request.url), {
 				body: request.body,
 				headers: new Headers(request.headers),

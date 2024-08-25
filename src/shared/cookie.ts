@@ -25,7 +25,6 @@ export class CookieStore {
 				sameSite,
 				...parsed[0],
 			};
-			dbg.log("cookie", cookie);
 
 			if (!cookie.domain) cookie.domain = "." + url.hostname;
 			if (!cookie.domain.startsWith(".")) cookie.domain = "." + cookie.domain;
