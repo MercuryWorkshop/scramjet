@@ -142,11 +142,12 @@ async function handleResponse(
 
 	let maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
-		client.postMessage({
-			scramjet$type: "cookie",
-			cookie,
-			url: url.href,
-		} as MessageW2C);
+		if (client)
+			client.postMessage({
+				scramjet$type: "cookie",
+				cookie,
+				url: url.href,
+			} as MessageW2C);
 	}
 
 	await cookieStore.setCookies(
