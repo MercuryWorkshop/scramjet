@@ -162,6 +162,23 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap("HTMLIFrameElement.prototype.contentDocument", {
+		get(ctx) {
+			const contentwindow =
+				client.descriptors["HTMLIFrameElement.prototype.contentWindow"].get;
+			const realwin = contentwindow.apply(ctx.this);
+
+			if (ScramjetClient.SCRAMJET in realwin.self) {
+				return realwin.self[ScramjetClient.SCRAMJET].documentProxy;
+			} else {
+				const newclient = new ScramjetClient(realwin.self);
+				newclient.hook();
+
+				return newclient.documentProxy;
+			}
+		},
+	});
+
 	client.Trap("TreeWalker.prototype.currentNode", {
 		get(ctx) {
 			return ctx.get();
