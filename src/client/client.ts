@@ -45,6 +45,7 @@ export class ScramjetClient {
 	documentProxy: any;
 	windowProxy: any;
 	locationProxy: any;
+	serviceWorker: ServiceWorkerContainer;
 
 	cookieStore = new CookieStore();
 
@@ -75,6 +76,7 @@ export class ScramjetClient {
 	}
 
 	hook() {
+		this.serviceWorker = navigator.serviceWorker;
 		// @ts-ignore
 		const context = import.meta.webpackContext(".", {
 			recursive: true,

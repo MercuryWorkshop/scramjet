@@ -1,11 +1,11 @@
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: typeof window) {
-	client.serviceworker.addEventListener("message", ({ data }) => {
+	client.serviceWorker.addEventListener("message", ({ data }) => {
 		if (!("scramjet$type" in data)) return;
 
 		if (data.scramjet$type === "cookie") {
-			this.cookieStore.setCookies([data.cookie], new URL(data.url));
+			client.cookieStore.setCookies([data.cookie], new URL(data.url));
 			return;
 		}
 	});
@@ -17,8 +17,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		set(ctx, value: string) {
 			client.cookieStore.setCookies([value], client.url);
 
-			// TODO hardcode because scoping whatever
-			client.serviceworker.controller!.postMessage({
+			client.serviceWorker.controller!.postMessage({
 				scramjet$type: "cookie",
 				cookie: value,
 				url: client.url.href,
