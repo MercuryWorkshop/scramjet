@@ -48,24 +48,45 @@ export function rewriteHtml(
 			}
 		`;
 
+		const script = (src) => new Element("script", { src });
+
 		head.children.unshift(
-			new Element("script", {
-				src: self.$scramjet.config["wasm"],
-			}),
-			new Element("script", {
-				src: self.$scramjet.config["codecs"],
-			}),
-			new Element("script", {
-				src: "data:application/javascript;base64," + btoa(injected),
-			}),
-			new Element("script", {
-				src: self.$scramjet.config["shared"],
-			}),
-			new Element("script", {
-				src: self.$scramjet.config["client"],
-			})
+			script(self.$scramjet.config["wasm"]),
+			script(self.$scramjet.config["codecs"]),
+			script("data:application/javascript;base64," + btoa(injected)),
+			script(self.$scramjet.config["shared"]),
+			script(self.$scramjet.config["client"])
 		);
 	}
+
+	return render(handler.root);
+}
+
+export function unrewriteHtml(html: string) {
+	const handler = new DomHandler((err, dom) => dom);
+	const parser = new Parser(handler);
+
+	parser.write(html);
+	parser.end();
+
+	function traverse(node: ChildNode) {
+		if ("attribs" in node) {
+			for (const key in node.attribs) {
+				if (key.startsWith("data-scramjet-")) {
+					node.attribs[key.slice(13)] = node.attribs[key];
+					delete node.attribs[key];
+				}
+			}
+		}
+
+		if ("childNodes" in node) {
+			for (const child of node.childNodes) {
+				traverse(child);
+			}
+		}
+	}
+
+	traverse(handler.root);
 
 	return render(handler.root);
 }

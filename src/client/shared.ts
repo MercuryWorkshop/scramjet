@@ -4,6 +4,7 @@ export const {
 	rewrite: {
 		rewriteCss,
 		rewriteHtml,
+		unrewriteHtml,
 		rewriteSrcset,
 		rewriteJs,
 		rewriteHeaders,

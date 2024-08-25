@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { config, decodeUrl, htmlRules } from "../shared";
+import { config, decodeUrl, htmlRules, unrewriteHtml } from "../shared";
 import {
 	encodeUrl,
 	rewriteCss,
@@ -8,11 +8,6 @@ import {
 	rewriteSrcset,
 } from "../shared";
 
-declare global {
-	interface Element {
-		$origattrs: Record<string, string>;
-	}
-}
 export default function (client: ScramjetClient, self: typeof window) {
 	const attrObject = {
 		nonce: [self.HTMLElement],
@@ -100,22 +95,27 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	const innerHTML = Object.getOwnPropertyDescriptor(
-		self.Element.prototype,
-		"innerHTML"
-	);
-
-	Object.defineProperty(self.Element.prototype, "innerHTML", {
-		set(value) {
-			if (this instanceof self.HTMLScriptElement) {
-				value = rewriteJs(value);
-			} else if (this instanceof self.HTMLStyleElement) {
-				value = rewriteCss(value);
+	client.Trap("Element.prototype.innerHTML", {
+		set(ctx, value: string) {
+			if (ctx.this instanceof self.HTMLScriptElement) {
+				return rewriteJs(value, client.url);
+			} else if (ctx.this instanceof self.HTMLStyleElement) {
+				return rewriteCss(value, client.url);
 			} else {
-				value = rewriteHtml(value, client.cookieStore);
+				return rewriteHtml(value, client.cookieStore, client.url);
 			}
+		},
+		get(ctx) {
+			return unrewriteHtml(ctx.get());
+		},
+	});
 
-			return innerHTML.set.call(this, value);
+	client.Trap("Element.prototype.outerHTML", {
+		set(ctx, value: string) {
+			return rewriteHtml(value, client.cookieStore, client.url);
+		},
+		get(ctx) {
+			return unrewriteHtml(ctx.get());
 		},
 	});
 

@@ -1,7 +1,12 @@
 import { ScramjetController } from "./bootsrapper/index";
 import { encodeUrl, decodeUrl } from "./shared/rewriters/url";
 import { rewriteCss } from "./shared/rewriters/css";
-import { htmlRules, rewriteHtml, rewriteSrcset } from "./shared/rewriters/html";
+import {
+	htmlRules,
+	rewriteHtml,
+	rewriteSrcset,
+	unrewriteHtml,
+} from "./shared/rewriters/html";
 import { rewriteJs } from "./shared/rewriters/js";
 import { rewriteHeaders } from "./shared/rewriters/headers";
 import { rewriteWorkers } from "./shared/rewriters/worker";
@@ -43,6 +48,7 @@ declare global {
 				rewrite: {
 					rewriteCss: typeof rewriteCss;
 					rewriteHtml: typeof rewriteHtml;
+					unrewriteHtml: typeof unrewriteHtml;
 					rewriteSrcset: typeof rewriteSrcset;
 					rewriteJs: typeof rewriteJs;
 					rewriteHeaders: typeof rewriteHeaders;

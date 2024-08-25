@@ -8,7 +8,7 @@ import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./headers";
 import { CookieStore } from "./cookie";
-import { htmlRules } from "./rewriters/html";
+import { htmlRules, unrewriteHtml } from "./rewriters/html";
 
 self.$scramjet.shared = {
 	util: {
@@ -23,6 +23,7 @@ self.$scramjet.shared = {
 	rewrite: {
 		rewriteCss,
 		rewriteHtml,
+		unrewriteHtml,
 		rewriteSrcset,
 		rewriteJs,
 		rewriteHeaders,
