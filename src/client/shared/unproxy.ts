@@ -45,11 +45,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 export function unproxy(ctx: ProxyCtx, client: ScramjetClient) {
 	const self = client.global;
-	if (ctx.this === client.windowProxy) ctx.this = self;
+	if (ctx.this === client.globalProxy) ctx.this = self;
 	if (ctx.this === client.documentProxy) ctx.this = self.document;
 
 	for (const i in ctx.args) {
 		if (ctx.args[i] === client.documentProxy) ctx.args[i] = self.document;
-		if (ctx.args[i] === client.windowProxy) ctx.args[i] = self;
+		if (ctx.args[i] === client.globalProxy) ctx.args[i] = self;
 	}
 }

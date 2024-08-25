@@ -1,6 +1,6 @@
 import { createLocationProxy } from "./location";
 import { CookieStore, decodeUrl } from "./shared";
-import { createDocumentProxy, createWindowProxy } from "./window";
+import { createDocumentProxy, createGlobalProxy } from "./window";
 
 declare global {
 	interface Window {
@@ -43,11 +43,11 @@ export class ScramjetClient {
 	static SCRAMJET = Symbol.for("scramjet client global");
 
 	documentProxy: any;
-	windowProxy: any;
+	globalProxy: any;
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
 
-	nativeDescriptors: Record<string, PropertyDescriptor> = {};
+	descriptors: Record<string, PropertyDescriptor> = {};
 	natives: Record<string, any> = {};
 
 	cookieStore = new CookieStore();
@@ -69,7 +69,7 @@ export class ScramjetClient {
 		}
 
 		this.locationProxy = createLocationProxy(this, global);
-		this.windowProxy = createWindowProxy(this, global);
+		this.globalProxy = createGlobalProxy(this, global);
 
 		global[ScramjetClient.SCRAMJET] = this;
 	}
@@ -124,7 +124,7 @@ export class ScramjetClient {
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		const original = Reflect.get(target, prop);
-		this.natives[prop] = original;
+		this.natives[name] = original;
 
 		this.RawProxy(target, prop, handler);
 	}
@@ -206,7 +206,7 @@ export class ScramjetClient {
 		const target = split.reduce((a, b) => a?.[b], this.global);
 
 		const original = Object.getOwnPropertyDescriptor(target, prop);
-		this.nativeDescriptors[name] = original;
+		this.descriptors[name] = original;
 
 		return this.RawTrap(target, prop, descriptor);
 	}

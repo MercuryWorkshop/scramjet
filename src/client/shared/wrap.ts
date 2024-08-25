@@ -13,14 +13,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					argdbg(arg);
 				}
 			if (iswindow && identifier instanceof self.Window) {
-				return client.windowProxy;
+				return client.globalProxy;
 			} else if (iswindow && identifier instanceof self.parent.self.Window) {
 				if (ScramjetClient.SCRAMJET in self.parent.self) {
 					// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
 					return self.parent.self[ScramjetClient.SCRAMJET].windowProxy;
 				} else {
 					// ... then we should pretend we aren't nested and return the current window
-					return client.windowProxy;
+					return client.globalProxy;
 				}
 			} else if (iswindow && identifier instanceof self.top.self.Window) {
 				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
@@ -46,7 +46,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			} else if (iswindow && identifier instanceof self.Document) {
 				return client.documentProxy;
 			} else if (isworker && identifier instanceof self.WorkerGlobalScope) {
-				return client.windowProxy;
+				return client.globalProxy;
 			}
 
 			return identifier;

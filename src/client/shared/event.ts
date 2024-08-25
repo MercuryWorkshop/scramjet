@@ -22,7 +22,7 @@ export default function (client: ScramjetClient, self: Self) {
 			source() {
 				let scram: ScramjetClient = this.source[ScramjetClient.SCRAMJET];
 
-				if (scram) return scram.windowProxy;
+				if (scram) return scram.globalProxy;
 
 				return this.source;
 			},

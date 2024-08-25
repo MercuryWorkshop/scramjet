@@ -157,7 +157,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				const newclient = new ScramjetClient(realwin.self);
 				newclient.hook();
 
-				return newclient.windowProxy;
+				return newclient.globalProxy;
 			}
 		},
 	});

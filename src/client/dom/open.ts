@@ -20,7 +20,7 @@ export default function (client: ScramjetClient) {
 				// hook the opened window
 				newclient.hook();
 
-				return ctx.return(newclient.windowProxy);
+				return ctx.return(newclient.globalProxy);
 			}
 		},
 	});
