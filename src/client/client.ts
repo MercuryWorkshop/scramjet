@@ -2,7 +2,7 @@ import { createDocumentProxy } from "./document";
 import { createGlobalProxy } from "./global";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 import { createLocationProxy } from "./location";
-import { CookieStore, decodeUrl } from "./shared";
+import { CookieStore, config, decodeUrl } from "./shared";
 
 declare global {
 	interface Window {
@@ -185,7 +185,32 @@ export class ScramjetClient {
 					},
 				};
 
-				handler.apply(ctx);
+				const pst = Error.prepareStackTrace;
+
+				Error.prepareStackTrace = function (err, s) {
+					if (
+						s[0].getFileName() &&
+						!s[0].getFileName().startsWith(location.origin + config.prefix)
+					) {
+						return s;
+					}
+				};
+
+				try {
+					handler.apply(ctx);
+				} catch (err) {
+					if (err instanceof Error) {
+						if ((err.stack as any) instanceof Object) {
+							console.error("ERROR FROM SCRMAJET INTERNALS", err);
+						} else {
+							throw err;
+						}
+					} else {
+						throw err;
+					}
+				}
+
+				delete Error.prepareStackTrace;
 
 				if (returnValue) {
 					return returnValue;
