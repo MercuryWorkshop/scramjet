@@ -143,7 +143,7 @@ export class ScramjetClient {
 		const h: ProxyHandler<any> = {};
 
 		if (handler.construct) {
-			h.construct = function
+			h.construct = function (
 				constructor: any,
 				argArray: any[],
 				newTarget: AnyFunction
@@ -171,7 +171,7 @@ export class ScramjetClient {
 		}
 
 		if (handler.apply) {
-			h.apply = functionfn: any, thisArg: any, argArray: any[]) {
+			h.apply = function (fn: any, thisArg: any, argArray: any[]) {
 				let returnValue: any = null;
 
 				const ctx: ProxyCtx = {
@@ -228,10 +228,10 @@ export class ScramjetClient {
 
 		const ctx: TrapCtx<T> = {
 			this: null,
-			get: function) {
+			get: function () {
 				return oldDescriptor && oldDescriptor.get.call(this.this);
 			},
-			set: functionv: T) {
+			set: function (v: T) {
 				oldDescriptor && oldDescriptor.set.call(this.this, v);
 			},
 		};
@@ -241,7 +241,7 @@ export class ScramjetClient {
 		const desc: PropertyDescriptor = {};
 
 		if (descriptor.get) {
-			desc.get = function) {
+			desc.get = function () {
 				ctx.this = this;
 
 				return descriptor.get(ctx);
@@ -251,7 +251,7 @@ export class ScramjetClient {
 		}
 
 		if (descriptor.set) {
-			desc.set = functionv: T) {
+			desc.set = function (v: T) {
 				ctx.this = this;
 
 				descriptor.set(ctx, v);
