@@ -1,9 +1,19 @@
 import { encodeUrl } from "../shared";
 import { ScramjetClient } from "../client";
 import { type MessageC2W } from "../../worker";
+import { getOwnPropertyDescriptorHandler } from "../helpers";
 
 // we need a late order because we're mangling with addEventListener at a higher level
 export const order = 2;
+
+export const enabled = () => self.$scramjet.config.flags.serviceworkers;
+export function disabled(client: ScramjetClient, self: Self) {
+	client.Trap("navigator.serviceWorker", {
+		get() {
+			return undefined;
+		},
+	});
+}
 
 export default function (client: ScramjetClient, self: Self) {
 	let registration;
@@ -105,6 +115,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 						return Reflect.get(target, prop);
 					},
+					getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 				}
 			);
 			registration = fakeRegistration;

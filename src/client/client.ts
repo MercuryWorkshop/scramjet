@@ -66,6 +66,8 @@ export class ScramjetClient {
 	> = new Map();
 
 	constructor(public global: typeof globalThis) {
+		this.serviceWorker = this.global.navigator.serviceWorker;
+
 		if ("document" in self) {
 			this.documentProxy = createDocumentProxy(this, global);
 		}
@@ -81,7 +83,6 @@ export class ScramjetClient {
 	}
 
 	hook() {
-		this.serviceWorker = this.global.navigator.serviceWorker;
 		// @ts-ignore
 		const context = import.meta.webpackContext(".", {
 			recursive: true,
@@ -109,7 +110,8 @@ export class ScramjetClient {
 		});
 
 		for (const module of modules) {
-			module.default(this, this.global);
+			if (module.enabled()) module.default(this, this.global);
+			else module.disabled(this, this.global);
 		}
 	}
 
@@ -141,7 +143,7 @@ export class ScramjetClient {
 		const h: ProxyHandler<any> = {};
 
 		if (handler.construct) {
-			h.construct = function (
+			h.construct = function
 				constructor: any,
 				argArray: any[],
 				newTarget: AnyFunction
@@ -169,7 +171,7 @@ export class ScramjetClient {
 		}
 
 		if (handler.apply) {
-			h.apply = function (fn: any, thisArg: any, argArray: any[]) {
+			h.apply = functionfn: any, thisArg: any, argArray: any[]) {
 				let returnValue: any = null;
 
 				const ctx: ProxyCtx = {
@@ -226,10 +228,10 @@ export class ScramjetClient {
 
 		const ctx: TrapCtx<T> = {
 			this: null,
-			get: function () {
+			get: function) {
 				return oldDescriptor && oldDescriptor.get.call(this.this);
 			},
-			set: function (v: T) {
+			set: functionv: T) {
 				oldDescriptor && oldDescriptor.set.call(this.this, v);
 			},
 		};
@@ -239,7 +241,7 @@ export class ScramjetClient {
 		const desc: PropertyDescriptor = {};
 
 		if (descriptor.get) {
-			desc.get = function () {
+			desc.get = function) {
 				ctx.this = this;
 
 				return descriptor.get(ctx);
@@ -249,7 +251,7 @@ export class ScramjetClient {
 		}
 
 		if (descriptor.set) {
-			desc.set = function (v: T) {
+			desc.set = functionv: T) {
 				ctx.this = this;
 
 				descriptor.set(ctx, v);
