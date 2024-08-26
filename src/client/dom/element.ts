@@ -124,7 +124,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const realwin = ctx.get() as Window;
 
 			if (ScramjetClient.SCRAMJET in realwin.self) {
-				return realwin.self[ScramjetClient.SCRAMJET].windowProxy;
+				return realwin.self[ScramjetClient.SCRAMJET].globalProxy.window;
 			} else {
 				// hook the iframe
 				const newclient = new ScramjetClient(realwin.self);

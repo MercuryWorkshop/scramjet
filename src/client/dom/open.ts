@@ -14,7 +14,9 @@ export default function (client: ScramjetClient) {
 			if (!realwin) return ctx.return(realwin);
 
 			if (ScramjetClient.SCRAMJET in realwin.self) {
-				return ctx.return(realwin.self[ScramjetClient.SCRAMJET].windowProxy);
+				return ctx.return(
+					realwin.self[ScramjetClient.SCRAMJET].globalProxy.window
+				);
 			} else {
 				const newclient = new ScramjetClient(realwin.self);
 				// hook the opened window
@@ -31,7 +33,7 @@ export default function (client: ScramjetClient) {
 			const realwin = ctx.get() as Window;
 
 			if (realwin && ScramjetClient.SCRAMJET in realwin.self) {
-				return realwin.self[ScramjetClient.SCRAMJET].windowProxy;
+				return realwin.self[ScramjetClient.SCRAMJET].globalProxy;
 			} else {
 				// the opener has to have been already hooked, so if we reach here then it's a real window
 				return undefined;

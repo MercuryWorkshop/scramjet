@@ -17,7 +17,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			} else if (iswindow && identifier instanceof self.parent.self.Window) {
 				if (ScramjetClient.SCRAMJET in self.parent.self) {
 					// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
-					return self.parent.self[ScramjetClient.SCRAMJET].windowProxy;
+					return self.parent.self[ScramjetClient.SCRAMJET].globalProxy;
 				} else {
 					// ... then we should pretend we aren't nested and return the current window
 					return client.globalProxy;
@@ -37,7 +37,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					current = test;
 				}
 
-				return current[ScramjetClient.SCRAMJET].windowProxy;
+				return current[ScramjetClient.SCRAMJET].globalProxy.window;
 			} else if (
 				(iswindow && identifier instanceof self.Location) ||
 				(isworker && identifier instanceof self.WorkerLocation)
@@ -89,7 +89,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		}
 	}
 	self.$scramerr = function scramerr(e) {
-		console.warn("CAUGHT ERROR", e);
+		// console.warn("CAUGHT ERROR", e);
 	};
 
 	self.$scramdbg = function scramdbg(args, t) {
@@ -102,7 +102,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		apply(ctx) {
 			ctx.args[0] = new Proxy(ctx.args[0], {
 				apply(target, thisArg, argArray) {
-					console.warn("CAUGHT PROMISE REJECTION", argArray);
+					// console.warn("CAUGHT PROMISE REJECTION", argArray);
 					Reflect.apply(target, thisArg, argArray);
 				},
 			});
