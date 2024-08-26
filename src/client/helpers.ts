@@ -1,6 +1,6 @@
 export function getOwnPropertyDescriptorHandler(target, prop) {
 	let realDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
-	if (!realDescriptor) return realDescriptor;
+	return realDescriptor;
 
 	let d: PropertyDescriptor = {};
 

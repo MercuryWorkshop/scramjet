@@ -1,21 +1,35 @@
 import { ScramjetClient } from "../client";
+import { POLLUTANT } from "../shared/realm";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("window.postMessage", {
 		apply(ctx) {
 			// so we need to send the real origin here, since the recieving window can't possibly know.
 			// except, remember that this code is being ran in a different realm than the invoker, so if we ask our `client` it may give us the wrong origin
-			// but, the first argument given will be polluted with the real realm
+			// if we were given any object that came from the real realm we can use that to get the real origin
+			// and this works in every case EXCEPT for the fact that all three arguments can be strings which are copied instead of cloned
+			// so we have to use `$setrealm` which will pollute this with an object from the real realm
+			const pollutant = ctx.this[POLLUTANT] || {};
 
-			// this obtains a reference to the Function object of the real realm
+			// and now we can steal Function from the caller's realm
 			const {
 				constructor: { constructor: Function },
-			} = ctx.args[0];
+			} = pollutant;
 
-			// and finally, invoking the stolen Function will execute inside the caller's realm
-			const callerGlobalThis: Self = Function("return globalThis")();
+			// invoking stolen function will give us the caller's globalThis, remember scramjet has already proxied it!!!
+			const callerGlobalThisProxied: Self = Function("return globalThis")();
 			const callerClient: ScramjetClient =
-				callerGlobalThis[ScramjetClient.SCRAMJET];
+				callerGlobalThisProxied[ScramjetClient.SCRAMJET];
+
+			// this WOULD be enough but the source argument of MessageEvent has to return the caller's window
+			// and if we just call it normally it would be coming from here, which WILL NOT BE THE CALLER'S because the accessor is from the parent
+			// so with the stolen function we wrap postmessage so the source will truly be the caller's window (remember that function is scramjet's!!!)
+			const wrappedPostMessage = Function(
+				"data",
+				"origin",
+				"transfer",
+				"this(data, origin, transfer)"
+			);
 
 			ctx.args[0] = {
 				$scramjet$origin: callerClient.url.origin,
@@ -24,6 +38,8 @@ export default function (client: ScramjetClient) {
 
 			// * origin because obviously
 			if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
+
+			wrappedPostMessage.call(ctx.fn, ctx.args[0], ctx.args[1], ctx.args[2]);
 		},
 	});
 }

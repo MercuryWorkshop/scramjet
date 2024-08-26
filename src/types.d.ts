@@ -28,6 +28,7 @@ interface ScramjetConfig {
 	importfn: string;
 	rewritefn: string;
 	metafn: string;
+	setrealmfn: string;
 	wasm: string;
 	shared: string;
 	worker: string;

@@ -16,12 +16,16 @@ export class ScramjetController {
 			importfn: "$scramjet$import",
 			rewritefn: "$scramjet$rewrite",
 			metafn: "$scramjet$meta",
+			setrealmfn: "$scramjet$setrealm",
 			wasm: "/scramjet.wasm.js",
 			shared: "/scramjet.shared.js",
 			worker: "/scramjet.worker.js",
 			thread: "/scramjet.thread.js",
 			client: "/scramjet.client.js",
 			codecs: "/scramjet.codecs.js",
+			flags: {
+				serviceworkers: true,
+			},
 		};
 
 		this.config = Object.assign({}, defaultConfig, config);

@@ -110,7 +110,8 @@ export class ScramjetClient {
 		});
 
 		for (const module of modules) {
-			if (module.enabled()) module.default(this, this.global);
+			if (!module.enabled || module.enabled())
+				module.default(this, this.global);
 			else module.disabled(this, this.global);
 		}
 	}
