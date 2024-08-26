@@ -1,6 +1,8 @@
 use oxc_allocator::Allocator;
 use oxc_ast::{
-	ast::{AssignmentTarget, Expression, IdentifierReference, ObjectPropertyKind},
+	ast::{
+		AssignmentTarget, Expression, IdentifierReference, MemberExpression, ObjectPropertyKind,
+	},
 	visit::walk,
 	Visit,
 };
@@ -38,6 +40,7 @@ pub struct Config {
 	pub wrapfn: String,
 	pub importfn: String,
 	pub rewritefn: String,
+	pub setrealmfn: String,
 	pub metafn: String,
 	pub encode: EncodeFn,
 }
@@ -99,6 +102,28 @@ impl<'a> Visit<'a> for Rewriter {
 	fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
 		self.walk_member_expression(&it.callee);
 		walk::walk_arguments(self, &it.arguments);
+	}
+	fn visit_member_expression(&mut self, it: &oxc_ast::ast::MemberExpression<'a>) {
+		match it {
+			MemberExpression::StaticMemberExpression(s) => {
+				if s.property.name == "postMessage" {
+					self.jschanges.push(JsChange::GenericChange {
+						span: s.property.span,
+						// an empty object will let us safely reconstruct the realm later
+						text: format!("{}({{}}).{}", self.config.setrealmfn, s.property.name),
+					});
+
+					return; // unwise to walk the rest of the tree
+				}
+			}
+			_ => {
+				// TODO
+				// you could break this with ["postMessage"] etc
+				// however this code only exists because of recaptcha whatever
+				// and it would slow down js execution a lot
+			}
+		}
+		walk::walk_member_expression(self, it);
 	}
 	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
 		self.jschanges.push(JsChange::GenericChange {

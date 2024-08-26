@@ -52,6 +52,7 @@ fn get_config(scramjet: &Object) -> Config {
 		importfn: get_str(config, "importfn"),
 		rewritefn: get_str(config, "rewritefn"),
 		metafn: get_str(config, "metafn"),
+		setrealmfn: get_str(config, "setrealmfn"),
 	}
 }
 
