@@ -1,5 +1,6 @@
 import { createDocumentProxy } from "./document";
 import { createGlobalProxy } from "./global";
+import { getOwnPropertyDescriptorHandler } from "./helpers";
 import { createLocationProxy } from "./location";
 import { CookieStore, decodeUrl } from "./shared";
 
@@ -191,6 +192,7 @@ export class ScramjetClient {
 			};
 		}
 
+		h.getOwnPropertyDescriptor = getOwnPropertyDescriptorHandler;
 		target[prop] = new Proxy(value, h);
 	}
 	Trap<T>(name: string | string[], descriptor: Trap<T>): PropertyDescriptor {

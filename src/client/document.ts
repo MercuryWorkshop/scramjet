@@ -1,5 +1,6 @@
 import { encodeUrl } from "../shared/rewriters/url";
 import { ScramjetClient } from "./client";
+import { getOwnPropertyDescriptorHandler } from "./helpers";
 
 export function createDocumentProxy(
 	client: ScramjetClient,
@@ -26,5 +27,6 @@ export function createDocumentProxy(
 
 			return Reflect.set(target, prop, newValue);
 		},
+		getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 	});
 }

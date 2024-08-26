@@ -1,5 +1,6 @@
 import { iswindow } from "..";
 import { ScramjetClient } from "../client";
+import { getOwnPropertyDescriptorHandler } from "../helpers";
 import { unproxy } from "./unproxy";
 
 const realOnEvent = Symbol.for("scramjet original onevent function");
@@ -66,12 +67,14 @@ export default function (client: ScramjetClient, self: Self) {
 
 								return Reflect.get(target, prop, reciever);
 							},
+							getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 						});
 					}
 				}
 
 				return Reflect.apply(target, thisArg, argArray);
 			},
+			getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 		});
 	}
 

@@ -2,6 +2,7 @@ import { encodeUrl } from "./shared";
 import { ScramjetClient } from "./client";
 import { indirectEval } from "./shared/eval";
 import { config } from "./shared";
+import { getOwnPropertyDescriptorHandler } from "./helpers";
 
 export function createGlobalProxy(
 	client: ScramjetClient,
@@ -51,5 +52,6 @@ export function createGlobalProxy(
 
 			return Reflect.defineProperty(target, property, attributes);
 		},
+		getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 	});
 }

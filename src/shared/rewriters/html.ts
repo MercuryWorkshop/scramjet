@@ -103,7 +103,6 @@ export const htmlRules: {
 		fn: (value: string, origin: URL) => {
 			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
 
-			console.log(value, origin);
 			return encodeUrl(value, origin);
 		},
 
