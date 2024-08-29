@@ -41,6 +41,35 @@ export default function (client: ScramjetClient, self: typeof window) {
 			} catch (e) {}
 		}
 	}
+
+	client.Proxy("Object.getOwnPropertyDescriptor", {
+		apply(ctx) {
+			const desc = ctx.fn.apply(ctx.this, ctx.args);
+
+			if (!desc) return;
+
+			if (desc.get) {
+				client.RawProxy(desc, "get", {
+					apply(ctx) {
+						// value of this in the getter needs to be corrected
+						unproxy(ctx, client);
+					},
+				});
+			}
+
+			if (desc.set) {
+				client.RawProxy(desc, "set", {
+					apply(ctx) {
+						unproxy(ctx, client);
+					},
+				});
+			}
+
+			// i don't think we have to care about value but it's worth looking into
+
+			ctx.return(desc);
+		},
+	});
 }
 
 export function unproxy(ctx: ProxyCtx, client: ScramjetClient) {

@@ -2,6 +2,7 @@ import { createDocumentProxy } from "./document";
 import { createGlobalProxy } from "./global";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 import { createLocationProxy } from "./location";
+import { nativeGetOwnPropertyDescriptor } from "./natives";
 import { CookieStore, config, decodeUrl } from "./shared";
 
 declare global {
@@ -236,7 +237,7 @@ export class ScramjetClient {
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
 
-		const original = Object.getOwnPropertyDescriptor(target, prop);
+		const original = nativeGetOwnPropertyDescriptor(target, prop);
 		this.descriptors[name] = original;
 
 		return this.RawTrap(target, prop, descriptor);
@@ -250,7 +251,7 @@ export class ScramjetClient {
 		if (!prop) return;
 		if (!Reflect.has(target, prop)) return;
 
-		const oldDescriptor = Object.getOwnPropertyDescriptor(target, prop);
+		const oldDescriptor = nativeGetOwnPropertyDescriptor(target, prop);
 
 		const ctx: TrapCtx<T> = {
 			this: null,

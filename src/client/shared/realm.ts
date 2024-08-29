@@ -19,8 +19,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 			return this;
 		},
-		writable: false,
-		configurable: false,
+		writable: true,
+		configurable: true,
 		enumerable: false,
 	});
 }

@@ -1,6 +1,7 @@
 import { iswindow } from "..";
 import { ScramjetClient } from "../client";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
+import { nativeGetOwnPropertyDescriptor } from "../natives";
 import { unproxy } from "./unproxy";
 
 const realOnEvent = Symbol.for("scramjet original onevent function");
@@ -138,7 +139,7 @@ export default function (client: ScramjetClient, self: Self) {
 				key.startsWith("on") &&
 				handlers[key.slice(2)]
 			) {
-				const descriptor = Object.getOwnPropertyDescriptor(target, key);
+				const descriptor = nativeGetOwnPropertyDescriptor(target, key);
 				if (!descriptor.get || !descriptor.set || !descriptor.configurable)
 					continue;
 

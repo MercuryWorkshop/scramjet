@@ -95,9 +95,9 @@ export async function swfetch(
 		}
 
 		// TODO this is wrong somehow
-		// headers.set("Sec-Fetch-Mode", "cors");
-		// headers.set("Sec-Fetch-Site", "same-origin");
-		// headers.set("Sec-Fetch-Dest", "empty");
+		headers.set("Sec-Fetch-Mode", "cors");
+		headers.set("Sec-Fetch-Site", "same-origin");
+		headers.set("Sec-Fetch-Dest", "empty");
 
 		const response: BareResponseFetch = await this.client.fetch(url, {
 			method: request.method,

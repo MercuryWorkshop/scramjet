@@ -1,4 +1,5 @@
 import { ScramjetClient } from "../client";
+import { nativeGetOwnPropertyDescriptor } from "../natives";
 import { config, decodeUrl, htmlRules, unrewriteHtml } from "../shared";
 import {
 	encodeUrl,
@@ -33,7 +34,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	for (const attr of attrs) {
 		for (const element of attrObject[attr]) {
-			const descriptor = Object.getOwnPropertyDescriptor(
+			const descriptor = nativeGetOwnPropertyDescriptor(
 				element.prototype,
 				attr
 			);
@@ -167,6 +168,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Node.prototype.ownerDocument", {
 		get(ctx) {
+			return client.documentProxy;
 			let doc = ctx.get() as Document | null;
 			if (!doc) return null;
 
