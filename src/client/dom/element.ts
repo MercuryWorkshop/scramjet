@@ -98,13 +98,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
+			let newval;
 			if (ctx.this instanceof self.HTMLScriptElement) {
-				return rewriteJs(value, client.url);
+				newval = rewriteJs(value, client.url);
 			} else if (ctx.this instanceof self.HTMLStyleElement) {
-				return rewriteCss(value, client.url);
+				newval = rewriteCss(value, client.url);
 			} else {
-				return rewriteHtml(value, client.cookieStore, client.url);
+				newval = rewriteHtml(value, client.cookieStore, client.url);
 			}
+
+			ctx.set(newval);
 		},
 		get(ctx) {
 			return unrewriteHtml(ctx.get());
@@ -113,7 +116,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
-			return rewriteHtml(value, client.cookieStore, client.url);
+			ctx.set(rewriteHtml(value, client.cookieStore, client.url));
 		},
 		get(ctx) {
 			return unrewriteHtml(ctx.get());
