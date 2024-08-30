@@ -39,11 +39,6 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 
 	// dbg.debug("Rewrite took", Math.floor((after - before) * 10) / 10, "ms");
 
-	if (typeof js !== "string") js = new TextDecoder().decode(js);
-	js = js.replaceAll(
-		`(c=H[36](57,T,(F=(d=["contentWindow","ports",(S=p.dH,"recaptcha-setup")],S).data==d[2],S).origin)==H[36](59,T,A),b=!E||S.source==E[d[0]],F&&c&&b&&S[d[1]].length>M)?S[d[1]][M]:null`,
-		" p.dH.ports[0]"
-	);
 	return js;
 }
 

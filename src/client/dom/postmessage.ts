@@ -1,3 +1,4 @@
+import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { POLLUTANT } from "../shared/realm";
 
@@ -18,8 +19,7 @@ export default function (client: ScramjetClient) {
 
 			// invoking stolen function will give us the caller's globalThis, remember scramjet has already proxied it!!!
 			const callerGlobalThisProxied: Self = Function("return globalThis")();
-			const callerClient: ScramjetClient =
-				callerGlobalThisProxied[ScramjetClient.SCRAMJET];
+			const callerClient = callerGlobalThisProxied[SCRAMJETCLIENT];
 
 			// this WOULD be enough but the source argument of MessageEvent has to return the caller's window
 			// and if we just call it normally it would be coming from here, which WILL NOT BE THE CALLER'S because the accessor is from the parent
@@ -39,7 +39,9 @@ export default function (client: ScramjetClient) {
 			// * origin because obviously
 			if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
 
-			wrappedPostMessage.call(ctx.fn, ctx.args[0], ctx.args[1], ctx.args[2]);
+			ctx.return(
+				wrappedPostMessage.call(ctx.fn, ctx.args[0], ctx.args[1], ctx.args[2])
+			);
 		},
 	});
 }
