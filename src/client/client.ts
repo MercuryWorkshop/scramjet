@@ -194,7 +194,7 @@ export class ScramjetClient {
 						s[0].getFileName() &&
 						!s[0].getFileName().startsWith(location.origin + config.prefix)
 					) {
-						return s;
+						return { stack: err.stack };
 					}
 				};
 
@@ -203,6 +203,8 @@ export class ScramjetClient {
 				} catch (err) {
 					if (err instanceof Error) {
 						if ((err.stack as any) instanceof Object) {
+							//@ts-expect-error i'm not going to explain this
+							err.stack = err.stack.stack;
 							console.error("ERROR FROM SCRMAJET INTERNALS", err);
 						} else {
 							throw err;
