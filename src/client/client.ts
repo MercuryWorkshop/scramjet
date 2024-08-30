@@ -1,10 +1,13 @@
-import { SCRAMJETCLIENT } from "../symbols";
+import { iswindow } from ".";
+import { ScramjetFrame } from "../controller/frame";
+import { SCRAMJETCLIENT, SCRAMJETFRAME } from "../symbols";
 import { createDocumentProxy } from "./document";
 import { createGlobalProxy } from "./global";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 import { createLocationProxy } from "./location";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
 import { CookieStore, config, decodeUrl } from "./shared";
+import { createWrapFn } from "./shared/wrap";
 
 declare global {
 	interface Window {
@@ -51,6 +54,7 @@ export class ScramjetClient {
 
 	descriptors: Record<string, PropertyDescriptor> = {};
 	natives: Record<string, any> = {};
+	wrapfn: (i: any, ...args: any) => any;
 
 	cookieStore = new CookieStore();
 
@@ -68,7 +72,7 @@ export class ScramjetClient {
 	constructor(public global: typeof globalThis) {
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
-		if ("document" in global) {
+		if (iswindow) {
 			this.documentProxy = createDocumentProxy(this, global);
 
 			global.document[SCRAMJETCLIENT] = this;
@@ -76,8 +80,21 @@ export class ScramjetClient {
 
 		this.locationProxy = createLocationProxy(this, global);
 		this.globalProxy = createGlobalProxy(this, global);
+		this.wrapfn = createWrapFn(this, global);
 
 		global[SCRAMJETCLIENT] = this;
+	}
+
+	get frame(): ScramjetFrame | null {
+		if (!iswindow) return null;
+		const frame = this.global.window.frameElement;
+
+		if (!frame) return null; // we're top level
+		const sframe = frame[SCRAMJETFRAME];
+
+		if (!sframe) return null; // we're a subframe. TODO handle propagation but not now
+
+		return sframe;
 	}
 
 	loadcookies(cookiestr: string) {

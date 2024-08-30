@@ -8,11 +8,7 @@ export const order = 2;
 
 export const enabled = () => self.$scramjet.config.flags.serviceworkers;
 export function disabled(client: ScramjetClient, self: Self) {
-	client.Trap("navigator.serviceWorker", {
-		get() {
-			return undefined;
-		},
-	});
+	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }
 
 export default function (client: ScramjetClient, self: Self) {
