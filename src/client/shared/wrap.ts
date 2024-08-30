@@ -1,4 +1,5 @@
 import { iswindow, isworker } from "..";
+import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { config } from "../shared";
 
@@ -15,9 +16,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			if (iswindow && identifier instanceof self.Window) {
 				return client.globalProxy;
 			} else if (iswindow && identifier instanceof self.parent.self.Window) {
-				if (ScramjetClient.SCRAMJET in self.parent.self) {
+				if (SCRAMJETCLIENT in self.parent.self) {
 					// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
-					return self.parent.self[ScramjetClient.SCRAMJET].globalProxy;
+					return self.parent.self[SCRAMJETCLIENT].globalProxy;
 				} else {
 					// ... then we should pretend we aren't nested and return the current window
 					return client.globalProxy;
@@ -31,13 +32,13 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					if (test === current) break; // there is no parent, actual or emulated.
 
 					// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
-					if (!(ScramjetClient.SCRAMJET in test)) break;
+					if (!(SCRAMJETCLIENT in test)) break;
 
 					// test is also insde a proxy, so we should continue up the chain
 					current = test;
 				}
 
-				return current[ScramjetClient.SCRAMJET].globalProxy.window;
+				return current[SCRAMJETCLIENT].globalProxy.window;
 			} else if (
 				(iswindow && identifier instanceof self.Location) ||
 				(isworker && identifier instanceof self.WorkerLocation)
@@ -89,7 +90,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		}
 	}
 	self.$scramerr = function scramerr(e) {
-		// console.warn("CAUGHT ERROR", e);
+		console.warn("CAUGHT ERROR", e);
 	};
 
 	self.$scramdbg = function scramdbg(args, t) {

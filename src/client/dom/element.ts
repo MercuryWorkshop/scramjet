@@ -1,3 +1,4 @@
+import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
 import { config, decodeUrl, htmlRules, unrewriteHtml } from "../shared";
@@ -127,8 +128,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 		get(ctx) {
 			const realwin = ctx.get() as Window;
 
-			if (ScramjetClient.SCRAMJET in realwin.self) {
-				return realwin.self[ScramjetClient.SCRAMJET].globalProxy.window;
+			if (SCRAMJETCLIENT in realwin.self) {
+				return realwin.self[SCRAMJETCLIENT].globalProxy.window;
 			} else {
 				// hook the iframe
 				const newclient = new ScramjetClient(realwin.self);
@@ -145,8 +146,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				client.descriptors["HTMLIFrameElement.prototype.contentWindow"].get;
 			const realwin = contentwindow.apply(ctx.this);
 
-			if (ScramjetClient.SCRAMJET in realwin.self) {
-				return realwin.self[ScramjetClient.SCRAMJET].documentProxy;
+			if (SCRAMJETCLIENT in realwin.self) {
+				return realwin.self[SCRAMJETCLIENT].documentProxy;
 			} else {
 				const newclient = new ScramjetClient(realwin.self);
 				newclient.hook();
@@ -175,7 +176,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			let doc = ctx.get() as Document | null;
 			if (!doc) return null;
 
-			let scram: ScramjetClient = doc[ScramjetClient.SCRAMJET];
+			let scram: ScramjetClient = doc[SCRAMJETCLIENT];
 			if (!scram) return doc; // ??
 
 			return scram.documentProxy;

@@ -1,5 +1,6 @@
 import { encodeUrl } from "../shared";
 import { ScramjetClient } from "../client";
+import { SCRAMJETCLIENT } from "../../symbols";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("window.open", {
@@ -13,10 +14,8 @@ export default function (client: ScramjetClient) {
 
 			if (!realwin) return ctx.return(realwin);
 
-			if (ScramjetClient.SCRAMJET in realwin.self) {
-				return ctx.return(
-					realwin.self[ScramjetClient.SCRAMJET].globalProxy.window
-				);
+			if (SCRAMJETCLIENT in realwin.self) {
+				return ctx.return(realwin.self[SCRAMJETCLIENT].globalProxy.window);
 			} else {
 				const newclient = new ScramjetClient(realwin.self);
 				// hook the opened window
@@ -32,8 +31,8 @@ export default function (client: ScramjetClient) {
 		get(ctx) {
 			const realwin = ctx.get() as Window;
 
-			if (realwin && ScramjetClient.SCRAMJET in realwin.self) {
-				return realwin.self[ScramjetClient.SCRAMJET].globalProxy;
+			if (realwin && SCRAMJETCLIENT in realwin.self) {
+				return realwin.self[SCRAMJETCLIENT].globalProxy;
 			} else {
 				// the opener has to have been already hooked, so if we reach here then it's a real window
 				return undefined;

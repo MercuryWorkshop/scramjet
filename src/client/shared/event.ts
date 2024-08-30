@@ -1,4 +1,5 @@
 import { iswindow } from "..";
+import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
@@ -22,7 +23,7 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.ports;
 			},
 			source() {
-				let scram: ScramjetClient = this.source[ScramjetClient.SCRAMJET];
+				let scram: ScramjetClient = this.source[SCRAMJETCLIENT];
 
 				if (scram) return scram.globalProxy;
 

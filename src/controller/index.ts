@@ -1,6 +1,8 @@
 import IDBMap from "@webreflection/idb-map";
 import { ScramjetConfig } from "../types";
 import { Codec } from "../codecs";
+import type { ScramjetClient } from "../client/client";
+import { ScramjetFrame } from "./frame";
 
 export class ScramjetController {
 	config: ScramjetConfig;
@@ -24,7 +26,7 @@ export class ScramjetController {
 			client: "/scramjet.client.js",
 			codecs: "/scramjet.codecs.js",
 			flags: {
-				serviceworkers: true,
+				serviceworkers: false,
 			},
 		};
 
@@ -71,33 +73,6 @@ export class ScramjetController {
 		this.codec = self.$scramjet.codecs[this.config.codec];
 
 		await this.#saveConfig();
-	}
-}
-
-class ScramjetFrame extends EventTarget {
-	static SCRAMJETFRAME = Symbol.for("scramjet frame handle");
-	constructor(
-		private controller: ScramjetController,
-		public frame: HTMLIFrameElement
-	) {
-		super();
-		frame[ScramjetFrame.SCRAMJETFRAME] = this;
-	}
-
-	go(url: string | URL) {
-		if (url instanceof URL) url = url.toString();
-
-		dbg.log("navigated to", url);
-
-		this.frame.src = this.controller.encodeUrl(url);
-	}
-
-	back() {
-		this.frame.contentWindow?.history.back();
-	}
-
-	forward() {
-		this.frame.contentWindow?.history.forward();
 	}
 }
 

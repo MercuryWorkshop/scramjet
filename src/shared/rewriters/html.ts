@@ -150,6 +150,12 @@ export const htmlRules: {
 		fn: (value: string, origin?: URL) => rewriteCss(value, origin),
 		style: "*",
 	},
+	{
+		fn: (value: string) => {
+			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+		},
+		target: ["a"],
+	},
 ];
 
 // i need to add the attributes in during rewriting

@@ -1,3 +1,4 @@
+import { SCRAMJETCLIENT } from "../symbols";
 import { createDocumentProxy } from "./document";
 import { createGlobalProxy } from "./global";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
@@ -43,8 +44,6 @@ export type Trap<T> = {
 };
 
 export class ScramjetClient {
-	static SCRAMJET = Symbol.for("scramjet client global");
-
 	documentProxy: any;
 	globalProxy: any;
 	locationProxy: any;
@@ -76,7 +75,7 @@ export class ScramjetClient {
 		this.locationProxy = createLocationProxy(this, global);
 		this.globalProxy = createGlobalProxy(this, global);
 
-		global[ScramjetClient.SCRAMJET] = this;
+		global[SCRAMJETCLIENT] = this;
 	}
 
 	loadcookies(cookiestr: string) {
@@ -175,6 +174,7 @@ export class ScramjetClient {
 		if (handler.apply) {
 			h.apply = function (fn: any, thisArg: any, argArray: any[]) {
 				let returnValue: any = null;
+				let earlyreturn = false;
 
 				const ctx: ProxyCtx = {
 					fn,
@@ -182,6 +182,7 @@ export class ScramjetClient {
 					args: argArray,
 					newTarget: null,
 					return: (r: any) => {
+						earlyreturn = true;
 						returnValue = r;
 					},
 				};
@@ -213,7 +214,7 @@ export class ScramjetClient {
 
 				delete Error.prepareStackTrace;
 
-				if (returnValue) {
+				if (earlyreturn) {
 					return returnValue;
 				}
 

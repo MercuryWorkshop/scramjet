@@ -15,6 +15,9 @@ import { BareClient } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./shared/headers";
 import { CookieStore } from "./shared/cookie";
+import { SCRAMJETCLIENT, SCRAMJETFRAME } from "./symbols";
+import { ScramjetClient } from "./client/client";
+import { ScramjetFrame } from "./controller/frame";
 
 type ScramjetFlags = {
 	serviceworkers: boolean;
@@ -75,5 +78,13 @@ declare global {
 		COOKIE: string;
 		WASM: string;
 		ScramjetController: typeof ScramjetController;
+
+		// the scramjet client belonging to a window
+		[SCRAMJETCLIENT]: ScramjetClient;
+	}
+
+	interface HTMLIFrameElement {
+		// the event target belonging to an <iframe> holding a /prefix/blah url
+		[SCRAMJETFRAME]: ScramjetFrame;
 	}
 }

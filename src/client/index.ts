@@ -1,5 +1,6 @@
 // entrypoint for scramjet.client.js
 
+import { SCRAMJETCLIENT } from "../symbols";
 import { ScramjetClient } from "./client";
 import { ScramjetServiceWorkerRuntime } from "./swruntime";
 
@@ -13,7 +14,7 @@ export const isemulatedsw =
 
 dbg.log("scrammin");
 // if it already exists, that means the handlers have probably already been setup by the parent document
-if (!(ScramjetClient.SCRAMJET in self)) {
+if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 	const client = new ScramjetClient(self);
 
 	if (self.COOKIE) client.loadcookies(self.COOKIE);
