@@ -68,8 +68,10 @@ export class ScramjetClient {
 	constructor(public global: typeof globalThis) {
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
-		if ("document" in self) {
+		if ("document" in global) {
 			this.documentProxy = createDocumentProxy(this, global);
+
+			global.document[SCRAMJETCLIENT] = this;
 		}
 
 		this.locationProxy = createLocationProxy(this, global);

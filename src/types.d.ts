@@ -83,6 +83,11 @@ declare global {
 		[SCRAMJETCLIENT]: ScramjetClient;
 	}
 
+	interface HTMLDocument {
+		// should be the same as window
+		[SCRAMJETCLIENT]: ScramjetClient;
+	}
+
 	interface HTMLIFrameElement {
 		// the event target belonging to an <iframe> holding a /prefix/blah url
 		[SCRAMJETFRAME]: ScramjetFrame;
