@@ -153,6 +153,10 @@ function App() {
 
 	const frame = scramjet.createFrame();
 
+	frame.addEventListener("urlchange", (e) => {
+		this.url = e.url;
+	});
+
 	return html`
       <div>
       <h1>Percury Unblocker</h1>
@@ -185,7 +189,11 @@ function App() {
     </div>
       <div class=${[flex, "nav"]} style="width: 60%">
         <button on:click=${() => frame.back()}>&lt;-</button>
-        <input class="bar" style="flex: 1" bind:value=${use(store.url)} on:input=${(e) => (store.url = e.target.value)} on:keyup=${(e) => e.keyCode == 13 && frame.go(e.target.value)}></input>
+        <input class="bar" style="flex: 1" bind:value=${use(this.url)} on:input=${(
+					e
+				) => {
+					this.url = e.target.value;
+				}} on:keyup=${(e) => e.keyCode == 13 && frame.go(e.target.value) && (store.url = this.url)}></input>
         <button on:click=${() => frame.forward()}>-&gt;</button>
       </div>
       ${frame.frame}

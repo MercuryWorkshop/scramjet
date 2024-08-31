@@ -1,4 +1,4 @@
-import { ScramjetController } from "./bootsrapper/index";
+import { ScramjetController } from "./controller/index";
 import { encodeUrl, decodeUrl } from "./shared/rewriters/url";
 import { rewriteCss } from "./shared/rewriters/css";
 import {
@@ -21,6 +21,7 @@ import { ScramjetFrame } from "./controller/frame";
 
 type ScramjetFlags = {
 	serviceworkers: boolean;
+	naiiverewriter: boolean;
 };
 
 interface ScramjetConfig {
@@ -39,6 +40,7 @@ interface ScramjetConfig {
 	client: string;
 	codecs: string;
 	flags: ScramjetFlags;
+	siteflags?: Record<string, ScramjetFlags>;
 }
 
 declare global {

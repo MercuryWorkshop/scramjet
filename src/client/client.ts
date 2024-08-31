@@ -8,6 +8,7 @@ import { createLocationProxy } from "./location";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
 import { CookieStore, config, decodeUrl, encodeUrl } from "../shared";
 import { createWrapFn } from "./shared/wrap";
+import { NavigateEvent } from "./events";
 
 declare global {
 	interface Window {
@@ -26,6 +27,7 @@ export type ProxyCtx = {
 	args: any[];
 	newTarget: AnyFunction;
 	return: (r: any) => void;
+	call: () => any;
 };
 export type Proxy = {
 	construct?(ctx: ProxyCtx): any;
@@ -140,9 +142,15 @@ export class ScramjetClient {
 	}
 
 	set url(url: URL | string) {
-		if (typeof url === "string") url = new URL(url);
+		if (url instanceof URL) url = url.toString();
 
-		self.location.href = encodeUrl(url.href);
+		const ev = new NavigateEvent(url);
+		if (this.frame) {
+			this.frame.dispatchEvent(ev);
+		}
+		if (ev.defaultPrevented) return;
+
+		self.location.href = encodeUrl(ev.url);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs
@@ -192,6 +200,7 @@ export class ScramjetClient {
 					return: (r: any) => {
 						returnValue = r;
 					},
+					call: () => alert("todo"),
 				};
 
 				handler.construct(ctx);
@@ -217,6 +226,10 @@ export class ScramjetClient {
 					return: (r: any) => {
 						earlyreturn = true;
 						returnValue = r;
+					},
+					call: () => {
+						earlyreturn = true;
+						returnValue = Reflect.apply(ctx.fn, ctx.this, ctx.args);
 					},
 				};
 
