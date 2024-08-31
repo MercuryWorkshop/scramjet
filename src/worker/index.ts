@@ -17,6 +17,11 @@ export class ScramjetServiceWorker {
 
 	serviceWorkers: FakeServiceWorker[] = [];
 
+	dataworkerpromises: Record<
+		string,
+		{ promise: Promise<string>; resolve: (v: string) => void }
+	> = {};
+
 	constructor() {
 		this.client = new self.$scramjet.shared.util.BareClient();
 
@@ -35,8 +40,17 @@ export class ScramjetServiceWorker {
 				return;
 			}
 
-			// const resolve = this.syncPool[data.scramjet$token];
-			// delete this.syncPool[data.scramjet$token];
+			if (data.scramjet$type === "dataworker") {
+				if (this.dataworkerpromises[data.id]) {
+					this.dataworkerpromises[data.id].resolve(data.data);
+				} else {
+					let resolve: (v: string) => void;
+					const promise = new Promise<string>((res) => (resolve = res));
+					this.dataworkerpromises[data.id] = { promise, resolve };
+					resolve(data.data);
+				}
+				return;
+			}
 		});
 	}
 
@@ -110,16 +124,28 @@ export class ScramjetServiceWorker {
 
 	async fetch({ request, clientId }: FetchEvent) {
 		if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
-			const dataurl = new URL(request.url).searchParams.get("data");
+			const id = new URL(request.url).searchParams.get("id");
 			const type = new URL(request.url).searchParams.get("type");
-			const res = await fetch(dataurl);
-			const ab = await res.arrayBuffer();
 
 			const origin = new URL(
 				decodeURIComponent(new URL(request.url).searchParams.get("origin"))
 			);
 
-			const rewritten = rewriteWorkers(ab, type, new URL(origin));
+			let promise = this.dataworkerpromises[id];
+			if (!promise) {
+				let resolve: (v: string) => void;
+				promise = {
+					promise: new Promise<string>((res) => (resolve = res)),
+					resolve,
+				};
+				promise.resolve = resolve;
+				this.dataworkerpromises[id] = promise;
+			}
+
+			const data = await promise.promise;
+			delete this.dataworkerpromises[id];
+
+			const rewritten = rewriteWorkers(data, type, new URL(origin));
 
 			return new Response(rewritten, {
 				headers: {
@@ -148,12 +174,21 @@ type CookieMessage = {
 	url: string;
 };
 
+type DataWorkerMessage = {
+	scramjet$type: "dataworker";
+	data: string;
+	id: string;
+};
+
 type MessageCommon = {
 	scramjet$type: string;
 	scramjet$token: number;
 };
 
-type MessageTypeC2W = RegisterServiceWorkerMessage | CookieMessage;
+type MessageTypeC2W =
+	| RegisterServiceWorkerMessage
+	| CookieMessage
+	| DataWorkerMessage;
 type MessageTypeW2C = CookieMessage;
 
 // c2w: client to (service) worker

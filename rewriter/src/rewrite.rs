@@ -85,18 +85,21 @@ impl Rewriter {
 
 impl<'a> Visit<'a> for Rewriter {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
-		// self.jschanges.push(JsChange::GenericChange {
-		//     span: it.span,
-		//     text: format!(
-		//         "({}(typeof {} == 'undefined' || {}, (()=>{{ try {{return arguments}} catch(_){{}} }})()))",
-		//         self.wrapfn, it.name, it.name
-		//     ),
-		// });
-		if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
+		if self.config.capture_errors {
 			self.jschanges.push(JsChange::GenericChange {
 				span: it.span,
-				text: format!("{}({})", self.config.wrapfn, it.name),
+				text: format!(
+					"{}({}, typeof arguments != 'undefined' && arguments)",
+					self.config.wrapfn, it.name
+				),
 			});
+		} else {
+			if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
+				self.jschanges.push(JsChange::GenericChange {
+					span: it.span,
+					text: format!("{}({})", self.config.wrapfn, it.name),
+				});
+			}
 		}
 	}
 

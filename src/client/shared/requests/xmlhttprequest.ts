@@ -1,4 +1,4 @@
-import { encodeUrl, rewriteHeaders } from "../../../shared";
+import { decodeUrl, encodeUrl, rewriteHeaders } from "../../../shared";
 
 export default function (client, self) {
 	client.Proxy("XMLHttpRequest.prototype.open", {
@@ -13,6 +13,12 @@ export default function (client, self) {
 			headerObject = rewriteHeaders(headerObject);
 
 			ctx.args = Object.entries(headerObject)[0];
+		},
+	});
+
+	client.Trap("XMLHttpRequest.prototype.responseURL", {
+		get(ctx) {
+			return decodeUrl(ctx.get());
 		},
 	});
 }
