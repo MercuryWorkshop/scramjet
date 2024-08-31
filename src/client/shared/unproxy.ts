@@ -44,7 +44,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Proxy("Object.getOwnPropertyDescriptor", {
 		apply(ctx) {
-			const desc = ctx.fn.apply(ctx.this, ctx.args);
+			const desc = ctx.call();
 
 			if (!desc) return;
 

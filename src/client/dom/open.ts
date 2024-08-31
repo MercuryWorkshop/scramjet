@@ -10,7 +10,7 @@ export default function (client: ScramjetClient) {
 			if (["_parent", "_top", "_unfencedTop"].includes(ctx.args[1]))
 				ctx.args[1] = "_self";
 
-			const realwin = ctx.fn.apply(ctx.this, ctx.args);
+			const realwin = ctx.call();
 
 			if (!realwin) return ctx.return(realwin);
 
