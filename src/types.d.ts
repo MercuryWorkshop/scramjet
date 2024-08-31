@@ -11,7 +11,7 @@ import { rewriteJs } from "./shared/rewriters/js";
 import { rewriteHeaders } from "./shared/rewriters/headers";
 import { rewriteWorkers } from "./shared/rewriters/worker";
 import type { Codec } from "./codecs";
-import { BareClient } from "@mercuryworkshop/bare-mux";
+import { BareClient, BareMuxConnection } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./shared/headers";
 import { CookieStore } from "./shared/cookie";
@@ -64,6 +64,7 @@ declare global {
 				};
 				util: {
 					BareClient: typeof BareClient;
+					BareMuxConnection: typeof BareMuxConnection;
 					ScramjetHeaders: typeof ScramjetHeaders;
 					parseDomain: typeof parseDomain;
 				};
