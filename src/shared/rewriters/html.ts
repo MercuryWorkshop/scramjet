@@ -199,7 +199,9 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 	}
 
 	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {
-		if (node.attribs["http-equiv"] === "content-security-policy") {
+		if (
+			node.attribs["http-equiv"].toLowerCase() === "content-security-policy"
+		) {
 			node = {};
 		} else if (
 			node.attribs["http-equiv"] === "refresh" &&
