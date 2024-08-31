@@ -31,6 +31,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 		imagesrcset: [self.HTMLLinkElement],
 	};
 
+	const urlinterfaces = [
+		self.HTMLAnchorElement.prototype,
+		self.HTMLAreaElement.prototype,
+	];
+	const originalhrefs = [
+		nativeGetOwnPropertyDescriptor(self.HTMLAnchorElement.prototype, "href"),
+		nativeGetOwnPropertyDescriptor(self.HTMLAreaElement.prototype, "href"),
+	];
+
 	const attrs = Object.keys(attrObject);
 
 	for (const attr of attrs) {
@@ -66,6 +75,48 @@ export default function (client: ScramjetClient, self: typeof window) {
 			});
 		}
 	}
+
+	// note that href is not here
+	const urlprops = [
+		"protocol",
+		"hash",
+		"host",
+		"hostname",
+		"origin",
+		"pathname",
+		"port",
+		"search",
+	];
+	for (const prop of urlprops) {
+		for (const i in urlinterfaces) {
+			const target = urlinterfaces[i];
+			const desc = originalhrefs[i];
+			client.RawTrap(target, prop, {
+				get(ctx) {
+					let href = desc.get.call(ctx.this);
+					if (!href) return href;
+
+					const url = new URL(decodeUrl(href));
+
+					return url[prop];
+				},
+			});
+		}
+	}
+
+	client.Trap("Node.prototype.baseURI", {
+		get() {
+			const base = self.document.querySelector("base");
+			if (base) {
+				return new URL(base.href, client.url).href;
+			}
+
+			return client.url.href;
+		},
+		set() {
+			return false;
+		},
+	});
 
 	client.Proxy("Element.prototype.setAttribute", {
 		apply(ctx) {
