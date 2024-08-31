@@ -13,6 +13,7 @@ export function createLocationProxy(
 	fakeLocation.constructor = self.Location;
 
 	const urlprops = [
+		"protocol",
 		"hash",
 		"host",
 		"hostname",
