@@ -190,7 +190,8 @@ export class ScramjetClient {
 				argArray: any[],
 				newTarget: AnyFunction
 			) {
-				let returnValue: any = null;
+				let returnValue: any = undefined;
+				let earlyreturn = false;
 
 				const ctx: ProxyCtx = {
 					fn: constructor,
@@ -200,12 +201,16 @@ export class ScramjetClient {
 					return: (r: any) => {
 						returnValue = r;
 					},
-					call: () => alert("todo"),
+					call: () => {
+						earlyreturn = true;
+						returnValue = Reflect.construct(ctx.fn, ctx.args, ctx.newTarget);
+						return returnValue;
+					},
 				};
 
 				handler.construct(ctx);
 
-				if (returnValue) {
+				if (earlyreturn) {
 					return returnValue;
 				}
 
@@ -215,7 +220,7 @@ export class ScramjetClient {
 
 		if (handler.apply) {
 			h.apply = function (fn: any, thisArg: any, argArray: any[]) {
-				let returnValue: any = null;
+				let returnValue: any = undefined;
 				let earlyreturn = false;
 
 				const ctx: ProxyCtx = {
@@ -230,6 +235,7 @@ export class ScramjetClient {
 					call: () => {
 						earlyreturn = true;
 						returnValue = Reflect.apply(ctx.fn, ctx.this, ctx.args);
+						return returnValue;
 					},
 				};
 
