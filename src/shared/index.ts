@@ -4,7 +4,7 @@ import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
 import { rewriteJs } from "./rewriters/js";
 import { rewriteHeaders } from "./rewriters/headers";
 import { rewriteWorkers } from "./rewriters/worker";
-import { BareClient } from "@mercuryworkshop/bare-mux";
+import { BareClient, BareMuxConnection } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./headers";
 import { CookieStore } from "./cookie";
@@ -14,6 +14,7 @@ self.$scramjet.shared = {
 	util: {
 		parseDomain,
 		BareClient,
+		BareMuxConnection,
 		ScramjetHeaders,
 	},
 	url: {

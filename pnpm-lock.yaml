@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@mercuryworkshop/bare-mux':
-        specifier: ^2.0.2
-        version: 2.0.2
+        specifier: ^2.0.5
+        version: 2.0.5
       '@webreflection/idb-map':
         specifier: ^0.3.1
         version: 0.3.1
@@ -230,8 +230,8 @@ packages:
   '@mercuryworkshop/bare-as-module3@2.2.2':
     resolution: {integrity: sha512-Ds8981SmI1DQp1mDCVax1x0I5mH2dR1tYKytW7xTjlnpsfwn3RzQDiVJHUCrpc7cWGCe+7mHCF3EoMjM3hFfvQ==}
 
-  '@mercuryworkshop/bare-mux@2.0.2':
-    resolution: {integrity: sha512-1rnqFfI29VXi3jrMbkotHV+NnafJ3tpTIuH3Ov/BtVAfZMNGcsCRr3dwEKRWc+mDb0tWdNWC0PnZghgfAlbr+A==}
+  '@mercuryworkshop/bare-mux@2.0.5':
+    resolution: {integrity: sha512-Uu0JGqqh4K0MuOGnz5QI8DvnW3SGqmdeIP5HET1JKFjMy3HqPpRrIb3UAETZ7TPYjWgR/YJxNp2DmCsPluohCg==}
 
   '@mercuryworkshop/epoxy-tls@2.1.2-1':
     resolution: {integrity: sha512-qt6UOEZcVMYblFwOKaNAZHoDHSYN3JZ5Z6BvRHKB6zo1DFMub+cPuYQ+Aauib7LmIabYWZi2cMyfO5VsNLDYoA==}
@@ -3183,7 +3183,7 @@ snapshots:
     dependencies:
       typescript: 5.5.3
 
-  '@mercuryworkshop/bare-mux@2.0.2': {}
+  '@mercuryworkshop/bare-mux@2.0.5': {}
 
   '@mercuryworkshop/epoxy-tls@2.1.2-1': {}
 

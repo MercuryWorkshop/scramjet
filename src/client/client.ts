@@ -6,7 +6,13 @@ import { createGlobalProxy } from "./global";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 import { createLocationProxy } from "./location";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { CookieStore, config, decodeUrl, encodeUrl } from "../shared";
+import {
+	BareClient,
+	CookieStore,
+	config,
+	decodeUrl,
+	encodeUrl,
+} from "../shared";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 
@@ -53,6 +59,7 @@ export class ScramjetClient {
 	globalProxy: any;
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
+	bare: any;
 
 	descriptors: Record<string, PropertyDescriptor> = {};
 	natives: Record<string, any> = {};
@@ -83,7 +90,19 @@ export class ScramjetClient {
 		this.locationProxy = createLocationProxy(this, global);
 		this.globalProxy = createGlobalProxy(this, global);
 		this.wrapfn = createWrapFn(this, global);
-
+		if (iswindow) {
+			this.bare = new BareClient();
+		} else {
+			this.bare = new BareClient(
+				new Promise((resolve) => {
+					addEventListener("message", (e) => {
+						if (e.data instanceof MessagePort) {
+							resolve(e.data);
+						}
+					});
+				})
+			);
+		}
 		global[SCRAMJETCLIENT] = this;
 	}
 
