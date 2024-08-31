@@ -43,6 +43,12 @@ export function createLocationProxy(
 		if (native.set) {
 			desc.set = new Proxy(native.set, {
 				apply(target, thisArg, args) {
+					if (prop === "href") {
+						// special case
+						client.url = args[0];
+						return;
+					}
+
 					let url = new URL(client.url.href);
 					url[prop] = args[0];
 					client.url = url;
