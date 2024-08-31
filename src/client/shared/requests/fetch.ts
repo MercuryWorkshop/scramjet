@@ -16,11 +16,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		},
 	});
 
-	client.Proxy("Headers", {
-		construct(ctx) {
-			ctx.args[0] = rewriteHeaders(ctx.args[0]);
-		},
-	});
+	// client.Proxy("Headers", {
+	// 	construct(ctx) {
+	// 		ctx.args[0] = rewriteHeaders(ctx.args[0]);
+	// 	},
+	// });
 
 	client.Proxy("Request", {
 		construct(ctx) {

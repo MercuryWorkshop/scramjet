@@ -218,6 +218,7 @@ export class ScramjetClient {
 					args: argArray,
 					newTarget: newTarget,
 					return: (r: any) => {
+						earlyreturn = true;
 						returnValue = r;
 					},
 					call: () => {
