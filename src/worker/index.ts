@@ -111,6 +111,7 @@ export class ScramjetServiceWorker {
 	async fetch({ request, clientId }: FetchEvent) {
 		if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
 			const dataurl = new URL(request.url).searchParams.get("data");
+			const type = new URL(request.url).searchParams.get("type");
 			const res = await fetch(dataurl);
 			const ab = await res.arrayBuffer();
 
@@ -118,7 +119,7 @@ export class ScramjetServiceWorker {
 				decodeURIComponent(new URL(request.url).searchParams.get("origin"))
 			);
 
-			const rewritten = rewriteWorkers(ab, new URL(origin));
+			const rewritten = rewriteWorkers(ab, type, new URL(origin));
 
 			return new Response(rewritten, {
 				headers: {

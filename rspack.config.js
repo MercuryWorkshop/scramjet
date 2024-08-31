@@ -64,8 +64,6 @@ export default defineConfig({
 	plugins: [
 		new rspack.ProvidePlugin({
 			dbg: [join(__dirname, "src/log.ts"), "default"],
-			Function: [join(__dirname, "src/snapshot.ts"), "Function"],
-			Request: [join(__dirname, "src/snapshot.ts"), "Request"],
 		}),
 		process.env.OBFUSCATE === "true" && {
 			apply(compiler) {

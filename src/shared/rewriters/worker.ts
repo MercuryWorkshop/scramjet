@@ -1,10 +1,11 @@
 import { rewriteJs } from "./js";
 
 const clientscripts = ["wasm", "shared", "client"];
-export function rewriteWorkers(js: string | ArrayBuffer, origin?: URL) {
-	const dest = origin.searchParams.get("dest");
-	const type = origin.searchParams.get("type");
-
+export function rewriteWorkers(
+	js: string | ArrayBuffer,
+	type: string,
+	origin?: URL
+) {
 	origin.search = "";
 
 	let str = "";
@@ -35,7 +36,7 @@ self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
 
 	str += rewritten;
 
-	dbg.log("Rewrite", type, dest, str);
+	dbg.log("Rewrite", type, str);
 
 	return str;
 }
