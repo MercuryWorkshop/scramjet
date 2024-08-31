@@ -1,4 +1,4 @@
-import { encodeUrl } from "../shared";
+import { encodeUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {

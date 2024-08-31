@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { decodeUrl } from "../shared";
+import { decodeUrl } from "../../shared";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("origin", {

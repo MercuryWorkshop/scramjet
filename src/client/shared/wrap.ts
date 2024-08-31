@@ -1,7 +1,7 @@
 import { iswindow, isworker } from "..";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
-import { config } from "../shared";
+import { config } from "../../shared";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any, args: any) {

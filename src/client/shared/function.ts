@@ -1,5 +1,5 @@
 import { ScramjetClient, ProxyCtx, Proxy } from "../client";
-import { rewriteJs } from "../shared";
+import { rewriteJs } from "../../shared";
 
 function rewriteFunction(ctx: ProxyCtx) {
 	const stringifiedFunction = ctx.fn(...ctx.args).toString();

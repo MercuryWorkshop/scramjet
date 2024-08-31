@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { config } from "../shared";
+import { config } from "../../shared";
 
 export const POLLUTANT = Symbol.for("scramjet realm pollutant");
 

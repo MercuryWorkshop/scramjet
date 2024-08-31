@@ -6,7 +6,7 @@ import { createGlobalProxy } from "./global";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 import { createLocationProxy } from "./location";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { CookieStore, config, decodeUrl } from "./shared";
+import { CookieStore, config, decodeUrl, encodeUrl } from "../shared";
 import { createWrapFn } from "./shared/wrap";
 
 declare global {
@@ -134,6 +134,20 @@ export class ScramjetClient {
 			else module.disabled(this, this.global);
 		}
 	}
+
+	get url(): URL {
+		return new URL(decodeUrl(self.location.href));
+	}
+
+	set url(url: URL | string) {
+		if (typeof url === "string") url = new URL(url);
+
+		self.location.href = encodeUrl(url.href);
+	}
+
+	// below are the utilities for proxying and trapping dom APIs
+	// you don't have to understand this it just makes the rest easier
+	// i'll document it eventually
 
 	Proxy(name: string | string[], handler: Proxy) {
 		if (Array.isArray(name)) {
@@ -319,9 +333,5 @@ export class ScramjetClient {
 		Object.defineProperty(target, prop, desc);
 
 		return oldDescriptor;
-	}
-
-	get url(): URL {
-		return new URL(decodeUrl(location.href));
 	}
 }

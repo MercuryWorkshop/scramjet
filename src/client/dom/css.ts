@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { rewriteCss } from "../shared";
+import { rewriteCss } from "../../shared";
 
 const cssProperties = [
 	"background",

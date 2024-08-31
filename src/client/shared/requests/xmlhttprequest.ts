@@ -1,4 +1,4 @@
-import { encodeUrl, rewriteHeaders } from "../../shared";
+import { encodeUrl, rewriteHeaders } from "../../../shared";
 
 export default function (client, self) {
 	client.Proxy("XMLHttpRequest.prototype.open", {

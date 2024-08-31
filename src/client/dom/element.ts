@@ -1,14 +1,14 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
-import { config, decodeUrl, htmlRules, unrewriteHtml } from "../shared";
+import { config, decodeUrl, htmlRules, unrewriteHtml } from "../../shared";
 import {
 	encodeUrl,
 	rewriteCss,
 	rewriteHtml,
 	rewriteJs,
 	rewriteSrcset,
-} from "../shared";
+} from "../../shared";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	const attrObject = {

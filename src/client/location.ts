@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { ScramjetClient } from "./client";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { encodeUrl, decodeUrl } from "./shared";
+import { encodeUrl, decodeUrl } from "../shared";
 
 export function createLocationProxy(
 	client: ScramjetClient,
@@ -39,7 +39,7 @@ export function createLocationProxy(
 				apply(target, thisArg, args) {
 					let url = new URL(client.url.href);
 					url[prop] = args[0];
-					self.location.href = encodeUrl(url.href);
+					client.url = url;
 				},
 			});
 		}

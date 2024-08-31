@@ -7,6 +7,7 @@ import {
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
+import { config } from "../../shared";
 
 initSync(
 	new WebAssembly.Module(
@@ -57,7 +58,7 @@ export function rewriteJsNaiive(js: string | ArrayBuffer, origin?: URL) {
 	}
 
 	return `
-		with (${self.$scramjet.config.wrapfn}(globalThis)) {
+		with (${config.wrapfn}(globalThis)) {
 
 			${js}
 

@@ -3,7 +3,7 @@
 import { isemulatedsw } from "../..";
 import { decodeUrl } from "../../../shared/rewriters/url";
 import { ScramjetClient } from "../../client";
-import { encodeUrl, rewriteHeaders } from "../../shared";
+import { encodeUrl, rewriteHeaders } from "../../../shared";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("fetch", {

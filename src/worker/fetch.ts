@@ -5,35 +5,22 @@ import { MessageW2C, ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
 import { CookieStore } from "../shared/cookie";
-
-const { encodeUrl, decodeUrl } = self.$scramjet.shared.url;
-const { rewriteHeaders, rewriteHtml, rewriteJs, rewriteCss, rewriteWorkers } =
-	self.$scramjet.shared.rewrite;
-const { parseDomain, ScramjetHeaders } = self.$scramjet.shared.util;
+import {
+	ScramjetHeaders,
+	decodeUrl,
+	encodeUrl,
+	rewriteCss,
+	rewriteHeaders,
+	rewriteHtml,
+	rewriteJs,
+	rewriteWorkers,
+} from "../shared";
 
 export async function swfetch(
 	this: ScramjetServiceWorker,
-	{ request, clientId }: FetchEvent
+	request: Request,
+	client: Client | null
 ) {
-	if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
-		const dataurl = new URL(request.url).searchParams.get("data");
-		const res = await fetch(dataurl);
-		const ab = await res.arrayBuffer();
-
-		const origin = new URL(
-			decodeURIComponent(new URL(request.url).searchParams.get("origin"))
-		);
-
-		const rewritten = rewriteWorkers(ab, new URL(origin));
-
-		return new Response(rewritten, {
-			headers: {
-				"Content-Type": "application/javascript",
-			},
-		});
-	}
-
-	const client = await self.clients.get(clientId);
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {

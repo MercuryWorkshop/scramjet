@@ -2,15 +2,11 @@ import IDBMap from "@webreflection/idb-map";
 import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
-
-declare global {
-	interface Window {
-		ScramjetServiceWorker;
-	}
-}
+import type BareClient from "@mercuryworkshop/bare-mux";
+import { rewriteWorkers } from "../shared";
 
 export class ScramjetServiceWorker {
-	client: typeof self.$scramjet.shared.util.BareClient.prototype;
+	client: BareClient;
 	config: typeof self.$scramjet.config;
 	threadpool: ScramjetThreadpool;
 
@@ -112,7 +108,29 @@ export class ScramjetServiceWorker {
 		else return false;
 	}
 
-	public fetch = swfetch;
+	async fetch({ request, clientId }: FetchEvent) {
+		if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
+			const dataurl = new URL(request.url).searchParams.get("data");
+			const res = await fetch(dataurl);
+			const ab = await res.arrayBuffer();
+
+			const origin = new URL(
+				decodeURIComponent(new URL(request.url).searchParams.get("origin"))
+			);
+
+			const rewritten = rewriteWorkers(ab, new URL(origin));
+
+			return new Response(rewritten, {
+				headers: {
+					"Content-Type": "application/javascript",
+				},
+			});
+		}
+
+		const client = await self.clients.get(clientId);
+
+		return swfetch.call(this, request, client);
+	}
 }
 
 self.ScramjetServiceWorker = ScramjetServiceWorker;

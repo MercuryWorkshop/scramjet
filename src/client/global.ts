@@ -1,7 +1,7 @@
-import { encodeUrl } from "./shared";
+import { encodeUrl } from "../shared";
 import { ScramjetClient } from "./client";
 import { indirectEval } from "./shared/eval";
-import { config } from "./shared";
+import { config } from "../shared";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 
 export function createGlobalProxy(
@@ -18,7 +18,7 @@ export function createGlobalProxy(
 					prop
 				)
 			)
-				return self[config.wrapfn](self[prop]);
+				return client.wrapfn(self[prop]);
 
 			if (prop === "$scramjet") return;
 
@@ -31,7 +31,7 @@ export function createGlobalProxy(
 
 		set(target, prop, value) {
 			if (prop === "location") {
-				location.href = encodeUrl(value);
+				client.url = value;
 				return;
 			}
 

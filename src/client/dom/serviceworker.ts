@@ -1,4 +1,4 @@
-import { encodeUrl } from "../shared";
+import { config, encodeUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { type MessageC2W } from "../../worker";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
@@ -6,7 +6,7 @@ import { getOwnPropertyDescriptorHandler } from "../helpers";
 // we need a late order because we're mangling with addEventListener at a higher level
 export const order = 2;
 
-export const enabled = () => self.$scramjet.config.flags.serviceworkers;
+export const enabled = () => config.flags.serviceworkers;
 export function disabled(client: ScramjetClient, self: Self) {
 	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }

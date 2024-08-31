@@ -1,4 +1,4 @@
-import { encodeUrl } from "../shared";
+import { encodeUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { SCRAMJETCLIENT } from "../../symbols";
 

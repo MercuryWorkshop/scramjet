@@ -1,6 +1,6 @@
 import { iswindow, isworker } from "../..";
 import { ScramjetClient } from "../../client";
-import { BareClient } from "../../shared";
+import { BareClient } from "../../../shared";
 
 const bare = iswindow && new BareClient();
 

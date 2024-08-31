@@ -1,5 +1,5 @@
 export const {
-	util: { BareClient },
+	util: { BareClient, ScramjetHeaders },
 	url: { encodeUrl, decodeUrl },
 	rewrite: {
 		rewriteCss,

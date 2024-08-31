@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { config, encodeUrl } from "../shared";
+import { config, encodeUrl } from "../../shared";
 
 export default function (client: ScramjetClient, self: Self) {
 	const Function = client.natives.Function;
