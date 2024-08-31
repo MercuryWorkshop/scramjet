@@ -43,6 +43,8 @@ pub struct Config {
 	pub setrealmfn: String,
 	pub metafn: String,
 	pub encode: EncodeFn,
+
+	pub capture_errors: bool,
 }
 
 impl Rewriter {
@@ -206,13 +208,15 @@ impl<'a> Visit<'a> for Rewriter {
 	fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
 		// for debugging we need to know what the error was
 
-		if let Some(h) = &it.handler {
-			if let Some(name) = &h.param {
-				if let Some(name) = name.pattern.get_identifier() {
-					self.jschanges.push(JsChange::GenericChange {
-						span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
-						text: format!("$scramerr({});", name),
-					});
+		if self.config.capture_errors {
+			if let Some(h) = &it.handler {
+				if let Some(name) = &h.param {
+					if let Some(name) = name.pattern.get_identifier() {
+						self.jschanges.push(JsChange::GenericChange {
+							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
+							text: format!("$scramerr({});", name),
+						});
+					}
 				}
 			}
 		}

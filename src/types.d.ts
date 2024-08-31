@@ -21,7 +21,8 @@ import { ScramjetFrame } from "./controller/frame";
 
 type ScramjetFlags = {
 	serviceworkers: boolean;
-	naiiverewriter: boolean;
+	naiiveRewriter: boolean;
+	captureErrors: boolean;
 };
 
 interface ScramjetConfig {

@@ -133,7 +133,7 @@ export class ScramjetClient {
 		for (const module of modules) {
 			if (!module.enabled || module.enabled())
 				module.default(this, this.global);
-			else module.disabled(this, this.global);
+			else if (module.disabled) module.disabled(this, this.global);
 		}
 	}
 

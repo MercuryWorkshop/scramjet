@@ -120,6 +120,7 @@ fn dorewrite(source_text: &str) -> String {
 				rewritefn: "$rewrite".to_string(),
 				metafn: "$meta".to_string(),
 				setrealmfn: "$setrealm".to_string(),
+				capture_errors: true,
 			},
 		)
 		.as_slice(),

@@ -10,7 +10,7 @@ export class ScramjetController {
 	codec: Codec;
 
 	constructor(config: ScramjetConfig) {
-		const defaultConfig = {
+		const defaultConfig: Partial<ScramjetConfig> = {
 			prefix: "/scramjet/",
 			codec: "plain",
 			wrapfn: "$scramjet$wrap",
@@ -27,6 +27,8 @@ export class ScramjetController {
 			codecs: "/scramjet.codecs.js",
 			flags: {
 				serviceworkers: true,
+				naiiveRewriter: false,
+				captureErrors: false,
 			},
 		};
 

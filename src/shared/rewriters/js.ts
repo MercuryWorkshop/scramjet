@@ -23,6 +23,11 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 	if ("window" in globalThis)
 		origin = origin ?? new URL(decodeUrl(location.href));
 
+	if (self.$scramjet.config.flags.naiiveRewriter) {
+		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
+		return rewriteJsNaiive(text, origin);
+	}
+
 	const before = performance.now();
 	if (typeof js === "string") {
 		js = new TextDecoder().decode(

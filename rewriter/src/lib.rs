@@ -37,6 +37,10 @@ fn get_obj(obj: &JsValue, k: &str) -> JsValue {
 	Reflect::get(obj, &k.into()).unwrap()
 }
 
+fn get_bool(obj: &JsValue, k: &str) -> bool {
+	Reflect::get(obj, &k.into()).unwrap().as_bool().unwrap()
+}
+
 fn get_str(obj: &JsValue, k: &str) -> String {
 	Reflect::get(obj, &k.into()).unwrap().as_string().unwrap()
 }
@@ -44,6 +48,7 @@ fn get_str(obj: &JsValue, k: &str) -> String {
 fn get_config(scramjet: &Object) -> Config {
 	let codec = &get_obj(scramjet, "codec");
 	let config = &get_obj(scramjet, "config");
+	let flags = &get_obj(config, "flags");
 
 	Config {
 		prefix: get_str(config, "prefix"),
@@ -53,6 +58,8 @@ fn get_config(scramjet: &Object) -> Config {
 		rewritefn: get_str(config, "rewritefn"),
 		metafn: get_str(config, "metafn"),
 		setrealmfn: get_str(config, "setrealmfn"),
+
+		capture_errors: get_bool(flags, "captureErrors"),
 	}
 }
 
