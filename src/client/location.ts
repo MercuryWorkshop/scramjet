@@ -14,6 +14,8 @@ export function createLocationProxy(
 	Object.setPrototypeOf(fakeLocation, Location.prototype);
 	fakeLocation.constructor = Location;
 
+	// for some reason it's on the object for Location and on the prototype for WorkerLocation??
+	const descriptorSource = iswindow ? self.location : Location.prototype;
 	const urlprops = [
 		"protocol",
 		"hash",
@@ -26,7 +28,7 @@ export function createLocationProxy(
 		"search",
 	];
 	for (const prop of urlprops) {
-		const native = nativeGetOwnPropertyDescriptor(self.location, prop);
+		const native = nativeGetOwnPropertyDescriptor(descriptorSource, prop);
 		if (!native) continue;
 
 		const desc = {
@@ -75,20 +77,20 @@ export function createLocationProxy(
 		fakeLocation.assign = new Proxy(self.location.assign, {
 			apply(target, thisArg, args) {
 				args[0] = encodeUrl(args[0]);
-				Reflect.apply(target, thisArg, args);
+				Reflect.apply(target, self.location, args);
 			},
 		});
 	if (self.location.reload)
 		fakeLocation.reload = new Proxy(self.location.reload, {
 			apply(target, thisArg, args) {
-				Reflect.apply(target, thisArg, args);
+				Reflect.apply(target, self.location, args);
 			},
 		});
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
 			apply(target, thisArg, args) {
 				args[0] = encodeUrl(args[0]);
-				Reflect.apply(target, thisArg, args);
+				Reflect.apply(target, self.location, args);
 			},
 		});
 
