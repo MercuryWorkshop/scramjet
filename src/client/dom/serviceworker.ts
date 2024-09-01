@@ -52,6 +52,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("navigator.serviceWorker.ready", {
 		get(ctx) {
+			console.log(registration);
 			return new Promise((resolve) => resolve(registration));
 		},
 	});
@@ -74,7 +75,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 			const handle = worker.port;
 
-			navigator.serviceWorker.controller.postMessage(
+			client.serviceWorker.controller.postMessage(
 				{
 					scramjet$type: "registerServiceWorker",
 					port: handle,
