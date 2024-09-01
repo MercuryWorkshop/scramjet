@@ -23,6 +23,7 @@ type ScramjetFlags = {
 	serviceworkers: boolean;
 	naiiveRewriter: boolean;
 	captureErrors: boolean;
+	sourcemaps: boolean;
 };
 
 interface ScramjetConfig {
@@ -34,6 +35,7 @@ interface ScramjetConfig {
 	rewritefn: string;
 	metafn: string;
 	setrealmfn: string;
+	pushsourcemapfn: string;
 	wasm: string;
 	shared: string;
 	worker: string;

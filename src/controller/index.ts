@@ -19,6 +19,7 @@ export class ScramjetController {
 			rewritefn: "$scramjet$rewrite",
 			metafn: "$scramjet$meta",
 			setrealmfn: "$scramjet$setrealm",
+			pushsourcemapfn: "$scramjet$pushsourcemap",
 			wasm: "/scramjet.wasm.js",
 			shared: "/scramjet.shared.js",
 			worker: "/scramjet.worker.js",
@@ -29,6 +30,7 @@ export class ScramjetController {
 				serviceworkers: false,
 				naiiveRewriter: false,
 				captureErrors: false,
+				sourcemaps: true,
 			},
 		};
 

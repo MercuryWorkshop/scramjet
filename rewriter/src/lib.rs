@@ -53,12 +53,15 @@ fn get_config(scramjet: &Object) -> Config {
 	Config {
 		prefix: get_str(config, "prefix"),
 		encode: create_encode_function(get_obj(codec, "encode")),
+
 		wrapfn: get_str(config, "wrapfn"),
 		importfn: get_str(config, "importfn"),
 		rewritefn: get_str(config, "rewritefn"),
 		metafn: get_str(config, "metafn"),
 		setrealmfn: get_str(config, "setrealmfn"),
+		pushsourcemapfn: get_str(config, "pushsourcemapfn"),
 
+		do_sourcemaps: get_bool(flags, "sourcemaps"),
 		capture_errors: get_bool(flags, "captureErrors"),
 	}
 }

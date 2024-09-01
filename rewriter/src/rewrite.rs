@@ -1,3 +1,5 @@
+use core::str;
+
 use oxc_allocator::Allocator;
 use oxc_ast::{
 	ast::{
@@ -37,14 +39,17 @@ struct Rewriter {
 
 pub struct Config {
 	pub prefix: String,
+
 	pub wrapfn: String,
 	pub importfn: String,
 	pub rewritefn: String,
 	pub setrealmfn: String,
 	pub metafn: String,
-	pub encode: EncodeFn,
+	pub pushsourcemapfn: String,
 
+	pub encode: EncodeFn,
 	pub capture_errors: bool,
+	pub do_sourcemaps: bool,
 }
 
 impl Rewriter {
@@ -85,22 +90,22 @@ impl Rewriter {
 
 impl<'a> Visit<'a> for Rewriter {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
-		if self.config.capture_errors {
+		// if self.config.capture_errors {
+		// 	self.jschanges.push(JsChange::GenericChange {
+		// 		span: it.span,
+		// 		text: format!(
+		// 			"{}({}, typeof arguments != 'undefined' && arguments)",
+		// 			self.config.wrapfn, it.name
+		// 		),
+		// 	});
+		// } else {
+		if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
 			self.jschanges.push(JsChange::GenericChange {
 				span: it.span,
-				text: format!(
-					"{}({}, typeof arguments != 'undefined' && arguments)",
-					self.config.wrapfn, it.name
-				),
+				text: format!("{}({})", self.config.wrapfn, it.name),
 			});
-		} else {
-			if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
-				self.jschanges.push(JsChange::GenericChange {
-					span: it.span,
-					text: format!("{}({})", self.config.wrapfn, it.name),
-				});
-			}
 		}
+		// }
 	}
 
 	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
@@ -455,12 +460,31 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	let size_estimate = (original_len as i32 + difference) as usize;
 	let mut buffer: Vec<u8> = Vec::with_capacity(size_estimate);
 
+	let mut sourcemap: Vec<u8> = Vec::new();
+	if ast_pass.config.do_sourcemaps {
+		sourcemap.reserve(size_estimate * 2);
+		sourcemap.extend_from_slice(&format!("{}([", ast_pass.config.pushsourcemapfn).as_bytes());
+	}
+
 	let mut offset = 0;
 	for change in ast_pass.jschanges {
 		match &change {
 			JsChange::GenericChange { span, text } => {
 				let start = span.start as usize;
 				let end = span.end as usize;
+
+				if ast_pass.config.do_sourcemaps {
+					let spliced = &js[start..end];
+					sourcemap.extend_from_slice(
+						format!(
+							"[\"{}\",{},{}],",
+							json_escape_string(spliced),
+							start,
+							start + text.len()
+						)
+						.as_bytes(),
+					);
+				}
 
 				buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
 
@@ -500,7 +524,36 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	}
 	buffer.extend_from_slice(js[offset..].as_bytes());
 
+	if ast_pass.config.do_sourcemaps {
+		sourcemap.extend_from_slice(b"],");
+		sourcemap.extend_from_slice(b"\"");
+		sourcemap
+			.extend_from_slice(json_escape_string(str::from_utf8(&buffer).unwrap()).as_bytes());
+		sourcemap.extend_from_slice(b"\");\n");
+
+		sourcemap.extend_from_slice(&buffer);
+
+		return sourcemap;
+	}
+
 	buffer
+}
+
+fn json_escape_string(s: &str) -> String {
+	let mut out = String::with_capacity(s.len());
+	for c in s.chars() {
+		match c {
+			'"' => out.push_str("\\\""),
+			'\\' => out.push_str("\\\\"),
+			'\x08' => out.push_str("\\b"),
+			'\x0C' => out.push_str("\\f"),
+			'\n' => out.push_str("\\n"),
+			'\r' => out.push_str("\\r"),
+			'\t' => out.push_str("\\t"),
+			_ => out.push(c),
+		}
+	}
+	out
 }
 
 fn fmt_op(op: AssignmentOperator) -> &'static str {
