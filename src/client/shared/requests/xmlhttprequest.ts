@@ -8,15 +8,6 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.Proxy("XMLHttpRequest.prototype.setRequestHeader", {
-		apply(ctx) {
-			let headerObject = Object.fromEntries([ctx.args]);
-			headerObject = rewriteHeaders(headerObject, client.meta);
-
-			ctx.args = Object.entries(headerObject)[0];
-		},
-	});
-
 	client.Trap("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
 			return decodeUrl(ctx.get() as string);
