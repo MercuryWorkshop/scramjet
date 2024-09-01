@@ -5,7 +5,7 @@ let sourcemaps: {
 	map: [string, number, number][];
 }[] = [];
 
-export const enabled = self.$scramjet.config.flags.sourcemaps;
+export const enabled = () => self.$scramjet.config.flags.sourcemaps;
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap

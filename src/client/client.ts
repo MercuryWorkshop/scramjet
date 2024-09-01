@@ -310,7 +310,7 @@ export class ScramjetClient {
 					}
 				}
 
-				delete Error.prepareStackTrace;
+				Error.prepareStackTrace = pst;
 
 				if (earlyreturn) {
 					return returnValue;
