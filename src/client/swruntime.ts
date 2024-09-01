@@ -1,5 +1,5 @@
 import { ScramjetClient } from "./client";
-import { decodeUrl, encodeUrl } from "../shared";
+import { decodeUrl } from "../shared";
 
 export class ScramjetServiceWorkerRuntime {
 	recvport: MessagePort;

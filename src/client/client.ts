@@ -15,6 +15,7 @@ import {
 } from "../shared";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
+import type { URLMeta } from "../shared/rewriters/url";
 
 declare global {
 	interface Window {
@@ -78,6 +79,8 @@ export class ScramjetClient {
 		]
 	> = new Map();
 
+	meta: URLMeta;
+
 	constructor(public global: typeof globalThis) {
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
@@ -103,6 +106,27 @@ export class ScramjetClient {
 				})
 			);
 		}
+
+		let baseurl: URL;
+		if (iswindow) {
+			// setup base url
+			// base url can only be updated at document load time and it will affect all urls resolved by encodeurl/rewriteurl
+			const base = this.global.document.querySelector("base");
+			if (base) {
+				baseurl = new URL(decodeUrl(base.href));
+			}
+		}
+
+		const client = this;
+		this.meta = {
+			get origin() {
+				return client.url;
+			},
+			get base() {
+				return baseurl || client.url;
+			},
+		};
+
 		global[SCRAMJETCLIENT] = this;
 	}
 
@@ -169,7 +193,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		self.location.href = encodeUrl(ev.url);
+		self.location.href = encodeUrl(ev.url, this.meta);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs

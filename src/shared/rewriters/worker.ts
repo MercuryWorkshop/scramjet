@@ -1,13 +1,12 @@
 import { rewriteJs } from "./js";
+import { URLMeta } from "./url";
 
 const clientscripts = ["wasm", "shared", "client"];
 export function rewriteWorkers(
 	js: string | ArrayBuffer,
 	type: string,
-	origin?: URL
+	meta: URLMeta
 ) {
-	origin.search = "";
-
 	let str = "";
 
 	str += `self.$scramjet = {}; self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
@@ -29,7 +28,7 @@ self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
 		}
 	}
 
-	let rewritten = rewriteJs(js, origin);
+	let rewritten = rewriteJs(js, meta);
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
 	}

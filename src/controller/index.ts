@@ -26,7 +26,7 @@ export class ScramjetController {
 			client: "/scramjet.client.js",
 			codecs: "/scramjet.codecs.js",
 			flags: {
-				serviceworkers: true,
+				serviceworkers: false,
 				naiiveRewriter: false,
 				captureErrors: false,
 			},

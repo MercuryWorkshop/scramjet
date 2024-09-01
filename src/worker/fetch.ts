@@ -16,6 +16,15 @@ import {
 	rewriteWorkers,
 } from "../shared";
 
+import type { URLMeta } from "../shared/rewriters/url";
+
+function newmeta(url: URL): URLMeta {
+	return {
+		origin: url,
+		base: url,
+	};
+}
+
 export async function swfetch(
 	this: ScramjetServiceWorker,
 	request: Request,
@@ -25,7 +34,7 @@ export async function swfetch(
 
 	if (urlParam.has("url")) {
 		return Response.redirect(
-			encodeUrl(urlParam.get("url"), new URL(urlParam.get("url")))
+			encodeUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
 		);
 	}
 
@@ -124,7 +133,7 @@ async function handleResponse(
 	client: Client
 ): Promise<Response> {
 	let responseBody: string | ArrayBuffer | ReadableStream;
-	const responseHeaders = rewriteHeaders(response.rawHeaders, url);
+	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
 
 	let maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
@@ -155,7 +164,7 @@ async function handleResponse(
 					responseBody = rewriteHtml(
 						await response.text(),
 						cookieStore,
-						url,
+						newmeta(url),
 						true
 					);
 				} else {
@@ -163,19 +172,19 @@ async function handleResponse(
 				}
 				break;
 			case "script":
-				responseBody = rewriteJs(await response.arrayBuffer(), url);
+				responseBody = rewriteJs(await response.arrayBuffer(), newmeta(url));
 				// Disable threading for now, it's causing issues.
 				// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
 				break;
 			case "style":
-				responseBody = rewriteCss(await response.text(), url);
+				responseBody = rewriteCss(await response.text(), newmeta(url));
 				break;
 			case "sharedworker":
 			case "worker":
 				responseBody = rewriteWorkers(
 					await response.arrayBuffer(),
 					workertype,
-					url
+					newmeta(url)
 				);
 				break;
 			default:

@@ -145,7 +145,10 @@ export class ScramjetServiceWorker {
 			const data = await promise.promise;
 			delete this.dataworkerpromises[id];
 
-			const rewritten = rewriteWorkers(data, type, new URL(origin));
+			const rewritten = rewriteWorkers(data, type, {
+				origin: new URL(origin),
+				base: new URL(origin),
+			});
 
 			return new Response(rewritten, {
 				headers: {

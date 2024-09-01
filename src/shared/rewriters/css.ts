@@ -1,9 +1,9 @@
 // This CSS rewriter uses code from Meteor
 // You can find the original source code at https://github.com/MeteorProxy/Meteor
 
-import { encodeUrl } from "./url";
+import { URLMeta, encodeUrl } from "./url";
 
-export function rewriteCss(css: string, origin?: URL) {
+export function rewriteCss(css: string, meta: URLMeta) {
 	const regex =
 		/(@import\s+(?!url\())?\s*url\(\s*(['"]?)([^'")]+)\2\s*\)|@import\s+(['"])([^'"]+)\4/g;
 
@@ -18,7 +18,7 @@ export function rewriteCss(css: string, origin?: URL) {
 			importContent
 		) => {
 			const url = urlContent || importContent;
-			const encodedUrl = encodeUrl(url.trim(), origin);
+			const encodedUrl = encodeUrl(url.trim(), meta);
 
 			if (importStatement) {
 				return `@import url(${urlQuote}${encodedUrl}${urlQuote})`;

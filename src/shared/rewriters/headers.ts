@@ -1,4 +1,6 @@
-import { encodeUrl } from "./url";
+// TODO this whole file should be inlined and deleted it's a weird relic from ssd era
+
+import { URLMeta, encodeUrl } from "./url";
 import { BareHeaders } from "@mercuryworkshop/bare-mux";
 const cspHeaders = [
 	"cross-origin-embedder-policy",
@@ -24,11 +26,11 @@ const cspHeaders = [
 
 const urlHeaders = ["location", "content-location", "referer"];
 
-function rewriteLinkHeader(link: string, origin?: URL) {
-	return link.replace(/<(.*)>/gi, (match) => encodeUrl(match, origin));
+function rewriteLinkHeader(link: string, meta: URLMeta) {
+	return link.replace(/<(.*)>/gi, (match) => encodeUrl(match, meta));
 }
 
-export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
+export function rewriteHeaders(rawHeaders: BareHeaders, meta: URLMeta) {
 	const headers = {};
 
 	for (const key in rawHeaders) {
@@ -41,17 +43,14 @@ export function rewriteHeaders(rawHeaders: BareHeaders, origin?: URL) {
 
 	urlHeaders.forEach((header) => {
 		if (headers[header])
-			headers[header] = encodeUrl(
-				headers[header]?.toString() as string,
-				origin
-			);
+			headers[header] = encodeUrl(headers[header]?.toString() as string, meta);
 	});
 
 	if (typeof headers["link"] === "string") {
-		headers["link"] = rewriteLinkHeader(headers["link"], origin);
+		headers["link"] = rewriteLinkHeader(headers["link"], meta);
 	} else if (Array.isArray(headers["link"])) {
 		headers["link"] = headers["link"].map((link) =>
-			rewriteLinkHeader(link, origin)
+			rewriteLinkHeader(link, meta)
 		);
 	}
 

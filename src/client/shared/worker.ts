@@ -1,4 +1,5 @@
-import { encodeUrl, BareMuxConnection } from "../../shared";
+import { BareMuxConnection } from "../../shared";
+import { encodeUrl } from "../../shared/rewriters/url";
 import type { MessageC2W } from "../../worker";
 import { ScramjetClient } from "../client";
 
@@ -23,7 +24,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					id,
 				} as MessageC2W);
 			} else {
-				args[0] = encodeUrl(args[0]) + "?dest=worker";
+				args[0] = encodeUrl(args[0], client.meta) + "?dest=worker";
 
 				if (args[1] && args[1].type === "module") {
 					args[0] += "&type=module";

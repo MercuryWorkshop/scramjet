@@ -4,6 +4,7 @@ import { decodeUrl } from "../../shared";
 export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("origin", {
 		get() {
+			// this isn't right!!
 			return client.url.origin;
 		},
 		set() {

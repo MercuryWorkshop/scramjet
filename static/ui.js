@@ -25,25 +25,6 @@ scramjet.init("./sw.js");
 // 	}
 // });
 
-navigator.serviceWorker.onmessage = ({ data }) => {
-	if (data.scramjet$type === "getLocalStorage") {
-		const pairs = Object.entries(localStorage);
-		navigator.serviceWorker.controller.postMessage({
-			scramjet$type: "getLocalStorage",
-			scramjet$token: data.scramjet$token,
-			data: pairs,
-		});
-	} else if (data.scramjet$type === "setLocalStorage") {
-		for (const [key, value] of data.data) {
-			localStorage.setItem(key, value);
-		}
-		navigator.serviceWorker.controller.postMessage({
-			scramjet$type: "setLocalStorage",
-			scramjet$token: data.scramjet$token,
-		});
-	}
-};
-
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
 	display: flex;
@@ -150,11 +131,22 @@ function App() {
       background-color: #313131;
     }
   `;
+	this.url = store.url;
 
 	const frame = scramjet.createFrame();
 
 	frame.addEventListener("urlchange", (e) => {
+		if (!e.url) return;
 		this.url = e.url;
+	});
+	frame.frame.addEventListener("load", () => {
+		let url = frame.frame.contentWindow.location.href;
+		if (!url) return;
+		if (url === "about:blank") return;
+
+		this.url = $scramjet.codecs.plain.decode(
+			url.substring((location.href + "/scramjet").length)
+		);
 	});
 
 	return html`
@@ -193,7 +185,7 @@ function App() {
 					e
 				) => {
 					this.url = e.target.value;
-				}} on:keyup=${(e) => e.keyCode == 13 && frame.go(e.target.value) && (store.url = this.url)}></input>
+				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && frame.go(e.target.value)}></input>
         <button on:click=${() => frame.forward()}>-&gt;</button>
       </div>
       ${frame.frame}

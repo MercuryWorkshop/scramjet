@@ -21,7 +21,7 @@ export function createDocumentProxy(
 		},
 		set(target, prop, newValue) {
 			if (prop === "location") {
-				location.href = encodeUrl(newValue);
+				location.href = encodeUrl(newValue, client.meta);
 				return;
 			}
 

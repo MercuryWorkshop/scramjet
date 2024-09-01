@@ -1,7 +1,7 @@
 import { ElementType, Parser } from "htmlparser2";
 import { ChildNode, DomHandler, Element, Node, Text } from "domhandler";
 import render from "dom-serializer";
-import { encodeUrl } from "./url";
+import { URLMeta, encodeUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
@@ -9,7 +9,7 @@ import { CookieStore } from "../cookie";
 export function rewriteHtml(
 	html: string,
 	cookieStore: CookieStore,
-	origin?: URL,
+	meta: URLMeta,
 	fromTop: boolean = false
 ) {
 	const handler = new DomHandler((err, dom) => dom);
@@ -17,7 +17,7 @@ export function rewriteHtml(
 
 	parser.write(html);
 	parser.end();
-	traverseParsedHtml(handler.root, cookieStore, origin);
+	traverseParsedHtml(handler.root, cookieStore, meta);
 
 	function findhead(node) {
 		if (node.type === ElementType.Tag && node.name === "head") {
@@ -62,6 +62,11 @@ export function rewriteHtml(
 	return render(handler.root);
 }
 
+type ParseState = {
+	base: string;
+	origin?: URL;
+};
+
 export function unrewriteHtml(html: string) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
@@ -93,17 +98,11 @@ export function unrewriteHtml(html: string) {
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | Function;
-	fn: (
-		value: string,
-		origin: URL | null,
-		cookieStore: CookieStore
-	) => string | null;
+	fn: (value: string, meta: URLMeta, cookieStore: CookieStore) => string | null;
 }[] = [
 	{
-		fn: (value: string, origin: URL) => {
-			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
-
-			return encodeUrl(value, origin);
+		fn: (value: string, meta: URLMeta) => {
+			return encodeUrl(value, meta);
 		},
 
 		// url rewrites
@@ -133,34 +132,51 @@ export const htmlRules: {
 		csp: ["iframe"],
 	},
 	{
-		fn: (value: string, origin?: URL) => rewriteSrcset(value, origin),
+		fn: (value: string, meta: URLMeta) => rewriteSrcset(value, meta),
 
 		// srcset
 		srcset: ["img", "source"],
 		imagesrcset: ["link"],
 	},
 	{
-		fn: (value: string, origin: URL, cookieStore: CookieStore) =>
-			rewriteHtml(value, cookieStore, origin, true),
+		fn: (value: string, meta: URLMeta, cookieStore: CookieStore) =>
+			rewriteHtml(
+				value,
+				cookieStore,
+				{
+					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
+					origin: new URL(meta.origin.origin),
+					base: new URL(meta.origin.origin),
+				},
+				true
+			),
 
 		// srcdoc
 		srcdoc: ["iframe"],
 	},
 	{
-		fn: (value: string, origin?: URL) => rewriteCss(value, origin),
+		fn: (value: string, meta: URLMeta) => rewriteCss(value, meta),
 		style: "*",
 	},
 	{
 		fn: (value: string) => {
 			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
 		},
-		target: ["a"],
+		target: ["a", "base"],
 	},
 ];
 
 // i need to add the attributes in during rewriting
 
-function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
+function traverseParsedHtml(
+	node: any,
+	cookieStore: CookieStore,
+	meta: URLMeta
+) {
+	if (node.name === "base" && node.attribs.href !== undefined) {
+		meta.base = new URL(node.attribs.href, meta.origin);
+	}
+
 	if (node.attribs)
 		for (const rule of htmlRules) {
 			for (const attr in rule) {
@@ -170,7 +186,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 				if (sel === "*" || sel.includes(node.name)) {
 					if (node.attribs[attr] !== undefined) {
 						const value = node.attribs[attr];
-						let v = rule.fn(value, origin, cookieStore);
+						let v = rule.fn(value, meta, cookieStore);
 
 						if (v === null) delete node.attribs[attr];
 						else {
@@ -183,7 +199,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 		}
 
 	if (node.name === "style" && node.children[0] !== undefined)
-		node.children[0].data = rewriteCss(node.children[0].data, origin);
+		node.children[0].data = rewriteCss(node.children[0].data, meta);
 
 	if (
 		node.name === "script" &&
@@ -195,7 +211,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 		let js = node.children[0].data;
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
-		node.children[0].data = rewriteJs(js, origin);
+		node.children[0].data = rewriteJs(js, meta);
 	}
 
 	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {
@@ -209,7 +225,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 		) {
 			const contentArray = node.attribs.content.split("url=");
 			if (contentArray[1])
-				contentArray[1] = encodeUrl(contentArray[1].trim(), origin);
+				contentArray[1] = encodeUrl(contentArray[1].trim(), meta);
 			node.attribs.content = contentArray.join("url=");
 		}
 	}
@@ -219,7 +235,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 			node.childNodes[childNode] = traverseParsedHtml(
 				node.childNodes[childNode],
 				cookieStore,
-				origin
+				meta
 			);
 		}
 	}
@@ -227,14 +243,14 @@ function traverseParsedHtml(node: any, cookieStore: CookieStore, origin?: URL) {
 	return node;
 }
 
-export function rewriteSrcset(srcset: string, origin?: URL) {
+export function rewriteSrcset(srcset: string, meta: URLMeta) {
 	const urls = srcset.split(/ [0-9]+x,? ?/g);
 	if (!urls) return "";
 	const sufixes = srcset.match(/ [0-9]+x,? ?/g);
 	if (!sufixes) return "";
 	const rewrittenUrls = urls.map((url, i) => {
 		if (url && sufixes[i]) {
-			return encodeUrl(url, origin) + sufixes[i];
+			return encodeUrl(url, meta) + sufixes[i];
 		}
 	});
 

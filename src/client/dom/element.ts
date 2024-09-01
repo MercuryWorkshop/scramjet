@@ -63,11 +63,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 					} else if (
 						["src", "data", "href", "action", "formaction"].includes(attr)
 					) {
-						value = encodeUrl(value);
+						value = encodeUrl(value, client.meta);
 					} else if (attr === "srcdoc") {
 						value = rewriteHtml(value, client.cookieStore, undefined, true);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
-						value = rewriteSrcset(value);
+						value = rewriteSrcset(value, client.meta);
 					}
 
 					descriptor.set.call(this, value);
@@ -106,6 +106,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Node.prototype.baseURI", {
 		get() {
+			// TODO this should be using ownerdocument but who gaf
 			const base = self.document.querySelector("base");
 			if (base) {
 				return new URL(base.href, client.url).href;
@@ -132,7 +133,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			});
 
 			if (rule) {
-				ctx.args[1] = rule.fn(value, client.url, client.cookieStore);
+				ctx.args[1] = rule.fn(value, client.meta, client.cookieStore);
 				ctx.fn.call(ctx.this, `data-scramjet-${ctx.args[0]}`, value);
 			}
 		},
@@ -152,11 +153,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 		set(ctx, value: string) {
 			let newval;
 			if (ctx.this instanceof self.HTMLScriptElement) {
-				newval = rewriteJs(value, client.url);
+				newval = rewriteJs(value, client.meta);
 			} else if (ctx.this instanceof self.HTMLStyleElement) {
-				newval = rewriteCss(value, client.url);
+				newval = rewriteCss(value, client.meta);
 			} else {
-				newval = rewriteHtml(value, client.cookieStore, client.url);
+				newval = rewriteHtml(value, client.cookieStore, client.meta);
 			}
 
 			ctx.set(newval);
@@ -168,7 +169,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
-			ctx.set(rewriteHtml(value, client.cookieStore, client.url));
+			ctx.set(rewriteHtml(value, client.cookieStore, client.meta));
 		},
 		get(ctx) {
 			return unrewriteHtml(ctx.get());

@@ -43,7 +43,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					).length;
 
 				default:
-					if (prop in Object.prototype) {
+					if (prop in Object.prototype || typeof prop === "symbol") {
 						return Reflect.get(target, prop);
 					}
 					console.log("GET", prop, target == realLocalStorage);

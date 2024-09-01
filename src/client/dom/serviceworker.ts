@@ -16,7 +16,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("Worklet.prototype.addModule", {
 		apply(ctx) {
-			ctx.args[0] = encodeUrl(ctx.args[0]);
+			ctx.args[0] = encodeUrl(ctx.args[0], client.meta);
 		},
 	});
 
@@ -65,7 +65,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("navigator.serviceWorker.register", {
 		apply(ctx) {
 			if (ctx.args[0] instanceof URL) ctx.args[0] = ctx.args[0].href;
-			let url = encodeUrl(ctx.args[0]) + "?dest=serviceworker";
+			let url = encodeUrl(ctx.args[0], client.meta) + "?dest=serviceworker";
 			if (ctx.args[1] && ctx.args[1].type === "module") {
 				url += "&type=module";
 			}

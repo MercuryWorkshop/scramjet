@@ -1,4 +1,4 @@
-import { decodeUrl } from "./url";
+import { URLMeta, decodeUrl } from "./url";
 
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import {
@@ -18,25 +18,21 @@ init();
 
 Error.stackTraceLimit = 50;
 
-global.rws = rewriteJs;
-export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
-	if ("window" in globalThis)
-		origin = origin ?? new URL(decodeUrl(location.href));
-
+export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 	if (self.$scramjet.config.flags.naiiveRewriter) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
-		return rewriteJsNaiive(text, origin);
+		return rewriteJsNaiive(text);
 	}
 
 	const before = performance.now();
 	if (typeof js === "string") {
 		js = new TextDecoder().decode(
-			rewrite_js(js, origin.toString(), self.$scramjet)
+			rewrite_js(js, meta.base.href, self.$scramjet)
 		);
 	} else {
 		js = rewrite_js_from_arraybuffer(
 			new Uint8Array(js),
-			origin.toString(),
+			meta.base.href,
 			self.$scramjet
 		);
 	}
@@ -53,10 +49,7 @@ export function rewriteJs(js: string | ArrayBuffer, origin?: URL) {
 // 4. i think the global state can get clobbered somehow
 //
 // if you can ensure all the preconditions are met this is faster than full rewrites
-export function rewriteJsNaiive(js: string | ArrayBuffer, origin?: URL) {
-	if ("window" in globalThis)
-		origin = origin ?? new URL(decodeUrl(location.href));
-
+export function rewriteJsNaiive(js: string | ArrayBuffer) {
 	if (typeof js !== "string") {
 		js = new TextDecoder().decode(js);
 	}
