@@ -98,9 +98,13 @@ export class ScramjetClient {
 		} else {
 			this.bare = new BareClient(
 				new Promise((resolve) => {
-					addEventListener("message", (e) => {
-						if (e.data instanceof MessagePort) {
-							resolve(e.data);
+					addEventListener("message", ({ data }) => {
+						if (typeof data !== "object") return;
+						if (
+							"$scramjet$type" in data &&
+							data.$scramjet$type === "baremuxinit"
+						) {
+							resolve(data.port);
 						}
 					});
 				})

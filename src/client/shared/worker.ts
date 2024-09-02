@@ -33,9 +33,16 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 			const worker = call();
 			const conn = new BareMuxConnection();
+
 			(async () => {
 				const port = await conn.getInnerPort();
-				worker.postMessage(port, [port]);
+				worker.postMessage(
+					{
+						$scramjet$type: "baremuxinit",
+						port,
+					},
+					[port]
+				);
 			})();
 		},
 	});

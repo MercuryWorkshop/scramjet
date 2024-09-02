@@ -1,3 +1,4 @@
+import { iswindow } from "..";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { POLLUTANT } from "../shared/realm";
@@ -32,6 +33,7 @@ export default function (client: ScramjetClient) {
 			);
 
 			ctx.args[0] = {
+				$scramjet$messagetype: "window",
 				$scramjet$origin: callerClient.url.origin,
 				$scramjet$data: ctx.args[0],
 			};
@@ -42,6 +44,23 @@ export default function (client: ScramjetClient) {
 			ctx.return(
 				wrappedPostMessage.call(ctx.fn, ctx.args[0], ctx.args[1], ctx.args[2])
 			);
+		},
+	});
+
+	const toproxy = [
+		"Worker.prototype.postMessage",
+		"MessagePort.prototype.postMessage",
+	];
+	if (!iswindow) toproxy.push("self.postMessage"); // only do the generic version if we're in a worker
+
+	client.Proxy(toproxy, {
+		apply(ctx) {
+			// origin/source doesn't need to be preserved - it's null in the message event
+
+			ctx.args[0] = {
+				$scramjet$messagetype: "worker",
+				$scramjet$data: ctx.args[0],
+			};
 		},
 	});
 }

@@ -23,6 +23,8 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.ports;
 			},
 			source() {
+				if (this.source === null) return null;
+
 				const scram: ScramjetClient = this.source[SCRAMJETCLIENT];
 
 				if (scram) return scram.globalProxy;
@@ -33,7 +35,6 @@ export default function (client: ScramjetClient, self: Self) {
 				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
 					return this.data.$scramjet$origin;
 
-				// then it must be from a worker, which we aren't currently rewriting
 				return client.url.origin;
 			},
 			data() {
