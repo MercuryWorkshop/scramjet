@@ -220,6 +220,7 @@ async function handleResponse(
 
 	if (crossOriginIsolated) {
 		responseHeaders["Cross-Origin-Embedder-Policy"] = "require-corp";
+		responseHeaders["Cross-Origin-Opener-Policy"] = "same-origin";
 	}
 
 	return new Response(responseBody, {
