@@ -26,6 +26,7 @@ export class ScramjetController {
 			thread: "/scramjet.thread.js",
 			client: "/scramjet.client.js",
 			codecs: "/scramjet.codecs.js",
+			sync: "/scramjet.sync.js",
 			flags: {
 				serviceworkers: false,
 				naiiveRewriter: false,

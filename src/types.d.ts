@@ -42,6 +42,7 @@ interface ScramjetConfig {
 	thread: string;
 	client: string;
 	codecs: string;
+	sync: string;
 	flags: ScramjetFlags;
 	siteflags?: Record<string, ScramjetFlags>;
 }

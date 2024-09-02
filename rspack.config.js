@@ -18,6 +18,7 @@ export default defineConfig({
 		client: join(__dirname, "src/client/index.ts"),
 		codecs: join(__dirname, "src/codecs/index.ts"),
 		controller: join(__dirname, "src/controller/index.ts"),
+		sync: join(__dirname, "src/sync.ts"),
 	},
 	resolve: {
 		extensions: [".ts", ".js"],
