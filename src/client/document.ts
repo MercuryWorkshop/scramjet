@@ -17,11 +17,13 @@ export function createDocumentProxy(
 			}
 
 			const value = Reflect.get(target, prop);
+
 			return value;
 		},
 		set(target, prop, newValue) {
 			if (prop === "location") {
 				location.href = encodeUrl(newValue, client.meta);
+
 				return;
 			}
 

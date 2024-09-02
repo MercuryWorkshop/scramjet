@@ -23,7 +23,7 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.ports;
 			},
 			source() {
-				let scram: ScramjetClient = this.source[SCRAMJETCLIENT];
+				const scram: ScramjetClient = this.source[SCRAMJETCLIENT];
 
 				if (scram) return scram.globalProxy;
 

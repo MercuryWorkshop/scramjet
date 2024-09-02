@@ -30,10 +30,12 @@ export class ScramjetThreadpool {
 		thread.handle.onmessage = (e) => {
 			if (e.data === "ready") {
 				thread.ready = true;
+
 				return;
 			}
 			if (e.data === "idle") {
 				thread.busy = false;
+
 				return;
 			}
 
@@ -70,7 +72,7 @@ export class ScramjetThreadpool {
 		if (!thread) throw new Error("No threads available");
 		thread.busy = true;
 
-		let token = thread.syncToken++;
+		const token = thread.syncToken++;
 
 		// console.log("runthread: dispatching task", task, "to thread", thread, "of token", token)
 		return new Promise((resolve, reject) => {

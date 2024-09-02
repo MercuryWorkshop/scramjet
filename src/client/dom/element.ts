@@ -93,7 +93,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const desc = originalhrefs[i];
 			client.RawTrap(target, prop, {
 				get(ctx) {
-					let href = desc.get.call(ctx.this);
+					const href = desc.get.call(ctx.this);
 					if (!href) return href;
 
 					const url = new URL(decodeUrl(href));
@@ -124,7 +124,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const [name, value] = ctx.args;
 
 			const rule = htmlRules.find((rule) => {
-				let r = rule[name];
+				const r = rule[name];
 				if (!r) return false;
 				if (r === "*") return true;
 				if (typeof r === "function") return false; // this can't happen but ts
@@ -225,10 +225,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Node.prototype.ownerDocument", {
 		get(ctx) {
 			return client.documentProxy;
-			let doc = ctx.get() as Document | null;
+			const doc = ctx.get() as Document | null;
 			if (!doc) return null;
 
-			let scram: ScramjetClient = doc[SCRAMJETCLIENT];
+			const scram: ScramjetClient = doc[SCRAMJETCLIENT];
 			if (!scram) return doc; // ??
 
 			return scram.documentProxy;

@@ -8,8 +8,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		construct({ args, call }) {
 			if (args[0] instanceof URL) args[0] = args[0].href;
 			if (args[0].startsWith("blob:") || args[0].startsWith("data:")) {
-				let data = syncfetch(client, args[0]);
-				let id = Math.random().toString(8).slice(5);
+				const data = syncfetch(client, args[0]);
+				const id = Math.random().toString(8).slice(5);
 
 				args[0] = "/scramjet/worker?id=" + id;
 				if (args[1] && args[1].type === "module") {

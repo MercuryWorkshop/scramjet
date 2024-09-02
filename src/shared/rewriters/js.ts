@@ -21,6 +21,7 @@ Error.stackTraceLimit = 50;
 export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 	if (self.$scramjet.config.flags.naiiveRewriter) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
+
 		return rewriteJsNaiive(text);
 	}
 

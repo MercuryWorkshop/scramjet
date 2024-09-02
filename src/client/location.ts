@@ -48,10 +48,11 @@ export function createLocationProxy(
 					if (prop === "href") {
 						// special case
 						client.url = args[0];
+
 						return;
 					}
 
-					let url = new URL(client.url.href);
+					const url = new URL(client.url.href);
 					url[prop] = args[0];
 					client.url = url;
 				},

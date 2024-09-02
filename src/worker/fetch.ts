@@ -79,7 +79,7 @@ export async function swfetch(
 			new URL(client.url).pathname.startsWith(self.$scramjet.config.prefix)
 		) {
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-			let url = new URL(decodeUrl(client.url));
+			const url = new URL(decodeUrl(client.url));
 			headers.set("Referer", url.toString());
 			headers.set("Origin", url.origin);
 		}
@@ -135,7 +135,7 @@ async function handleResponse(
 	let responseBody: string | ArrayBuffer | ReadableStream;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
 
-	let maybeHeaders = responseHeaders["set-cookie"] || [];
+	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
 		if (client)
 			client.postMessage({

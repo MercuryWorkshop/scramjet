@@ -248,6 +248,7 @@ export class ScramjetClient {
 					call: () => {
 						earlyreturn = true;
 						returnValue = Reflect.construct(ctx.fn, ctx.args, ctx.newTarget);
+
 						return returnValue;
 					},
 				};
@@ -279,6 +280,7 @@ export class ScramjetClient {
 					call: () => {
 						earlyreturn = true;
 						returnValue = Reflect.apply(ctx.fn, ctx.this, ctx.args);
+
 						return returnValue;
 					},
 				};

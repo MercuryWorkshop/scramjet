@@ -1,8 +1,9 @@
 export function getOwnPropertyDescriptorHandler(target, prop) {
-	let realDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+	const realDescriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+
 	return realDescriptor;
 
-	let d: PropertyDescriptor = {};
+	const d: PropertyDescriptor = {};
 
 	if (realDescriptor.enumerable !== undefined)
 		d.enumerable = realDescriptor.enumerable;
@@ -22,5 +23,6 @@ export function getOwnPropertyDescriptorHandler(target, prop) {
 	if (realDescriptor.value) {
 		d.value = this.get(target, prop);
 	}
+
 	return d;
 }

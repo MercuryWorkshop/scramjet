@@ -15,9 +15,9 @@ export function argdbg(arg, recurse = []) {
 				arg[Symbol.iterator] &&
 				typeof arg[Symbol.iterator] === "function"
 			)
-				for (let prop in arg) {
+				for (const prop in arg) {
 					// make sure it's not a getter
-					let desc = Object.getOwnPropertyDescriptor(arg, prop);
+					const desc = Object.getOwnPropertyDescriptor(arg, prop);
 					if (desc && desc.get) continue;
 
 					const ar = arg[prop];
@@ -37,6 +37,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	self.$scramdbg = function scramdbg(args, t) {
 		if (args && typeof args === "object" && args.length > 0) argdbg(args);
 		argdbg(t);
+
 		return t;
 	};
 

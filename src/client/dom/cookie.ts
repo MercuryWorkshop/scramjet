@@ -6,7 +6,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 		if (data.scramjet$type === "cookie") {
 			client.cookieStore.setCookies([data.cookie], new URL(data.url));
-			return;
 		}
 	});
 

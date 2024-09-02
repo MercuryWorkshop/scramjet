@@ -1,6 +1,6 @@
 import { ScramjetClient } from "../client";
 
-let sourcemaps: {
+const sourcemaps: {
 	source: string;
 	map: [string, number, number][];
 }[] = [];
@@ -61,6 +61,7 @@ export default function (client: ScramjetClient, self: Self) {
 				offset += end - start - str.length;
 				i = start - starting + offset + str.length;
 			}
+
 			return ctx.return(newString + stringified.slice(i));
 		},
 	});
