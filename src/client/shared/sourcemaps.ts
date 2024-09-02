@@ -6,7 +6,6 @@ const sourcemaps: Record<string, Mapping[]> = {};
 
 export const enabled = () => self.$scramjet.config.flags.sourcemaps;
 
-let t = 0;
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
 	Object.defineProperty(self, "$scramjet$pushsourcemap", {
@@ -53,14 +52,12 @@ export default function (client: ScramjetClient, self: Self) {
 
 			const maps = sourcemaps[tag];
 
-			const relevantRewrites = maps.filter(
-				([str, start, end]) =>
-					start >= absindex && end <= absindex + stringified.length
-			);
-
 			let i = 0;
 			let offset = 0;
-			for (const [str, start, end] of relevantRewrites) {
+			for (const [str, start, end] of maps) {
+				if (start < absindex) continue;
+				if (start - absindex + offset > stringified.length) break;
+
 				// ooh i should really document this before i forget how it works
 				newString += stringified.slice(i, start - absindex + offset);
 				newString += str;
