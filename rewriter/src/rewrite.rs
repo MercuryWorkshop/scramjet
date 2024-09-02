@@ -1,4 +1,5 @@
 use core::str;
+use std::str::from_utf8;
 
 use oxc_allocator::Allocator;
 use oxc_ast::{
@@ -19,8 +20,8 @@ enum JsChange {
 		span: Span,
 		text: String,
 	},
-	DebugInject {
-		span: Span,
+	SourceTag {
+		tagstart: u32,
 	},
 	Assignment {
 		name: String,
@@ -254,6 +255,16 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_object_expression(self, it);
 	}
 
+	fn visit_function_body(&mut self, it: &oxc_ast::ast::FunctionBody<'a>) {
+		// tag function for use in sourcemaps
+		if self.config.do_sourcemaps {
+			self.jschanges.push(JsChange::SourceTag {
+				tagstart: it.span.start,
+			});
+		}
+		walk::walk_function_body(self, it);
+	}
+
 	fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
 		// if let Some(arg) = &it.argument {
 		// 	self.jschanges.push(JsChange::GenericChange {
@@ -391,6 +402,19 @@ const UNSAFE_GLOBALS: [&str; 9] = [
 	"eval",
 ];
 
+fn random_string() -> String {
+	use rand::{distributions::Alphanumeric, thread_rng, Rng};
+
+	from_utf8(
+		&thread_rng()
+			.sample_iter(&Alphanumeric)
+			.take(10)
+			.collect::<Vec<u8>>(),
+	)
+	.unwrap()
+	.to_string()
+}
+
 pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
@@ -405,6 +429,8 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	let program = ret.program;
 
 	// dbg!(&program);
+
+	let sourcetag = random_string();
 
 	let mut ast_pass = Rewriter {
 		jschanges: Vec::new(),
@@ -424,7 +450,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::DebugInject { span } => span.start,
+			JsChange::SourceTag { tagstart } => *tagstart,
 		};
 		let b = match b {
 			JsChange::GenericChange { span, text: _ } => span.start,
@@ -434,7 +460,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::DebugInject { span } => span.start,
+			JsChange::SourceTag { tagstart } => *tagstart,
 		};
 		a.cmp(&b)
 	});
@@ -514,11 +540,14 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 				offset = entirespan.end as usize;
 			}
-			JsChange::DebugInject { span } => {
-				let start = span.start as usize;
+			JsChange::SourceTag { tagstart } => {
+				let start = *tagstart as usize;
 				buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
 
-				offset = span.end as usize;
+				let inject = format!("/*scramtag {} {}*/", start, sourcetag);
+				buffer.extend_from_slice(inject.as_bytes());
+
+				offset = start;
 			}
 		}
 	}
@@ -527,8 +556,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	if ast_pass.config.do_sourcemaps {
 		sourcemap.extend_from_slice(b"],");
 		sourcemap.extend_from_slice(b"\"");
-		sourcemap
-			.extend_from_slice(json_escape_string(str::from_utf8(&buffer).unwrap()).as_bytes());
+		sourcemap.extend_from_slice(&sourcetag.as_bytes());
 		sourcemap.extend_from_slice(b"\");\n");
 
 		sourcemap.extend_from_slice(&buffer);

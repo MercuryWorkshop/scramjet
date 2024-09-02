@@ -1,17 +1,17 @@
 import { ScramjetClient } from "../client";
 
-const sourcemaps: {
-	source: string;
-	map: [string, number, number][];
-}[] = [];
+type Mapping = [string, number, number];
+
+const sourcemaps: Record<string, Mapping[]> = {};
 
 export const enabled = () => self.$scramjet.config.flags.sourcemaps;
 
+let t = 0;
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
 	Object.defineProperty(self, "$scramjet$pushsourcemap", {
-		value: (map, source) => {
-			sourcemaps.push({ map, source });
+		value: (maps: Mapping[], tag: string) => {
+			sourcemaps[tag] = maps;
 		},
 		enumerable: false,
 		writable: false,
@@ -22,44 +22,52 @@ export default function (client: ScramjetClient, self: Self) {
 	// this can lead to double rewrites which is bad
 	client.Proxy("Function.prototype.toString", {
 		apply(ctx) {
-			const stringified = ctx.fn.call(ctx.this);
+			let stringified: string = ctx.fn.call(ctx.this);
 			let newString = "";
 
-			// find the sourcemap, brute force, just check every file until the body of the function shows up
-			// it doesnt matter if there's multiple with the same content because it will be the same function
-			const sourcemap = sourcemaps.find(({ source }) =>
-				source.includes(stringified)
+			// every function rewritten will have a scramtag comment
+			// it will look like this:
+			// function name() /*scramtag [index] [tag] */ { ... }
+			const scramtag_ident = "/*scramtag ";
+			const scramtagstart = stringified.indexOf(scramtag_ident);
+
+			if (scramtagstart === -1) return ctx.return(stringified); // it's either a native function or something stolen from scramjet itself
+
+			// [index] holds the index of the first character in the scramtag (/)
+			const abstagindex = parseInt(
+				stringified
+					.substring(scramtagstart + scramtag_ident.length)
+					.split(" ")[0]
 			);
 
-			// i don't know what cases this would happen under, but it does
-			if (!sourcemap) return ctx.return(stringified);
-			const { source, map } = sourcemap;
+			// subtracting that from the index of the scramtag gives us the starting index of the function relative to the entire file
+			let absindex = abstagindex - scramtagstart;
 
-			// first we need to find the character # where the function starts relative to the *transformed* source
-			let starting = source.indexOf(stringified);
+			const scramtagend = stringified.indexOf("*/", scramtagstart);
+			const tag = stringified
+				.substring(scramtagstart + scramtag_ident.length, scramtagend)
+				.split(" ")[1];
 
-			const beforeFunctionRewrites = map.filter(
-				([str, start, end]) => start < starting
-			);
+			// delete the scramtag now that we're done with it
+			stringified =
+				stringified.slice(0, scramtagstart) +
+				stringified.slice(scramtagend + 2);
 
-			// map the offsets of the original source to the transformed source
-			for (const [str, start, end] of beforeFunctionRewrites) {
-				starting -= end - start - str.length;
-			}
+			const maps = sourcemaps[tag];
 
-			const relevantRewrites = map.filter(
+			const relevantRewrites = maps.filter(
 				([str, start, end]) =>
-					start >= starting && end <= starting + stringified.length
+					start >= absindex && end <= absindex + stringified.length
 			);
 
 			let i = 0;
 			let offset = 0;
 			for (const [str, start, end] of relevantRewrites) {
 				// ooh i should really document this before i forget how it works
-				newString += stringified.slice(i, start - starting + offset);
+				newString += stringified.slice(i, start - absindex + offset);
 				newString += str;
 				offset += end - start - str.length;
-				i = start - starting + offset + str.length;
+				i = start - absindex + offset + str.length;
 			}
 
 			return ctx.return(newString + stringified.slice(i));
