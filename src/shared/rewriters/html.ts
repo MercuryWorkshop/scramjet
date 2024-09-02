@@ -28,6 +28,7 @@ export function rewriteHtml(
 				if (head) return head;
 			}
 		}
+
 		return null;
 	}
 
@@ -55,7 +56,12 @@ export function rewriteHtml(
 			script(self.$scramjet.config["codecs"]),
 			script("data:application/javascript;base64," + btoa(injected)),
 			script(self.$scramjet.config["shared"]),
-			script(self.$scramjet.config["client"])
+			script(self.$scramjet.config["client"]),
+			script("/vc/browser.js"),
+			new Element("link", {
+				rel: "stylesheet",
+				href: "/vc/browser.css",
+			})
 		);
 	}
 
@@ -186,7 +192,7 @@ function traverseParsedHtml(
 				if (sel === "*" || sel.includes(node.name)) {
 					if (node.attribs[attr] !== undefined) {
 						const value = node.attribs[attr];
-						let v = rule.fn(value, meta, cookieStore);
+						const v = rule.fn(value, meta, cookieStore);
 
 						if (v === null) delete node.attribs[attr];
 						else {

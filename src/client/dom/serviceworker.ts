@@ -53,6 +53,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Trap("navigator.serviceWorker.ready", {
 		get(ctx) {
 			console.log(registration);
+
 			return new Promise((resolve) => resolve(registration));
 		},
 	});

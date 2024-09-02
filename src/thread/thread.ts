@@ -11,10 +11,10 @@ onconnect = (e) => {
 	port.onmessage = ({ data }) => {
 		console.log("thread: received message", data);
 		const [task, ...args] = data;
-		let token = syncToken++;
+		const token = syncToken++;
 
 		try {
-			let res = tasks[task](...args);
+			const res = tasks[task](...args);
 			console.log("thread: task", task, "completed with token", token);
 			port.postMessage({
 				token,

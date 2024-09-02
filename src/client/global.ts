@@ -32,6 +32,7 @@ export function createGlobalProxy(
 		set(target, prop, value) {
 			if (prop === "location") {
 				client.url = value;
+
 				return;
 			}
 
@@ -39,6 +40,7 @@ export function createGlobalProxy(
 		},
 		has(target, prop) {
 			if (prop === "$scramjet") return false;
+
 			return Reflect.has(target, prop);
 		},
 		ownKeys(target) {

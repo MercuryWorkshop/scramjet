@@ -32,11 +32,13 @@ export class ScramjetServiceWorker {
 
 			if (data.scramjet$type === "registerServiceWorker") {
 				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
+
 				return;
 			}
 
 			if (data.scramjet$type === "cookie") {
 				this.cookieStore.setCookies([data.cookie], new URL(data.url));
+
 				return;
 			}
 
@@ -49,7 +51,6 @@ export class ScramjetServiceWorker {
 					this.dataworkerpromises[data.id] = { promise, resolve };
 					resolve(data.data);
 				}
-				return;
 			}
 		});
 	}
