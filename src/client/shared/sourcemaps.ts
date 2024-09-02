@@ -48,10 +48,8 @@ export default function (client: ScramjetClient, self: Self) {
 				.substring(scramtagstart + scramtag_ident.length, scramtagend)
 				.split(" ")[1];
 
-			// delete the scramtag now that we're done with it
-			stringified =
-				stringified.slice(0, scramtagstart) +
-				stringified.slice(scramtagend + 2);
+			// delete all scramtags inside the function (and nested ones!!)
+			stringified = stringified.replace(/\/\*scramtag.*?\*\//g, "");
 
 			const maps = sourcemaps[tag];
 
