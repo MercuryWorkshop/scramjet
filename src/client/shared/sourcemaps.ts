@@ -6,7 +6,7 @@ const sourcemaps: Record<string, Mapping[]> = {};
 
 export const enabled = () => self.$scramjet.config.flags.sourcemaps;
 
-let t = 0;
+let _t = 0;
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
 	Object.defineProperty(self, "$scramjet$pushsourcemap", {
@@ -54,7 +54,7 @@ export default function (client: ScramjetClient, self: Self) {
 			const maps = sourcemaps[tag];
 
 			const relevantRewrites = maps.filter(
-				([str, start, end]) =>
+				([_str, start, end]) =>
 					start >= absindex && end <= absindex + stringified.length
 			);
 
