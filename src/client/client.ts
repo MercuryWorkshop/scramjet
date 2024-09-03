@@ -120,7 +120,11 @@ export class ScramjetClient {
 				if (iswindow) {
 					const base = client.global.document.querySelector("base");
 					if (base) {
-						return new URL(base.getAttribute(`href`), client.url.origin);
+						let url = base.getAttribute(`href`);
+						let frag = url.indexOf("#");
+						url = url.substring(0, frag === -1 ? undefined : frag);
+						if (!url) return client.url;
+						return new URL(url, client.url.origin);
 					}
 				}
 				return client.url;
