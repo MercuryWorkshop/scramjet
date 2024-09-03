@@ -151,10 +151,17 @@ export class ScramjetServiceWorker {
 				base: new URL(origin),
 			});
 
+			const headers = {
+				"Content-Type": "application/javascript",
+			};
+
+			if (crossOriginIsolated) {
+				headers["Cross-Origin-Opener-Policy"] = "same-origin";
+				headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+			}
+
 			return new Response(rewritten, {
-				headers: {
-					"Content-Type": "application/javascript",
-				},
+				headers,
 			});
 		}
 

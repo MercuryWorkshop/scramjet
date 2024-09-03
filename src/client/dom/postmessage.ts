@@ -11,7 +11,22 @@ export default function (client: ScramjetClient) {
 			// if we were given any object that came from the real realm we can use that to get the real origin
 			// and this works in every case EXCEPT for the fact that all three arguments can be strings which are copied instead of cloned
 			// so we have to use `$setrealm` which will pollute this with an object from the real realm
-			const pollutant = ctx.this[POLLUTANT] || {};
+
+			let pollutant;
+
+			if (typeof ctx.args[0] === "object" && ctx.args[0] !== null) {
+				pollutant = ctx.args[0]; // try to use the first object we can find because it's more reliable
+			} else if (typeof ctx.args[2] === "object" && ctx.args[2] !== null) {
+				pollutant = ctx.args[2]; // next try to use transfer
+			} else if (
+				POLLUTANT in ctx.this &&
+				typeof ctx.this[POLLUTANT] === "object" &&
+				ctx.this[POLLUTANT] !== null
+			) {
+				pollutant = ctx.this[POLLUTANT]; // lastly try to use the object from $setrealm
+			} else {
+				pollutant = {}; // give up
+			}
 
 			// and now we can steal Function from the caller's realm
 			const {

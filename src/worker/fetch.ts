@@ -218,7 +218,17 @@ async function handleResponse(
 	// scramjet runtime can use features that permissions-policy blocks
 	delete responseHeaders["permissions-policy"];
 
-	if (crossOriginIsolated) {
+	if (
+		crossOriginIsolated &&
+		[
+			"document",
+			"iframe",
+			"worker",
+			"sharedworker",
+			"style",
+			"script",
+		].includes(destination)
+	) {
 		responseHeaders["Cross-Origin-Embedder-Policy"] = "require-corp";
 		responseHeaders["Cross-Origin-Opener-Policy"] = "same-origin";
 	}

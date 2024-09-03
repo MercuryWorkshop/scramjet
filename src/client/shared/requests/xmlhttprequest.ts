@@ -1,8 +1,9 @@
 import { config, decodeUrl, encodeUrl, rewriteHeaders } from "../../../shared";
 import { ScramjetClient } from "../../client";
+const nativeworker = Worker;
 
 export default function (client: ScramjetClient, self: Self) {
-	const worker = new Worker(config.sync);
+	const worker = new nativeworker(config.sync);
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
 
