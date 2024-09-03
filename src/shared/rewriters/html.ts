@@ -56,12 +56,12 @@ export function rewriteHtml(
 			script(self.$scramjet.config["codecs"]),
 			script("data:application/javascript;base64," + btoa(injected)),
 			script(self.$scramjet.config["shared"]),
-			script(self.$scramjet.config["client"]),
-			script("/vc/browser.js"),
-			new Element("link", {
-				rel: "stylesheet",
-				href: "/vc/browser.css",
-			})
+			script(self.$scramjet.config["client"])
+			// script("/vc/browser.js"),
+			// new Element("link", {
+			// 	rel: "stylesheet",
+			// 	href: "/vc/browser.css",
+			// })
 		);
 	}
 
@@ -197,8 +197,8 @@ function traverseParsedHtml(
 						if (v === null) delete node.attribs[attr];
 						else {
 							node.attribs[attr] = v;
-							node.attribs[`data-scramjet-${attr}`] = value;
 						}
+						node.attribs[`data-scramjet-${attr}`] = value;
 					}
 				}
 			}

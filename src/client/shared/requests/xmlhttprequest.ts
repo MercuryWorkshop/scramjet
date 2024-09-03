@@ -1,7 +1,7 @@
 import { config, decodeUrl, encodeUrl, rewriteHeaders } from "../../../shared";
 import { ScramjetClient } from "../../client";
 const nativeworker = Worker;
-
+const postmessage = Worker.prototype.postMessage;
 export default function (client: ScramjetClient, self: Self) {
 	const worker = new nativeworker(config.sync);
 	const ARGS = Symbol("xhr original args");
@@ -34,14 +34,18 @@ export default function (client: ScramjetClient, self: Self) {
 			const sab = new SharedArrayBuffer(1024, { maxByteLength: 2147483647 });
 			const view = new DataView(sab);
 
-			worker.postMessage({
+			postmessage.call(worker, {
 				sab,
 				args,
 				headers: ctx.this[HEADERS],
 				body: ctx.args[0],
 			});
 
+			let now = performance.now();
 			while (view.getUint8(0) === 0) {
+				if (performance.now() - now > 1000) {
+					throw new Error("xhr timeout");
+				}
 				/* spin */
 			}
 

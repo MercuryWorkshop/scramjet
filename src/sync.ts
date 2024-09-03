@@ -50,5 +50,12 @@ addEventListener(
 			// release the lock, main thread will stop spinning now
 			view.setUint8(0, 1);
 		};
+		xhr.ontimeout =
+			xhr.onerror =
+			xhr.onabort =
+				() => {
+					console.error("xhr failed");
+					view.setUint8(0, 1);
+				};
 	}
 );
