@@ -111,23 +111,19 @@ export class ScramjetClient {
 			);
 		}
 
-		let baseurl: URL;
-		if (iswindow) {
-			// setup base url
-			// base url can only be updated at document load time and it will affect all urls resolved by encodeurl/rewriteurl
-			const base = this.global.document.querySelector("base");
-			if (base) {
-				baseurl = new URL(decodeUrl(base.href));
-			}
-		}
-
 		const client = this;
 		this.meta = {
 			get origin() {
 				return client.url;
 			},
 			get base() {
-				return baseurl || client.url;
+				if (iswindow) {
+					const base = client.global.document.querySelector("base");
+					if (base) {
+						return new URL(base.getAttribute(`href`), client.url.origin);
+					}
+				}
+				return client.url;
 			},
 		};
 
