@@ -123,7 +123,7 @@ export const htmlRules: {
 			"input",
 			"track",
 		],
-		href: ["a", "link", "base", "area"],
+		href: ["a", "link", "area"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],

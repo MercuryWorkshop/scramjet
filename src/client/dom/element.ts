@@ -181,7 +181,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const realwin = ctx.get() as Window;
 
 			if (SCRAMJETCLIENT in realwin.self) {
-				return realwin.self[SCRAMJETCLIENT].globalProxy.window;
+				if (realwin.location.href.includes("accounts.google.com")) return null; // don't question it
+
+				return realwin.self[SCRAMJETCLIENT].globalProxy;
 			} else {
 				// hook the iframe
 				const newclient = new ScramjetClient(realwin.self);
