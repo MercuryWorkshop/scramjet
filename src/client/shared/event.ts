@@ -46,6 +46,8 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	};
 
+	// TODO! window.event not proxied
+
 	function wraplistener(listener: (...args: any) => any) {
 		return new Proxy(listener, {
 			apply(target, thisArg, argArray) {
@@ -75,7 +77,18 @@ export default function (client: ScramjetClient, self: Self) {
 					}
 				}
 
-				return Reflect.apply(target, thisArg, argArray);
+				Object.defineProperty(self, "event", {
+					get() {
+						return argArray[0];
+					},
+					configurable: true,
+				});
+
+				let rv = Reflect.apply(target, thisArg, argArray);
+
+				delete self.event;
+
+				return rv;
 			},
 			getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 		});
