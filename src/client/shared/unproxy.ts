@@ -7,6 +7,7 @@ export const order = 3;
 export default function (client: ScramjetClient, self: typeof window) {
 	// an automated approach to cleaning the documentProxy from dom functions
 	// it will trigger an illegal invocation if you pass the proxy to c++ code, we gotta hotswap it out with the real one
+	// admittedly this is pretty slow. worth investigating if there's ways to get back some of the lost performance
 
 	for (const target of [self]) {
 		for (const prop in target) {

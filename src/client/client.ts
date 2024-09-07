@@ -13,6 +13,7 @@ import {
 	decodeUrl,
 	encodeUrl,
 } from "../shared";
+import type BareClientType from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
@@ -60,7 +61,7 @@ export class ScramjetClient {
 	globalProxy: any;
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
-	bare: any;
+	bare: BareClientType;
 
 	descriptors: Record<string, PropertyDescriptor> = {};
 	natives: Record<string, any> = {};
