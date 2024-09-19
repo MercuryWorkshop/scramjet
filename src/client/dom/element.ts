@@ -9,6 +9,7 @@ import {
 	rewriteJs,
 	rewriteSrcset,
 } from "../../shared";
+import type { URLMeta } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	const attrObject = {
@@ -65,7 +66,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 					) {
 						value = encodeUrl(value, client.meta);
 					} else if (attr === "srcdoc") {
-						value = rewriteHtml(value, client.cookieStore, undefined, true);
+						value = rewriteHtml(
+							value,
+							client.cookieStore,
+							{
+								// srcdoc preserves parent origin i think
+								base: new URL(client.url.origin),
+								origin: new URL(client.url.origin),
+							} as URLMeta,
+							true
+						);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value, client.meta);
 					}
