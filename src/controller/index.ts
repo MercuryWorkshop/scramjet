@@ -31,7 +31,7 @@ export class ScramjetController {
 				serviceworkers: false,
 				naiiveRewriter: false,
 				captureErrors: false,
-				sourcemaps: true,
+				sourcemaps: false,
 			},
 		};
 
@@ -47,9 +47,7 @@ export class ScramjetController {
 		});
 		await this.#saveConfig();
 
-		const reg = await navigator.serviceWorker.register(serviceWorkerPath, {
-			scope: this.config.prefix,
-		});
+		const reg = await navigator.serviceWorker.register(serviceWorkerPath);
 		dbg.log("service worker registered");
 
 		return reg;
