@@ -120,10 +120,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 			// TODO this should be using ownerdocument but who gaf
 			const base = self.document.querySelector("base");
 			if (base) {
-				return new URL(base.href, client.url).href;
+				return new URL(base.href, client.url.origin).href;
 			}
 
-			return client.url.href;
+			return client.url.origin;
 		},
 		set() {
 			return false;
