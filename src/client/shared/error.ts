@@ -1,6 +1,7 @@
 import { decodeUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
+export const enabled = () => self.$scramjet.config.flags.cleanerrors;
 export default function (client: ScramjetClient, self: Self) {
 	// v8 only. all we need to do is clean the scramjet urls from stack traces
 	Error.prepareStackTrace = (error, stack) => {

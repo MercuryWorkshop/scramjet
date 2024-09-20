@@ -30,7 +30,8 @@ export class ScramjetController {
 			flags: {
 				serviceworkers: false,
 				naiiveRewriter: false,
-				captureErrors: false,
+				captureErrors: true,
+				cleanerrors: false,
 				sourcemaps: false,
 			},
 		};

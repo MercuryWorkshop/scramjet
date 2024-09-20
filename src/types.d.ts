@@ -23,6 +23,7 @@ type ScramjetFlags = {
 	serviceworkers: boolean;
 	naiiveRewriter: boolean;
 	captureErrors: boolean;
+	cleanerrors: boolean;
 	sourcemaps: boolean;
 };
 
