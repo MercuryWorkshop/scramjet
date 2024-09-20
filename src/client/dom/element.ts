@@ -174,6 +174,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 			ctx.set(newval);
 		},
 		get(ctx) {
+			if (
+				ctx.this instanceof self.HTMLScriptElement ||
+				ctx.this instanceof self.HTMLStyleElement
+			) {
+				return ctx.get();
+			}
+
 			return unrewriteHtml(ctx.get());
 		},
 	});
@@ -190,6 +197,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("HTMLIFrameElement.prototype.contentWindow", {
 		get(ctx) {
 			const realwin = ctx.get() as Window;
+			if (!realwin) return realwin;
 
 			if (SCRAMJETCLIENT in realwin.self) {
 				if (realwin.location.href.includes("accounts.google.com")) return null; // don't question it
@@ -210,6 +218,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const contentwindow =
 				client.descriptors["HTMLIFrameElement.prototype.contentWindow"].get;
 			const realwin = contentwindow.apply(ctx.this);
+			if (!realwin) return realwin;
 
 			if (SCRAMJETCLIENT in realwin.self) {
 				return realwin.self[SCRAMJETCLIENT].documentProxy;
