@@ -26,6 +26,12 @@ export default function (client: ScramjetClient, self: Self) {
 			const args = ctx.this[ARGS];
 			if (!args || args[2]) return;
 
+			if (!self.$scramjet.config.flags.syncxhr) {
+				console.warn("sync xhr disabled in flags");
+
+				return;
+			}
+
 			// it's a sync request
 			// sync xhr to service worker is not supported
 			// there's a nice way of polyfilling this though, we can spin on an atomic using sharedarraybuffer. this will maintain the sync behavior

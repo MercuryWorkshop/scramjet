@@ -25,6 +25,7 @@ type ScramjetFlags = {
 	captureErrors: boolean;
 	cleanerrors: boolean;
 	sourcemaps: boolean;
+	syncxhr: boolean;
 };
 
 interface ScramjetConfig {
