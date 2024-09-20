@@ -3,6 +3,8 @@ import { encodeUrl } from "../../shared/rewriters/url";
 import type { MessageC2W } from "../../worker";
 import { ScramjetClient } from "../client";
 
+const workerpostmessage = Worker.prototype.postMessage;
+
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("Worker", {
 		construct({ args, call }) {
@@ -36,7 +38,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 			(async () => {
 				const port = await conn.getInnerPort();
-				worker.postMessage(
+				workerpostmessage.call(
+					worker,
 					{
 						$scramjet$type: "baremuxinit",
 						port,
