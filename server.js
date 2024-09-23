@@ -77,10 +77,14 @@ fastify.register(fastifyStatic, {
 	prefix: "/baremod/",
 	decorateReply: false,
 });
+
+const PORT = process.env.PORT || 1337;
+
 fastify.listen({
-	port: process.env.PORT || 1337,
+	port: PORT,
 	host: "0.0.0.0",
 });
+console.log(`Listening on port ${PORT}`);
 
 writeFileSync(
 	".git/hooks/pre-commit",
