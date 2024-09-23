@@ -43,7 +43,7 @@ export default function (client: ScramjetClient, self: Self) {
 			);
 
 			// subtracting that from the index of the scramtag gives us the starting index of the function relative to the entire file
-			let absindex = abstagindex - scramtagstart;
+			const absindex = abstagindex - scramtagstart;
 
 			const scramtagend = stringified.indexOf("*/", scramtagstart);
 			const tag = stringified.substring(firstspace + 1, scramtagend);
@@ -75,6 +75,7 @@ export default function (client: ScramjetClient, self: Self) {
 			}
 
 			newString += stringified.slice(i);
+
 			return ctx.return(newString);
 		},
 	});

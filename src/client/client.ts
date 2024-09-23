@@ -112,6 +112,7 @@ export class ScramjetClient {
 			);
 		}
 
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const client = this;
 		this.meta = {
 			get origin() {
@@ -121,13 +122,15 @@ export class ScramjetClient {
 				if (iswindow) {
 					const base = client.global.document.querySelector("base");
 					if (base) {
-						let url = base.getAttribute(`href`);
-						let frag = url.indexOf("#");
+						let url = base.getAttribute("href");
+						const frag = url.indexOf("#");
 						url = url.substring(0, frag === -1 ? undefined : frag);
 						if (!url) return client.url;
+
 						return new URL(url, client.url.origin);
 					}
 				}
+
 				return client.url;
 			},
 		};

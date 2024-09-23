@@ -1,7 +1,7 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
-import { config, decodeUrl, htmlRules, unrewriteHtml } from "../../shared";
+import { decodeUrl, htmlRules, unrewriteHtml } from "../../shared";
 import {
 	encodeUrl,
 	rewriteCss,
@@ -134,7 +134,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		apply(ctx) {
 			const [name, value] = ctx.args;
 
-			const rule = htmlRules.find((rule) => {
+			const ruleList = htmlRules.find((rule) => {
 				const r = rule[name];
 				if (!r) return false;
 				if (r === "*") return true;
@@ -143,8 +143,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return r.includes(ctx.this.tagName.toLowerCase());
 			});
 
-			if (rule) {
-				ctx.args[1] = rule.fn(value, client.meta, client.cookieStore);
+			if (ruleList) {
+				ctx.args[1] = ruleList.fn(value, client.meta, client.cookieStore);
 				ctx.fn.call(ctx.this, `data-scramjet-${ctx.args[0]}`, value);
 			}
 		},
@@ -246,7 +246,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Node.prototype.ownerDocument", {
 		get(ctx) {
-			return client.documentProxy;
+			// return client.documentProxy;
 			const doc = ctx.get() as Document | null;
 			if (!doc) return null;
 
