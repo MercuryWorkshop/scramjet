@@ -1,5 +1,5 @@
 import { ElementType, Parser } from "htmlparser2";
-import { ChildNode, DomHandler, Element, Node, Text } from "domhandler";
+import { ChildNode, DomHandler, Element } from "domhandler";
 import render from "dom-serializer";
 import { URLMeta, encodeUrl } from "./url";
 import { rewriteCss } from "./css";
@@ -68,10 +68,10 @@ export function rewriteHtml(
 	return render(handler.root);
 }
 
-type ParseState = {
-	base: string;
-	origin?: URL;
-};
+// type ParseState = {
+// 	base: string;
+// 	origin?: URL;
+// };
 
 export function unrewriteHtml(html: string) {
 	const handler = new DomHandler((err, dom) => dom);
@@ -103,7 +103,7 @@ export function unrewriteHtml(html: string) {
 }
 
 export const htmlRules: {
-	[key: string]: "*" | string[] | Function;
+	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
 	fn: (value: string, meta: URLMeta, cookieStore: CookieStore) => string | null;
 }[] = [
 	{
@@ -116,6 +116,7 @@ export const htmlRules: {
 			"embed",
 			"script",
 			"img",
+			"image",
 			"iframe",
 			"source",
 			"video",
@@ -128,6 +129,7 @@ export const htmlRules: {
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
 		poster: ["video"],
+		"xlink:href": ["image"],
 	},
 	{
 		fn: () => null,

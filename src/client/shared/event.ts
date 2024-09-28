@@ -77,16 +77,17 @@ export default function (client: ScramjetClient, self: Self) {
 					}
 				}
 
-				Object.defineProperty(self, "event", {
-					get() {
-						return argArray[0];
-					},
-					configurable: true,
-				});
+				if (!self.event) {
+					Object.defineProperty(self, "event", {
+						get() {
+							return argArray[0];
+						},
+						configurable: true,
+					});
+				}
 
-				let rv = Reflect.apply(target, thisArg, argArray);
+				const rv = Reflect.apply(target, thisArg, argArray);
 
-				delete self.event;
 
 				return rv;
 			},
