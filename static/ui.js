@@ -150,6 +150,15 @@ function App() {
 		);
 	});
 
+  const handleSubmit = () => {
+    //  frame.go(this.url)
+    if (!this.url.startsWith("http")) {
+      this.url = "https://" + this.url;
+    }
+    
+    return frame.go(this.url);
+  }  
+
 	return html`
       <div>
       <h1>Percury Unblocker</h1>
@@ -186,7 +195,7 @@ function App() {
 					e
 				) => {
 					this.url = e.target.value;
-				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && frame.go(e.target.value)}></input>
+				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
         <button on:click=${() => frame.forward()}>-&gt;</button>
       </div>
       ${frame.frame}
