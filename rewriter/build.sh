@@ -2,6 +2,12 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
+# Check for cargo and wasm-bindgen
+which cargo wasm-bindgen wasm-opt &> /dev/null || {
+	echo "Please install cargo, wasm-bindgen, and wasm-opt! Exiting..."
+	exit 1
+}
+
 RUSTFLAGS='-C target-feature=+atomics,+bulk-memory -Zlocation-detail=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --features "${FEATURES:-}" --release
 wasm-bindgen --weak-refs --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
 
