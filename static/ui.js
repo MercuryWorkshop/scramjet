@@ -151,6 +151,7 @@ function App() {
 	});
 
   const handleSubmit = () => {
+    this.url = this.url.trim();
     //  frame.go(this.url)
     if (!this.url.startsWith("http")) {
       this.url = "https://" + this.url;
