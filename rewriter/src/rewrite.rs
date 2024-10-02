@@ -22,6 +22,7 @@ enum JsChange {
 	},
 	SourceTag {
 		tagstart: u32,
+		tagend: usize,
 	},
 	Assignment {
 		name: String,
@@ -260,6 +261,7 @@ impl<'a> Visit<'a> for Rewriter {
 		if self.config.do_sourcemaps {
 			self.jschanges.push(JsChange::SourceTag {
 				tagstart: it.span.start,
+				tagend: it.span.end as usize,
 			});
 		}
 		walk::walk_function_body(self, it);
@@ -450,7 +452,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::SourceTag { tagstart } => *tagstart,
+			JsChange::SourceTag { tagstart, tagend } => *tagstart,
 		};
 		let b = match b {
 			JsChange::GenericChange { span, text: _ } => span.start,
@@ -460,7 +462,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::SourceTag { tagstart } => *tagstart,
+			JsChange::SourceTag { tagstart,tagend } => *tagstart,
 		};
 		a.cmp(&b)
 	});
@@ -540,10 +542,11 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 				offset = entirespan.end as usize;
 			}
-			JsChange::SourceTag { tagstart } => {
+			JsChange::SourceTag { tagstart, tagend } => {
 				let start = *tagstart as usize;
 				buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
 
+				// let inject = format!("/*scramtag {} */", &js[start..*tagend]);
 				let inject = format!("/*scramtag {} {}*/", start, sourcetag);
 				buffer.extend_from_slice(inject.as_bytes());
 

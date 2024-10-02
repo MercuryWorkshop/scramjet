@@ -33,7 +33,7 @@ export class ScramjetController {
 				captureErrors: true,
 				syncxhr: false,
 				cleanerrors: false,
-				sourcemaps: false,
+				sourcemaps: true,
 			},
 		};
 
