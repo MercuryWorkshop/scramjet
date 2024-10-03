@@ -150,15 +150,15 @@ function App() {
 		);
 	});
 
-  const handleSubmit = () => {
-    this.url = this.url.trim();
-    //  frame.go(this.url)
-    if (!this.url.startsWith("http")) {
-      this.url = "https://" + this.url;
-    }
-    
-    return frame.go(this.url);
-  }  
+	const handleSubmit = () => {
+		this.url = this.url.trim();
+		//  frame.go(this.url)
+		if (!this.url.startsWith("http")) {
+			this.url = "https://" + this.url;
+		}
+
+		return frame.go(this.url);
+	};
 
 	return html`
       <div>

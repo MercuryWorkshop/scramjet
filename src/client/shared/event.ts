@@ -88,7 +88,6 @@ export default function (client: ScramjetClient, self: Self) {
 
 				const rv = Reflect.apply(target, thisArg, argArray);
 
-
 				return rv;
 			},
 			getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
