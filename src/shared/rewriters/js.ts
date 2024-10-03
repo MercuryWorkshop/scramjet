@@ -8,11 +8,11 @@ import {
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
 
-initSync(
-	new WebAssembly.Module(
+initSync({
+	module: new WebAssembly.Module(
 		Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0))
-	)
-);
+	),
+});
 
 init();
 
