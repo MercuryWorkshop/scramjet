@@ -5,7 +5,7 @@ import { UrlChangeEvent } from "../events";
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("history.pushState", {
 		apply(ctx) {
-			ctx.args[2] = encodeUrl(ctx.args[2], client.meta);
+			if (ctx.args[2]) ctx.args[2] = encodeUrl(ctx.args[2], client.meta);
 			ctx.call();
 
 			const ev = new UrlChangeEvent(client.url.href);
@@ -15,7 +15,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 	client.Proxy("history.replaceState", {
 		apply(ctx) {
-			ctx.args[2] = encodeUrl(ctx.args[2], client.meta);
+			if (ctx.args[2]) ctx.args[2] = encodeUrl(ctx.args[2], client.meta);
 			ctx.call();
 
 			const ev = new UrlChangeEvent(client.url.href);
