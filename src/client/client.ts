@@ -166,8 +166,8 @@ export class ScramjetClient {
 			const module = context(key);
 			if (!key.endsWith(".ts")) continue;
 			if (
-				(key.startsWith("./dom/") && "window" in self) ||
-				(key.startsWith("./worker/") && "WorkerGlobalScope" in self) ||
+				(key.startsWith("./dom/") && "window" in this.global) ||
+				(key.startsWith("./worker/") && "WorkerGlobalScope" in this.global) ||
 				key.startsWith("./shared/")
 			) {
 				modules.push(module);
@@ -189,7 +189,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(decodeUrl(self.location.href));
+		return new URL(decodeUrl(this.global.location.href));
 	}
 
 	set url(url: URL | string) {
@@ -201,7 +201,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		self.location.href = encodeUrl(ev.url, this.meta);
+		this.global.location.href = encodeUrl(ev.url, this.meta);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs
