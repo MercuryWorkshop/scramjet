@@ -1,5 +1,3 @@
-import { enc, dec } from "./aes";
-
 // for some reason eslint was parsing the type inside of the function params as a variable
 export interface Codec {
 	// eslint-disable-next-line
@@ -64,21 +62,6 @@ const base64 = {
 		return atob(str);
 	},
 };
-
-/*
-const aes = {
-		encode: (str: string | undefined) => {
-				if (!str) return str;
-
-				return encodeURIComponent(enc(str, "dynamic").substring(10));
-		},
-		decode: (str: string | undefined) => {
-				if (!str) return str;
-
-				return dec("U2FsdGVkX1" + decodeURIComponent(str), "dynamic");
-		}
-}
-*/
 
 if (typeof self.$scramjet === "undefined") {
 	//@ts-expect-error really dumb workaround

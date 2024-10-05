@@ -1,6 +1,6 @@
 {
 	"name": "@mercuryworkshop/scramjet",
-	"version": "1.0.2",
+	"version": "1.0.2-dev",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"main": "./lib/index.cjs",
 	"types": "./lib/index.d.js",
@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@fastify/static": "^8.0.1",
 		"@mercuryworkshop/bare-as-module3": "^2.2.2",
-		"@mercuryworkshop/epoxy-transport": "^2.1.12",
+		"@mercuryworkshop/epoxy-transport": "^2.1.13",
 		"@mercuryworkshop/libcurl-transport": "^1.3.10",
 		"@rsdoctor/rspack-plugin": "^0.4.4",
 		"@rspack/cli": "^1.0.5",
