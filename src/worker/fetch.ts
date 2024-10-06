@@ -80,8 +80,12 @@ export async function swfetch(
 		) {
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
 			const url = new URL(decodeUrl(client.url));
-			headers.set("Referer", url.toString());
-			headers.set("Origin", url.origin);
+			if (url.toString().includes("youtube.com")) {
+				console.log(headers);
+			} else {
+				headers.set("Referer", url.toString());
+				headers.set("Origin", url.origin);
+			}
 		}
 
 		const cookies = this.cookieStore.getCookies(url, false);
