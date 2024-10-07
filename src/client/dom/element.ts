@@ -257,6 +257,19 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("DOMParser.prototype.parseFromString", {
+		apply(ctx) {
+			if (ctx.args[1] === "text/html") {
+				ctx.args[0] = rewriteHtml(
+					ctx.args[0],
+					client.cookieStore,
+					client.meta,
+					true
+				);
+			}
+		},
+	});
+
 	client.Proxy("document.write", {
 		apply(ctx) {
 			ctx.args[0] = rewriteHtml(
