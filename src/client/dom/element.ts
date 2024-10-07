@@ -1,14 +1,11 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
+import { decodeUrl, htmlRules, unrewriteHtml } from "../../shared";
 import {
 	encodeUrl,
-	decodeUrl,
 	rewriteCss,
-	unrewriteCss,
-	htmlRules,
 	rewriteHtml,
-	unrewriteHtml,
 	rewriteJs,
 	rewriteSrcset,
 } from "../../shared";
@@ -159,34 +156,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (ctx.fn.call(ctx.this, `data-scramjet-${name}`)) {
 				ctx.return(ctx.fn.call(ctx.this, `data-scramjet-${name}`));
-			}
-		},
-	});
-
-	client.Trap("Node.prototype.textContent", {
-		get(ctx) {
-			switch (ctx.this.tagName) {
-				case "SCRIPT":
-					return ctx.get();
-				case "STYLE":
-					return unrewriteCss(ctx.get() as string);
-				default:
-					return unrewriteHtml(ctx.get() as string);
-			}
-		},
-		set(ctx) {
-			switch (ctx.this.tagName) {
-				case "SCRIPT":
-					return ctx.get();
-				case "STYLE":
-					return rewriteCss(ctx.get() as string, client.meta);
-				default:
-					return rewriteHtml(
-						ctx.get() as string,
-						client.cookieStore,
-						client.meta,
-						false
-					);
 			}
 		},
 	});
