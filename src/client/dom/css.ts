@@ -1,5 +1,5 @@
 import { ScramjetClient } from "../client";
-import { rewriteCss } from "../../shared";
+import { rewriteCss, unrewriteCss } from "../../shared";
 
 const cssProperties = [
 	"background",
@@ -19,6 +19,25 @@ export default function (client: ScramjetClient) {
 		apply(ctx) {
 			if (cssProperties.includes(ctx.args[0]))
 				ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
+		},
+	});
+
+	client.Proxy("CSSStyleDeclaration.prototype.getPropertyValue", {
+		apply(ctx) {
+			if (cssProperties.includes(ctx.args[0])) {
+				const realProperty = ctx.call();
+
+				return ctx.return(unrewriteCss(realProperty));
+			}
+		},
+	});
+
+	client.Trap("CSSStyleDeclaration.prototype.cssText", {
+		set(ctx, value: string) {
+			ctx.set(rewriteCss(value, client.meta));
+		},
+		get(ctx) {
+			return unrewriteCss(ctx.get());
 		},
 	});
 }

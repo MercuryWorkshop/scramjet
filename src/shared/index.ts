@@ -1,5 +1,5 @@
 import { encodeUrl, decodeUrl } from "./rewriters/url";
-import { rewriteCss } from "./rewriters/css";
+import { rewriteCss, unrewriteCss } from "./rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
 import { rewriteJs } from "./rewriters/js";
 import { rewriteHeaders } from "./rewriters/headers";
@@ -23,6 +23,7 @@ self.$scramjet.shared = {
 	},
 	rewrite: {
 		rewriteCss,
+		unrewriteCss,
 		rewriteHtml,
 		unrewriteHtml,
 		rewriteSrcset,

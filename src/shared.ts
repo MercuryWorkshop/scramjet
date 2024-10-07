@@ -3,6 +3,7 @@ export const {
 	url: { encodeUrl, decodeUrl },
 	rewrite: {
 		rewriteCss,
+		unrewriteCss,
 		rewriteHtml,
 		unrewriteHtml,
 		rewriteSrcset,

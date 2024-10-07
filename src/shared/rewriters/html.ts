@@ -57,11 +57,6 @@ export function rewriteHtml(
 			script("data:application/javascript;base64," + btoa(injected)),
 			script(self.$scramjet.config["shared"]),
 			script(self.$scramjet.config["client"])
-			// script("/vc/browser.js"),
-			// new Element("link", {
-			// 	rel: "stylesheet",
-			// 	href: "/vc/browser.css",
-			// })
 		);
 	}
 
