@@ -50,6 +50,12 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		},
 	});
 
+	client.Proxy("Worklet.prototype.addModule", {
+		apply(ctx) {
+			if (ctx.args[0]) ctx.args[0] = encodeUrl(ctx.args[0], client.meta);
+		},
+	});
+
 	client.Proxy("SharedWorker", {
 		construct({ args, call }) {
 			if (args[0] instanceof URL) args[0] = args[0].href;
