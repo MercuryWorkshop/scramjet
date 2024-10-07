@@ -55,7 +55,7 @@ export default function (client: ScramjetClient) {
 				};
 
 				// * origin because obviously
-				if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
+				ctx.args[1] = "*";
 
 				ctx.return(
 					wrappedPostMessage.call(ctx.fn, ctx.args[0], ctx.args[1], ctx.args[2])
