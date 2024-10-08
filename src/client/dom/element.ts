@@ -48,7 +48,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		for (const element of attrObject[attr]) {
 			const descriptor = nativeGetOwnPropertyDescriptor(
 				element.prototype,
-				attr
+				attr,
 			);
 			Object.defineProperty(element.prototype, attr, {
 				get() {
@@ -75,7 +75,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 								base: new URL(client.url.origin),
 								origin: new URL(client.url.origin),
 							} as URLMeta,
-							true
+							true,
 						);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value, client.meta);
@@ -174,10 +174,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 			ctx.set(newval);
 		},
 		get(ctx) {
-			if (
-				ctx.this instanceof self.HTMLScriptElement ||
-				ctx.this instanceof self.HTMLStyleElement
-			) {
+			if (ctx.this instanceof self.HTMLScriptElement) {
+				return atob(
+					client.natives["Element.prototype.getAttribute"].call(
+						ctx.this,
+						"data-scramjet-script-source-src",
+					),
+				);
+			}
+			if (ctx.this instanceof self.HTMLStyleElement) {
 				return ctx.get();
 			}
 
@@ -264,7 +269,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					ctx.args[0],
 					client.cookieStore,
 					client.meta,
-					false
+					false,
 				);
 			}
 		},
@@ -276,7 +281,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				true
+				true,
 			);
 		},
 	});
@@ -287,7 +292,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				false
+				false,
 			);
 		},
 	});

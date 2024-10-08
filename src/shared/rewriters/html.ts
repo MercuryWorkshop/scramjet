@@ -10,7 +10,7 @@ export function rewriteHtml(
 	html: string,
 	cookieStore: CookieStore,
 	meta: URLMeta,
-	fromTop: boolean = false
+	fromTop: boolean = false,
 ) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
@@ -56,7 +56,7 @@ export function rewriteHtml(
 			script(self.$scramjet.config["codecs"]),
 			script("data:application/javascript;base64," + btoa(injected)),
 			script(self.$scramjet.config["shared"]),
-			script(self.$scramjet.config["client"])
+			script(self.$scramjet.config["client"]),
 		);
 	}
 
@@ -78,6 +78,12 @@ export function unrewriteHtml(html: string) {
 	function traverse(node: ChildNode) {
 		if ("attribs" in node) {
 			for (const key in node.attribs) {
+				if (key == "data-scramjet-script-source-src") {
+					if (node.children[0] && "data" in node.children[0])
+						node.children[0].data = atob(node.attribs[key]);
+					continue;
+				}
+
 				if (key.startsWith("data-scramjet-")) {
 					node.attribs[key.slice(13)] = node.attribs[key];
 					delete node.attribs[key];
@@ -101,80 +107,80 @@ export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
 	fn: (value: string, meta: URLMeta, cookieStore: CookieStore) => string | null;
 }[] = [
-	{
-		fn: (value: string, meta: URLMeta) => {
-			return encodeUrl(value, meta);
+		{
+			fn: (value: string, meta: URLMeta) => {
+				return encodeUrl(value, meta);
+			},
+
+			// url rewrites
+			src: [
+				"embed",
+				"script",
+				"img",
+				"image",
+				"iframe",
+				"source",
+				"video",
+				"audio",
+				"input",
+				"track",
+			],
+			href: ["a", "link", "area"],
+			data: ["object"],
+			action: ["form"],
+			formaction: ["button", "input", "textarea", "submit"],
+			poster: ["video"],
+			"xlink:href": ["image"],
 		},
+		{
+			fn: () => null,
 
-		// url rewrites
-		src: [
-			"embed",
-			"script",
-			"img",
-			"image",
-			"iframe",
-			"source",
-			"video",
-			"audio",
-			"input",
-			"track",
-		],
-		href: ["a", "link", "area"],
-		data: ["object"],
-		action: ["form"],
-		formaction: ["button", "input", "textarea", "submit"],
-		poster: ["video"],
-		"xlink:href": ["image"],
-	},
-	{
-		fn: () => null,
-
-		// csp stuff that must be deleted
-		nonce: "*",
-		integrity: ["script", "link"],
-		csp: ["iframe"],
-	},
-	{
-		fn: (value: string, meta: URLMeta) => rewriteSrcset(value, meta),
-
-		// srcset
-		srcset: ["img", "source"],
-		imagesrcset: ["link"],
-	},
-	{
-		fn: (value: string, meta: URLMeta, cookieStore: CookieStore) =>
-			rewriteHtml(
-				value,
-				cookieStore,
-				{
-					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
-					origin: new URL(meta.origin.origin),
-					base: new URL(meta.origin.origin),
-				},
-				true
-			),
-
-		// srcdoc
-		srcdoc: ["iframe"],
-	},
-	{
-		fn: (value: string, meta: URLMeta) => rewriteCss(value, meta),
-		style: "*",
-	},
-	{
-		fn: (value: string) => {
-			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+			// csp stuff that must be deleted
+			nonce: "*",
+			integrity: ["script", "link"],
+			csp: ["iframe"],
 		},
-		target: ["a", "base"],
-	},
-];
+		{
+			fn: (value: string, meta: URLMeta) => rewriteSrcset(value, meta),
+
+			// srcset
+			srcset: ["img", "source"],
+			imagesrcset: ["link"],
+		},
+		{
+			fn: (value: string, meta: URLMeta, cookieStore: CookieStore) =>
+				rewriteHtml(
+					value,
+					cookieStore,
+					{
+						// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
+						origin: new URL(meta.origin.origin),
+						base: new URL(meta.origin.origin),
+					},
+					true,
+				),
+
+			// srcdoc
+			srcdoc: ["iframe"],
+		},
+		{
+			fn: (value: string, meta: URLMeta) => rewriteCss(value, meta),
+			style: "*",
+		},
+		{
+			fn: (value: string) => {
+				if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+			},
+			target: ["a", "base"],
+		},
+	];
 
 // i need to add the attributes in during rewriting
 
 function traverseParsedHtml(
 	node: any,
 	cookieStore: CookieStore,
-	meta: URLMeta
+	meta: URLMeta,
 ) {
 	if (node.name === "base" && node.attribs.href !== undefined) {
 		meta.base = new URL(node.attribs.href, meta.origin);
@@ -207,11 +213,12 @@ function traverseParsedHtml(
 	if (
 		node.name === "script" &&
 		/(application|text)\/javascript|module|importmap|undefined/.test(
-			node.attribs.type
+			node.attribs.type,
 		) &&
 		node.children[0] !== undefined
 	) {
 		let js = node.children[0].data;
+		node.attribs[`data-scramjet-script-source-src`] = btoa(js);
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
 		node.children[0].data = rewriteJs(js, meta);
@@ -238,7 +245,7 @@ function traverseParsedHtml(
 			node.childNodes[childNode] = traverseParsedHtml(
 				node.childNodes[childNode],
 				cookieStore,
-				meta
+				meta,
 			);
 		}
 	}
