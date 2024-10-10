@@ -12,6 +12,10 @@ import {
 import type { URLMeta } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: typeof window) {
+	const nativeGetAttribute = self.Element.prototype.getAttribute;
+	const nativeSetAttribute = self.Element.prototype.setAttribute;
+	const nativeHasAttribute = self.Element.prototype.hasAttribute;
+
 	const attrObject = {
 		nonce: [self.HTMLElement],
 		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
@@ -60,6 +64,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				},
 
 				set(value) {
+					nativeSetAttribute.call(this, "data-scramjet-" + attr, value);
 					if (["nonce", "integrity", "csp"].includes(attr)) {
 						return;
 					} else if (
@@ -157,6 +162,39 @@ export default function (client: ScramjetClient, self: typeof window) {
 			if (ctx.fn.call(ctx.this, `data-scramjet-${name}`)) {
 				ctx.return(ctx.fn.call(ctx.this, `data-scramjet-${name}`));
 			}
+		},
+	});
+
+	client.Trap("HTMLElement.prototype.style", {
+		get(ctx) {
+			// unfortunate and dumb hack. we have to trap every property of this
+			// since the prototype chain is fucked
+
+			const style = ctx.get() as CSSStyleDeclaration;
+			return new Proxy(style, {
+				get(t, p) {
+					let v = Reflect.get(t, p);
+					if (typeof v === "function") {
+						return new Proxy(v, {
+							apply(target, thisArg, argArray) {
+								return Reflect.apply(target, style, argArray);
+							},
+						});
+					}
+
+					// todo properly unrewrite whatever
+					return v;
+				},
+				set(t, p, v) {
+					if (v == "" || typeof v !== "string") {
+						return Reflect.set(t, p, v);
+					}
+					return Reflect.set(t, p, rewriteCss(v, client.meta));
+				},
+			});
+		},
+		set(ctx, v: string) {
+			ctx.set(rewriteCss(v, client.meta));
 		},
 	});
 
