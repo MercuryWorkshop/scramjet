@@ -51,6 +51,7 @@ pub struct Config {
 
 	pub encode: EncodeFn,
 	pub capture_errors: bool,
+	pub scramitize: bool,
 	pub do_sourcemaps: bool,
 }
 
@@ -127,6 +128,21 @@ impl<'a> Visit<'a> for Rewriter {
 
 					return; // unwise to walk the rest of the tree
 				}
+
+				if self.config.scramitize
+					&& !matches!(s.object, Expression::MetaProperty(_))
+					&& !matches!(s.object, Expression::Super(_))
+				{
+					let span = expression_span(&s.object);
+					self.jschanges.push(JsChange::GenericChange {
+						span: Span::new(span.start, span.start),
+						text: format!(" $scramitize("),
+					});
+					self.jschanges.push(JsChange::GenericChange {
+						span: Span::new(span.end, span.end),
+						text: format!(")"),
+					});
+				}
 			}
 			_ => {
 				// TODO
@@ -135,6 +151,7 @@ impl<'a> Visit<'a> for Rewriter {
 				// and it would slow down js execution a lot
 			}
 		}
+
 		walk::walk_member_expression(self, it);
 	}
 	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
@@ -172,6 +189,16 @@ impl<'a> Visit<'a> for Rewriter {
 				walk::walk_arguments(self, &it.arguments);
 				return;
 			}
+		}
+		if self.config.scramitize {
+			self.jschanges.push(JsChange::GenericChange {
+				span: Span::new(it.span.start, it.span.start),
+				text: format!(" $scramitize("),
+			});
+			self.jschanges.push(JsChange::GenericChange {
+				span: Span::new(it.span.end, it.span.end),
+				text: format!(")"),
+			});
 		}
 		walk::walk_call_expression(self, it);
 	}
@@ -462,7 +489,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::SourceTag { tagstart,tagend } => *tagstart,
+			JsChange::SourceTag { tagstart, tagend } => *tagstart,
 		};
 		a.cmp(&b)
 	});

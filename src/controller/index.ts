@@ -32,7 +32,8 @@ export class ScramjetController {
 				naiiveRewriter: false,
 				captureErrors: true,
 				syncxhr: false,
-				cleanerrors: false,
+				cleanerrors: true,
+				scramitize: false,
 				sourcemaps: true,
 			},
 		};

@@ -51,6 +51,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	};
 }
 
+export const order = 4;
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	// the main magic of the proxy. all attempts to access any "banned objects" will be redirected here, and instead served a proxy object
 	// this contrasts from how other proxies will leave the root object alone and instead attempt to catch every member access
@@ -60,6 +61,13 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		writable: false,
 		configurable: false,
 	});
+
+	self.$scramitize = function (v) {
+		if (typeof v === "string" && v.includes("scramjet")) {
+			debugger;
+		}
+		return v;
+	};
 
 	// location = "..." can't be rewritten as wrapfn(location) = ..., so instead it will actually be rewritten as
 	// ((t)=>$scramjet$tryset(location,"+=",t)||location+=t)(...);

@@ -123,6 +123,7 @@ fn dorewrite(source_text: &str) -> String {
 				pushsourcemapfn: "$pushsourcemap".to_string(),
 				capture_errors: true,
 				do_sourcemaps: true,
+				scramitize: false,
 			},
 		)
 		.as_slice(),

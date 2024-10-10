@@ -63,6 +63,7 @@ fn get_config(scramjet: &Object) -> Config {
 
 		do_sourcemaps: get_bool(flags, "sourcemaps"),
 		capture_errors: get_bool(flags, "captureErrors"),
+		scramitize: get_bool(flags, "scramitize"),
 	}
 }
 
