@@ -108,7 +108,7 @@ export class ScramjetClient {
 							resolve(data.port);
 						}
 					});
-				})
+				}),
 			);
 		}
 
@@ -189,7 +189,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(decodeUrl(self.location.href));
+		return new URL(decodeUrl(this.global.location.href));
 	}
 
 	set url(url: URL | string) {
@@ -201,7 +201,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		self.location.href = encodeUrl(ev.url, this.meta);
+		this.global.location.href = encodeUrl(ev.url, this.meta);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs
@@ -239,7 +239,7 @@ export class ScramjetClient {
 			h.construct = function (
 				constructor: any,
 				argArray: any[],
-				newTarget: AnyFunction
+				newTarget: AnyFunction,
 			) {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
@@ -354,7 +354,7 @@ export class ScramjetClient {
 	RawTrap<T>(
 		target: any,
 		prop: string,
-		descriptor: Trap<T>
+		descriptor: Trap<T>,
 	): PropertyDescriptor {
 		if (!target) return;
 		if (!prop) return;
