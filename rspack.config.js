@@ -1,8 +1,6 @@
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
-import obfuscator from "javascript-obfuscator";
-const { obfuscate } = obfuscator;
 
 import { readFile } from "node:fs/promises";
 import { join } from "path";
@@ -55,9 +53,6 @@ export default defineConfig({
 			},
 		},
 	},
-	optimization: {
-		minimize: process.env.OBFUSCATE === "true",
-	},
 	output: {
 		filename: "scramjet.[name].js",
 		path: join(__dirname, "dist"),
@@ -71,44 +66,6 @@ export default defineConfig({
 		new rspack.DefinePlugin({
 			VERSION: JSON.stringify(packagemeta.version),
 		}),
-		process.env.OBFUSCATE === "true" && {
-			apply(compiler) {
-				compiler.hooks.compilation.tap("GyatPlugin", (compilation) => {
-					compilation.hooks.processAssets.tap(
-						{
-							name: "GyatPlugin",
-							stage: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
-						},
-						(assets) => {
-							for (const asset in assets) {
-								// inject code
-								compilation.updateAsset(asset, (source) => {
-									return {
-										source: () => {
-											return obfuscate(source.source(), {
-												compact: true,
-												controlFlowFlattening: true,
-												controlFlowFlatteningThreshold: 1,
-												numbersToExpressions: true,
-												simplify: true,
-												deadCodeInjection: true,
-												selfDefending: true,
-												renameGlobals: true,
-												transformObjectKeys: true,
-												stringArrayShuffle: true,
-												splitStrings: true,
-												stringArrayThreshold: 1,
-												domainLock: ["localhost", process.env.DOMAIN],
-											}).getObfuscatedCode();
-										},
-									};
-								});
-							}
-						}
-					);
-				});
-			},
-		},
 		process.env.DEBUG === "true"
 			? new RsdoctorRspackPlugin({
 					supports: {
