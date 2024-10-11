@@ -276,7 +276,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 		],
 		{
 			get(ctx) {
-				return client.wrapfn(ctx.get());
+				const n = ctx.get() as Node;
+				if (!(n instanceof Document)) return;
+
+				const scram: ScramjetClient = n[SCRAMJETCLIENT];
+				if (!scram) return n; // ??
+
+				return scram.documentProxy;
 			},
 		},
 	);
