@@ -1,4 +1,4 @@
-import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+import { BareHeaders, BareResponseFetch } from "@mercuryworkshop/bare-mux";
 import IDBMap from "@webreflection/idb-map";
 import { ParseResultType } from "parse-domain";
 import { MessageW2C, ScramjetServiceWorker } from ".";
@@ -17,6 +17,7 @@ import {
 } from "../shared";
 
 import type { URLMeta } from "../shared/rewriters/url";
+import { Readable } from "stream";
 
 function newmeta(url: URL): URLMeta {
 	return {
@@ -28,13 +29,13 @@ function newmeta(url: URL): URLMeta {
 export async function swfetch(
 	this: ScramjetServiceWorker,
 	request: Request,
-	client: Client | null
+	client: Client | null,
 ) {
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {
 		return Response.redirect(
-			encodeUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
+			encodeUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url")))),
 		);
 	}
 
@@ -51,7 +52,7 @@ export async function swfetch(
 		const url = new URL(decodeUrl(requesturl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
-			(w) => w.origin === url.origin
+			(w) => w.origin === url.origin,
 		);
 
 		if (
@@ -65,7 +66,7 @@ export async function swfetch(
 		}
 		if (url.origin == new URL(request.url).origin) {
 			throw new Error(
-				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
+				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting",
 			);
 		}
 
@@ -81,7 +82,7 @@ export async function swfetch(
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
 			const url = new URL(decodeUrl(client.url));
 			if (url.toString().includes("youtube.com")) {
-				console.log(headers);
+				// console.log(headers);
 			} else {
 				headers.set("Referer", url.toString());
 				headers.set("Origin", url.origin);
@@ -117,7 +118,8 @@ export async function swfetch(
 			request.destination,
 			response,
 			this.cookieStore,
-			client
+			client,
+			this,
 		);
 	} catch (err) {
 		console.error("ERROR FROM SERVICE WORKER FETCH", err);
@@ -134,7 +136,8 @@ async function handleResponse(
 	destination: RequestDestination,
 	response: BareResponseFetch,
 	cookieStore: CookieStore,
-	client: Client
+	client: Client,
+	swtarget: ScramjetServiceWorker,
 ): Promise<Response> {
 	let responseBody: string | ArrayBuffer | ReadableStream;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
@@ -151,7 +154,7 @@ async function handleResponse(
 
 	await cookieStore.setCookies(
 		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
-		url
+		url,
 	);
 
 	for (const header in responseHeaders) {
@@ -169,7 +172,7 @@ async function handleResponse(
 						await response.text(),
 						cookieStore,
 						newmeta(url),
-						true
+						true,
 					);
 				} else {
 					responseBody = response.body;
@@ -188,7 +191,7 @@ async function handleResponse(
 				responseBody = rewriteWorkers(
 					await response.arrayBuffer(),
 					workertype,
-					newmeta(url)
+					newmeta(url),
 				);
 				break;
 			default:
@@ -237,9 +240,23 @@ async function handleResponse(
 		responseHeaders["Cross-Origin-Opener-Policy"] = "same-origin";
 	}
 
-	return new Response(responseBody, {
-		headers: responseHeaders as HeadersInit,
-		status: response.status,
-		statusText: response.statusText,
+	const ev = new ScramjetHandleResponseEvent("handleResponse");
+	ev.responseBody = responseBody;
+	ev.responseHeaders = responseHeaders;
+	ev.status = response.status;
+	ev.statusText = response.statusText;
+	swtarget.dispatchEvent(ev);
+
+	return new Response(ev.responseBody, {
+		headers: ev.responseHeaders as HeadersInit,
+		status: ev.status,
+		statusText: ev.statusText,
 	});
+}
+
+export class ScramjetHandleResponseEvent extends Event {
+	public responseHeaders: Record<string, string>;
+	public responseBody: string | ArrayBuffer | ReadableStream;
+	public status: number;
+	public statusText: string;
 }

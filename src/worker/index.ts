@@ -5,7 +5,7 @@ import { ScramjetThreadpool } from "./threadpool";
 import type BareClient from "@mercuryworkshop/bare-mux";
 import { rewriteWorkers } from "../shared";
 
-export class ScramjetServiceWorker {
+export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
 	config: typeof self.$scramjet.config;
 	threadpool: ScramjetThreadpool;
@@ -23,6 +23,7 @@ export class ScramjetServiceWorker {
 	> = {};
 
 	constructor() {
+		super();
 		this.client = new self.$scramjet.shared.util.BareClient();
 
 		this.threadpool = new ScramjetThreadpool();
@@ -75,7 +76,7 @@ export class ScramjetServiceWorker {
 		clients = clients.filter(
 			(client) =>
 				client.type === "window" &&
-				!new URL(client.url).pathname.startsWith(this.config.prefix)
+				!new URL(client.url).pathname.startsWith(this.config.prefix),
 		);
 
 		if (clients.length === 0) throw new Error("No clients found");
@@ -98,7 +99,7 @@ export class ScramjetServiceWorker {
 		clients = clients.filter(
 			(client) =>
 				client.type === "window" &&
-				!new URL(client.url).pathname.startsWith(this.config.prefix)
+				!new URL(client.url).pathname.startsWith(this.config.prefix),
 		);
 
 		if (clients.length === 0) throw new Error("No clients found");
@@ -129,7 +130,7 @@ export class ScramjetServiceWorker {
 			const type = new URL(request.url).searchParams.get("type");
 
 			const origin = new URL(
-				decodeURIComponent(new URL(request.url).searchParams.get("origin"))
+				decodeURIComponent(new URL(request.url).searchParams.get("origin")),
 			);
 
 			let promise = this.dataworkerpromises[id];
@@ -155,6 +156,7 @@ export class ScramjetServiceWorker {
 				"Content-Type": "application/javascript",
 			};
 
+			// this is broken on firefox
 			if (crossOriginIsolated) {
 				headers["Cross-Origin-Opener-Policy"] = "same-origin";
 				headers["Cross-Origin-Embedder-Policy"] = "require-corp";
