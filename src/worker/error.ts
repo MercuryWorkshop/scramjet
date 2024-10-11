@@ -1,20 +1,18 @@
 export function errorTemplate(trace: string, fetchedURL: string) {
 	// turn script into a data URI so we don"t have to escape any HTML values
 	const script = `
-        errorTrace.value = ${JSON.stringify(trace)};
-        fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
-        for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(
-					location.hostname
-				)};
-        reload.addEventListener("click", () => location.reload());
-        version.textContent = "0.0.1";
-    `;
+                errorTrace.value = ${JSON.stringify(trace)};
+                fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
+                for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(location.hostname)};
+                reload.addEventListener("click", () => location.reload());
+                version.textContent = ${JSON.stringify(VERSION)};
+        `;
 
 	return `<!DOCTYPE html>
         <html>
         <head>
         <meta charset="utf-8" />
-        <title>Error</title>
+        <title>Scramjet</title>
         <style>
         * { background-color: white }
         </style>
@@ -42,9 +40,7 @@ export function errorTemplate(trace: string, fetchedURL: string) {
         <button id="reload">Reload</button>
         <hr />
         <p><i>Scramjet v<span id="version"></span></i></p>
-        <script src="${
-					"data:application/javascript," + encodeURIComponent(script)
-				}"></script>
+        <script src="${"data:application/javascript," + encodeURIComponent(script)}"></script>
         </body>
         </html>
         `;

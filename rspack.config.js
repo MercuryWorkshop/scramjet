@@ -1,12 +1,12 @@
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
+
+import { readFile } from "node:fs/promises";
 import { join } from "path";
 import { fileURLToPath } from "url";
-import obfuscator from "javascript-obfuscator";
-const { obfuscate } = obfuscator;
-
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const packagemeta = JSON.parse(await readFile("package.json"));
 
 export default defineConfig({
 	// change to production when needed
@@ -53,9 +53,6 @@ export default defineConfig({
 			},
 		},
 	},
-	optimization: {
-		minimize: process.env.OBFUSCATE === "true",
-	},
 	output: {
 		filename: "scramjet.[name].js",
 		path: join(__dirname, "dist"),
@@ -66,44 +63,9 @@ export default defineConfig({
 		new rspack.ProvidePlugin({
 			dbg: [join(__dirname, "src/log.ts"), "default"],
 		}),
-		process.env.OBFUSCATE === "true" && {
-			apply(compiler) {
-				compiler.hooks.compilation.tap("GyatPlugin", (compilation) => {
-					compilation.hooks.processAssets.tap(
-						{
-							name: "GyatPlugin",
-							stage: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
-						},
-						(assets) => {
-							for (const asset in assets) {
-								// inject code
-								compilation.updateAsset(asset, (source) => {
-									return {
-										source: () => {
-											return obfuscate(source.source(), {
-												compact: true,
-												controlFlowFlattening: true,
-												controlFlowFlatteningThreshold: 1,
-												numbersToExpressions: true,
-												simplify: true,
-												deadCodeInjection: true,
-												selfDefending: true,
-												renameGlobals: true,
-												transformObjectKeys: true,
-												stringArrayShuffle: true,
-												splitStrings: true,
-												stringArrayThreshold: 1,
-												domainLock: ["localhost", process.env.DOMAIN],
-											}).getObfuscatedCode();
-										},
-									};
-								});
-							}
-						}
-					);
-				});
-			},
-		},
+		new rspack.DefinePlugin({
+			VERSION: JSON.stringify(packagemeta.version),
+		}),
 		process.env.DEBUG === "true"
 			? new RsdoctorRspackPlugin({
 					supports: {
