@@ -2,7 +2,7 @@ import { config, decodeUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
 export const enabled = () => self.$scramjet.config.flags.cleanerrors;
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: ScramjetClient, _self: Self) {
 	// v8 only. all we need to do is clean the scramjet urls from stack traces
 	const closure = (error, stack) => {
 		let newstack = error.stack;
@@ -12,9 +12,9 @@ export default function (client: ScramjetClient, self: Self) {
 
 			if (url.endsWith(config.client)) {
 				// strip stack frames including scramjet handlers from the trace
-				let lines = newstack.split("\n");
-				let i = lines.find((l) => l.includes(url));
-				lines.splice(i, 1);
+				const lines = newstack.split("\n");
+				const line = lines.find((l) => l.includes(url));
+				lines.splice(line, 1);
 				newstack = lines.join("\n");
 				continue;
 			}
@@ -27,11 +27,11 @@ export default function (client: ScramjetClient, self: Self) {
 		return newstack;
 	};
 	client.Trap("Error.prepareStackTrace", {
-		get(ctx) {
+		get(_ctx) {
 			// this is a funny js quirk. the getter is ran every time you type something in console
 			return closure;
 		},
-		set(value) {
+		set(_value) {
 			// just ignore it if a site tries setting their own. not much we can really do
 		},
 	});

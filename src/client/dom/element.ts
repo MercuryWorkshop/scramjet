@@ -12,9 +12,9 @@ import {
 import type { URLMeta } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: typeof window) {
-	const nativeGetAttribute = self.Element.prototype.getAttribute;
+	const _nativeGetAttribute = self.Element.prototype.getAttribute;
 	const nativeSetAttribute = self.Element.prototype.setAttribute;
-	const nativeHasAttribute = self.Element.prototype.hasAttribute;
+	const _nativeHasAttribute = self.Element.prototype.hasAttribute;
 
 	const attrObject = {
 		nonce: [self.HTMLElement],
