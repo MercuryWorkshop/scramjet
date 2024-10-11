@@ -69,7 +69,7 @@ export default defineConfig({
 		}),
 		new rspack.DefinePlugin({
 			COMMITHASH: JSON.stringify(
-				execSync("git rev-parse HEAD", { encoding: "utf-8" }).replace(
+				execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).replace(
 					/\r?\n|\r/g,
 					""
 				)
