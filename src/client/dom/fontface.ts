@@ -1,7 +1,7 @@
 import { ScramjetClient } from "../client";
-import { decodeUrl, rewriteCss } from "../../shared";
+import { rewriteCss } from "../../shared";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("FontFace", {
 		construct(ctx) {
 			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
