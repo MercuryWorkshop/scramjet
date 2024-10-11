@@ -66,8 +66,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		if (typeof v === "string" && v.includes("scramjet")) {
 			debugger;
 		}
-		
-return v;
+
+		return v;
 	};
 
 	// location = "..." can't be rewritten as wrapfn(location) = ..., so instead it will actually be rewritten as

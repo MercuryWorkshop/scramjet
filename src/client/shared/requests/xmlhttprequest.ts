@@ -85,15 +85,15 @@ export default function (client: ScramjetClient, self: Self) {
 			client.RawTrap(ctx.this, "response", {
 				get() {
 					if (ctx.this.responseType === "arraybuffer") return bodyab.buffer;
-					
-return body;
+
+					return body;
 				},
 			});
 			client.RawTrap(ctx.this, "responseXML", {
 				get() {
 					const parser = new DOMParser();
-					
-return parser.parseFromString(body, "text/xml");
+
+					return parser.parseFromString(body, "text/xml");
 				},
 			});
 			client.RawTrap(ctx.this, "getAllResponseHeaders", {
@@ -106,8 +106,8 @@ return parser.parseFromString(body, "text/xml");
 					return (header: string) => {
 						const re = new RegExp(`^${header}: (.*)$`, "m");
 						const match = re.exec(headers);
-						
-return match ? match[1] : null;
+
+						return match ? match[1] : null;
 					};
 				},
 			});
