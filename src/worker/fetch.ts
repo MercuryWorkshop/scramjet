@@ -26,13 +26,13 @@ function newmeta(url: URL): URLMeta {
 export async function swfetch(
 	this: ScramjetServiceWorker,
 	request: Request,
-	client: Client | null,
+	client: Client | null
 ) {
 	const urlParam = new URLSearchParams(new URL(request.url).search);
 
 	if (urlParam.has("url")) {
 		return Response.redirect(
-			encodeUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url")))),
+			encodeUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
 		);
 	}
 
@@ -49,7 +49,7 @@ export async function swfetch(
 		const url = new URL(decodeUrl(requesturl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
-			(w) => w.origin === url.origin,
+			(w) => w.origin === url.origin
 		);
 
 		if (
@@ -63,7 +63,7 @@ export async function swfetch(
 		}
 		if (url.origin == new URL(request.url).origin) {
 			throw new Error(
-				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting",
+				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
 			);
 		}
 
@@ -116,7 +116,7 @@ export async function swfetch(
 			response,
 			this.cookieStore,
 			client,
-			this,
+			this
 		);
 	} catch (err) {
 		console.error("ERROR FROM SERVICE WORKER FETCH", err);
@@ -134,7 +134,7 @@ async function handleResponse(
 	response: BareResponseFetch,
 	cookieStore: CookieStore,
 	client: Client,
-	swtarget: ScramjetServiceWorker,
+	swtarget: ScramjetServiceWorker
 ): Promise<Response> {
 	let responseBody: string | ArrayBuffer | ReadableStream;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
@@ -151,7 +151,7 @@ async function handleResponse(
 
 	await cookieStore.setCookies(
 		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
-		url,
+		url
 	);
 
 	for (const header in responseHeaders) {
@@ -169,7 +169,7 @@ async function handleResponse(
 						await response.text(),
 						cookieStore,
 						newmeta(url),
-						true,
+						true
 					);
 				} else {
 					responseBody = response.body;
@@ -188,7 +188,7 @@ async function handleResponse(
 				responseBody = rewriteWorkers(
 					await response.arrayBuffer(),
 					workertype,
-					newmeta(url),
+					newmeta(url)
 				);
 				break;
 			default:

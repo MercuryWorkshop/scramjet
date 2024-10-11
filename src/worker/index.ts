@@ -76,7 +76,7 @@ export class ScramjetServiceWorker extends EventTarget {
 		clients = clients.filter(
 			(client) =>
 				client.type === "window" &&
-				!new URL(client.url).pathname.startsWith(this.config.prefix),
+				!new URL(client.url).pathname.startsWith(this.config.prefix)
 		);
 
 		if (clients.length === 0) throw new Error("No clients found");
@@ -99,7 +99,7 @@ export class ScramjetServiceWorker extends EventTarget {
 		clients = clients.filter(
 			(client) =>
 				client.type === "window" &&
-				!new URL(client.url).pathname.startsWith(this.config.prefix),
+				!new URL(client.url).pathname.startsWith(this.config.prefix)
 		);
 
 		if (clients.length === 0) throw new Error("No clients found");
@@ -130,7 +130,7 @@ export class ScramjetServiceWorker extends EventTarget {
 			const type = new URL(request.url).searchParams.get("type");
 
 			const origin = new URL(
-				decodeURIComponent(new URL(request.url).searchParams.get("origin")),
+				decodeURIComponent(new URL(request.url).searchParams.get("origin"))
 			);
 
 			let promise = this.dataworkerpromises[id];
