@@ -245,6 +245,10 @@ async function handleResponse(
 	ev.responseHeaders = responseHeaders;
 	ev.status = response.status;
 	ev.statusText = response.statusText;
+	ev.destination = destination;
+	ev.url = url;
+	ev.rawResponse = response;
+	ev.client = client;
 	swtarget.dispatchEvent(ev);
 
 	return new Response(ev.responseBody, {
@@ -259,4 +263,8 @@ export class ScramjetHandleResponseEvent extends Event {
 	public responseBody: string | ArrayBuffer | ReadableStream;
 	public status: number;
 	public statusText: string;
+	public destination: string;
+	public url: URL;
+	public rawResponse: BareResponseFetch;
+	public client: Client;
 }
