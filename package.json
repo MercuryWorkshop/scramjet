@@ -14,7 +14,7 @@
 		"dev": "node server.js",
 		"prepublish": "pnpm build",
 		"pub": "pnpm publish --no-git-checks --access public",
-		"format": "prettier --config prettier.json --write .",
+		"format": "prettier --config .prettierrc.js --write .",
 		"lint": "eslint ./src/ --ext .ts",
 		"lint:fix": "eslint ./src/ --ext .ts --fix"
 	},
