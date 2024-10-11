@@ -45,7 +45,7 @@ export function decodeUrl(url: string | URL) {
 
 	if (
 		tryCanParseURL(url)?.pathname.startsWith(
-			self.$scramjet.config.prefix + "worker",
+			self.$scramjet.config.prefix + "worker"
 		)
 	) {
 		return new URL(new URL(url).searchParams.get("origin")).href;
@@ -55,7 +55,7 @@ export function decodeUrl(url: string | URL) {
 		return url;
 	} else if (tryCanParseURL(url)) {
 		return self.$scramjet.codec.decode(
-			url.slice((location.origin + self.$scramjet.config.prefix).length),
+			url.slice((location.origin + self.$scramjet.config.prefix).length)
 		);
 	} else {
 		return url;

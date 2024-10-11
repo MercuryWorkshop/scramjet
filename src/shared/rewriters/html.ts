@@ -219,7 +219,7 @@ function traverseParsedHtml(
 	) {
 		let js = node.children[0].data;
 		// node.attribs[`data-scramjet-script-source-src`] = btoa(js);
-		node.attribs[`data-scramjet-script-source-src`] = bytesToBase64(
+		node.attribs["data-scramjet-script-source-src"] = bytesToBase64(
 			new TextEncoder().encode(js)
 		);
 		const htmlcomment = /<!--[\s\S]*?-->/g;
@@ -272,6 +272,7 @@ export function rewriteSrcset(srcset: string, meta: URLMeta) {
 
 function base64ToBytes(base64) {
 	const binString = atob(base64);
+
 	return Uint8Array.from(binString, (m) => m.codePointAt(0));
 }
 
@@ -279,5 +280,6 @@ function bytesToBase64(bytes: Uint8Array) {
 	const binString = Array.from(bytes, (byte) =>
 		String.fromCodePoint(byte)
 	).join("");
+
 	return btoa(binString);
 }

@@ -14,12 +14,6 @@ export function disabled(client: ScramjetClient, self: Self) {
 export default function (client: ScramjetClient, self: Self) {
 	let registration;
 
-	client.Proxy("Worklet.prototype.addModule", {
-		apply(ctx) {
-			ctx.args[0] = encodeUrl(ctx.args[0], client.meta);
-		},
-	});
-
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			if (registration === ctx.this) {

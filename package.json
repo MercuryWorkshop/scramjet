@@ -18,7 +18,10 @@
 		"lint": "eslint ./src/ --ext .ts",
 		"lint:fix": "eslint ./src/ --ext .ts --fix"
 	},
-	"files": ["dist", "lib"],
+	"files": [
+		"dist",
+		"lib"
+	],
 	"keywords": [],
 	"author": "",
 	"license": "ISC",

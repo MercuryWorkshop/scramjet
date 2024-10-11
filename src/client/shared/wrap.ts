@@ -66,6 +66,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		if (typeof v === "string" && v.includes("scramjet")) {
 			debugger;
 		}
+
 		return v;
 	};
 

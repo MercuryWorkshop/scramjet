@@ -52,7 +52,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		for (const element of attrObject[attr]) {
 			const descriptor = nativeGetOwnPropertyDescriptor(
 				element.prototype,
-				attr,
+				attr
 			);
 			Object.defineProperty(element.prototype, attr, {
 				get() {
@@ -80,7 +80,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 								base: new URL(client.url.origin),
 								origin: new URL(client.url.origin),
 							} as URLMeta,
-							true,
+							true
 						);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value, client.meta);
@@ -171,9 +171,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 			// since the prototype chain is fucked
 
 			const style = ctx.get() as CSSStyleDeclaration;
+
 			return new Proxy(style, {
 				get(t, p) {
-					let v = Reflect.get(t, p);
+					const v = Reflect.get(t, p);
 					if (typeof v === "function") {
 						return new Proxy(v, {
 							apply(target, thisArg, argArray) {
@@ -189,6 +190,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					if (v == "" || typeof v !== "string") {
 						return Reflect.set(t, p, v);
 					}
+
 					return Reflect.set(t, p, rewriteCss(v, client.meta));
 				},
 			});
@@ -216,8 +218,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return atob(
 					client.natives["Element.prototype.getAttribute"].call(
 						ctx.this,
-						"data-scramjet-script-source-src",
-					),
+						"data-scramjet-script-source-src"
+					)
 				);
 			}
 			if (ctx.this instanceof self.HTMLStyleElement) {
@@ -307,7 +309,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					ctx.args[0],
 					client.cookieStore,
 					client.meta,
-					false,
+					false
 				);
 			}
 		},
@@ -319,7 +321,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				true,
+				true
 			);
 		},
 	});
@@ -330,7 +332,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				false,
+				false
 			);
 		},
 	});
