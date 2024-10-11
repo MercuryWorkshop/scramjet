@@ -1,14 +1,15 @@
 export function errorTemplate(trace: string, fetchedURL: string) {
-  // turn script into a data URI so we don"t have to escape any HTML values
-  const script = `
+	// turn script into a data URI so we don"t have to escape any HTML values
+	const script = `
                 errorTrace.value = ${JSON.stringify(trace)};
                 fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
                 for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(location.hostname)};
                 reload.addEventListener("click", () => location.reload());
                 version.textContent = ${JSON.stringify(VERSION)};
+                build.textContent = ${JSON.stringify(COMMITHASH)};
         `;
 
-  return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html>
     <head>
         <meta charset="utf-8" />
@@ -155,7 +156,7 @@ export function errorTemplate(trace: string, fetchedURL: string) {
             <br>
             <button id="reload" class="primary">Reload</button>
         </div>
-        <p id="version-wrapper"><i>Scramjet v<span id="version"></span></i></p>
+        <p id="version-wrapper"><i>Scramjet v<span id="version"></span> (build <span id="build"></span>)</i></p>
         <script>
         CSS.paintWorklet.addModule(\`data:application/javascript;charset=utf8,${encodeURIComponent(`
         const HTML_COLOR_SCALE = [
@@ -229,15 +230,15 @@ export function errorTemplate(trace: string, fetchedURL: string) {
 }
 
 export function renderError(err: unknown, fetchedURL: string) {
-  const headers = {
-    "content-type": "text/html",
-  };
-  if (crossOriginIsolated) {
-    headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-  }
+	const headers = {
+		"content-type": "text/html",
+	};
+	if (crossOriginIsolated) {
+		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+	}
 
-  return new Response(errorTemplate(String(err), fetchedURL), {
-    status: 500,
-    headers: headers,
-  });
+	return new Response(errorTemplate(String(err), fetchedURL), {
+		status: 500,
+		headers: headers,
+	});
 }

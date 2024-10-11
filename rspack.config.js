@@ -3,6 +3,7 @@ import { rspack } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 
 import { readFile } from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { join } from "path";
 import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -65,6 +66,14 @@ export default defineConfig({
 		}),
 		new rspack.DefinePlugin({
 			VERSION: JSON.stringify(packagemeta.version),
+		}),
+		new rspack.DefinePlugin({
+			COMMITHASH: JSON.stringify(
+				execSync("git rev-parse HEAD", { encoding: "utf-8" }).replace(
+					/\r?\n|\r/g,
+					""
+				)
+			),
 		}),
 		process.env.DEBUG === "true"
 			? new RsdoctorRspackPlugin({
