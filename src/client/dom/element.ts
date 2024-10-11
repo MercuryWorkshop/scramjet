@@ -52,7 +52,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		for (const element of attrObject[attr]) {
 			const descriptor = nativeGetOwnPropertyDescriptor(
 				element.prototype,
-				attr
+				attr,
 			);
 			Object.defineProperty(element.prototype, attr, {
 				get() {
@@ -80,7 +80,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 								base: new URL(client.url.origin),
 								origin: new URL(client.url.origin),
 							} as URLMeta,
-							true
+							true,
 						);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value, client.meta);
@@ -165,41 +165,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("HTMLElement.prototype.style", {
-		get(ctx) {
-			// unfortunate and dumb hack. we have to trap every property of this
-			// since the prototype chain is fucked
-
-			const style = ctx.get() as CSSStyleDeclaration;
-
-			return new Proxy(style, {
-				get(t, p) {
-					const v = Reflect.get(t, p);
-					if (typeof v === "function") {
-						return new Proxy(v, {
-							apply(target, thisArg, argArray) {
-								return Reflect.apply(target, style, argArray);
-							},
-						});
-					}
-
-					// todo properly unrewrite whatever
-					return v;
-				},
-				set(t, p, v) {
-					if (v == "" || typeof v !== "string") {
-						return Reflect.set(t, p, v);
-					}
-
-					return Reflect.set(t, p, rewriteCss(v, client.meta));
-				},
-			});
-		},
-		set(ctx, v: string) {
-			ctx.set(rewriteCss(v, client.meta));
-		},
-	});
-
 	client.Trap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
 			let newval;
@@ -218,8 +183,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return atob(
 					client.natives["Element.prototype.getAttribute"].call(
 						ctx.this,
-						"data-scramjet-script-source-src"
-					)
+						"data-scramjet-script-source-src",
+					),
 				);
 			}
 			if (ctx.this instanceof self.HTMLStyleElement) {
@@ -309,7 +274,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					ctx.args[0],
 					client.cookieStore,
 					client.meta,
-					false
+					false,
 				);
 			}
 		},
@@ -321,7 +286,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				true
+				true,
 			);
 		},
 	});
@@ -332,7 +297,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				false
+				false,
 			);
 		},
 	});

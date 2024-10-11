@@ -12,7 +12,6 @@ const cssProperties = [
 	"border-image-source",
 	"cursor",
 ];
-// const jsProperties = ["background", "backgroundImage", "mask", "maskImage", "listStyle", "listStyleImage", "borderImage", "borderImageSource", "cursor"];
 
 export default function (client: ScramjetClient) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
@@ -38,6 +37,41 @@ export default function (client: ScramjetClient) {
 		},
 		get(ctx) {
 			return unrewriteCss(ctx.get());
+		},
+	});
+
+	client.Trap("HTMLElement.prototype.style", {
+		get(ctx) {
+			// unfortunate and dumb hack. we have to trap every property of this
+			// since the prototype chain is fucked
+
+			const style = ctx.get() as CSSStyleDeclaration;
+
+			return new Proxy(style, {
+				get(t, p) {
+					const v = Reflect.get(t, p);
+					if (typeof v === "function") {
+						return new Proxy(v, {
+							apply(target, thisArg, argArray) {
+								return Reflect.apply(target, style, argArray);
+							},
+						});
+					}
+
+					return unrewriteCss(v);
+				},
+				set(t, p, v) {
+					if (p == "cssText" || v == "" || typeof v !== "string") {
+						return Reflect.set(t, p, v);
+					}
+
+					return Reflect.set(t, p, rewriteCss(v, client.meta));
+				},
+			});
+		},
+		set(ctx, v: string) {
+			// this will actually run the trap for cssText. don't rewrite it here
+			ctx.set(v);
 		},
 	});
 }
