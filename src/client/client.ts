@@ -108,7 +108,7 @@ export class ScramjetClient {
 							resolve(data.port);
 						}
 					});
-				})
+				}),
 			);
 		}
 
@@ -145,7 +145,17 @@ export class ScramjetClient {
 		if (!frame) return null; // we're top level
 		const sframe = frame[SCRAMJETFRAME];
 
-		if (!sframe) return null; // we're a subframe. TODO handle propagation but not now
+		if (!sframe) {
+			// we're in a subframe, recurse upward until we find one
+			let currentwin = this.global.window;
+			while (currentwin.parent != currentwin) {
+				if (!currentwin.frameElement) return null; // ??
+				if (currentwin.frameElement && currentwin.frameElement[SCRAMJETFRAME]) {
+					return currentwin.frameElement[SCRAMJETFRAME];
+				}
+				currentwin = currentwin.parent.window;
+			}
+		}
 
 		return sframe;
 	}
@@ -239,7 +249,7 @@ export class ScramjetClient {
 			h.construct = function (
 				constructor: any,
 				argArray: any[],
-				newTarget: AnyFunction
+				newTarget: AnyFunction,
 			) {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
@@ -354,7 +364,7 @@ export class ScramjetClient {
 	RawTrap<T>(
 		target: any,
 		prop: string,
-		descriptor: Trap<T>
+		descriptor: Trap<T>,
 	): PropertyDescriptor {
 		if (!target) return;
 		if (!prop) return;
