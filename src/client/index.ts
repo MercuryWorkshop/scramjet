@@ -32,7 +32,7 @@ if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 
 	const ev = new ScramjetContextInit("contextInit");
 	ev.window = client.global.window;
-	client.frame.dispatchEvent(ev);
+	client.frame?.dispatchEvent(ev);
 }
 
 if ("document" in self && document.currentScript) {
