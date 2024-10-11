@@ -9,8 +9,9 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("IDBDatabase.prototype.name", {
 		get(ctx) {
-			let name = ctx.get() as string;
-			return name.substring(name.indexOf("@") + 1);
+			const name = ctx.get() as string;
+			
+return name.substring(name.indexOf("@") + 1);
 		},
 	});
 }

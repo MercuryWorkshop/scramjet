@@ -47,7 +47,7 @@ export default function (client: ScramjetClient, self: Self) {
 				body: ctx.args[0],
 			});
 
-			let now = performance.now();
+			const now = performance.now();
 			while (view.getUint8(0) === 0) {
 				if (performance.now() - now > 1000) {
 					throw new Error("xhr timeout");
@@ -85,13 +85,15 @@ export default function (client: ScramjetClient, self: Self) {
 			client.RawTrap(ctx.this, "response", {
 				get() {
 					if (ctx.this.responseType === "arraybuffer") return bodyab.buffer;
-					return body;
+					
+return body;
 				},
 			});
 			client.RawTrap(ctx.this, "responseXML", {
 				get() {
 					const parser = new DOMParser();
-					return parser.parseFromString(body, "text/xml");
+					
+return parser.parseFromString(body, "text/xml");
 				},
 			});
 			client.RawTrap(ctx.this, "getAllResponseHeaders", {
@@ -104,7 +106,8 @@ export default function (client: ScramjetClient, self: Self) {
 					return (header: string) => {
 						const re = new RegExp(`^${header}: (.*)$`, "m");
 						const match = re.exec(headers);
-						return match ? match[1] : null;
+						
+return match ? match[1] : null;
 					};
 				},
 			});

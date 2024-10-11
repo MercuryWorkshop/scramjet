@@ -171,9 +171,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 			// since the prototype chain is fucked
 
 			const style = ctx.get() as CSSStyleDeclaration;
-			return new Proxy(style, {
+			
+return new Proxy(style, {
 				get(t, p) {
-					let v = Reflect.get(t, p);
+					const v = Reflect.get(t, p);
 					if (typeof v === "function") {
 						return new Proxy(v, {
 							apply(target, thisArg, argArray) {
@@ -189,7 +190,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 					if (v == "" || typeof v !== "string") {
 						return Reflect.set(t, p, v);
 					}
-					return Reflect.set(t, p, rewriteCss(v, client.meta));
+					
+return Reflect.set(t, p, rewriteCss(v, client.meta));
 				},
 			});
 		},
