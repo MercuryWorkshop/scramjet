@@ -1,6 +1,4 @@
-import { BareHeaders, BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import IDBMap from "@webreflection/idb-map";
-import { ParseResultType } from "parse-domain";
+import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
 import { MessageW2C, ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
@@ -17,7 +15,6 @@ import {
 } from "../shared";
 
 import type { URLMeta } from "../shared/rewriters/url";
-import { Readable } from "stream";
 
 function newmeta(url: URL): URLMeta {
 	return {
@@ -80,12 +77,12 @@ export async function swfetch(
 			new URL(client.url).pathname.startsWith(self.$scramjet.config.prefix)
 		) {
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-			const url = new URL(decodeUrl(client.url));
-			if (url.toString().includes("youtube.com")) {
+			const clientURL = new URL(decodeUrl(client.url));
+			if (clientURL.toString().includes("youtube.com")) {
 				// console.log(headers);
 			} else {
-				headers.set("Referer", url.toString());
-				headers.set("Origin", url.origin);
+				headers.set("Referer", clientURL.toString());
+				headers.set("Origin", clientURL.origin);
 			}
 		}
 
