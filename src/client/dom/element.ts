@@ -52,7 +52,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		for (const element of attrObject[attr]) {
 			const descriptor = nativeGetOwnPropertyDescriptor(
 				element.prototype,
-				attr
+				attr,
 			);
 			Object.defineProperty(element.prototype, attr, {
 				get() {
@@ -80,7 +80,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 								base: new URL(client.url.origin),
 								origin: new URL(client.url.origin),
 							} as URLMeta,
-							true
+							true,
 						);
 					} else if (["srcset", "imagesrcset"].includes(attr)) {
 						value = rewriteSrcset(value, client.meta);
@@ -183,8 +183,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return atob(
 					client.natives["Element.prototype.getAttribute"].call(
 						ctx.this,
-						"data-scramjet-script-source-src"
-					)
+						"data-scramjet-script-source-src",
+					),
 				);
 			}
 			if (ctx.this instanceof self.HTMLStyleElement) {
@@ -267,6 +267,20 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap(
+		[
+			"Node.prototype.parentNode",
+			"Node.prototype.parentElement",
+			"Node.prototype.previousSibling",
+			"Node.prototype.nextSibling",
+		],
+		{
+			get(ctx) {
+				return client.wrapfn(ctx.get());
+			},
+		},
+	);
+
 	client.Proxy("DOMParser.prototype.parseFromString", {
 		apply(ctx) {
 			if (ctx.args[1] === "text/html") {
@@ -274,7 +288,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					ctx.args[0],
 					client.cookieStore,
 					client.meta,
-					false
+					false,
 				);
 			}
 		},
@@ -286,7 +300,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				true
+				true,
 			);
 		},
 	});
@@ -297,7 +311,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[0],
 				client.cookieStore,
 				client.meta,
-				false
+				false,
 			);
 		},
 	});
