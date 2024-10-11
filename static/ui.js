@@ -49,9 +49,9 @@ const store = $store(
 			"/bare/",
 		proxy: "",
 	},
-	{ ident: "settings", backing: "localstorage", autosave: "auto" }
+	{ ident: "settings", backing: "localstorage", autosave: "auto" },
 );
-connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
+connection.setTransport("/libcurl/index.mjs", [{ wisp: store.wispurl }]);
 function App() {
 	this.urlencoded = "";
 	this.css = `
@@ -146,7 +146,7 @@ function App() {
 		if (url === "about:blank") return;
 
 		this.url = $scramjet.codecs.plain.decode(
-			url.substring((location.href + "/scramjet").length)
+			url.substring((location.href + "/scramjet").length),
 		);
 	});
 
@@ -193,7 +193,7 @@ function App() {
       <div class=${[flex, "nav"]} style="width: 60%">
         <button on:click=${() => frame.back()}>&lt;-</button>
         <input class="bar" style="flex: 1" bind:value=${use(this.url)} on:input=${(
-					e
+					e,
 				) => {
 					this.url = e.target.value;
 				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
@@ -227,6 +227,6 @@ padding-bottom: 100px;
 background-size: contain;
 background-position: center center;
 background-repeat: no-repeat;
-`
+`,
 	);
 });
