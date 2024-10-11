@@ -108,7 +108,7 @@ export class ScramjetClient {
 							resolve(data.port);
 						}
 					});
-				}),
+				})
 			);
 		}
 
@@ -239,7 +239,7 @@ export class ScramjetClient {
 			h.construct = function (
 				constructor: any,
 				argArray: any[],
-				newTarget: AnyFunction,
+				newTarget: AnyFunction
 			) {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
@@ -354,7 +354,7 @@ export class ScramjetClient {
 	RawTrap<T>(
 		target: any,
 		prop: string,
-		descriptor: Trap<T>,
+		descriptor: Trap<T>
 	): PropertyDescriptor {
 		if (!target) return;
 		if (!prop) return;

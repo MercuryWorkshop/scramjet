@@ -11,7 +11,7 @@ export default function (client: ScramjetClient, self: Self) {
 			const url = stack[i].getFileName();
 			try {
 				newstack = newstack.replaceAll(url, decodeUrl(url));
-			} catch { }
+			} catch {}
 		}
 
 		return newstack;
