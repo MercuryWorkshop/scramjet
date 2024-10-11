@@ -52,7 +52,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@mercuryworkshop/bare-mux": "^2.0.5",
+		"@mercuryworkshop/bare-mux": "^2.1.0",
 		"@webreflection/idb-map": "^0.3.1",
 		"devtools-detector": "^2.0.22",
 		"dom-serializer": "^2.0.0",
