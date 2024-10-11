@@ -1,12 +1,14 @@
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
-import { join } from "path";
-import { fileURLToPath } from "url";
 import obfuscator from "javascript-obfuscator";
 const { obfuscate } = obfuscator;
 
+import { readFile } from "node:fs/promises";
+import { join } from "path";
+import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const packagemeta = JSON.parse(await readFile("package.json"));
 
 export default defineConfig({
 	// change to production when needed
@@ -65,6 +67,9 @@ export default defineConfig({
 	plugins: [
 		new rspack.ProvidePlugin({
 			dbg: [join(__dirname, "src/log.ts"), "default"],
+		}),
+		new rspack.DefinePlugin({
+			VERSION: JSON.stringify(packagemeta.version),
 		}),
 		process.env.OBFUSCATE === "true" && {
 			apply(compiler) {
