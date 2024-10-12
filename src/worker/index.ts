@@ -17,11 +17,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 	serviceWorkers: FakeServiceWorker[] = [];
 
-	dataworkerpromises: Record<
-		string,
-		{ promise: Promise<string>; resolve: (v: string) => void }
-	> = {};
-
 	constructor() {
 		super();
 		this.client = new self.$scramjet.shared.util.BareClient();
@@ -41,17 +36,6 @@ export class ScramjetServiceWorker extends EventTarget {
 				this.cookieStore.setCookies([data.cookie], new URL(data.url));
 
 				return;
-			}
-
-			if (data.scramjet$type === "dataworker") {
-				if (this.dataworkerpromises[data.id]) {
-					this.dataworkerpromises[data.id].resolve(data.data);
-				} else {
-					let resolve: (v: string) => void;
-					const promise = new Promise<string>((res) => (resolve = res));
-					this.dataworkerpromises[data.id] = { promise, resolve };
-					resolve(data.data);
-				}
 			}
 		});
 	}
@@ -145,21 +129,12 @@ type CookieMessage = {
 	url: string;
 };
 
-type DataWorkerMessage = {
-	scramjet$type: "dataworker";
-	data: string;
-	id: string;
-};
-
 type MessageCommon = {
 	scramjet$type: string;
 	scramjet$token: number;
 };
 
-type MessageTypeC2W =
-	| RegisterServiceWorkerMessage
-	| CookieMessage
-	| DataWorkerMessage;
+type MessageTypeC2W = RegisterServiceWorkerMessage | CookieMessage;
 type MessageTypeW2C = CookieMessage;
 
 // c2w: client to (service) worker
