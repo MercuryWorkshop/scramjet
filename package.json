@@ -15,8 +15,8 @@
 		"prepublish": "pnpm build",
 		"pub": "pnpm publish --no-git-checks --access public",
 		"format": "prettier --config .prettierrc.js --write .",
-		"lint": "eslint ./src/ --ext .ts",
-		"lint:fix": "eslint ./src/ --ext .ts --fix"
+		"lint": "eslint ./src/",
+		"lint:fix": "eslint ./src/ --fix"
 	},
 	"files": [
 		"dist",
@@ -26,6 +26,8 @@
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
+		"@eslint/eslintrc": "^3.1.0",
+		"@eslint/js": "^9.12.0",
 		"@fastify/static": "^8.0.1",
 		"@mercuryworkshop/bare-as-module3": "^2.2.2",
 		"@mercuryworkshop/epoxy-transport": "^2.1.17",
