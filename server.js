@@ -86,12 +86,15 @@ fastify.listen({
 });
 console.log(`Listening on port ${PORT}`);
 
-mkdirSync(".git/hooks", { recursive: true });
-writeFileSync(
-	".git/hooks/pre-commit",
-	"pnpm prettier . -w\ngit update-index --again"
-);
-chmodSync(".git/hooks/pre-commit", 0o755);
+try {
+	writeFileSync(
+		".git/hooks/pre-commit",
+		"pnpm prettier . -w\ngit update-index --again"
+	);
+	chmodSync(".git/hooks/pre-commit", 0o755);
+} catch {
+	
+}
 
 const watch = spawn("pnpm", ["rspack", "-w"], {
 	detached: true,
