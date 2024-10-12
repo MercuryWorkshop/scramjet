@@ -1,5 +1,10 @@
 import { ScramjetController } from "./controller/index";
-import { rewriteUrl, unrewriteUrl } from "./shared/rewriters/url";
+import {
+	rewriteBlob,
+	rewriteUrl,
+	unrewriteBlob,
+	unrewriteUrl,
+} from "./shared/rewriters/url";
 import { rewriteCss, unrewriteCss } from "./shared/rewriters/css";
 import {
 	htmlRules,
@@ -57,6 +62,8 @@ declare global {
 				url: {
 					rewriteUrl: typeof rewriteUrl;
 					unrewriteUrl: typeof unrewriteUrl;
+					rewriteBlob: typeof rewriteBlob;
+					unrewriteBlob: typeof unrewriteBlob;
 				};
 				rewrite: {
 					rewriteCss: typeof rewriteCss;

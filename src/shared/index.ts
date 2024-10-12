@@ -1,4 +1,9 @@
-import { rewriteUrl, unrewriteUrl } from "./rewriters/url";
+import {
+	rewriteUrl,
+	unrewriteUrl,
+	rewriteBlob,
+	unrewriteBlob,
+} from "./rewriters/url";
 import { rewriteCss, unrewriteCss } from "./rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
 import { rewriteJs } from "./rewriters/js";
@@ -20,6 +25,8 @@ self.$scramjet.shared = {
 	url: {
 		rewriteUrl,
 		unrewriteUrl,
+		rewriteBlob,
+		unrewriteBlob,
 	},
 	rewrite: {
 		rewriteCss,

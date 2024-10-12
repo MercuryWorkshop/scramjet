@@ -1,24 +1,21 @@
+import { rewriteBlob, unrewriteBlob } from "../../shared";
 import { ScramjetClient } from "../client";
-const realf = fetch;
 export default function (client: ScramjetClient) {
-	client.Proxy("URL.revokeObjectURL", {
-		apply(ctx) {
-			ctx.return(undefined);
-		},
-	});
-
+	// hide the origin from object urls from the page
 	client.Proxy("URL.createObjectURL", {
 		apply(ctx) {
 			const url: string = ctx.call();
-			// additional origin concealer. also you need this for youtube for some fucking reason
-
-			const start = "blob:" + location.origin;
-			if (url.startsWith(start)) {
-				const id = url.substring(start.length);
-				ctx.return("blob:" + client.url.origin + id);
+			if (url.startsWith("blob:")) {
+				ctx.return(rewriteBlob(url, client.meta));
 			} else {
 				ctx.return(url);
 			}
+		},
+	});
+
+	client.Proxy("URL.revokeObjectURL", {
+		apply(ctx) {
+			ctx.args[0] = unrewriteBlob(ctx.args[0]);
 		},
 	});
 }

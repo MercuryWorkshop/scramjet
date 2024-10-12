@@ -1,6 +1,6 @@
 export const {
 	util: { BareClient, ScramjetHeaders, BareMuxConnection },
-	url: { rewriteUrl, unrewriteUrl },
+	url: { rewriteUrl, unrewriteUrl, rewriteBlob, unrewriteBlob },
 	rewrite: {
 		rewriteCss,
 		unrewriteCss,
