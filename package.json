@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@fastify/static": "^8.0.1",
 		"@mercuryworkshop/bare-as-module3": "^2.2.2",
-		"@mercuryworkshop/epoxy-transport": "^2.1.15",
+		"@mercuryworkshop/epoxy-transport": "^2.1.16",
 		"@mercuryworkshop/libcurl-transport": "^1.3.10",
 		"@rsdoctor/rspack-plugin": "^0.4.6",
 		"@rspack/cli": "^1.0.10",

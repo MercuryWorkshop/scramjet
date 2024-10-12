@@ -71,11 +71,10 @@ export default defineConfig({
 			COMMITHASH: (() => {
 				try {
 					let hash = JSON.stringify(
-						execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).replace(
-							/\r?\n|\r/g,
-							""
-						)
-					)
+						execSync("git rev-parse --short HEAD", {
+							encoding: "utf-8",
+						}).replace(/\r?\n|\r/g, "")
+					);
 
 					return hash;
 				} catch (e) {
