@@ -51,7 +51,7 @@ const store = $store(
 	},
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
 );
-connection.setTransport("/libcurl/index.mjs", [{ wisp: store.wispurl }]);
+connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
 function App() {
 	this.urlencoded = "";
 	this.css = `
