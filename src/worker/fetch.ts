@@ -51,20 +51,8 @@ export async function swfetch(
 			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
 			requesturl.pathname.startsWith(this.config.prefix + "data:")
 		) {
-			let response: Response = await fetch(
-				requesturl.pathname.substring(this.config.prefix.length),
-				{
-					// this is extremely redundant but i don't care
-					// method: request.method,
-					// body: request.body,
-					// headers: request.headers,
-					// credentials: "omit",
-					// mode: request.mode === "cors" ? request.mode : "same-origin",
-					// cache: request.cache,
-					// redirect: "manual",
-					// //@ts-ignore
-					// duplex: "half",
-				}
+			const response: Response = await fetch(
+				requesturl.pathname.substring(this.config.prefix.length)
 			);
 
 			let body: BodyType;
@@ -81,8 +69,12 @@ export async function swfetch(
 					this.cookieStore
 				);
 			}
-			let headers = Object.fromEntries(response.headers.entries());
-			headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+			const headers = Object.fromEntries(response.headers.entries());
+
+			if (crossOriginIsolated) {
+				headers["Cross-Origin-Opener-Policy"] = "same-origin";
+				headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+			}
 
 			return new Response(body, {
 				status: response.status,
