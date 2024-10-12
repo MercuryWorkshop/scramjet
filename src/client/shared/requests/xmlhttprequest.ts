@@ -1,9 +1,18 @@
-import { config, decodeUrl, encodeUrl, rewriteHeaders } from "../../../shared";
+import { config, decodeUrl, encodeUrl } from "../../../shared";
 import { ScramjetClient } from "../../client";
-const nativeworker = Worker;
-const postmessage = Worker.prototype.postMessage;
+let nativeworker;
+let postmessage;
+
+if (self.Worker) {
+	nativeworker = Worker;
+	postmessage = Worker.prototype.postMessage;
+}
+
 export default function (client: ScramjetClient, self: Self) {
-	const worker = new nativeworker(config.sync);
+	let worker;
+	if (self.Worker) {
+		worker = new nativeworker(config.sync);
+	}
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
 

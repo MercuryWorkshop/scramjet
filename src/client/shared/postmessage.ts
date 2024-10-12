@@ -63,10 +63,9 @@ export default function (client: ScramjetClient) {
 			},
 		});
 
-	const toproxy = [
-		"Worker.prototype.postMessage",
-		"MessagePort.prototype.postMessage",
-	];
+	const toproxy = ["MessagePort.prototype.postMessage"];
+
+	if (self.Worker) toproxy.push("Worker.prototype.postMessage");
 	if (!iswindow) toproxy.push("self.postMessage"); // only do the generic version if we're in a worker
 
 	client.Proxy(toproxy, {

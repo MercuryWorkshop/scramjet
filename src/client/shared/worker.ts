@@ -4,8 +4,11 @@ import { encodeUrl } from "../../shared/rewriters/url";
 import type { MessageC2W } from "../../worker";
 import { ScramjetClient } from "../client";
 
-const workerpostmessage = Worker.prototype.postMessage;
-
+const sharedworkerpostmessage = MessagePort.prototype.postMessage;
+let workerpostmessage;
+if (self.Worker) {
+	workerpostmessage = Worker.prototype.postMessage;
+}
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	const handler = {
 		construct({ args, call }) {
@@ -39,14 +42,26 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 			(async () => {
 				const port = await conn.getInnerPort();
-				workerpostmessage.call(
-					worker,
-					{
-						$scramjet$type: "baremuxinit",
-						port,
-					},
-					[port]
-				);
+				if (worker instanceof Worker) {
+					workerpostmessage.call(
+						worker,
+						{
+							$scramjet$type: "baremuxinit",
+							port,
+						},
+						[port]
+					);
+				}
+				if (worker instanceof SharedWorker) {
+					sharedworkerpostmessage.call(
+						worker.port,
+						{
+							$scramjet$type: "baremuxinit",
+							port,
+						},
+						[port]
+					);
+				}
 			})();
 		},
 	};
