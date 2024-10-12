@@ -54,7 +54,7 @@ export class ScramjetController {
 		this.codec = self.$scramjet.codecs[this.config.codec];
 
 		await this.openIDB();
-		
+
 		const reg = await navigator.serviceWorker.register(serviceWorkerPath);
 		dbg.log("service worker registered");
 
@@ -95,10 +95,10 @@ export class ScramjetController {
 	}
 
 	async #saveConfig() {
-		if (!this.store) { 
-			console.error("Store not ready!") 
+		if (!this.store) {
+			console.error("Store not ready!");
 
-			return
+			return;
 		}
 		const tx = this.store.transaction("config", "readwrite");
 		const store = tx.objectStore("config");

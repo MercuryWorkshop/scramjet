@@ -22,7 +22,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		this.threadpool = new ScramjetThreadpool();
 
-		this.cookieStore.load
+		this.cookieStore.load;
 
 		addEventListener("message", ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
@@ -62,7 +62,7 @@ export class ScramjetServiceWorker extends EventTarget {
 				const db = request.result;
 				const tx = db.transaction("config", "readonly");
 				const store = tx.objectStore("config");
-				const config = store.get("config")
+				const config = store.get("config");
 
 				config.onsuccess = () => {
 					this.config = config.result;
@@ -77,7 +77,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			request.onerror = () => reject(request.error);
 		});
-		
 	}
 
 	route({ request }: FetchEvent) {
