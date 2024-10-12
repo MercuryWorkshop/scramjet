@@ -55,53 +55,6 @@ export class ScramjetServiceWorker extends EventTarget {
 		}
 	}
 
-	async getLocalStorage(): Promise<Record<string, string>> {
-		let clients = await self.clients.matchAll();
-		clients = clients.filter(
-			(client) =>
-				client.type === "window" &&
-				!new URL(client.url).pathname.startsWith(this.config.prefix)
-		);
-
-		if (clients.length === 0) throw new Error("No clients found");
-
-		const token = this.synctoken++;
-		for (const client of clients) {
-			client.postMessage({
-				scramjet$type: "getLocalStorage",
-				scramjet$token: token,
-			});
-		}
-
-		return new Promise((resolve) => {
-			this.syncPool[token] = resolve;
-		});
-	}
-
-	async setLocalStorage(data: Record<string, string>): Promise<void> {
-		let clients = await self.clients.matchAll();
-		clients = clients.filter(
-			(client) =>
-				client.type === "window" &&
-				!new URL(client.url).pathname.startsWith(this.config.prefix)
-		);
-
-		if (clients.length === 0) throw new Error("No clients found");
-
-		const token = this.synctoken++;
-		for (const client of clients) {
-			client.postMessage({
-				scramjet$type: "setLocalStorage",
-				scramjet$token: token,
-				data,
-			});
-		}
-
-		return new Promise((resolve) => {
-			this.syncPool[token] = resolve;
-		});
-	}
-
 	route({ request }: FetchEvent) {
 		if (request.url.startsWith(location.origin + this.config.prefix))
 			return true;
