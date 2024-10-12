@@ -70,7 +70,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 					} else if (
 						["src", "data", "href", "action", "formaction"].includes(attr)
 					) {
-						value = encodeUrl(value, client.meta);
+						if (element === HTMLMediaElement && value.startsWith("blob:")) {
+							let origin = new URL(value.substring("blob:".length));
+							value = "blob:" + location.origin + origin.pathname;
+						} else {
+							value = encodeUrl(value, client.meta);
+						}
 					} else if (attr === "srcdoc") {
 						value = rewriteHtml(
 							value,

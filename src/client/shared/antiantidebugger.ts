@@ -17,10 +17,4 @@ export default function (client: ScramjetClient) {
 			return log;
 		},
 	});
-
-	client.Proxy("URL.revokeObjectURL", {
-		apply(ctx) {
-			ctx.return(undefined);
-		},
-	});
 }
