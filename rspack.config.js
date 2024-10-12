@@ -68,18 +68,20 @@ export default defineConfig({
 			VERSION: JSON.stringify(packagemeta.version),
 		}),
 		new rspack.DefinePlugin({
-			COMMITHASH: () => {
+			COMMITHASH: (() => {
 				try {
-					return JSON.stringify(
+					let hash = JSON.stringify(
 						execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).replace(
 							/\r?\n|\r/g,
 							""
 						)
 					)
+
+					return hash;
 				} catch (e) {
 					return "unknown";
 				}
-			},
+			})(),
 		}),
 		process.env.DEBUG === "true"
 			? new RsdoctorRspackPlugin({
