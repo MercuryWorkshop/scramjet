@@ -1,9 +1,8 @@
-import IDBMap from "@webreflection/idb-map";
 import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
 import type BareClient from "@mercuryworkshop/bare-mux";
-import { rewriteWorkers } from "../shared";
+import { ScramjetConfig } from "../types";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
@@ -23,6 +22,8 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		this.threadpool = new ScramjetThreadpool();
 
+		this.cookieStore.load
+
 		addEventListener("message", ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
 
@@ -34,8 +35,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "cookie") {
 				this.cookieStore.setCookies([data.cookie], new URL(data.url));
-
-				return;
 			}
 		});
 	}
@@ -43,16 +42,42 @@ export class ScramjetServiceWorker extends EventTarget {
 	async loadConfig() {
 		if (this.config) return;
 
-		const store = new IDBMap("config", {
-			prefix: "scramjet",
-		});
+		// const store = new IDBMap("config", {
+		// 	prefix: "scramjet",
+		// });
 
-		if (store.has("config")) {
-			const config = await store.get("config");
-			this.config = config;
-			self.$scramjet.config = config;
-			self.$scramjet.codec = self.$scramjet.codecs[config.codec];
-		}
+		// if (store.has("config")) {
+		// 	const config = await store.get("config");
+		// 	this.config = config;
+		// 	self.$scramjet.config = config;
+		// 	self.$scramjet.codec = self.$scramjet.codecs[config.codec];
+		// }
+
+		// Recreate the above code using the stock IDB API
+
+		const request = indexedDB.open("$scramjet", 1);
+
+		return new Promise<void>((resolve, reject) => {
+			request.onsuccess = async () => {
+				const db = request.result;
+				const tx = db.transaction("config", "readonly");
+				const store = tx.objectStore("config");
+				const config = store.get("config")
+
+				config.onsuccess = () => {
+					this.config = config.result;
+					self.$scramjet.config = config.result;
+					self.$scramjet.codec = self.$scramjet.codecs[config.result.codec];
+
+					resolve();
+				};
+
+				config.onerror = () => reject(config.error);
+			};
+
+			request.onerror = () => reject(request.error);
+		});
+		
 	}
 
 	route({ request }: FetchEvent) {
@@ -68,6 +93,7 @@ export class ScramjetServiceWorker extends EventTarget {
 	}
 }
 
+// @ts-ignore
 self.ScramjetServiceWorker = ScramjetServiceWorker;
 
 type RegisterServiceWorkerMessage = {

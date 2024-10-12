@@ -1,12 +1,10 @@
-import IDBMap from "@webreflection/idb-map";
 import { ScramjetConfig } from "../types";
 import { Codec } from "../codecs";
-import type { ScramjetClient } from "../client/client";
 import { ScramjetFrame } from "./frame";
 
 export class ScramjetController {
 	config: ScramjetConfig;
-	private store: IDBMap;
+	private store: IDBDatabase;
 	codec: Codec;
 
 	constructor(config: ScramjetConfig) {
@@ -55,11 +53,8 @@ export class ScramjetController {
 		await import(/* webpackIgnore: true */ this.config.codecs);
 		this.codec = self.$scramjet.codecs[this.config.codec];
 
-		this.store = new IDBMap("config", {
-			prefix: "scramjet",
-		});
-		await this.#saveConfig();
-
+		await this.openIDB();
+		
 		const reg = await navigator.serviceWorker.register(serviceWorkerPath);
 		dbg.log("service worker registered");
 
@@ -80,8 +75,39 @@ export class ScramjetController {
 		return this.config.prefix + this.codec.encode(url);
 	}
 
+	async openIDB(): Promise<IDBDatabase> {
+		const db = indexedDB.open("$scramjet", 1);
+
+		return new Promise<IDBDatabase>((resolve, reject) => {
+			db.onsuccess = async () => {
+				this.store = db.result;
+				await this.#saveConfig();
+				resolve(db.result);
+			};
+			db.onupgradeneeded = () => {
+				const db2 = db.result;
+				if (!db2.objectStoreNames.contains("config")) {
+					db2.createObjectStore("config");
+				}
+			};
+			db.onerror = () => reject(db.error);
+		});
+	}
+
 	async #saveConfig() {
-		this.store.set("config", this.config);
+		if (!this.store) { 
+			console.error("Store not ready!") 
+
+			return
+		}
+		const tx = this.store.transaction("config", "readwrite");
+		const store = tx.objectStore("config");
+		const req = store.put(this.config, "config");
+
+		return new Promise((resolve, reject) => {
+			req.onsuccess = resolve;
+			req.onerror = reject;
+		});
 	}
 
 	async modifyConfig(config: ScramjetConfig) {

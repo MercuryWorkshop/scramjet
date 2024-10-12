@@ -11,9 +11,6 @@ importers:
       '@mercuryworkshop/bare-mux':
         specifier: ^2.1.2
         version: 2.1.2
-      '@webreflection/idb-map':
-        specifier: ^0.3.2
-        version: 0.3.2
       dom-serializer:
         specifier: ^2.0.0
         version: 2.0.0
@@ -660,9 +657,6 @@ packages:
 
   '@webassemblyjs/wast-printer@1.12.1':
     resolution: {integrity: sha512-+X4WAlOisVWQMikjbcvY2e0rwPsKQ9F688lksZhBcPycBBuii3O7m8FACbDMWDojpAqvjIncrG8J0XHKyQfVeA==}
-
-  '@webreflection/idb-map@0.3.2':
-    resolution: {integrity: sha512-VLBTx6EUYF/dPdLyyjWWKxQmTWnVXTT1YJekrJUmfGxBcqEVL0Ih2EQptNG/JezkTYgJ0uSTb0yAum/THltBvQ==}
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -3373,8 +3367,6 @@ snapshots:
     dependencies:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
-
-  '@webreflection/idb-map@0.3.2': {}
 
   '@xtuc/ieee754@1.2.0': {}
 
