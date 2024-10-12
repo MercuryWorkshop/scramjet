@@ -22,8 +22,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		this.threadpool = new ScramjetThreadpool();
 
-		this.cookieStore.load;
-
 		addEventListener("message", ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
 
