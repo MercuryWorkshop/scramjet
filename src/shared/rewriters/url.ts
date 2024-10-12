@@ -21,7 +21,11 @@ export function encodeUrl(url: string | URL, meta: URLMeta) {
 
 	if (url.startsWith("javascript:")) {
 		return "javascript:" + rewriteJs(url.slice("javascript:".length), meta);
-	} else if (/^(#|mailto|about|data|blob)/.test(url)) {
+	} else if (url.startsWith("blob:")) {
+		return location.origin + self.$scramjet.config.prefix + url;
+	} else if (url.startsWith("data:")) {
+		return location.origin + self.$scramjet.config.prefix + url;
+	} else if (/^(#|mailto|about)/.test(url)) {
 		// TODO this regex is jank but i'm not fixing it
 		return url;
 	} else {
@@ -51,6 +55,7 @@ export function decodeUrl(url: string | URL) {
 		return new URL(new URL(url).searchParams.get("origin")).href;
 	}
 
+	// TODO: unrewrite rewritten blobs
 	if (/^(#|about|data|mailto|javascript)/.test(url)) {
 		return url;
 	} else if (tryCanParseURL(url)) {

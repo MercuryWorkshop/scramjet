@@ -125,48 +125,6 @@ export class ScramjetServiceWorker extends EventTarget {
 	}
 
 	async fetch({ request, clientId }: FetchEvent) {
-		if (new URL(request.url).pathname.startsWith("/scramjet/worker")) {
-			const id = new URL(request.url).searchParams.get("id");
-			const type = new URL(request.url).searchParams.get("type");
-
-			const origin = new URL(
-				decodeURIComponent(new URL(request.url).searchParams.get("origin"))
-			);
-
-			let promise = this.dataworkerpromises[id];
-			if (!promise) {
-				let resolve: (v: string) => void;
-				promise = {
-					promise: new Promise<string>((res) => (resolve = res)),
-					resolve,
-				};
-				promise.resolve = resolve;
-				this.dataworkerpromises[id] = promise;
-			}
-
-			const data = await promise.promise;
-			delete this.dataworkerpromises[id];
-
-			const rewritten = rewriteWorkers(data, type, {
-				origin: new URL(origin),
-				base: new URL(origin),
-			});
-
-			const headers = {
-				"Content-Type": "application/javascript",
-			};
-
-			// this is broken on firefox
-			if (crossOriginIsolated) {
-				headers["Cross-Origin-Opener-Policy"] = "same-origin";
-				headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-			}
-
-			return new Response(rewritten, {
-				headers,
-			});
-		}
-
 		const client = await self.clients.get(clientId);
 
 		return swfetch.call(this, request, client);

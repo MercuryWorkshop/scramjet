@@ -46,6 +46,51 @@ export async function swfetch(
 		if (requesturl.searchParams.has("dest")) {
 			requesturl.searchParams.delete("dest");
 		}
+
+		if (
+			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
+			requesturl.pathname.startsWith(this.config.prefix + "data:")
+		) {
+			let response: Response = await fetch(
+				requesturl.pathname.substring(this.config.prefix.length),
+				{
+					// this is extremely redundant but i don't care
+					// method: request.method,
+					// body: request.body,
+					// headers: request.headers,
+					// credentials: "omit",
+					// mode: request.mode === "cors" ? request.mode : "same-origin",
+					// cache: request.cache,
+					// redirect: "manual",
+					// //@ts-ignore
+					// duplex: "half",
+				}
+			);
+
+			let body: BodyType;
+
+			if (response.body) {
+				body = await rewriteBody(
+					response,
+					{
+						base: new URL(new URL(client.url).origin),
+						origin: new URL(new URL(client.url).origin),
+					},
+					request.destination,
+					workertype,
+					this.cookieStore
+				);
+			}
+			let headers = Object.fromEntries(response.headers.entries());
+			headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+
+			return new Response(body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers: headers,
+			});
+		}
+
 		const url = new URL(decodeUrl(requesturl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
@@ -136,7 +181,7 @@ async function handleResponse(
 	client: Client,
 	swtarget: ScramjetServiceWorker
 ): Promise<Response> {
-	let responseBody: string | ArrayBuffer | ReadableStream;
+	let responseBody: BodyType;
 	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
@@ -161,41 +206,15 @@ async function handleResponse(
 	}
 
 	if (response.body) {
-		switch (destination) {
-			case "iframe":
-			case "document":
-				if (responseHeaders["content-type"]?.startsWith("text/html")) {
-					responseBody = rewriteHtml(
-						await response.text(),
-						cookieStore,
-						newmeta(url),
-						true
-					);
-				} else {
-					responseBody = response.body;
-				}
-				break;
-			case "script":
-				responseBody = rewriteJs(await response.arrayBuffer(), newmeta(url));
-				// Disable threading for now, it's causing issues.
-				// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
-				break;
-			case "style":
-				responseBody = rewriteCss(await response.text(), newmeta(url));
-				break;
-			case "sharedworker":
-			case "worker":
-				responseBody = rewriteWorkers(
-					await response.arrayBuffer(),
-					workertype,
-					newmeta(url)
-				);
-				break;
-			default:
-				responseBody = response.body;
-				break;
-		}
+		responseBody = await rewriteBody(
+			response,
+			newmeta(url),
+			destination,
+			workertype,
+			cookieStore
+		);
 	}
+
 	// downloads
 	if (["document", "iframe"].includes(destination)) {
 		const header = responseHeaders["content-disposition"];
@@ -255,9 +274,43 @@ async function handleResponse(
 	});
 }
 
+async function rewriteBody(
+	response: Response,
+	meta: URLMeta,
+	destination: RequestDestination,
+	workertype: string,
+	cookieStore: CookieStore
+): Promise<BodyType> {
+	switch (destination) {
+		case "iframe":
+		case "document":
+			if (response.headers.get("content-type")?.startsWith("text/html")) {
+				return rewriteHtml(await response.text(), cookieStore, meta, true);
+			} else {
+				return response.body;
+			}
+			break;
+		case "script":
+			return rewriteJs(await response.arrayBuffer(), meta);
+			// Disable threading for now, it's causing issues.
+			// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
+			break;
+		case "style":
+			return rewriteCss(await response.text(), meta);
+			break;
+		case "sharedworker":
+		case "worker":
+			return rewriteWorkers(await response.arrayBuffer(), workertype, meta);
+		default:
+			return response.body;
+	}
+}
+
+type BodyType = string | ArrayBuffer | Blob | ReadableStream<any>;
+
 export class ScramjetHandleResponseEvent extends Event {
 	public responseHeaders: Record<string, string>;
-	public responseBody: string | ArrayBuffer | ReadableStream;
+	public responseBody: BodyType;
 	public status: number;
 	public statusText: string;
 	public destination: string;

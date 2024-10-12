@@ -13,28 +13,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	const handler = {
 		construct({ args, call }) {
 			if (args[0] instanceof URL) args[0] = args[0].href;
-			if (args[0].startsWith("blob:") || args[0].startsWith("data:")) {
-				const data = syncfetch(client, args[0]);
-				const id = Math.random().toString(8).slice(5);
 
-				args[0] = "/scramjet/worker?id=" + id;
-				if (args[1] && args[1].type === "module") {
-					args[0] += "&type=module";
-				}
+			args[0] = encodeUrl(args[0], client.meta) + "?dest=worker";
 
-				args[0] += "&origin=" + encodeURIComponent(client.url.origin);
-
-				client.serviceWorker.controller?.postMessage({
-					scramjet$type: "dataworker",
-					data,
-					id,
-				} as MessageC2W);
-			} else {
-				args[0] = encodeUrl(args[0], client.meta) + "?dest=worker";
-
-				if (args[1] && args[1].type === "module") {
-					args[0] += "&type=module";
-				}
+			if (args[1] && args[1].type === "module") {
+				args[0] += "&type=module";
 			}
 
 			const worker = call();
@@ -80,15 +63,4 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		// sharedworkers can only be constructed from window
 		client.Proxy("SharedWorker", handler);
 	}
-}
-
-function syncfetch(client: ScramjetClient, url: string) {
-	const xhr = new XMLHttpRequest();
-
-	const realOpen = client.natives["XMLHttpRequest.prototype.open"].bind(xhr);
-
-	realOpen("GET", url, false);
-	xhr.send();
-
-	return xhr.responseText;
 }

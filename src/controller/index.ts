@@ -34,7 +34,7 @@ export class ScramjetController {
 				syncxhr: false,
 				cleanerrors: false,
 				scramitize: false,
-				sourcemaps: true,
+				sourcemaps: false,
 			},
 		};
 

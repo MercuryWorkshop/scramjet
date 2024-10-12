@@ -154,7 +154,6 @@ export default function (client: ScramjetClient, self: Self) {
 				key.startsWith("on") &&
 				handlers[key.slice(2)]
 			) {
-				console.log(key);
 				const descriptor = nativeGetOwnPropertyDescriptor(target, key);
 				if (!descriptor.get || !descriptor.set || !descriptor.configurable)
 					continue;
