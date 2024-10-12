@@ -18,9 +18,6 @@ jobs:
           node-version: "22"
       - name: Setup Rust Toolchain
         run: |
-          rustup toolchain install nightly --profile minimal
-          rustup component add rust-src
-          rustup target add wasm32-unknown-unknown
           cargo install wasm-bindgen-cli
           sudo apt-get update && sudo apt-get install -y binaryen
 
