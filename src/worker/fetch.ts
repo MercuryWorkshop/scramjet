@@ -51,21 +51,25 @@ export async function swfetch(
 			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
 			requesturl.pathname.startsWith(this.config.prefix + "data:")
 		) {
-			let response: Response = await fetch(
-				requesturl.pathname.substring(this.config.prefix.length),
-				{
-					// this is extremely redundant but i don't care
-					// method: request.method,
-					// body: request.body,
-					// headers: request.headers,
-					// credentials: "omit",
-					// mode: request.mode === "cors" ? request.mode : "same-origin",
-					// cache: request.cache,
-					// redirect: "manual",
-					// //@ts-ignore
-					// duplex: "half",
-				}
-			);
+			let dataurl = requesturl.pathname.substring(this.config.prefix.length);
+			if (dataurl.startsWith("blob:")) {
+				let origin = new URL(dataurl.substring("blob:".length));
+				dataurl = "blob:" + location.origin + origin.pathname;
+				console.log(dataurl);
+			}
+
+			let response: Response = await fetch(dataurl, {
+				// this is extremely redundant but i don't care
+				// method: request.method,
+				// body: request.body,
+				// headers: request.headers,
+				// credentials: "omit",
+				// mode: request.mode === "cors" ? request.mode : "same-origin",
+				// cache: request.cache,
+				// redirect: "manual",
+				// //@ts-ignore
+				// duplex: "half",
+			});
 
 			let body: BodyType;
 
