@@ -141,13 +141,8 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	if (!iswindow) return;
-
-	const targets = [
-		self.window,
-		self.HTMLElement.prototype,
-		self.MessagePort.prototype,
-	];
+	const targets = [self.self, self.MessagePort.prototype] as Array<any>;
+	if (iswindow) targets.push(self.HTMLElement.prototype);
 	if (self.Worker) targets.push(self.Worker.prototype);
 
 	for (const target of targets) {
@@ -159,6 +154,7 @@ export default function (client: ScramjetClient, self: Self) {
 				key.startsWith("on") &&
 				handlers[key.slice(2)]
 			) {
+				console.log(key);
 				const descriptor = nativeGetOwnPropertyDescriptor(target, key);
 				if (!descriptor.get || !descriptor.set || !descriptor.configurable)
 					continue;
