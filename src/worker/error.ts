@@ -31,25 +31,6 @@ export function errorTemplate(trace: string, fetchedURL: string) {
             font-family: var(--font-sans);
         }
 
-        body {
-            --doomfire-mult: 1;
-            --doomfire-pixel-size: 3;
-            background-image: paint(doomfire);
-            animation: mult 0.03s infinite;
-        }
-
-        @keyframes mult {
-            0% {
-                --doomfire-mult: 1.1;
-            }
-            50% {
-                --doomfire-mult: 1.2;
-            }
-            100% {
-                --doomfire-mult: 1.1;
-            }
-        }
-
         textarea,
         button {
             background-color: var(--shallow);
@@ -157,71 +138,6 @@ export function errorTemplate(trace: string, fetchedURL: string) {
             <button id="reload" class="primary">Reload</button>
         </div>
         <p id="version-wrapper"><i>Scramjet v<span id="version"></span> (build <span id="build"></span>)</i></p>
-        <script>
-        CSS.paintWorklet.addModule(\`data:application/javascript;charset=utf8,${encodeURIComponent(`
-        const HTML_COLOR_SCALE = [
-          '#080202', '#1f0707', '#2f0f07',
-          '#470f07', '#571707', '#671f07',
-          '#771f07', '#8f2707', '#9f2f07',
-          '#af3f07', '#bf4707', '#c74707',
-          '#DF4F07', '#DF5707', '#DF5707',
-          '#D75F07', '#D7670F', '#cf6f0f',
-          '#cf770f', '#cf7f0f', '#CF8717',
-          '#C78717', '#C78F17', '#C7971F',
-          '#BF9F1F', '#BF9F1F', '#BFA727',
-          '#BFA727', '#BFAF2F', '#B7AF2F',
-          '#B7B72F', '#B7B737', '#CFCF6F',
-          '#DFDF9F', '#EFEFC7', '#FFFFFF',
-        ];
-
-        const PROPERTY_PIXEL_SIZE = '--doomfire-pixel-size';
-        const PROPERTY_MULT = '--doomfire-mult';
-
-        class DoomFire {
-          static get inputProperties() {
-            return [
-              PROPERTY_PIXEL_SIZE,
-              PROPERTY_MULT
-            ];
-          }
-
-          paint(ctx, geom, properties) {
-            const size = Math.max(parseInt(properties.get(PROPERTY_PIXEL_SIZE) * properties.get(PROPERTY_MULT)), 1);
-            const num_rows = Math.trunc(geom.height / size);
-            const num_cols = Math.trunc(geom.width / size);
-            const num_pixels = num_rows * num_cols;
-            let flames = [];
-
-            for (let i = 0; i < num_pixels; i++) {
-              flames[i] = 0;
-            }
-
-            ctx.fillStyle = HTML_COLOR_SCALE[HTML_COLOR_SCALE.length - 1];
-            const bottom_row = (num_rows - 1) * num_cols;
-            for (let x = 0; x < num_cols; x++) {
-              flames[bottom_row + x] = HTML_COLOR_SCALE.length - 1;
-              ctx.fillRect(x * size, bottom_row * size, size + 1, size + 1);
-            }
-
-            for (let y = num_rows - 2; y > 0; y--) {
-              const row_start = y * num_cols;
-              const previous_row_start = (y + 1) * num_cols;
-              for (let x = 0; x < num_cols; x++) {
-                const rand = Math.trunc(Math.random() * 3);
-                const src_x = Math.min(Math.max(x + rand - 1, 0), num_cols - 1);
-                const src_color = flames[previous_row_start + src_x];
-                const dst_color = Math.max(src_color - (rand & 1), 0);
-                flames[row_start + x] = dst_color;
-                ctx.fillStyle = HTML_COLOR_SCALE[dst_color];
-                ctx.fillRect(x * size, y * size, size + 1, size + 1);
-              }
-            }
-          }
-        }
-        registerPaint('doomfire', DoomFire);
-        console.log("done");
-        `)}\`)
-        </script>
         <script src="${"data:application/javascript," + encodeURIComponent(script)}"></script>
     </body>
 </html>
