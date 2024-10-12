@@ -13,7 +13,16 @@ function tryCanParseURL(url: string, origin?: string | URL): URL | null {
 	}
 }
 
-// something is broken with this but i didn't debug it
+export function rewriteBlob(url: string, meta: URLMeta) {
+	let blob = new URL(url.substring("blob:".length));
+	return "blob:" + meta.origin.origin + blob.pathname;
+}
+
+export function unrewriteBlob(url: string) {
+	let blob = new URL(url.substring("blob:".length));
+	return "blob:" + location.origin + blob.pathname;
+}
+
 export function encodeUrl(url: string | URL, meta: URLMeta) {
 	if (url instanceof URL) {
 		url = url.href;
@@ -25,8 +34,7 @@ export function encodeUrl(url: string | URL, meta: URLMeta) {
 		return location.origin + self.$scramjet.config.prefix + url;
 	} else if (url.startsWith("data:")) {
 		return location.origin + self.$scramjet.config.prefix + url;
-	} else if (/^(#|mailto|about)/.test(url)) {
-		// TODO this regex is jank but i'm not fixing it
+	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else {
 		let base = meta.base.href;
@@ -41,22 +49,24 @@ export function encodeUrl(url: string | URL, meta: URLMeta) {
 	}
 }
 
-// something is also broken with this but i didn't debug it
 export function decodeUrl(url: string | URL) {
 	if (url instanceof URL) {
 		url = url.href;
 	}
 
-	if (
-		tryCanParseURL(url)?.pathname.startsWith(
-			self.$scramjet.config.prefix + "worker"
-		)
-	) {
-		return new URL(new URL(url).searchParams.get("origin")).href;
-	}
+	const prefixed = location.origin + self.$scramjet.config.prefix;
 
-	// TODO: unrewrite rewritten blobs
-	if (/^(#|about|data|mailto|javascript)/.test(url)) {
+	if (url.startsWith("javascript:")) {
+		//TODO
+		return url;
+	} else if (url.startsWith("blob:")) {
+		// realistically this shouldn't happen
+		return url;
+	} else if (url.startsWith(prefixed + "blob:")) {
+		return url.substring(prefixed.length);
+	} else if (url.startsWith(prefixed + "data:")) {
+		return url.substring(prefixed.length);
+	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else if (tryCanParseURL(url)) {
 		return self.$scramjet.codec.decode(
