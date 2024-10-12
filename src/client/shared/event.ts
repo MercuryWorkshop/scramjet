@@ -143,7 +143,12 @@ export default function (client: ScramjetClient, self: Self) {
 
 	if (!iswindow) return;
 
-	const targets = [self.window, self.HTMLElement.prototype];
+	const targets = [
+		self.window,
+		self.HTMLElement.prototype,
+		self.MessagePort.prototype,
+	];
+	if (self.Worker) targets.push(self.Worker.prototype);
 
 	for (const target of targets) {
 		const keys = Reflect.ownKeys(target);
