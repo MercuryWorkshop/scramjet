@@ -10,22 +10,6 @@ const scramjet = new ScramjetController({
 
 scramjet.init("./sw.js");
 
-// navigator.serviceWorker.ready.then((reg) => {
-// 	for (let i = 0; i < 20; i++) {
-// 		const thread = new SharedWorker($scramjet.config.thread, {
-// 			name: "thread" + i,
-// 		});
-//
-// 		reg.active.postMessage(
-// 			{
-// 				scramjet$type: "add",
-// 				handle: thread.port,
-// 			},
-// 			[thread.port]
-// 		);
-// 	}
-// });
-
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
 	display: flex;
@@ -38,15 +22,17 @@ const store = $store(
 	{
 		url: "https://google.com",
 		wispurl:
+			_CONFIG?.wispurl ||
 			(location.protocol === "https:" ? "wss" : "ws") +
-			"://" +
-			location.host +
-			"/wisp/",
+				"://" +
+				location.host +
+				"/wisp/",
 		bareurl:
+			_CONFIG?.bareurl ||
 			(location.protocol === "https:" ? "https" : "http") +
-			"://" +
-			location.host +
-			"/bare/",
+				"://" +
+				location.host +
+				"/bare/",
 		proxy: "",
 	},
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
