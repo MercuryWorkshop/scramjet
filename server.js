@@ -92,9 +92,7 @@ try {
 		"pnpm prettier . -w\ngit update-index --again"
 	);
 	chmodSync(".git/hooks/pre-commit", 0o755);
-} catch {
-	
-}
+} catch {}
 
 const watch = spawn("pnpm", ["rspack", "-w"], {
 	detached: true,
