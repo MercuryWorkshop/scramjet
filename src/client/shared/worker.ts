@@ -1,6 +1,6 @@
 import { iswindow } from "..";
 import { BareMuxConnection } from "../../shared";
-import { encodeUrl } from "../../shared/rewriters/url";
+import { rewriteUrl } from "../../shared";
 import type { MessageC2W } from "../../worker";
 import { ScramjetClient } from "../client";
 
@@ -14,7 +14,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		construct({ args, call }) {
 			if (args[0] instanceof URL) args[0] = args[0].href;
 
-			args[0] = encodeUrl(args[0], client.meta) + "?dest=worker";
+			args[0] = rewriteUrl(args[0], client.meta) + "?dest=worker";
 
 			if (args[1] && args[1].type === "module") {
 				args[0] += "&type=module";
@@ -56,7 +56,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	if (iswindow) {
 		client.Proxy("Worklet.prototype.addModule", {
 			apply(ctx) {
-				if (ctx.args[0]) ctx.args[0] = encodeUrl(ctx.args[0], client.meta);
+				if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			},
 		});
 

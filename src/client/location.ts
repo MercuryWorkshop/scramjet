@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { ScramjetClient } from "./client";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { decodeUrl, encodeUrl } from "../shared";
+import { unrewriteUrl, rewriteUrl } from "../shared";
 import { iswindow } from ".";
 
 export function createLocationProxy(
@@ -77,7 +77,7 @@ export function createLocationProxy(
 	if (self.location.assign)
 		fakeLocation.assign = new Proxy(self.location.assign, {
 			apply(target, thisArg, args) {
-				args[0] = encodeUrl(args[0], client.meta);
+				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
 			},
 		});
@@ -90,7 +90,7 @@ export function createLocationProxy(
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
 			apply(target, thisArg, args) {
-				args[0] = encodeUrl(args[0], client.meta);
+				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
 			},
 		});

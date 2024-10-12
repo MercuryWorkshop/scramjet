@@ -1,6 +1,6 @@
 import { ScramjetClient } from "../client";
 import { config } from "../../shared";
-import { encodeUrl } from "../../shared/rewriters/url";
+import { rewriteUrl } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: Self) {
 	const Function = client.natives.Function;
@@ -9,7 +9,9 @@ export default function (client: ScramjetClient, self: Self) {
 		return function (url: string) {
 			const resolved = new URL(url, base).href;
 
-			return Function(`return import("${encodeUrl(resolved, client.meta)}")`)();
+			return Function(
+				`return import("${rewriteUrl(resolved, client.meta)}")`
+			)();
 		};
 	};
 

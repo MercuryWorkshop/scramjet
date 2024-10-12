@@ -1,9 +1,10 @@
-import { decodeUrl } from "../../shared";
+import { unrewriteUrl } from "../../shared";
+import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("PerformanceEntry.prototype.name", {
 		get(ctx) {
-			return decodeUrl(ctx.get());
+			return unrewriteUrl(ctx.get() as string);
 		},
 	});
 }

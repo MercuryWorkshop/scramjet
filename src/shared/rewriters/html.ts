@@ -1,7 +1,7 @@
 import { ElementType, Parser } from "htmlparser2";
 import { ChildNode, DomHandler, Element } from "domhandler";
 import render from "dom-serializer";
-import { URLMeta, encodeUrl } from "./url";
+import { URLMeta, rewriteUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
@@ -109,7 +109,7 @@ export const htmlRules: {
 }[] = [
 	{
 		fn: (value: string, meta: URLMeta) => {
-			return encodeUrl(value, meta);
+			return rewriteUrl(value, meta);
 		},
 
 		// url rewrites
@@ -238,7 +238,7 @@ function traverseParsedHtml(
 		) {
 			const contentArray = node.attribs.content.split("url=");
 			if (contentArray[1])
-				contentArray[1] = encodeUrl(contentArray[1].trim(), meta);
+				contentArray[1] = rewriteUrl(contentArray[1].trim(), meta);
 			node.attribs.content = contentArray.join("url=");
 		}
 	}
@@ -263,7 +263,7 @@ export function rewriteSrcset(srcset: string, meta: URLMeta) {
 	if (!sufixes) return "";
 	const rewrittenUrls = urls.map((url, i) => {
 		if (url && sufixes[i]) {
-			return encodeUrl(url, meta) + sufixes[i];
+			return rewriteUrl(url, meta) + sufixes[i];
 		}
 	});
 

@@ -10,8 +10,8 @@ import {
 	BareClient,
 	CookieStore,
 	config,
-	decodeUrl,
-	encodeUrl,
+	unrewriteUrl,
+	rewriteUrl,
 } from "../shared";
 import type BareClientType from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
@@ -199,7 +199,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(decodeUrl(this.global.location.href));
+		return new URL(unrewriteUrl(this.global.location.href));
 	}
 
 	set url(url: URL | string) {
@@ -211,7 +211,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		this.global.location.href = encodeUrl(ev.url, this.meta);
+		this.global.location.href = rewriteUrl(ev.url, this.meta);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs

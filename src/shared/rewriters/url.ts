@@ -23,7 +23,7 @@ export function unrewriteBlob(url: string) {
 	return "blob:" + location.origin + blob.pathname;
 }
 
-export function encodeUrl(url: string | URL, meta: URLMeta) {
+export function rewriteUrl(url: string | URL, meta: URLMeta) {
 	if (url instanceof URL) {
 		url = url.href;
 	}
@@ -39,7 +39,7 @@ export function encodeUrl(url: string | URL, meta: URLMeta) {
 	} else {
 		let base = meta.base.href;
 
-		if (base.startsWith("about:")) base = decodeUrl(self.location.href); // jank!!!!! weird jank!!!
+		if (base.startsWith("about:")) base = unrewriteUrl(self.location.href); // jank!!!!! weird jank!!!
 
 		return (
 			location.origin +
@@ -49,7 +49,7 @@ export function encodeUrl(url: string | URL, meta: URLMeta) {
 	}
 }
 
-export function decodeUrl(url: string | URL) {
+export function unrewriteUrl(url: string | URL) {
 	if (url instanceof URL) {
 		url = url.href;
 	}

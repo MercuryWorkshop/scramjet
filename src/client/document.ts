@@ -1,4 +1,4 @@
-import { encodeUrl } from "../shared/rewriters/url";
+import { rewriteUrl } from "../shared";
 import { ScramjetClient } from "./client";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
 
@@ -22,7 +22,7 @@ export function createDocumentProxy(
 		},
 		set(target, prop, newValue) {
 			if (prop === "location") {
-				location.href = encodeUrl(newValue, client.meta);
+				location.href = rewriteUrl(newValue, client.meta);
 
 				return;
 			}

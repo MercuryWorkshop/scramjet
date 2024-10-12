@@ -1,4 +1,4 @@
-import { config, decodeUrl, encodeUrl } from "../../../shared";
+import { config, unrewriteUrl, rewriteUrl } from "../../../shared";
 import { ScramjetClient } from "../../client";
 let nativeworker;
 let postmessage;
@@ -18,7 +18,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
-			if (ctx.args[1]) ctx.args[1] = encodeUrl(ctx.args[1], client.meta);
+			if (ctx.args[1]) ctx.args[1] = rewriteUrl(ctx.args[1], client.meta);
 			ctx.this[ARGS] = ctx.args;
 		},
 	});
@@ -128,7 +128,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
-			return decodeUrl(ctx.get() as string);
+			return unrewriteUrl(ctx.get() as string);
 		},
 	});
 }

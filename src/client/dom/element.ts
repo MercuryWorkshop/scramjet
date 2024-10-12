@@ -1,9 +1,9 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
-import { decodeUrl, htmlRules, unrewriteHtml } from "../../shared";
+import { unrewriteUrl, htmlRules, unrewriteHtml } from "../../shared";
 import {
-	encodeUrl,
+	rewriteUrl,
 	rewriteCss,
 	rewriteHtml,
 	rewriteJs,
@@ -57,7 +57,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			Object.defineProperty(element.prototype, attr, {
 				get() {
 					if (["src", "data", "href", "action", "formaction"].includes(attr)) {
-						return decodeUrl(descriptor.get.call(this));
+						return unrewriteUrl(descriptor.get.call(this));
 					}
 
 					return descriptor.get.call(this);
@@ -74,7 +74,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 							let origin = new URL(value.substring("blob:".length));
 							value = "blob:" + location.origin + origin.pathname;
 						} else {
-							value = encodeUrl(value, client.meta);
+							value = rewriteUrl(value, client.meta);
 						}
 					} else if (attr === "srcdoc") {
 						value = rewriteHtml(
@@ -117,7 +117,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					const href = desc.get.call(ctx.this);
 					if (!href) return href;
 
-					const url = new URL(decodeUrl(href));
+					const url = new URL(unrewriteUrl(href));
 
 					return url[prop];
 				},

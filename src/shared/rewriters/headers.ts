@@ -1,6 +1,6 @@
 // TODO this whole file should be inlined and deleted it's a weird relic from ssd era
 
-import { URLMeta, encodeUrl } from "./url";
+import { URLMeta, rewriteUrl } from "./url";
 import { BareHeaders } from "@mercuryworkshop/bare-mux";
 const cspHeaders = [
 	"cross-origin-embedder-policy",
@@ -27,7 +27,7 @@ const cspHeaders = [
 const urlHeaders = ["location", "content-location", "referer"];
 
 function rewriteLinkHeader(link: string, meta: URLMeta) {
-	return link.replace(/<(.*)>/gi, (match) => encodeUrl(match, meta));
+	return link.replace(/<(.*)>/gi, (match) => rewriteUrl(match, meta));
 }
 
 export function rewriteHeaders(rawHeaders: BareHeaders, meta: URLMeta) {
@@ -43,7 +43,7 @@ export function rewriteHeaders(rawHeaders: BareHeaders, meta: URLMeta) {
 
 	urlHeaders.forEach((header) => {
 		if (headers[header])
-			headers[header] = encodeUrl(headers[header]?.toString() as string, meta);
+			headers[header] = rewriteUrl(headers[header]?.toString() as string, meta);
 	});
 
 	if (typeof headers["link"] === "string") {

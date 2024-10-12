@@ -1,4 +1,4 @@
-import { config, encodeUrl } from "../../shared";
+import { config, rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { type MessageC2W } from "../../worker";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
@@ -61,7 +61,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("navigator.serviceWorker.register", {
 		apply(ctx) {
 			if (ctx.args[0] instanceof URL) ctx.args[0] = ctx.args[0].href;
-			let url = encodeUrl(ctx.args[0], client.meta) + "?dest=serviceworker";
+			let url = rewriteUrl(ctx.args[0], client.meta) + "?dest=serviceworker";
 			if (ctx.args[1] && ctx.args[1].type === "module") {
 				url += "&type=module";
 			}

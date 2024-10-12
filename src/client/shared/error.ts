@@ -1,4 +1,4 @@
-import { config, decodeUrl } from "../../shared";
+import { config, unrewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
 export const enabled = () => self.$scramjet.config.flags.cleanerrors;
@@ -20,7 +20,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			}
 
 			try {
-				newstack = newstack.replaceAll(url, decodeUrl(url));
+				newstack = newstack.replaceAll(url, unrewriteUrl(url));
 			} catch {}
 		}
 

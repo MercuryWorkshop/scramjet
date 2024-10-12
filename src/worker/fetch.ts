@@ -5,8 +5,8 @@ import { FakeServiceWorker } from "./fakesw";
 import { CookieStore } from "../shared/cookie";
 import {
 	ScramjetHeaders,
-	decodeUrl,
-	encodeUrl,
+	unrewriteUrl,
+	rewriteUrl,
 	rewriteCss,
 	rewriteHeaders,
 	rewriteHtml,
@@ -32,7 +32,7 @@ export async function swfetch(
 
 	if (urlParam.has("url")) {
 		return Response.redirect(
-			encodeUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
+			rewriteUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
 		);
 	}
 
@@ -88,7 +88,7 @@ export async function swfetch(
 			});
 		}
 
-		const url = new URL(decodeUrl(requesturl));
+		const url = new URL(unrewriteUrl(requesturl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
 			(w) => w.origin === url.origin
@@ -119,7 +119,7 @@ export async function swfetch(
 			new URL(client.url).pathname.startsWith(self.$scramjet.config.prefix)
 		) {
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-			const clientURL = new URL(decodeUrl(client.url));
+			const clientURL = new URL(unrewriteUrl(client.url));
 			if (clientURL.toString().includes("youtube.com")) {
 				// console.log(headers);
 			} else {
@@ -165,7 +165,7 @@ export async function swfetch(
 		if (!["document", "iframe"].includes(request.destination))
 			return new Response(undefined, { status: 500 });
 
-		return renderError(err, decodeUrl(request.url));
+		return renderError(err, unrewriteUrl(request.url));
 	}
 }
 

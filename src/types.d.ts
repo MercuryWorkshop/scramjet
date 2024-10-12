@@ -1,5 +1,5 @@
 import { ScramjetController } from "./controller/index";
-import { encodeUrl, decodeUrl } from "./shared/rewriters/url";
+import { rewriteUrl, unrewriteUrl } from "./shared/rewriters/url";
 import { rewriteCss, unrewriteCss } from "./shared/rewriters/css";
 import {
 	htmlRules,
@@ -55,8 +55,8 @@ declare global {
 		$scramjet: {
 			shared: {
 				url: {
-					encodeUrl: typeof encodeUrl;
-					decodeUrl: typeof decodeUrl;
+					rewriteUrl: typeof rewriteUrl;
+					unrewriteUrl: typeof unrewriteUrl;
 				};
 				rewrite: {
 					rewriteCss: typeof rewriteCss;
