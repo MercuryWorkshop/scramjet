@@ -5,7 +5,7 @@ import { URLMeta, rewriteUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
-import { unrewriteBlob } from "../../shared";
+import { unrewriteBlob } from "../../shared/rewriters/url";
 
 export function rewriteHtml(
 	html: string,
