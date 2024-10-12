@@ -1,7 +1,12 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
-import { unrewriteUrl, htmlRules, unrewriteHtml } from "../../shared";
+import {
+	unrewriteUrl,
+	htmlRules,
+	unrewriteHtml,
+	unrewriteBlob,
+} from "../../shared";
 import {
 	rewriteUrl,
 	rewriteCss,
@@ -71,8 +76,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 						["src", "data", "href", "action", "formaction"].includes(attr)
 					) {
 						if (element === HTMLMediaElement && value.startsWith("blob:")) {
-							let origin = new URL(value.substring("blob:".length));
-							value = "blob:" + location.origin + origin.pathname;
+							// mediasource blobs cannot be handled in the service worker and must be sourced here
+							value = unrewriteBlob(value);
 						} else {
 							value = rewriteUrl(value, client.meta);
 						}

@@ -5,6 +5,7 @@ import { URLMeta, rewriteUrl } from "./url";
 import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
+import { unrewriteBlob } from "../../shared";
 
 export function rewriteHtml(
 	html: string,
@@ -120,8 +121,6 @@ export const htmlRules: {
 			"image",
 			"iframe",
 			"source",
-			"video",
-			"audio",
 			"input",
 			"track",
 		],
@@ -131,6 +130,17 @@ export const htmlRules: {
 		formaction: ["button", "input", "textarea", "submit"],
 		poster: ["video"],
 		"xlink:href": ["image"],
+	},
+	{
+		fn: (value: string, meta: URLMeta) => {
+			if (value.startsWith("blob:")) {
+				// for media elements specifically they must take the original blob
+				// because they can't be fetch'd
+				return unrewriteBlob(value);
+			}
+			return rewriteUrl(value, meta);
+		},
+		src: ["video", "audio"],
 	},
 	{
 		fn: () => null,

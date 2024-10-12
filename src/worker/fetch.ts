@@ -12,6 +12,7 @@ import {
 	rewriteHtml,
 	rewriteJs,
 	rewriteWorkers,
+	unrewriteBlob,
 } from "../shared";
 
 import type { URLMeta } from "../shared/rewriters/url";
@@ -53,9 +54,7 @@ export async function swfetch(
 		) {
 			let dataurl = requesturl.pathname.substring(this.config.prefix.length);
 			if (dataurl.startsWith("blob:")) {
-				let origin = new URL(dataurl.substring("blob:".length));
-				dataurl = "blob:" + location.origin + origin.pathname;
-				console.log(dataurl);
+				dataurl = unrewriteBlob(dataurl);
 			}
 
 			let response: Response = await fetch(dataurl, {});
