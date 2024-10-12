@@ -154,6 +154,29 @@ export default function (client: ScramjetClient, self: typeof window) {
 			}
 		},
 	});
+	client.Proxy("Element.prototype.setAttributeNS", {
+		apply(ctx) {
+			const [namespace, name, value] = ctx.args;
+
+			const ruleList = htmlRules.find((rule) => {
+				const r = rule[name];
+				if (!r) return false;
+				if (r === "*") return true;
+				if (typeof r === "function") return false; // this can't happen but ts
+
+				return r.includes(ctx.this.tagName.toLowerCase());
+			});
+
+			if (ruleList) {
+				ctx.args[2] = ruleList.fn(value, client.meta, client.cookieStore);
+				nativeSetAttribute.call(
+					ctx.this,
+					`data-scramjet-${ctx.args[1]}`,
+					value
+				);
+			}
+		},
+	});
 
 	client.Proxy("Element.prototype.getAttribute", {
 		apply(ctx) {
