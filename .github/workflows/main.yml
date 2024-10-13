@@ -86,5 +86,3 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v2
-        with:
-          publish_dir: staticbuild
