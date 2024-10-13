@@ -13,6 +13,10 @@ export const enabled = (client: ScramjetClient) =>
 export function disabled(_client: ScramjetClient, _self: Self) {
 	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }
+let realPostMessage;
+if (self.ServiceWorker) {
+	realPostMessage = ServiceWorker.prototype.postMessage;
+}
 
 export default function (client: ScramjetClient, _self: Self) {
 	let registration;
@@ -55,12 +59,6 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.Trap("navigator.serviceWorker.controller", {
-		get(_ctx) {
-			return registration?.active;
-		},
-	});
-
 	client.Proxy("navigator.serviceWorker.register", {
 		apply(ctx) {
 			if (ctx.args[0] instanceof URL) ctx.args[0] = ctx.args[0].href;
@@ -69,11 +67,13 @@ export default function (client: ScramjetClient, _self: Self) {
 				url += "&type=module";
 			}
 
-			const worker = new SharedWorker(url);
+			const nativeSharedWorker = client.natives["SharedWorker"];
+			const worker = new nativeSharedWorker(url);
 
 			const handle = worker.port;
 
-			client.serviceWorker.controller.postMessage(
+			realPostMessage.call(
+				client.serviceWorker.controller,
 				{
 					scramjet$type: "registerServiceWorker",
 					port: handle,
