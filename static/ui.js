@@ -38,54 +38,9 @@ const store = $store(
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
 );
 connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
-function App() {
-	this.urlencoded = "";
-	this.css = `
-    width: 100%;
-    height: 100%;
-    color: #e0def4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    input,
-    button {
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-        sans-serif;
-    }
-    h1 {
-      font-family: "Inter Tight", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-      sans-serif;
-      margin-bottom: 0;
-    }
-    iframe {
-      border: 2px solid #313131;
-      background-color: #fff;
-      border-radius: 0.5rem;
-      margin: 1em;
-      margin-top: 0.5em;
-      width: calc(100% - 2em);
-      height: calc(100% - 8em);
-    }
 
-    input.bar {
-      border: none;
-      outline: none;
-      color: #fff;
-      height: 2em;
-      text-align: center;
-      border-radius: 0.75em;
-      background-color: #313131;
-      padding: 0.30em;
-    }
-    .input_row > label {
-      font-size: 0.7rem;
-      color: gray;
-    }
-    p {
-      margin: 0;
-      margin-top: 0.2em;
-    }
+function Config() {
+	this.css = `
     .cfg * {
       margin: 2px;
     }
@@ -108,14 +63,111 @@ function App() {
       flex-grow: 1
     }
 
+  `;
+	return html`
+      <dialog class=${["cfg"]}>
+       
+        <div style="align-self: end">
+          <div class=${[flex, "buttons"]}>
+            <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
+            <button on:click=${() =>
+							connection.setTransport("/libcurl/index.mjs", [
+								{
+									wisp: store.wispurl,
+									proxy: store.proxy ? store.proxy : undefined,
+								},
+							])}>use libcurl.js</button>
+            <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
+            <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
+          </div>
+        </div>
+ <div class=${[flex, col, "input_row"]}>
+          <label for="wisp_url_input">Wisp URL:</label>
+          <input id="wisp_url_input" bind:value=${use(store.wispurl)}></input>
+        </div>
+        <div class=${[flex, col, "input_row"]}>
+          <label for="bare_url_input">Bare URL:</label>
+          <input id="bare_url_input" bind:value=${use(store.bareurl)}></input>
+        </div>
+    </dialog>
+  `;
+}
+
+function App() {
+	this.urlencoded = "";
+	this.css = `
+    width: 100%;
+    height: 100%;
+    color: #e0def4;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5em;
+    padding-top: 0;
+    box-sizing: border-box;
+
+    a {
+    color: #e0def4;
+    }
+
+    input,
+    button {
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+        sans-serif;
+    }
+    .version {
+    }
+    h1 {
+      font-family: "Inter Tight", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+      sans-serif;
+      margin-bottom: 0;
+    }
+    iframe {
+      background-color: #fff;
+      border: none;
+      border-radius: 0.3em;
+      flex: 1;
+      width: 100%;
+    }
+
+    input.bar {
+      font-family: "Inter";
+      padding: 0.1em;
+      padding-left: 0.3em;
+      border: none;
+      outline: none;
+      color: #fff;
+      height: 1.5em;
+      border-radius: 0.3em;
+      flex: 1;
+
+      background-color: #121212;
+      border: 1px solid #313131;
+    }
+    .input_row > label {
+      font-size: 0.7rem;
+      color: gray;
+    }
+    p {
+      margin: 0;
+      margin-top: 0.2em;
+    }
+
+    .nav {
+      padding-top: 0.3em;
+      padding-bottom: 0.3em;
+      gap: 0.3em;
+    }
+    spacer {
+      margin-left: 10em;
+    }
+
     .nav button {
-      margin-right: 0.25em;
-      margin-left: 0.25em;
       color: #fff;
       outline: none;
       border: none;
-      border-radius: 0.75em;
-      background-color: #313131;
+      border-radius: 0.30em;
+      background-color: #121212;
+      border: 1px solid #313131;
     }
   `;
 	this.url = store.url;
@@ -146,44 +198,26 @@ function App() {
 		return frame.go(this.url);
 	};
 
+	const cfg = h(Config);
+	document.body.appendChild(cfg);
+
 	return html`
       <div>
-      <h1>scramjet</h1>
-      <p>surf the unblocked and mostly buggy web</p>
+      <div class=${[flex, "nav"]}>
 
-      <div class=${[flex, "cfg"]}>
-       
-        <div style="align-self: end">
-          <div class=${[flex, "buttons"]}>
-            <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
-            <button on:click=${() =>
-							connection.setTransport("/libcurl/index.mjs", [
-								{
-									wisp: store.wispurl,
-									proxy: store.proxy ? store.proxy : undefined,
-								},
-							])}>use libcurl.js</button>
-            <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
-            <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
-          </div>
-        </div>
- <div class=${[flex, col, "input_row"]}>
-          <label for="wisp_url_input">Wisp URL:</label>
-          <input id="wisp_url_input" bind:value=${use(store.wispurl)}></input>
-        </div>
-        <div class=${[flex, col, "input_row"]}>
-          <label for="bare_url_input">Bare URL:</label>
-          <input id="bare_url_input" bind:value=${use(store.bareurl)}></input>
-        </div>
-    </div>
-      <div class=${[flex, "nav"]} style="width: 60%">
+        <button on:click=${() => cfg.showModal()}>config</button>
         <button on:click=${() => frame.back()}>&lt;-</button>
-        <input class="bar" style="flex: 1" bind:value=${use(this.url)} on:input=${(
-					e
-				) => {
+        <button on:click=${() => frame.forward()}>-&gt;</button>
+
+        <input class="bar" bind:value=${use(this.url)} on:input=${(e) => {
 					this.url = e.target.value;
 				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
-        <button on:click=${() => frame.forward()}>-&gt;</button>
+
+        <button on:click=${() => window.open(scramjet.encodeUrl(this.url))}>open</button>
+
+        <p class="version">
+          <b>scramjet</b> ${$scramjet.version.version} <a href="https://github.com/MercuryWorkshop/scramjet/tree/${$scramjet.version.build}">${$scramjet.version.build}</a>
+        </p>
       </div>
       ${frame.frame}
     </div>
