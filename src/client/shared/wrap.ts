@@ -3,6 +3,7 @@ import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { config } from "../../shared";
 import { argdbg } from "./err";
+import { indirectEval } from "./eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any, args: any) {
@@ -45,6 +46,9 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 			return client.documentProxy;
 		} else if (isworker && identifier instanceof self.WorkerGlobalScope) {
 			return client.globalProxy;
+		}
+		if (identifier == self.eval) {
+			return indirectEval.bind(client);
 		}
 
 		return identifier;
