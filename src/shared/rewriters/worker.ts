@@ -10,13 +10,19 @@ export function rewriteWorkers(
 ) {
 	let str = "";
 
-	for (const script of clientscripts) {
+	let script = (script) => {
 		if (type === "module") {
 			str += `import "${$scramjet.config.files[script]}"\n`;
 		} else {
 			str += `importScripts("${$scramjet.config.files[script]}");\n`;
 		}
-	}
+	};
+
+	script("wasm");
+	script("shared");
+	str += `self.$scramjet.config = ${JSON.stringify($scramjet.config)};`;
+	script("client");
+	console.log(str);
 
 	let rewritten = rewriteJs(js, meta);
 	if (rewritten instanceof Uint8Array) {
