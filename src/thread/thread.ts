@@ -1,8 +1,8 @@
 import { rewriteJs } from "../shared/rewriters/js";
 
 // @ts-ignore
-onconnect = (ev) => {
-	const port = ev.ports[0];
+onconnect = (e) => {
+	const port = e.ports[0];
 
 	console.log("thread: connected to port", port);
 	port.postMessage("ready");
@@ -20,10 +20,10 @@ onconnect = (ev) => {
 				token,
 				result: res,
 			});
-		} catch (err) {
+		} catch (e) {
 			port.postMessage({
 				token,
-				error: err.message,
+				error: e.message,
 			});
 		}
 

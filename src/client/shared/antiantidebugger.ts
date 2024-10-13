@@ -10,10 +10,10 @@ export default function (client: ScramjetClient) {
 
 	const log = console.log;
 	client.Trap("console.log", {
-		set(_ctx, _v) {
+		set(ctx, v) {
 			// is there a legitimate reason to let sites do this?
 		},
-		get(_ctx) {
+		get(ctx) {
 			return log;
 		},
 	});

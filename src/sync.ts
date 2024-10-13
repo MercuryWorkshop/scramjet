@@ -31,14 +31,14 @@ addEventListener(
 			cursor += 2;
 
 			// next write the header string
-			const resHeaders = xhr.getAllResponseHeaders();
-			view.setUint32(cursor, resHeaders.length);
+			const headers = xhr.getAllResponseHeaders();
+			view.setUint32(cursor, headers.length);
 			cursor += 4;
 
-			if (sab.byteLength < cursor + resHeaders.length)
-				sab.grow(cursor + resHeaders.length);
-			u8view.set(new TextEncoder().encode(resHeaders), cursor);
-			cursor += resHeaders.length;
+			if (sab.byteLength < cursor + headers.length)
+				sab.grow(cursor + headers.length);
+			u8view.set(new TextEncoder().encode(headers), cursor);
+			cursor += headers.length;
 
 			view.setUint32(cursor, xhr.response.byteLength);
 			cursor += 4;

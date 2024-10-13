@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { ScramjetClient } from "./client";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { rewriteUrl } from "../shared";
+import { unrewriteUrl, rewriteUrl } from "../shared";
 import { iswindow } from ".";
 
 export function createLocationProxy(

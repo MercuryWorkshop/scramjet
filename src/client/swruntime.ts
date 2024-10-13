@@ -38,7 +38,6 @@ export class ScramjetServiceWorkerRuntime {
 				postMessage: () => {},
 				addEventListener: () => {},
 				removeEventListener: () => {},
-				// @ts-ignore
 				dispatchEvent: (_e: Event) => {},
 			},
 			showNotification: async () => {},
@@ -124,7 +123,7 @@ function handleMessage(
 
 function trustEvent(event: Event): Event {
 	return new Proxy(event, {
-		get(target, prop, _reciever) {
+		get(target, prop, reciever) {
 			if (prop === "isTrusted") return true;
 
 			return Reflect.get(target, prop);

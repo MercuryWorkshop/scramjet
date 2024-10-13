@@ -1,6 +1,7 @@
 import { iswindow } from "..";
 import { BareMuxConnection } from "../../shared";
 import { rewriteUrl } from "../../shared";
+import type { MessageC2W } from "../../worker";
 import { ScramjetClient } from "../client";
 
 const sharedworkerpostmessage = MessagePort.prototype.postMessage;
