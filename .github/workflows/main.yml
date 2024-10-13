@@ -59,7 +59,7 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v3
         with:
-          name: scramjet
+          name: CI
           path: build
 
       - name: Display structure of downloaded files
