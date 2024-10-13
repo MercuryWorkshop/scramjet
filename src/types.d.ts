@@ -47,7 +47,6 @@ interface ScramjetConfig {
 	wasm: string;
 	shared: string;
 	worker: string;
-	thread: string;
 	client: string;
 	codecs: string;
 	sync: string;

@@ -21,7 +21,6 @@ export class ScramjetController {
 			wasm: "/scramjet.wasm.js",
 			shared: "/scramjet.shared.js",
 			worker: "/scramjet.worker.js",
-			thread: "/scramjet.thread.js",
 			client: "/scramjet.client.js",
 			codecs: "/scramjet.codecs.js",
 			sync: "/scramjet.sync.js",

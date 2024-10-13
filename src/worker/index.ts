@@ -1,12 +1,10 @@
 import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
-import { ScramjetThreadpool } from "./threadpool";
 import type BareClient from "@mercuryworkshop/bare-mux";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
 	config: typeof self.$scramjet.config;
-	threadpool: ScramjetThreadpool;
 
 	syncPool: Record<number, (val?: any) => void> = {};
 	synctoken = 0;
@@ -18,8 +16,6 @@ export class ScramjetServiceWorker extends EventTarget {
 	constructor() {
 		super();
 		this.client = new self.$scramjet.shared.util.BareClient();
-
-		this.threadpool = new ScramjetThreadpool();
 
 		addEventListener("message", ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;

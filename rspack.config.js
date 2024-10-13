@@ -10,12 +10,10 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const packagemeta = JSON.parse(await readFile("package.json"));
 
 export default defineConfig({
-	// change to production when needed
 	mode: "development",
 	entry: {
 		shared: join(__dirname, "src/shared/index.ts"),
 		worker: join(__dirname, "src/worker/index.ts"),
-		thread: join(__dirname, "src/thread/thread.ts"),
 		client: join(__dirname, "src/client/index.ts"),
 		codecs: join(__dirname, "src/codecs/index.ts"),
 		controller: join(__dirname, "src/controller/index.ts"),

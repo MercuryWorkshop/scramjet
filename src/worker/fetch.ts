@@ -287,8 +287,6 @@ async function rewriteBody(
 			}
 		case "script":
 			return rewriteJs(await response.arrayBuffer(), meta);
-			// Disable threading for now, it's causing issues.
-			// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
