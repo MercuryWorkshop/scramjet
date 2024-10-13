@@ -16,10 +16,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.10.0
       - name: install wbg
-        run: cargo binstall --no-confirm wasm-bindgen-cli@0.2.95
+        run: cargo install wasm-bindgen-cli
       - name: Setup Binaryen
         uses: Aandreba/setup-binaryen@v1.0.0
         with:
