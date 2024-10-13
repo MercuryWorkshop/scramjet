@@ -14,9 +14,15 @@ export function createGlobalProxy(
 
 			if (
 				typeof prop === "string" &&
-				["window", "top", "self", "globalThis", "parent", "document"].includes(
-					prop
-				)
+				[
+					"window",
+					"top",
+					"self",
+					"globalThis",
+					"parent",
+					"document",
+					"frames",
+				].includes(prop)
 			)
 				return client.wrapfn(self[prop]);
 

@@ -429,6 +429,7 @@ const UNSAFE_GLOBALS: [&str; 9] = [
 	"location",
 	"document",
 	"eval",
+	"frames",
 ];
 
 fn random_string() -> String {
