@@ -15,14 +15,14 @@ function tryCanParseURL(url: string, origin?: string | URL): URL | null {
 
 export function rewriteBlob(url: string, meta: URLMeta) {
 	const blob = new URL(url.substring("blob:".length));
-	
-return "blob:" + meta.origin.origin + blob.pathname;
+
+	return "blob:" + meta.origin.origin + blob.pathname;
 }
 
 export function unrewriteBlob(url: string) {
 	const blob = new URL(url.substring("blob:".length));
-	
-return "blob:" + location.origin + blob.pathname;
+
+	return "blob:" + location.origin + blob.pathname;
 }
 
 export function rewriteUrl(url: string | URL, meta: URLMeta) {

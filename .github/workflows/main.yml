@@ -49,7 +49,7 @@ jobs:
       - name: upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './staticbuild'
+          path: "./staticbuild"
       - name: deploy to github
         id: deployment
         uses: actions/deploy-pages@v4
