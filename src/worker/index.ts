@@ -2,7 +2,6 @@ import { FakeServiceWorker } from "./fakesw";
 import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
 import type BareClient from "@mercuryworkshop/bare-mux";
-import { ScramjetConfig } from "../types";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;

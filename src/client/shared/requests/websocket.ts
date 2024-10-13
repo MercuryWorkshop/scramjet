@@ -59,7 +59,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				fakeWebSocket.dispatchEvent(fakeev);
 			}
 
-			barews.addEventListener("open", (ev) => {
+			barews.addEventListener("open", () => {
 				fakeEventSend(new Event("open"));
 			});
 			barews.addEventListener("close", (ev) => {
@@ -76,7 +76,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 				fakeEventSend(fakeev);
 			});
-			barews.addEventListener("error", (ev) => {
+			barews.addEventListener("error", () => {
 				fakeEventSend(new Event("error"));
 			});
 
