@@ -166,7 +166,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 	client.Proxy("Element.prototype.setAttributeNS", {
 		apply(ctx) {
-			const [namespace, name, value] = ctx.args;
+			const [_namespace, name, value] = ctx.args;
 
 			const ruleList = htmlRules.find((rule) => {
 				const r = rule[name];

@@ -8,7 +8,7 @@ function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 	ctx.return(ctx.fn(content)());
 }
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: ScramjetClient, _self: Self) {
 	const handler: Proxy = {
 		apply(ctx) {
 			rewriteFunction(ctx, client);

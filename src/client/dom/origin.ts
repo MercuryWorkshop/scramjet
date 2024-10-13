@@ -1,7 +1,6 @@
 import { ScramjetClient } from "../client";
-import { unrewriteUrl } from "../../shared";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, _self: typeof window) {
 	client.Trap("origin", {
 		get() {
 			// this isn't right!!
