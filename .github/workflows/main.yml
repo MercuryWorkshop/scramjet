@@ -20,6 +20,8 @@ jobs:
         run: cargo install wasm-bindgen-cli
       - name: Setup Binaryen
         uses: Aandreba/setup-binaryen@v1.0.0
+        with:
+          token: ${{ github.token }}
 
       - name: Install dependencies
         run: npm install
