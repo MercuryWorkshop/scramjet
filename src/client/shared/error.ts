@@ -1,7 +1,9 @@
+import { flagEnabled } from "../../scramjet";
 import { config, unrewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
-export const enabled = () => self.$scramjet.config.flags.cleanerrors;
+export const enabled = (client: ScramjetClient) =>
+	flagEnabled("cleanerrors", client.url);
 export default function (client: ScramjetClient, _self: Self) {
 	// v8 only. all we need to do is clean the scramjet urls from stack traces
 	const closure = (error, stack) => {
@@ -10,7 +12,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		for (let i = 0; i < stack.length; i++) {
 			const url = stack[i].getFileName();
 
-			if (url.endsWith(config.client)) {
+			if (url.endsWith(config.files.client)) {
 				// strip stack frames including scramjet handlers from the trace
 				const lines = newstack.split("\n");
 				const line = lines.find((l) => l.includes(url));

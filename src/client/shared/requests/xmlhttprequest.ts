@@ -1,3 +1,4 @@
+import { flagEnabled } from "../../../scramjet";
 import { config, unrewriteUrl, rewriteUrl } from "../../../shared";
 import { ScramjetClient } from "../../client";
 let nativeworker;
@@ -35,8 +36,8 @@ export default function (client: ScramjetClient, self: Self) {
 			const args = ctx.this[ARGS];
 			if (!args || args[2]) return;
 
-			if (!self.$scramjet.config.flags.syncxhr) {
-				console.warn("sync xhr disabled in flags");
+			if (!flagEnabled("syncxhr", client.url)) {
+				console.warn("ignoring request - sync xhr disabled in flags");
 
 				return;
 			}

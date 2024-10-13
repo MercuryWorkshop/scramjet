@@ -2,11 +2,14 @@ import { config, rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { type MessageC2W } from "../../worker";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
+import { flagEnabled } from "../../scramjet";
 
 // we need a late order because we're mangling with addEventListener at a higher level
 export const order = 2;
 
-export const enabled = () => config.flags.serviceworkers;
+export const enabled = (client: ScramjetClient) =>
+	flagEnabled("serviceworkers", client.url);
+
 export function disabled(_client: ScramjetClient, _self: Self) {
 	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }

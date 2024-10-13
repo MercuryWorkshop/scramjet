@@ -52,8 +52,8 @@ interface ScramjetConfig {
 		client: string;
 		sync: string;
 	};
-	flags: ScramjetFlags;
-	siteflags: Record<string, ScramjetFlags>;
+	defaultFlags: ScramjetFlags;
+	siteFlags: Record<string, Partial<ScramjetFlags>>;
 	codec: {
 		encode: string;
 		decode: string;

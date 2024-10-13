@@ -26,7 +26,7 @@ export class ScramjetController {
 				client: "/scramjet.client.js",
 				sync: "/scramjet.sync.js",
 			},
-			flags: {
+			defaultFlags: {
 				serviceworkers: false,
 				naiiveRewriter: false,
 				captureErrors: true,
@@ -35,6 +35,7 @@ export class ScramjetController {
 				scramitize: false,
 				sourcemaps: false,
 			},
+			siteFlags: {},
 			codec: {
 				encode: `if (!url) return url;
 					return encodeURIComponent(url);`,

@@ -1,10 +1,12 @@
+import { flagEnabled } from "../../scramjet";
 import { ScramjetClient } from "../client";
 
 type Mapping = [string, number, number];
 
 const sourcemaps: Record<string, Mapping[]> = {};
 
-export const enabled = () => self.$scramjet.config.flags.sourcemaps;
+export const enabled = (client: ScramjetClient) =>
+	flagEnabled("sourcemaps", client.url);
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
