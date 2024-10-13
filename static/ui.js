@@ -46,8 +46,17 @@ connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
 
 function Config() {
 	this.css = `
-    .cfg * {
-      margin: 2px;
+    transition: opacity 0.4s ease;
+    :modal[open] {
+        animation: fade 0.4s ease normal;
+    }
+
+    :modal::backdrop {
+     backdrop-filter: blur(3px);
+    }
+
+    .buttons {
+      gap: 0.5em;
     }
     .buttons button {
       border: 1px solid #4c8bf5;
@@ -56,13 +65,17 @@ function Config() {
       color: #fff;
       padding: 0.45em;
     }
-    .cfg input {
-      border: none;
-      background-color: #313131;
+    .input_row input {
+      background-color: rgb(18, 18, 18);
+      border: 2px solid rgb(49, 49, 49);
       border-radius: 0.75em;
       color: #fff;
       outline: none;
       padding: 0.45em;
+    }
+    .input_row {
+      margin-bottom: 0.5em;
+      margin-top: 0.5em;
     }
     .input_row input {
       flex-grow: 1;
@@ -72,34 +85,39 @@ function Config() {
       align-items: center;
     }
   `;
+
+  function handleModalClose(modal) {
+    modal.style.opacity = 0;
+    setTimeout(() => {
+      modal.close();
+      modal.style.opacity = 1;
+    }, 250)
+  }
+
 	return html`
-      <dialog class=${["cfg"]}>
-       
+      <dialog class="cfg" style="background-color: #121212; color: white; border-radius: 8px;">
         <div style="align-self: end">
           <div class=${[flex, "buttons"]}>
             <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
             <button on:click=${() =>
-							connection.setTransport("/libcurl/index.mjs", [
-								{
-									wisp: store.wispurl,
-									proxy: store.proxy ? store.proxy : undefined,
-								},
-							])}>use libcurl.js</button>
-            <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
+              connection.setTransport("/libcurl/index.mjs", [{wisp: store.wispurl},
+              ])}>use libcurl.js</button>
+              <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
           </div>
         </div>
         <div class=${[flex, col, "input_row"]}>
           <label for="wisp_url_input">Wisp URL:</label>
-          <input id="wisp_url_input" bind:value=${use(store.wispurl)}></input>
+          <input id="wisp_url_input" bind:value=${use(store.wispurl)} spellcheck="false"></input>
         </div>
         <div class=${[flex, col, "input_row"]}>
           <label for="bare_url_input">Bare URL:</label>
-          <input id="bare_url_input" bind:value=${use(store.bareurl)}></input>
+          <input id="bare_url_input" bind:value=${use(store.bareurl)} spellcheck="false"></input>
         </div>
-        <div class=${[flex, "buttons", "centered"]}>
-          <button on:click=${() => this.root.close()}>close</button>
-        </div>
-    </dialog>
+            <div class=${[flex, "buttons", "centered"]}>
+              <button on:click=${() => handleModalClose(this.root)}>close</button>
+            </div>
+
+      </dialog>
   `;
 }
 
@@ -116,7 +134,7 @@ function App() {
     box-sizing: border-box;
 
     a {
-    color: #e0def4;
+      color: #e0def4;
     }
 
     input,
