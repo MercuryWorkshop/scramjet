@@ -39,6 +39,8 @@ jobs:
           path: |
             dist/*.js
             dist/*.js.map
+      - name: build statics
+        run: bash buildstatic.sh
 
   upload:
     name: Upload release
@@ -85,4 +87,7 @@ jobs:
 
     steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v2
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ github.token }}
+          publish_dir: ./staticbuild
