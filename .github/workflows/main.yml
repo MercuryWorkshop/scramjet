@@ -57,9 +57,10 @@ jobs:
           github_token: ${{ github.token }}
 
       - name: Get artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: scramjet
+          path: build
 
       - name: Display structure of downloaded files
         run: ls -R
