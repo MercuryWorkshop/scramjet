@@ -2,6 +2,7 @@
 import { ScramjetClient } from "./client";
 // import { config } from "../shared";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
+import { indirectEval } from "./shared/eval";
 
 export const UNSAFE_GLOBALS = [
 	"window",
@@ -20,11 +21,15 @@ export function createGlobalProxy(
 ): typeof globalThis {
 	return new Proxy(self, {
 		get(target, prop) {
-			const value = Reflect.get(target, prop);
+			if (prop === "location") return client.locationProxy;
+			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop)) return client.wrapfn(self[prop]);
+			if (prop === "$scramjet") return;
+			if (prop === "eval") return indirectEval.bind(client);
 
+			const value = Reflect.get(target, prop);
 			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop))
 				return client.wrapfn(value);
-
+			
 			return value;
 		},
 
