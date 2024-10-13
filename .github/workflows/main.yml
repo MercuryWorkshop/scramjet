@@ -60,9 +60,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: scramjet
-          path: |
-            dist/*.js
-            dist/*.js
 
       - name: Display structure of downloaded files
         run: ls -R
