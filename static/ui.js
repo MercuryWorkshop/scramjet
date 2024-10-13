@@ -65,9 +65,12 @@ function Config() {
       padding: 0.45em;
     }
     .input_row input {
-      flex-grow: 1
+      flex-grow: 1;
     }
-
+    .centered {
+      justify-content: center;
+      align-items: center;
+    }
   `;
 	return html`
       <dialog class=${["cfg"]}>
@@ -83,16 +86,18 @@ function Config() {
 								},
 							])}>use libcurl.js</button>
             <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
-            <button on:click=${() => window.open(this.urlencoded)}>open in fullscreen</button>
           </div>
         </div>
- <div class=${[flex, col, "input_row"]}>
+        <div class=${[flex, col, "input_row"]}>
           <label for="wisp_url_input">Wisp URL:</label>
           <input id="wisp_url_input" bind:value=${use(store.wispurl)}></input>
         </div>
         <div class=${[flex, col, "input_row"]}>
           <label for="bare_url_input">Bare URL:</label>
           <input id="bare_url_input" bind:value=${use(store.bareurl)}></input>
+        </div>
+        <div class=${[flex, "buttons", "centered"]}>
+          <button on:click=${() => this.root.close()}>close</button>
         </div>
     </dialog>
   `;
