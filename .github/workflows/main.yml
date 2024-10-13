@@ -5,6 +5,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -41,6 +46,13 @@ jobs:
             dist/*.js.map
       - name: build statics
         run: bash buildstatic.sh
+      - name: upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./staticbuild"
+      - name: deploy to github
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   upload:
     name: Upload release
@@ -78,16 +90,3 @@ jobs:
           body: ${{ github.event.head_commit.message }}
           artifacts: "scramjet.zip"
           prerelease: true
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build # Deploy after the build job finishes
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ github.token }}
-          publish_dir: ./staticbuild

@@ -137,6 +137,7 @@ export const htmlRules: {
 				// because they can't be fetch'd
 				return unrewriteBlob(value);
 			}
+
 			return rewriteUrl(value, meta);
 		},
 		src: ["video", "audio"],

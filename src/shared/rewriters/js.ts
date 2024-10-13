@@ -26,7 +26,7 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 		return rewriteJsNaiive(text);
 	}
 
-	const before = performance.now();
+	// const before = performance.now();
 	if (typeof js === "string") {
 		js = new TextDecoder().decode(rewrite_js(js, meta.base.href, $scramjet));
 	} else {
@@ -36,7 +36,7 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 			$scramjet
 		);
 	}
-	const after = performance.now();
+	// const after = performance.now();
 
 	// dbg.debug("Rewrite took", Math.floor((after - before) * 10) / 10, "ms");
 

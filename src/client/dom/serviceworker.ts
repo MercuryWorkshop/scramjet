@@ -7,11 +7,11 @@ import { getOwnPropertyDescriptorHandler } from "../helpers";
 export const order = 2;
 
 export const enabled = () => config.flags.serviceworkers;
-export function disabled(client: ScramjetClient, self: Self) {
+export function disabled(_client: ScramjetClient, _self: Self) {
 	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: ScramjetClient, _self: Self) {
 	let registration;
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
@@ -45,7 +45,7 @@ export default function (client: ScramjetClient, self: Self) {
 	});
 
 	client.Trap("navigator.serviceWorker.ready", {
-		get(ctx) {
+		get(_ctx) {
 			console.log(registration);
 
 			return new Promise((resolve) => resolve(registration));
@@ -53,7 +53,7 @@ export default function (client: ScramjetClient, self: Self) {
 	});
 
 	client.Trap("navigator.serviceWorker.controller", {
-		get(ctx) {
+		get(_ctx) {
 			return registration?.active;
 		},
 	});

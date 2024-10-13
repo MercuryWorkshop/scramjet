@@ -51,17 +51,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (desc.get) {
 				client.RawProxy(desc, "get", {
-					apply(ctx) {
+					apply(getCtx) {
 						// value of this in the getter needs to be corrected
-						unproxy(ctx, client);
+						unproxy(getCtx, client);
 					},
 				});
 			}
 
 			if (desc.set) {
 				client.RawProxy(desc, "set", {
-					apply(ctx) {
-						unproxy(ctx, client);
+					apply(setCtx) {
+						unproxy(setCtx, client);
 					},
 				});
 			}

@@ -47,9 +47,6 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 		} else if (isworker && identifier instanceof self.WorkerGlobalScope) {
 			return client.globalProxy;
 		}
-		if (identifier == self.eval) {
-			return indirectEval.bind(client);
-		}
 
 		return identifier;
 	};

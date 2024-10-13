@@ -10,7 +10,6 @@ export class ScramjetController {
 		// sane ish defaults
 		const defaultConfig: Partial<ScramjetConfig> = {
 			prefix: "/scramjet/",
-
 			globals: {
 				wrapfn: "$scramjet$wrap",
 				trysetfn: "$scramjet$tryset",

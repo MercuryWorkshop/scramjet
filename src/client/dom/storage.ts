@@ -63,7 +63,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 		ownKeys(target) {
 			return Reflect.ownKeys(target)
 				.filter((f) => typeof f === "string" && f.startsWith(client.url.host))
-				.map((f) => f.substring(client.url.host.length + 1));
+				.map((f) =>
+					typeof f === "string" ? f.substring(client.url.host.length + 1) : f
+				);
 		},
 
 		getOwnPropertyDescriptor(target, property) {

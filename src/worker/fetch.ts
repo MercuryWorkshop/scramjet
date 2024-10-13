@@ -58,7 +58,7 @@ export async function swfetch(
 				dataurl = unrewriteBlob(dataurl);
 			}
 
-			let response: Response = await fetch(dataurl, {});
+			const response: Response = await fetch(dataurl, {});
 
 			let body: BodyType;
 
@@ -286,15 +286,10 @@ async function rewriteBody(
 			} else {
 				return response.body;
 			}
-			break;
 		case "script":
 			return rewriteJs(await response.arrayBuffer(), meta);
-			// Disable threading for now, it's causing issues.
-			// responseBody = await this.threadpool.rewriteJs(await responseBody.arrayBuffer(), url.toString());
-			break;
 		case "style":
 			return rewriteCss(await response.text(), meta);
-			break;
 		case "sharedworker":
 		case "worker":
 			return rewriteWorkers(await response.arrayBuffer(), workertype, meta);

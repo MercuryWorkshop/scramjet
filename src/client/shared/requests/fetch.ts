@@ -3,9 +3,9 @@
 import { isemulatedsw } from "../..";
 import { unrewriteUrl } from "../../../shared";
 import { ScramjetClient } from "../../client";
-import { rewriteUrl, rewriteHeaders } from "../../../shared";
+import { rewriteUrl } from "../../../shared";
 
-export default function (client: ScramjetClient, self: typeof globalThis) {
+export default function (client: ScramjetClient, _self: typeof globalThis) {
 	client.Proxy("fetch", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
