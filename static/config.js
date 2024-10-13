@@ -1,0 +1,1 @@
+let _CONFIG = { wispurl: "wss://puter.cafe/", bareurl: "https://aluu.xyz/bare/" }
