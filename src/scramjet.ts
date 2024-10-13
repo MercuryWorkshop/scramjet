@@ -8,6 +8,7 @@ if (!("$scramjet" in self)) {
 			version: VERSION,
 		},
 		codec: {},
+		flagEnabled,
 	};
 }
 

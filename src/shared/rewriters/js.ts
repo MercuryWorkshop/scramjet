@@ -7,7 +7,7 @@ import {
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
-import { $scramjet } from "../../scramjet";
+import { $scramjet, flagEnabled } from "../../scramjet";
 
 initSync({
 	module: new WebAssembly.Module(
@@ -20,9 +20,10 @@ init();
 Error.stackTraceLimit = 50;
 
 export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
-	if ($scramjet.config.flags.naiiveRewriter) {
+	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
 
+		console.log("naiive");
 		return rewriteJsNaiive(text);
 	}
 

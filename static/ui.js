@@ -6,6 +6,11 @@ const scramjet = new ScramjetController({
 		shared: "/scram/scramjet.shared.js",
 		sync: "/scram/scramjet.sync.js",
 	},
+	siteFlags: {
+		"https://discord.com/.*": {
+			naiiveRewriter: true,
+		},
+	},
 });
 
 scramjet.init("./sw.js");
@@ -183,7 +188,7 @@ function App() {
 		if (!url) return;
 		if (url === "about:blank") return;
 
-		this.url = $scramjet.codecs.plain.decode(
+		this.url = $scramjet.codec.decode(
 			url.substring((location.href + "/scramjet").length)
 		);
 	});

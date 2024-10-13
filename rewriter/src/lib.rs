@@ -2,7 +2,10 @@ pub mod rewrite;
 
 use std::{panic, str::FromStr};
 
-use js_sys::{Function, Object, Reflect};
+use js_sys::{
+	global, Array, Function, Object,
+	Reflect::{self, construct},
+};
 use rewrite::{rewrite, Config, EncodeFn};
 use url::Url;
 use wasm_bindgen::{prelude::*, throw_str};
@@ -45,10 +48,24 @@ fn get_str(obj: &JsValue, k: &str) -> String {
 	Reflect::get(obj, &k.into()).unwrap().as_string().unwrap()
 }
 
-fn get_config(scramjet: &Object) -> Config {
+fn get_flag(scramjet: &Object, url: &str, flag: &str) -> bool {
+	let urlconstructor = get_obj(&global(), "URL");
+	let args = Array::new();
+	args.push(&JsValue::from_str(url));
+	let url = construct(&urlconstructor.dyn_into::<Function>().unwrap(), &args).unwrap();
+	let fenabled = get_obj(scramjet, "flagEnabled")
+		.dyn_into::<Function>()
+		.unwrap();
+	return fenabled
+		.call2(&JsValue::NULL, &JsValue::from_str(flag), &url)
+		.unwrap()
+		.as_bool()
+		.unwrap();
+}
+
+fn get_config(scramjet: &Object, url: &str) -> Config {
 	let codec = &get_obj(scramjet, "codec");
 	let config = &get_obj(scramjet, "config");
-	let flags = &get_obj(config, "flags");
 	let globals = &get_obj(config, "globals");
 
 	Config {
@@ -62,9 +79,9 @@ fn get_config(scramjet: &Object) -> Config {
 		setrealmfn: get_str(globals, "setrealmfn"),
 		pushsourcemapfn: get_str(globals, "pushsourcemapfn"),
 
-		do_sourcemaps: get_bool(flags, "sourcemaps"),
-		capture_errors: get_bool(flags, "captureErrors"),
-		scramitize: get_bool(flags, "scramitize"),
+		do_sourcemaps: get_flag(scramjet, url, "sourcemaps"),
+		capture_errors: get_flag(scramjet, url, "captureErrors"),
+		scramitize: get_flag(scramjet, url, "scramitize"),
 	}
 }
 
@@ -85,7 +102,7 @@ pub fn rewrite_js(js: &str, url: &str, scramjet: &Object) -> Vec<u8> {
 		return Vec::new();
 	}
 
-	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet))
+	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet, url))
 }
 
 #[wasm_bindgen]
@@ -98,5 +115,5 @@ pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> V
 	// we know that this is a valid utf-8 string
 	let js = unsafe { std::str::from_utf8_unchecked(js) };
 
-	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet))
+	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet, url))
 }
