@@ -15,7 +15,6 @@ import {
 import { rewriteJs } from "./shared/rewriters/js";
 import { rewriteHeaders } from "./shared/rewriters/headers";
 import { rewriteWorkers } from "./shared/rewriters/worker";
-import type { Codec } from "./codecs";
 import { BareClient, BareMuxConnection } from "@mercuryworkshop/bare-mux";
 import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./shared/headers";
@@ -93,6 +92,10 @@ declare global {
 			codec: {
 				encode: (url: string) => string;
 				decode: (url: string) => string;
+			};
+			version: {
+				version: string;
+				build: string;
 			};
 		};
 		COOKIE: string;

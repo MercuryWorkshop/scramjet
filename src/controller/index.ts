@@ -1,5 +1,4 @@
 import { ScramjetConfig } from "../types";
-import { Codec } from "../codecs";
 import { ScramjetFrame } from "./frame";
 import { $scramjet, loadCodecs } from "../scramjet";
 
