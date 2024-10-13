@@ -36,23 +36,28 @@ type ScramjetFlags = {
 
 interface ScramjetConfig {
 	prefix: string;
-	codec: string;
-	wrapfn: string;
-	trysetfn: string;
-	importfn: string;
-	rewritefn: string;
-	metafn: string;
-	setrealmfn: string;
-	pushsourcemapfn: string;
-	wasm: string;
-	shared: string;
-	worker: string;
-	thread: string;
-	client: string;
-	codecs: string;
-	sync: string;
+	globals: {
+		wrapfn: string;
+		trysetfn: string;
+		importfn: string;
+		rewritefn: string;
+		metafn: string;
+		setrealmfn: string;
+		pushsourcemapfn: string;
+	};
+	files: {
+		wasm: string;
+		shared: string;
+		worker: string;
+		client: string;
+		sync: string;
+	};
 	flags: ScramjetFlags;
-	siteflags?: Record<string, ScramjetFlags>;
+	siteflags: Record<string, ScramjetFlags>;
+	codec: {
+		encode: string;
+		decode: string;
+	};
 }
 
 declare global {
@@ -85,13 +90,10 @@ declare global {
 				CookieStore: typeof CookieStore;
 			};
 			config: ScramjetConfig;
-			codecs: {
-				none: Codec;
-				plain: Codec;
-				base64: Codec;
-				xor: Codec;
+			codec: {
+				encode: (url: string) => string;
+				decode: (url: string) => string;
 			};
-			codec: Codec;
 		};
 		COOKIE: string;
 		WASM: string;

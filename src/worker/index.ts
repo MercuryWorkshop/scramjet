@@ -3,22 +3,23 @@ import { swfetch } from "./fetch";
 import { ScramjetThreadpool } from "./threadpool";
 import type BareClient from "@mercuryworkshop/bare-mux";
 import { ScramjetConfig } from "../types";
+import { $scramjet, loadCodecs } from "../scramjet";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
-	config: typeof self.$scramjet.config;
+	config: ScramjetConfig;
 	threadpool: ScramjetThreadpool;
 
 	syncPool: Record<number, (val?: any) => void> = {};
 	synctoken = 0;
 
-	cookieStore = new self.$scramjet.shared.CookieStore();
+	cookieStore = new $scramjet.shared.CookieStore();
 
 	serviceWorkers: FakeServiceWorker[] = [];
 
 	constructor() {
 		super();
-		this.client = new self.$scramjet.shared.util.BareClient();
+		this.client = new $scramjet.shared.util.BareClient();
 
 		this.threadpool = new ScramjetThreadpool();
 
@@ -40,19 +41,6 @@ export class ScramjetServiceWorker extends EventTarget {
 	async loadConfig() {
 		if (this.config) return;
 
-		// const store = new IDBMap("config", {
-		// 	prefix: "scramjet",
-		// });
-
-		// if (store.has("config")) {
-		// 	const config = await store.get("config");
-		// 	this.config = config;
-		// 	self.$scramjet.config = config;
-		// 	self.$scramjet.codec = self.$scramjet.codecs[config.codec];
-		// }
-
-		// Recreate the above code using the stock IDB API
-
 		const request = indexedDB.open("$scramjet", 1);
 
 		return new Promise<void>((resolve, reject) => {
@@ -64,8 +52,9 @@ export class ScramjetServiceWorker extends EventTarget {
 
 				config.onsuccess = () => {
 					this.config = config.result;
-					self.$scramjet.config = config.result;
-					self.$scramjet.codec = self.$scramjet.codecs[config.result.codec];
+					$scramjet.config = config.result;
+
+					loadCodecs();
 
 					resolve();
 				};

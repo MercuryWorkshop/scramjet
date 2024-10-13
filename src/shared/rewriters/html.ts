@@ -6,6 +6,7 @@ import { rewriteCss } from "./css";
 import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
 import { unrewriteBlob } from "../../shared/rewriters/url";
+import { $scramjet } from "../../scramjet";
 
 export function rewriteHtml(
 	html: string,
@@ -43,8 +44,7 @@ export function rewriteHtml(
 		const dump = JSON.stringify(cookieStore.dump());
 		const injected = `
 			self.COOKIE = ${dump};
-			self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
-			self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
+			self.$scramjet.config = ${JSON.stringify($scramjet.config)};
 			if ("document" in self && document.currentScript) {
 				document.currentScript.remove();
 			}
@@ -53,11 +53,10 @@ export function rewriteHtml(
 		const script = (src) => new Element("script", { src });
 
 		head.children.unshift(
-			script(self.$scramjet.config["wasm"]),
-			script(self.$scramjet.config["codecs"]),
+			script($scramjet.config.files.wasm),
+			script($scramjet.config.files.shared),
 			script("data:application/javascript;base64," + btoa(injected)),
-			script(self.$scramjet.config["shared"]),
-			script(self.$scramjet.config["client"])
+			script($scramjet.config.files.client)
 		);
 	}
 

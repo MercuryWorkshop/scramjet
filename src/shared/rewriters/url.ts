@@ -1,3 +1,4 @@
+import { $scramjet } from "../../scramjet";
 import { rewriteJs } from "./js";
 
 export type URLMeta = {
@@ -31,9 +32,9 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 	if (url.startsWith("javascript:")) {
 		return "javascript:" + rewriteJs(url.slice("javascript:".length), meta);
 	} else if (url.startsWith("blob:")) {
-		return location.origin + self.$scramjet.config.prefix + url;
+		return location.origin + $scramjet.config.prefix + url;
 	} else if (url.startsWith("data:")) {
-		return location.origin + self.$scramjet.config.prefix + url;
+		return location.origin + $scramjet.config.prefix + url;
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else {
@@ -43,8 +44,8 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 
 		return (
 			location.origin +
-			self.$scramjet.config.prefix +
-			self.$scramjet.codec.encode(new URL(url, base).href)
+			$scramjet.config.prefix +
+			$scramjet.codec.encode(new URL(url, base).href)
 		);
 	}
 }
@@ -54,7 +55,7 @@ export function unrewriteUrl(url: string | URL) {
 		url = url.href;
 	}
 
-	const prefixed = location.origin + self.$scramjet.config.prefix;
+	const prefixed = location.origin + $scramjet.config.prefix;
 
 	if (url.startsWith("javascript:")) {
 		//TODO
@@ -69,8 +70,8 @@ export function unrewriteUrl(url: string | URL) {
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else if (tryCanParseURL(url)) {
-		return self.$scramjet.codec.decode(
-			url.slice((location.origin + self.$scramjet.config.prefix).length)
+		return $scramjet.codec.decode(
+			url.slice((location.origin + $scramjet.config.prefix).length)
 		);
 	} else {
 		return url;

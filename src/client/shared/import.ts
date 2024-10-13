@@ -5,7 +5,7 @@ import { rewriteUrl } from "../../shared/rewriters/url";
 export default function (client: ScramjetClient, self: Self) {
 	const Function = client.natives.Function;
 
-	self[config.importfn] = function (base: string) {
+	self[config.globals.importfn] = function (base: string) {
 		return function (url: string) {
 			const resolved = new URL(url, base).href;
 
@@ -15,7 +15,7 @@ export default function (client: ScramjetClient, self: Self) {
 		};
 	};
 
-	self[config.metafn] = function (base: string) {
+	self[config.globals.metafn] = function (base: string) {
 		return {
 			url: base,
 			resolve: function (url: string) {

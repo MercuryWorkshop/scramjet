@@ -1,30 +1,32 @@
 import { ScramjetConfig } from "../types";
 import { Codec } from "../codecs";
 import { ScramjetFrame } from "./frame";
+import { $scramjet, loadCodecs } from "../scramjet";
 
 export class ScramjetController {
-	config: ScramjetConfig;
 	private store: IDBDatabase;
-	codec: Codec;
 
-	constructor(config: ScramjetConfig) {
+	constructor(config: Partial<ScramjetConfig>) {
+		// sane ish defaults
 		const defaultConfig: Partial<ScramjetConfig> = {
 			prefix: "/scramjet/",
-			codec: "plain",
-			wrapfn: "$scramjet$wrap",
-			trysetfn: "$scramjet$tryset",
-			importfn: "$scramjet$import",
-			rewritefn: "$scramjet$rewrite",
-			metafn: "$scramjet$meta",
-			setrealmfn: "$scramjet$setrealm",
-			pushsourcemapfn: "$scramjet$pushsourcemap",
-			wasm: "/scramjet.wasm.js",
-			shared: "/scramjet.shared.js",
-			worker: "/scramjet.worker.js",
-			thread: "/scramjet.thread.js",
-			client: "/scramjet.client.js",
-			codecs: "/scramjet.codecs.js",
-			sync: "/scramjet.sync.js",
+
+			globals: {
+				wrapfn: "$scramjet$wrap",
+				trysetfn: "$scramjet$tryset",
+				importfn: "$scramjet$import",
+				rewritefn: "$scramjet$rewrite",
+				metafn: "$scramjet$meta",
+				setrealmfn: "$scramjet$setrealm",
+				pushsourcemapfn: "$scramjet$pushsourcemap",
+			},
+			files: {
+				wasm: "/scramjet.wasm.js",
+				shared: "/scramjet.shared.js",
+				worker: "/scramjet.worker.js",
+				client: "/scramjet.client.js",
+				sync: "/scramjet.sync.js",
+			},
 			flags: {
 				serviceworkers: false,
 				naiiveRewriter: false,
@@ -33,6 +35,12 @@ export class ScramjetController {
 				cleanerrors: false,
 				scramitize: false,
 				sourcemaps: false,
+			},
+			codec: {
+				encode: `if (!url) return url;
+					return encodeURIComponent(url);`,
+				decode: `if (!url) return url;
+					return decodeURIComponent(url);`,
 			},
 		};
 
@@ -46,12 +54,11 @@ export class ScramjetController {
 			return Object.assign(target || {}, source);
 		};
 
-		this.config = deepMerge(defaultConfig, config);
+		$scramjet.config = deepMerge(defaultConfig, config);
 	}
 
 	async init(serviceWorkerPath: string): Promise<ServiceWorkerRegistration> {
-		await import(/* webpackIgnore: true */ this.config.codecs);
-		this.codec = self.$scramjet.codecs[this.config.codec];
+		loadCodecs();
 
 		await this.openIDB();
 
@@ -72,7 +79,7 @@ export class ScramjetController {
 	encodeUrl(url: string | URL): string {
 		if (url instanceof URL) url = url.toString();
 
-		return this.config.prefix + this.codec.encode(url);
+		return $scramjet.config.prefix + $scramjet.codec.encode(url);
 	}
 
 	async openIDB(): Promise<IDBDatabase> {
@@ -102,7 +109,7 @@ export class ScramjetController {
 		}
 		const tx = this.store.transaction("config", "readwrite");
 		const store = tx.objectStore("config");
-		const req = store.put(this.config, "config");
+		const req = store.put($scramjet.config, "config");
 
 		return new Promise((resolve, reject) => {
 			req.onsuccess = resolve;
@@ -111,8 +118,8 @@ export class ScramjetController {
 	}
 
 	async modifyConfig(config: ScramjetConfig) {
-		this.config = Object.assign({}, this.config, config);
-		this.codec = self.$scramjet.codecs[this.config.codec];
+		$scramjet.config = Object.assign({}, $scramjet.config, config);
+		loadCodecs();
 
 		await this.#saveConfig();
 	}

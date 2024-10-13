@@ -49,17 +49,18 @@ fn get_config(scramjet: &Object) -> Config {
 	let codec = &get_obj(scramjet, "codec");
 	let config = &get_obj(scramjet, "config");
 	let flags = &get_obj(config, "flags");
+	let globals = &get_obj(config, "globals");
 
 	Config {
 		prefix: get_str(config, "prefix"),
 		encode: create_encode_function(get_obj(codec, "encode")),
 
-		wrapfn: get_str(config, "wrapfn"),
-		importfn: get_str(config, "importfn"),
-		rewritefn: get_str(config, "rewritefn"),
-		metafn: get_str(config, "metafn"),
-		setrealmfn: get_str(config, "setrealmfn"),
-		pushsourcemapfn: get_str(config, "pushsourcemapfn"),
+		wrapfn: get_str(globals, "wrapfn"),
+		importfn: get_str(globals, "importfn"),
+		rewritefn: get_str(globals, "rewritefn"),
+		metafn: get_str(globals, "metafn"),
+		setrealmfn: get_str(globals, "setrealmfn"),
+		pushsourcemapfn: get_str(globals, "pushsourcemapfn"),
 
 		do_sourcemaps: get_bool(flags, "sourcemaps"),
 		capture_errors: get_bool(flags, "captureErrors"),

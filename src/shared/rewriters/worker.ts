@@ -1,3 +1,4 @@
+import { $scramjet } from "../../scramjet";
 import { rewriteJs } from "./js";
 import { URLMeta } from "./url";
 
@@ -9,22 +10,11 @@ export function rewriteWorkers(
 ) {
 	let str = "";
 
-	str += `self.$scramjet = {}; self.$scramjet.config = ${JSON.stringify(self.$scramjet.config)};
-	`;
-	str += "";
-	if (type === "module") {
-		str += `import "${self.$scramjet.config["codecs"]}"
-self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
-`;
-		for (const script of clientscripts) {
-			str += `import "${self.$scramjet.config[script]}"\n`;
-		}
-	} else {
-		str += `importScripts("${self.$scramjet.config["codecs"]}");
-self.$scramjet.codec = self.$scramjet.codecs[self.$scramjet.config.codec];
-`;
-		for (const script of clientscripts) {
-			str += `importScripts("${self.$scramjet.config[script]}");\n`;
+	for (const script of clientscripts) {
+		if (type === "module") {
+			str += `import "${$scramjet.config.files[script]}"\n`;
+		} else {
+			str += `importScripts("${$scramjet.config.files[script]}");\n`;
 		}
 	}
 

@@ -1,11 +1,11 @@
 const scramjet = new ScramjetController({
-	wasm: "/scram/scramjet.wasm.js",
-	codecs: "/scram/scramjet.codecs.js",
-	worker: "/scram/scramjet.worker.js",
-	thread: "/scram/scramjet.thread.js",
-	client: "/scram/scramjet.client.js",
-	shared: "/scram/scramjet.shared.js",
-	sync: "/scram/scramjet.sync.js",
+	files: {
+		wasm: "/scram/scramjet.wasm.js",
+		worker: "/scram/scramjet.worker.js",
+		client: "/scram/scramjet.client.js",
+		shared: "/scram/scramjet.shared.js",
+		sync: "/scram/scramjet.sync.js",
+	},
 });
 
 scramjet.init("./sw.js");
@@ -148,7 +148,7 @@ function App() {
 
 	return html`
       <div>
-      <h1>Percury Unblocker</h1>
+      <h1>scramjet</h1>
       <p>surf the unblocked and mostly buggy web</p>
 
       <div class=${[flex, "cfg"]}>

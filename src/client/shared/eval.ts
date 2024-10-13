@@ -4,7 +4,7 @@ import { config, rewriteJs } from "../../shared";
 export default function (client: ScramjetClient, self: Self) {
 	// used for proxying *direct eval*
 	// eval("...") -> eval($scramjet$rewrite("..."))
-	Object.defineProperty(self, config.rewritefn, {
+	Object.defineProperty(self, config.globals.rewritefn, {
 		value: function (js: any) {
 			if (typeof js !== "string") return js;
 

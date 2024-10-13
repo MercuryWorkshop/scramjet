@@ -16,6 +16,7 @@ import {
 } from "../shared";
 
 import type { URLMeta } from "../shared/rewriters/url";
+import { $scramjet } from "../scramjet";
 
 function newmeta(url: URL): URLMeta {
 	return {
@@ -115,7 +116,7 @@ export async function swfetch(
 
 		if (
 			client &&
-			new URL(client.url).pathname.startsWith(self.$scramjet.config.prefix)
+			new URL(client.url).pathname.startsWith($scramjet.config.prefix)
 		) {
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
 			const clientURL = new URL(unrewriteUrl(client.url));

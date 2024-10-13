@@ -5,4 +5,7 @@ declare const dbg: {
 	debug: (message: string, ...args: any[]) => void;
 };
 
+declare const COMMITHASH: string;
+declare const VERSION: string;
+
 declare type Self = Window & typeof globalThis;

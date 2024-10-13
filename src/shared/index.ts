@@ -14,8 +14,9 @@ import { parseDomain } from "parse-domain";
 import { ScramjetHeaders } from "./headers";
 import { CookieStore } from "./cookie";
 import { htmlRules, unrewriteHtml } from "./rewriters/html";
+import { $scramjet } from "../scramjet";
 
-self.$scramjet.shared = {
+$scramjet.shared = {
 	util: {
 		parseDomain,
 		BareClient,

@@ -1,3 +1,5 @@
+import { $scramjet } from "./scramjet";
+
 export const {
 	util: { BareClient, ScramjetHeaders, BareMuxConnection },
 	url: { rewriteUrl, unrewriteUrl, rewriteBlob, unrewriteBlob },
@@ -13,6 +15,6 @@ export const {
 		htmlRules,
 	},
 	CookieStore,
-} = self.$scramjet.shared;
+} = $scramjet.shared;
 
-export const config = self.$scramjet.config;
+export const config = $scramjet.config;

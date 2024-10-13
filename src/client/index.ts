@@ -1,5 +1,6 @@
 // entrypoint for scramjet.client.js
 
+import { loadCodecs } from "../scramjet";
 import { SCRAMJETCLIENT } from "../symbols";
 import { ScramjetClient } from "./client";
 import { ScramjetServiceWorkerRuntime } from "./swruntime";
@@ -19,6 +20,8 @@ export class ScramjetContextInit extends Event {
 dbg.log("scrammin");
 // if it already exists, that means the handlers have probably already been setup by the parent document
 if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
+	loadCodecs();
+
 	const client = new ScramjetClient(self);
 
 	if (self.COOKIE) client.loadcookies(self.COOKIE);

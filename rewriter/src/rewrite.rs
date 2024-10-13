@@ -419,7 +419,7 @@ fn expression_span(e: &Expression) -> Span {
 }
 
 // js MUST not be able to get a reference to any of these because sbx
-const UNSAFE_GLOBALS: [&str; 9] = [
+const UNSAFE_GLOBALS: [&str; 10] = [
 	"window",
 	"self",
 	"globalThis",

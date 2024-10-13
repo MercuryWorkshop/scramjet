@@ -15,9 +15,7 @@ export default defineConfig({
 	entry: {
 		shared: join(__dirname, "src/shared/index.ts"),
 		worker: join(__dirname, "src/worker/index.ts"),
-		thread: join(__dirname, "src/thread/thread.ts"),
 		client: join(__dirname, "src/client/index.ts"),
-		codecs: join(__dirname, "src/codecs/index.ts"),
 		controller: join(__dirname, "src/controller/index.ts"),
 		sync: join(__dirname, "src/sync.ts"),
 	},

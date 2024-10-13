@@ -7,6 +7,7 @@ import {
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
 } from "../../../rewriter/out/rewriter.js";
+import { $scramjet } from "../../scramjet";
 
 initSync({
 	module: new WebAssembly.Module(
@@ -19,7 +20,7 @@ init();
 Error.stackTraceLimit = 50;
 
 export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
-	if (self.$scramjet.config.flags.naiiveRewriter) {
+	if ($scramjet.config.flags.naiiveRewriter) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
 
 		return rewriteJsNaiive(text);
@@ -27,14 +28,12 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 
 	const before = performance.now();
 	if (typeof js === "string") {
-		js = new TextDecoder().decode(
-			rewrite_js(js, meta.base.href, self.$scramjet)
-		);
+		js = new TextDecoder().decode(rewrite_js(js, meta.base.href, $scramjet));
 	} else {
 		js = rewrite_js_from_arraybuffer(
 			new Uint8Array(js),
 			meta.base.href,
-			self.$scramjet
+			$scramjet
 		);
 	}
 	const after = performance.now();
@@ -56,7 +55,7 @@ export function rewriteJsNaiive(js: string | ArrayBuffer) {
 	}
 
 	return `
-		with (${self.$scramjet.config.wrapfn}(globalThis)) {
+		with (${$scramjet.config.globals.wrapfn}(globalThis)) {
 
 			${js}
 
