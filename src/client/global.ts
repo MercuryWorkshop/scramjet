@@ -1,4 +1,6 @@
 // import { encodeUrl } from "../shared";
+import { iswindow } from ".";
+import { SCRAMJETCLIENT } from "../symbols";
 import { ScramjetClient } from "./client";
 // import { config } from "../shared";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
@@ -24,6 +26,28 @@ export function createGlobalProxy(
 	return new Proxy(self, {
 		get(target, prop) {
 			const value = Reflect.get(target, prop);
+
+			if (
+				iswindow &&
+				(typeof prop === "string" || typeof prop === "number") &&
+				!isNaN(Number(prop)) &&
+				value
+			) {
+				const win: Self = value.self;
+				// indexing into window gives you the contentWindow of the subframes for some reason
+				// you can't *set* it so this should always be the right value
+				if (SCRAMJETCLIENT in win) {
+					// then we've already hooked this frame and we can just send over its proxy
+					return win[SCRAMJETCLIENT].globalProxy;
+				} else {
+					// this can happen if it's an about:blank iframe that we've never gotten the chance to inject into
+					// just make a new client for it and inject
+					const newclient = new ScramjetClient(win);
+					newclient.hook();
+
+					return newclient.globalProxy;
+				}
+			}
 
 			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop))
 				return client.wrapfn(value);
