@@ -49,6 +49,8 @@ export function createGlobalProxy(
 				}
 			}
 
+			if (prop === "$scramjet") return null;
+
 			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop))
 				return client.wrapfn(value);
 

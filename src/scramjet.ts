@@ -30,7 +30,7 @@ export function flagEnabled(flag: keyof ScramjetFlags, url: URL): boolean {
 	let value = $scramjet.config.defaultFlags[flag];
 	for (const regex in $scramjet.config.siteFlags) {
 		const partialflags = $scramjet.config.siteFlags[regex];
-		if (new RegExp(regex).test(url.href) && "flag" in partialflags) {
+		if (new RegExp(regex).test(url.href) && flag in partialflags) {
 			return partialflags[flag];
 		}
 	}
