@@ -30,4 +30,8 @@ export class ScramjetFrame extends EventTarget {
 	forward() {
 		this.frame.contentWindow?.history.forward();
 	}
+
+	reload() {
+		this.frame.contentWindow?.location.reload();
+	}
 }

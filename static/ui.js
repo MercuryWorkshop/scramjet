@@ -86,13 +86,13 @@ function Config() {
     }
   `;
 
-  function handleModalClose(modal) {
-    modal.style.opacity = 0;
-    setTimeout(() => {
-      modal.close();
-      modal.style.opacity = 1;
-    }, 250)
-  }
+	function handleModalClose(modal) {
+		modal.style.opacity = 0;
+		setTimeout(() => {
+			modal.close();
+			modal.style.opacity = 1;
+		}, 250);
+	}
 
 	return html`
       <dialog class="cfg" style="background-color: #121212; color: white; border-radius: 8px;">
@@ -100,8 +100,9 @@ function Config() {
           <div class=${[flex, "buttons"]}>
             <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
             <button on:click=${() =>
-              connection.setTransport("/libcurl/index.mjs", [{wisp: store.wispurl},
-              ])}>use libcurl.js</button>
+							connection.setTransport("/libcurl/index.mjs", [
+								{ wisp: store.wispurl },
+							])}>use libcurl.js</button>
               <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
           </div>
         </div>
@@ -236,6 +237,7 @@ function App() {
         <button on:click=${() => cfg.showModal()}>config</button>
         <button on:click=${() => frame.back()}>&lt;-</button>
         <button on:click=${() => frame.forward()}>-&gt;</button>
+        <button on:click=${() => frame.reload()}>&#x21bb;</button>
 
         <input class="bar" bind:value=${use(this.url)} on:input=${(e) => {
 					this.url = e.target.value;
