@@ -45,7 +45,7 @@ export function rewriteHtml(
 		const injected = `
 			self.COOKIE = ${dump};
 			self.$scramjet.config = ${JSON.stringify($scramjet.config)};
-			if ("document" in self && document.currentScript) {
+			if ("document" in self && document?.currentScript) {
 				document.currentScript.remove();
 			}
 		`;

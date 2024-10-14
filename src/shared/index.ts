@@ -43,6 +43,6 @@ $scramjet.shared = {
 	CookieStore,
 };
 
-if ("document" in self && document.currentScript) {
+if ("document" in self && document?.currentScript) {
 	document.currentScript.remove();
 }

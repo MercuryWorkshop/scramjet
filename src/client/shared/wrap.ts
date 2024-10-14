@@ -63,6 +63,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		if (typeof v === "string" && v.includes("scramjet")) {
 			debugger;
 		}
+
+		if (typeof v === "string" && v.includes(location.origin)) {
+			debugger;
+		}
+
 		if (iswindow && v instanceof Document && v.defaultView.$scramjet) {
 			debugger;
 		}

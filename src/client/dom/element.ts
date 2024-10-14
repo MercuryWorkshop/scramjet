@@ -306,6 +306,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			"Node.prototype.parentElement",
 			"Node.prototype.previousSibling",
 			"Node.prototype.nextSibling",
+			"Node.prototype.getRootNode",
 		],
 		{
 			get(ctx) {

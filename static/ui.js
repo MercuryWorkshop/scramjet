@@ -10,6 +10,9 @@ const scramjet = new ScramjetController({
 		"https://discord.com/.*": {
 			naiiveRewriter: true,
 		},
+		"https://worker-playground.glitch.me/.*": {
+			serviceworkers: true,
+		},
 	},
 });
 

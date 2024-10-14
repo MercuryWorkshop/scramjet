@@ -36,7 +36,7 @@ mkdir dist/ || true
 {
 
 cat <<EOF
-if ("document" in self && document.currentScript) {
+if ("document" in self && document?.currentScript) {
 	document.currentScript.remove();
 }
 EOF

@@ -38,6 +38,6 @@ if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 	client.frame?.dispatchEvent(ev);
 }
 
-if ("document" in self && document.currentScript) {
+if ("document" in self && document?.currentScript) {
 	document.currentScript.remove();
 }
