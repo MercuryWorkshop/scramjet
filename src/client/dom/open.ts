@@ -39,4 +39,20 @@ export default function (client: ScramjetClient) {
 			}
 		},
 	});
+
+	client.Trap("window.frameElement", {
+		get(ctx) {
+			const f = ctx.get() as HTMLIFrameElement | null;
+			if (!f) return f;
+
+			const win = f.ownerDocument.defaultView;
+			if (win[SCRAMJETCLIENT]) {
+				// then this is a subframe in a scramjet context, and it's safe to pass back the real iframe
+				return f;
+			} else {
+				// no, the top frame is outside the sandbox
+				return null;
+			}
+		},
+	});
 }
