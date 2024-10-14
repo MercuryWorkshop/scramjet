@@ -6,13 +6,15 @@ import { indirectEval } from "./shared/eval";
 
 export const UNSAFE_GLOBALS = [
 	"window",
-	"top",
 	"self",
 	"globalThis",
+	"this",
 	"parent",
+	"top",
+	"location",
 	"document",
-	"frames",
 	"eval",
+	"frames",
 ];
 
 export function createGlobalProxy(
@@ -21,13 +23,10 @@ export function createGlobalProxy(
 ): typeof globalThis {
 	return new Proxy(self, {
 		get(target, prop) {
-			if (prop === "location") return client.locationProxy;
-			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop))
-				return client.wrapfn(self[prop]);
-			if (prop === "$scramjet") return;
-			if (prop === "eval") return indirectEval.bind(client);
-
 			const value = Reflect.get(target, prop);
+
+			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop))
+				return client.wrapfn(value);
 
 			return value;
 		},
@@ -35,7 +34,6 @@ export function createGlobalProxy(
 		set(target, prop, value) {
 			if (prop === "location") {
 				client.url = value;
-
 				return;
 			}
 
