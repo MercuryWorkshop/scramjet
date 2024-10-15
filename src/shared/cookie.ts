@@ -53,7 +53,10 @@ export class CookieStore {
 
 			const id = `${cookie.domain}@${cookie.path}@${cookie.name}`;
 			this.cookies[id] = cookie;
-			this.db.transaction("cookies", "readwrite").objectStore("cookies").put(this.cookies, "cookies");
+			this.db
+				.transaction("cookies", "readwrite")
+				.objectStore("cookies")
+				.put(this.cookies, "cookies");
 		}
 	}
 

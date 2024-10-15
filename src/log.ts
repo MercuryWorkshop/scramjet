@@ -51,8 +51,8 @@ export default {
 		}[severity];
 
 		fn(
-	`%c${fmt}%c ${message}`,
-	`
+			`%c${fmt}%c ${message}`,
+			`
 		background-color: ${bg};
 		color: ${fg};
 		padding: ${padding}px;
@@ -60,7 +60,9 @@ export default {
 		font-family: monospace;
 		font-size: 0.9em;
 	`,
-	`${severity === "debug" ? "color: gray" : ""}`, ...args);
+			`${severity === "debug" ? "color: gray" : ""}`,
+			...args
+		);
 	},
 	log: function (message: string, ...args: any[]) {
 		this.fmt("log", message, ...args);
