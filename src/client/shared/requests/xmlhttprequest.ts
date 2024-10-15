@@ -11,7 +11,7 @@ if (self.Worker) {
 
 export default function (client: ScramjetClient, self: Self) {
 	let worker;
-	if (self.Worker) {
+	if (self.Worker && flagEnabled("syncxhr", client.url)) {
 		worker = new nativeworker(config.files.sync);
 	}
 	const ARGS = Symbol("xhr original args");
