@@ -33,7 +33,7 @@ export class ScramjetServiceWorker extends EventTarget {
 					dbg.log("Loaded cookies from IDB!");
 				}
 			};
-		}
+		};
 
 		addEventListener("message", async ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
@@ -52,7 +52,7 @@ export class ScramjetServiceWorker extends EventTarget {
 					const tx = res.transaction("cookies", "readwrite");
 					const store = tx.objectStore("cookies");
 					store.put(this.cookieStore.dump(), "cookies");
-				}
+				};
 			}
 		});
 	}
