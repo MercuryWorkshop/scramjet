@@ -29,7 +29,7 @@ else
 	WASMOPTFLAGS=""
 fi
 
-time wasm-opt $WASMOPTFLAGS -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
+time wasm-opt $WASMOPTFLAGS -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
 
 mkdir dist/ || true
 

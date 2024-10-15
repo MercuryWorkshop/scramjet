@@ -2,13 +2,10 @@ pub mod rewrite;
 
 use std::{panic, str::FromStr};
 
-use js_sys::{
-	global, Array, Function, Object,
-	Reflect::{self, construct},
-};
+use js_sys::{Function, Object, Reflect};
 use rewrite::{rewrite, Config, EncodeFn};
-use url::Url;
 use wasm_bindgen::{prelude::*, throw_str};
+use url::Url;
 
 #[wasm_bindgen]
 extern "C" {
@@ -40,27 +37,23 @@ fn get_obj(obj: &JsValue, k: &str) -> JsValue {
 	Reflect::get(obj, &k.into()).unwrap()
 }
 
-fn get_bool(obj: &JsValue, k: &str) -> bool {
-	Reflect::get(obj, &k.into()).unwrap().as_bool().unwrap()
-}
-
 fn get_str(obj: &JsValue, k: &str) -> String {
 	Reflect::get(obj, &k.into()).unwrap().as_string().unwrap()
 }
 
 fn get_flag(scramjet: &Object, url: &str, flag: &str) -> bool {
-	let urlconstructor = get_obj(&global(), "URL");
-	let args = Array::new();
-	args.push(&JsValue::from_str(url));
-	let url = construct(&urlconstructor.dyn_into::<Function>().unwrap(), &args).unwrap();
 	let fenabled = get_obj(scramjet, "flagEnabled")
 		.dyn_into::<Function>()
 		.unwrap();
-	return fenabled
-		.call2(&JsValue::NULL, &JsValue::from_str(flag), &url)
-		.unwrap()
+	fenabled
+		.call2(
+			&JsValue::NULL,
+			&flag.into(),
+			&web_sys::Url::new(url).expect("invalid url").into(),
+		)
+		.expect("error in flagEnabled")
 		.as_bool()
-		.unwrap();
+		.expect("not bool returned from flagEnabled")
 }
 
 fn get_config(scramjet: &Object, url: &str) -> Config {

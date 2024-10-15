@@ -22,7 +22,6 @@ enum JsChange {
 	},
 	SourceTag {
 		tagstart: u32,
-		tagend: usize,
 	},
 	Assignment {
 		name: String,
@@ -288,7 +287,6 @@ impl<'a> Visit<'a> for Rewriter {
 		if self.config.do_sourcemaps {
 			self.jschanges.push(JsChange::SourceTag {
 				tagstart: it.span.start,
-				tagend: it.span.end as usize,
 			});
 		}
 		walk::walk_function_body(self, it);
@@ -480,7 +478,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::SourceTag { tagstart, tagend } => *tagstart,
+			JsChange::SourceTag { tagstart } => *tagstart,
 		};
 		let b = match b {
 			JsChange::GenericChange { span, text: _ } => span.start,
@@ -490,7 +488,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 				rhsspan: _,
 				op: _,
 			} => entirespan.start,
-			JsChange::SourceTag { tagstart, tagend } => *tagstart,
+			JsChange::SourceTag { tagstart } => *tagstart,
 		};
 		a.cmp(&b)
 	});
@@ -519,7 +517,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	let mut sourcemap: Vec<u8> = Vec::new();
 	if ast_pass.config.do_sourcemaps {
 		sourcemap.reserve(size_estimate * 2);
-		sourcemap.extend_from_slice(&format!("{}([", ast_pass.config.pushsourcemapfn).as_bytes());
+		sourcemap.extend_from_slice(format!("{}([", ast_pass.config.pushsourcemapfn).as_bytes());
 	}
 
 	let mut offset = 0;
@@ -570,11 +568,10 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 				offset = entirespan.end as usize;
 			}
-			JsChange::SourceTag { tagstart, tagend } => {
+			JsChange::SourceTag { tagstart } => {
 				let start = *tagstart as usize;
 				buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
 
-				// let inject = format!("/*scramtag {} */", &js[start..*tagend]);
 				let inject = format!("/*scramtag {} {}*/", start, sourcetag);
 				buffer.extend_from_slice(inject.as_bytes());
 
@@ -587,7 +584,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 	if ast_pass.config.do_sourcemaps {
 		sourcemap.extend_from_slice(b"],");
 		sourcemap.extend_from_slice(b"\"");
-		sourcemap.extend_from_slice(&sourcetag.as_bytes());
+		sourcemap.extend_from_slice(sourcetag.as_bytes());
 		sourcemap.extend_from_slice(b"\");\n");
 
 		sourcemap.extend_from_slice(&buffer);
