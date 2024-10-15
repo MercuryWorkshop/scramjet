@@ -46,13 +46,10 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "cookie") {
 				await this.cookieStore.setCookies([data.cookie], new URL(data.url));
-				const db = indexedDB.open("$scramjet", 1);
-				db.onsuccess = () => {
-					const res = db.result;
-					const tx = res.transaction("cookies", "readwrite");
-					const store = tx.objectStore("cookies");
-					store.put(this.cookieStore.dump(), "cookies");
-				};
+				const res = db.result;
+				const tx = res.transaction("cookies", "readwrite");
+				const store = tx.objectStore("cookies");
+				store.put(this.cookieStore.dump(), "cookies");
 			}
 		});
 	}
