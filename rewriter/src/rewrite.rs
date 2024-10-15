@@ -135,11 +135,11 @@ impl<'a> Visit<'a> for Rewriter {
 					let span = expression_span(&s.object);
 					self.jschanges.push(JsChange::GenericChange {
 						span: Span::new(span.start, span.start),
-						text: format!(" $scramitize("),
+						text: " $scramitize(".to_string(),
 					});
 					self.jschanges.push(JsChange::GenericChange {
 						span: Span::new(span.end, span.end),
-						text: format!(")"),
+						text: ")".to_string(),
 					});
 				}
 			}
@@ -192,11 +192,11 @@ impl<'a> Visit<'a> for Rewriter {
 		if self.config.scramitize {
 			self.jschanges.push(JsChange::GenericChange {
 				span: Span::new(it.span.start, it.span.start),
-				text: format!(" $scramitize("),
+				text: " $scramitize(".to_string(),
 			});
 			self.jschanges.push(JsChange::GenericChange {
 				span: Span::new(it.span.end, it.span.end),
-				text: format!(")"),
+				text: ")".to_string(),
 			});
 		}
 		walk::walk_call_expression(self, it);

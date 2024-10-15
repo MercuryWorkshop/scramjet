@@ -110,7 +110,7 @@ fn encode_string(s: String) -> String {
 fn dorewrite(source_text: &str) -> String {
 	from_utf8(
 		rewrite(
-			&source_text,
+			source_text,
 			Url::from_str("https://google.com/glorngle/si.js").unwrap(),
 			Config {
 				prefix: "/scrammedjet/".to_string(),

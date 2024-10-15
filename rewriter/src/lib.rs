@@ -4,8 +4,8 @@ use std::{panic, str::FromStr};
 
 use js_sys::{Function, Object, Reflect};
 use rewrite::{rewrite, Config, EncodeFn};
-use wasm_bindgen::{prelude::*, throw_str};
 use url::Url;
+use wasm_bindgen::{prelude::*, throw_str};
 
 #[wasm_bindgen]
 extern "C" {
