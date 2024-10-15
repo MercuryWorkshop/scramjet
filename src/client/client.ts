@@ -13,7 +13,7 @@ import {
 	unrewriteUrl,
 	rewriteUrl,
 } from "../shared";
-import type BareClientType from "@mercuryworkshop/bare-mux";
+import { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
@@ -378,6 +378,7 @@ export class ScramjetClient {
 				return oldDescriptor && oldDescriptor.get.call(this.this);
 			},
 			set: function (v: T) {
+				// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 				oldDescriptor && oldDescriptor.set.call(this.this, v);
 			},
 		};

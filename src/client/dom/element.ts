@@ -306,7 +306,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 			"Node.prototype.parentElement",
 			"Node.prototype.previousSibling",
 			"Node.prototype.nextSibling",
-			"Node.prototype.getRootNode",
 		],
 		{
 			get(ctx) {
@@ -320,6 +319,18 @@ export default function (client: ScramjetClient, self: typeof window) {
 			},
 		}
 	);
+
+	client.Proxy("Node.prototype.getRootNode", {
+		apply(ctx) {
+			const n = ctx.call() as Node;
+			if (!(n instanceof Document)) return ctx.return(n);
+
+			const scram: ScramjetClient = n[SCRAMJETCLIENT];
+			if (!scram) return ctx.return(n); // ??
+
+			return ctx.return(scram.documentProxy);
+		},
+	});
 
 	client.Proxy("DOMParser.prototype.parseFromString", {
 		apply(ctx) {
