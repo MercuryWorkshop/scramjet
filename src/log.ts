@@ -15,8 +15,7 @@ export default {
 					fmt += `${stack[i].getFunctionName()} -> ` + fmt;
 				}
 			}
-
-			fmt += stack[0].getFunctionName();
+			fmt += stack[0].getFunctionName() || "Anonymous";
 
 			return fmt;
 		};
@@ -52,20 +51,16 @@ export default {
 		}[severity];
 
 		fn(
-			`%c${fmt}%c ${message}`,
-			`
-background-color: ${bg};
-color: ${fg};
-padding: ${padding}px;
-font-weight: bold;
-font-family: monospace;
-font-size: 0.9em;
-`,
-			`
-${severity === "debug" ? "color: gray" : ""}
-`,
-			...args
-		);
+	`%c${fmt}%c ${message}`,
+	`
+		background-color: ${bg};
+		color: ${fg};
+		padding: ${padding}px;
+		font-weight: bold;
+		font-family: monospace;
+		font-size: 0.9em;
+	`,
+	`${severity === "debug" ? "color: gray" : ""}`, ...args);
 	},
 	log: function (message: string, ...args: any[]) {
 		this.fmt("log", message, ...args);
