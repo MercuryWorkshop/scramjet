@@ -15,26 +15,8 @@ export type Cookie = {
 
 export class CookieStore {
 	private cookies: Record<string, Cookie> = {};
-	private db: IDBDatabase;
 
-	constructor() {
-		// TOOD: Something is seriously broken with this system, I'm not sure what, but mutating multiple cookies on the same domain seems to break things?
-		const request = indexedDB.open("$scramjet", 1);
-
-		request.onsuccess = () => {
-			this.db = request.result;
-
-			const tx = this.db.transaction("cookies", "readonly");
-			const store = tx.objectStore("cookies");
-			const req = store.get("cookies");
-
-			req.onsuccess = () => {
-				if (req.result) this.cookies = req.result;
-			};
-		};
-	}
-
-	async setCookies(cookies: string[], url: URL) {
+	setCookies(cookies: string[], url: URL) {
 		for (const str of cookies) {
 			const parsed = parse(str);
 			const domain = parsed.domain;
@@ -53,10 +35,6 @@ export class CookieStore {
 
 			const id = `${cookie.domain}@${cookie.path}@${cookie.name}`;
 			this.cookies[id] = cookie;
-			this.db
-				.transaction("cookies", "readwrite")
-				.objectStore("cookies")
-				.put(this.cookies, "cookies");
 		}
 	}
 

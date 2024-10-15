@@ -19,6 +19,22 @@ export class ScramjetServiceWorker extends EventTarget {
 		super();
 		this.client = new $scramjet.shared.util.BareClient();
 
+		const db = indexedDB.open("$scramjet", 1);
+
+		db.onsuccess = () => {
+			const res = db.result;
+			const tx = res.transaction("cookies", "readonly");
+			const store = tx.objectStore("cookies");
+			const cookies = store.get("cookies");
+
+			cookies.onsuccess = () => {
+				if (cookies.result) {
+					this.cookieStore.load(cookies.result);
+					dbg.log("Loaded cookies from IDB!");
+				}
+			};
+		};
+
 		addEventListener("message", async ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
 
@@ -30,6 +46,10 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "cookie") {
 				this.cookieStore.setCookies([data.cookie], new URL(data.url));
+				const res = db.result;
+				const tx = res.transaction("cookies", "readwrite");
+				const store = tx.objectStore("cookies");
+				store.put(this.cookieStore.dump(), "cookies");
 			}
 		});
 	}
