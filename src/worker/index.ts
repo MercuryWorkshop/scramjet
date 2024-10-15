@@ -19,7 +19,23 @@ export class ScramjetServiceWorker extends EventTarget {
 		super();
 		this.client = new $scramjet.shared.util.BareClient();
 
-		addEventListener("message", ({ data }: { data: MessageC2W }) => {
+		const db = indexedDB.open("$scramjet", 1);
+
+		db.onsuccess = () => {
+			const res = db.result;
+			const tx = res.transaction("cookies", "readonly");
+			const store = tx.objectStore("cookies");
+			const cookies = store.get("cookies");
+
+			cookies.onsuccess = () => {
+				if (cookies.result) {
+					this.cookieStore.load(cookies.result);
+					dbg.log("Loaded cookies from IDB!");
+				}
+			};
+		}
+
+		addEventListener("message", async ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
 
 			if (data.scramjet$type === "registerServiceWorker") {
@@ -29,7 +45,14 @@ export class ScramjetServiceWorker extends EventTarget {
 			}
 
 			if (data.scramjet$type === "cookie") {
-				this.cookieStore.setCookies([data.cookie], new URL(data.url));
+				await this.cookieStore.setCookies([data.cookie], new URL(data.url));
+				const db = indexedDB.open("$scramjet", 1);
+				db.onsuccess = () => {
+					const res = db.result;
+					const tx = res.transaction("cookies", "readwrite");
+					const store = tx.objectStore("cookies");
+					store.put(this.cookieStore.dump(), "cookies");
+				}
 			}
 		});
 	}
@@ -54,7 +77,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 					resolve();
 				};
-
 				config.onerror = () => reject(config.error);
 			};
 

@@ -3,7 +3,7 @@ import { ScramjetFrame } from "./frame";
 import { $scramjet, loadCodecs } from "../scramjet";
 
 export class ScramjetController {
-	private store: IDBDatabase;
+	private db: IDBDatabase;
 
 	constructor(config: Partial<ScramjetConfig>) {
 		// sane ish defaults
@@ -86,14 +86,17 @@ export class ScramjetController {
 
 		return new Promise<IDBDatabase>((resolve, reject) => {
 			db.onsuccess = async () => {
-				this.store = db.result;
+				this.db = db.result;
 				await this.#saveConfig();
 				resolve(db.result);
 			};
 			db.onupgradeneeded = () => {
-				const db2 = db.result;
-				if (!db2.objectStoreNames.contains("config")) {
-					db2.createObjectStore("config");
+				const res = db.result;
+				if (!res.objectStoreNames.contains("config")) {
+					res.createObjectStore("config");
+				}
+				if (!res.objectStoreNames.contains("cookies")) {
+					res.createObjectStore("cookies");
 				}
 			};
 			db.onerror = () => reject(db.error);
@@ -101,12 +104,12 @@ export class ScramjetController {
 	}
 
 	async #saveConfig() {
-		if (!this.store) {
+		if (!this.db) {
 			console.error("Store not ready!");
 
 			return;
 		}
-		const tx = this.store.transaction("config", "readwrite");
+		const tx = this.db.transaction("config", "readwrite");
 		const store = tx.objectStore("config");
 		const req = store.put($scramjet.config, "config");
 
