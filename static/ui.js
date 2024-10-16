@@ -7,9 +7,6 @@ const scramjet = new ScramjetController({
 		sync: "/scram/scramjet.sync.js",
 	},
 	siteFlags: {
-		"https://discord.com/.*": {
-			naiiveRewriter: true,
-		},
 		"https://worker-playground.glitch.me/.*": {
 			serviceworkers: true,
 		},
