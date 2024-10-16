@@ -176,8 +176,8 @@ export class ScramjetClient {
 			const module = context(key);
 			if (!key.endsWith(".ts")) continue;
 			if (
-				(key.startsWith("./dom/") && "window" in self) ||
-				(key.startsWith("./worker/") && "WorkerGlobalScope" in self) ||
+				(key.startsWith("./dom/") && "window" in this.global) ||
+				(key.startsWith("./worker/") && "WorkerGlobalScope" in this.global) ||
 				key.startsWith("./shared/")
 			) {
 				modules.push(module);
