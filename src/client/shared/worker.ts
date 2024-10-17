@@ -61,7 +61,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 						args[0] += "&type=module";
 					}
 
-					if (args[1].name === "name") {
+					if (args[1].name) {
 						args[1].name = `${client.url.origin}@${args[1].name}`;
 					}
 				}

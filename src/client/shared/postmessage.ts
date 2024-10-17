@@ -55,11 +55,10 @@ export default function (client: ScramjetClient) {
 				};
 
 				// * origin because obviously
-				ctx.args[1] = "*";
+				if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
+				if (typeof ctx.args[1] === "object") ctx.args[1].targetOrigin = "*";
 
-				ctx.return(
-					wrappedPostMessage.call(ctx.fn, ctx.args[0], ctx.args[1], ctx.args[2])
-				);
+				ctx.return(wrappedPostMessage.call(ctx.fn, ...ctx.args));
 			},
 		});
 
