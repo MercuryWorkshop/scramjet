@@ -35,6 +35,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 					if (value instanceof Attr) {
 						let attr = value;
+
 						return new Proxy(attr, {
 							get(target, prop) {
 								if (
@@ -45,6 +46,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 									// we're using the proxied getAttribute here
 									return target.ownerElement.getAttribute(target.name);
 								}
+
 								return Reflect.get(target, prop);
 							},
 							set(target, prop, value) {
@@ -54,8 +56,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 									prop === "textContent"
 								) {
 									target.ownerElement.setAttribute(target.name, value);
+
 									return true;
 								}
+
 								return Reflect.set(target, prop, value);
 							},
 						});
