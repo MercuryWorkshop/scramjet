@@ -8,7 +8,6 @@ export function argdbg(arg, recurse = []) {
 	switch (typeof arg) {
 		case "string":
 			if (arg.includes("localhost:1337/scramjet/") && arg.includes("m3u8"))
-				 
 				debugger;
 			break;
 		case "object":

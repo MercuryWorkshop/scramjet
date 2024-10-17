@@ -24,8 +24,8 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
 
 		console.log("naiive");
-		
-return rewriteJsNaiive(text);
+
+		return rewriteJsNaiive(text);
 	}
 
 	// const before = performance.now();

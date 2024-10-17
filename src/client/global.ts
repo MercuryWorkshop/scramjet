@@ -60,8 +60,8 @@ export function createGlobalProxy(
 		set(target, prop, value) {
 			if (prop === "location") {
 				client.url = value;
-				
-return;
+
+				return;
 			}
 
 			return Reflect.set(target, prop, value);
