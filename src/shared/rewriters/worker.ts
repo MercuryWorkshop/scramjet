@@ -10,7 +10,7 @@ export function rewriteWorkers(
 ) {
 	let str = "";
 
-	let script = (script) => {
+	const script = (script) => {
 		if (type === "module") {
 			str += `import "${$scramjet.config.files[script]}"\n`;
 		} else {

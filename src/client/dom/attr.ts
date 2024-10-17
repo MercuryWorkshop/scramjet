@@ -26,6 +26,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 								if (thisArg === proxy) {
 									return Reflect.apply(target, map, argArray);
 								}
+
 								return Reflect.apply(target, thisArg, argArray);
 							},
 						});
@@ -34,7 +35,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					if (!this.has(target, prop)) return undefined;
 
 					if (value instanceof Attr) {
-						let attr = value;
+						const attr = value;
 
 						return new Proxy(attr, {
 							get(target, prop) {
@@ -69,15 +70,18 @@ export default function (client: ScramjetClient, self: typeof window) {
 				},
 				ownKeys(target) {
 					const keys = Reflect.ownKeys(target);
+
 					return keys.filter((key) => this.has(target, key));
 				},
 				has(target, prop) {
 					if (typeof prop === "symbol") return Reflect.has(target, prop);
 					if (prop.startsWith("data-scramjet-")) return false;
 					if (map[prop]?.name?.startsWith("data-scramjet-")) return false;
+
 					return Reflect.has(target, prop);
 				},
 			});
+
 			return proxy;
 		},
 	});

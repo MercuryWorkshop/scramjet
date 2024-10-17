@@ -1,4 +1,4 @@
-import { ScramjetConfig, ScramjetFlags } from "./types";
+import { ScramjetFlags } from "./types";
 
 if (!("$scramjet" in self)) {
 	// @ts-expect-error ts stuff
@@ -27,7 +27,7 @@ export function loadCodecs() {
 }
 
 export function flagEnabled(flag: keyof ScramjetFlags, url: URL): boolean {
-	let value = $scramjet.config.defaultFlags[flag];
+	const value = $scramjet.config.defaultFlags[flag];
 	for (const regex in $scramjet.config.siteFlags) {
 		const partialflags = $scramjet.config.siteFlags[regex];
 		if (new RegExp(regex).test(url.href) && flag in partialflags) {

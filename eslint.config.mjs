@@ -47,6 +47,7 @@ export default [
 			"no-undef": "off",
 			"no-empty": "off",
 			"no-debugger": "off",
+			"no-shadow": "off",
 			"@typescript-eslint/no-explicit-any": "off",
 			"@typescript-eslint/ban-ts-comment": "off",
 			"@typescript-eslint/ban-types": "off",
