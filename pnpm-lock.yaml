@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@mercuryworkshop/bare-mux':
-        specifier: ^2.1.3
-        version: 2.1.3
+        specifier: ^2.1.4
+        version: 2.1.4
       dom-serializer:
         specifier: ^2.0.0
         version: 2.0.0
@@ -43,8 +43,8 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       '@mercuryworkshop/epoxy-transport':
-        specifier: ^2.1.18
-        version: 2.1.18
+        specifier: ^2.1.20
+        version: 2.1.20
       '@mercuryworkshop/libcurl-transport':
         specifier: ^1.3.10
         version: 1.3.10(typescript@5.6.3)
@@ -67,11 +67,11 @@ importers:
         specifier: ^1.0.6
         version: 1.0.6
       '@types/node':
-        specifier: ^22.7.5
-        version: 22.7.5
+        specifier: ^22.7.6
+        version: 22.7.6
       '@types/serviceworker':
-        specifier: ^0.0.99
-        version: 0.0.99
+        specifier: ^0.0.100
+        version: 0.0.100
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.9.0
         version: 8.9.0(@typescript-eslint/parser@8.9.0(eslint@9.12.0)(typescript@5.6.3))(eslint@9.12.0)(typescript@5.6.3)
@@ -242,14 +242,14 @@ packages:
   '@mercuryworkshop/bare-as-module3@2.2.3':
     resolution: {integrity: sha512-JL4hzMpmXUWFdPXlgojfwmbkeXY/IXk+WlJKPXQ/eU5JxJ4pVNO6QG0qMdN+53u8KvdqwUaJvYQY7jaWBrgGhQ==}
 
-  '@mercuryworkshop/bare-mux@2.1.3':
-    resolution: {integrity: sha512-QOguvEXha27dR2eHZiPdFNxilwESS3AIkuTtOD3c5iRaefhLXN1bVKj8M4leQ2mFaDbpPDXOOTyXXBFRtVmzZw==}
+  '@mercuryworkshop/bare-mux@2.1.4':
+    resolution: {integrity: sha512-Oir53uCI3Z/Mtwt6gqavKuufvkLs0lq/2AMGCDqrJ8OADaO7NkiA1LJ/0lJ3WXS2olg6cOBm3OcOvLKrjT39yg==}
 
-  '@mercuryworkshop/epoxy-tls@2.1.10-1':
-    resolution: {integrity: sha512-ctEh5cJlXYbWbXpmGbqrnJbyHjPKl2b8MCUri4TiqZs1WNdAVlUygT3u+5qKlqiGyCxzoKz/7rtixJMDtk4Dbg==}
+  '@mercuryworkshop/epoxy-tls@2.1.11-1':
+    resolution: {integrity: sha512-hnW4VMDRnBkmysD+UC9nl6xfEzgVHmlAdyYV3biHqBsV4fwxmYHm6aQbg2tIF2Ip0WibQGYxl16RshV5wo6TBw==}
 
-  '@mercuryworkshop/epoxy-transport@2.1.18':
-    resolution: {integrity: sha512-zzcimJG2hIPw2i2gP11EzEcKd8ziA1D5qV4ihPsURcPIcHI2XMmnuIdJ6vbYEqnzSSUR9HMqG4NBAOqBJTPSEg==}
+  '@mercuryworkshop/epoxy-transport@2.1.20':
+    resolution: {integrity: sha512-8LM9s9cQtXBoNszn8zh77u3QsofEKygj0dXZ9T+8v9LIQLe2sVi+e5/G++l8znLuJ4nP3xh1Up5GwjHkbpatlg==}
 
   '@mercuryworkshop/libcurl-transport@1.3.10':
     resolution: {integrity: sha512-XLSkk1n4uMu6M0sS5Rh5ZNT7dBGILHDneJYD9oOpWMU5yxzNDlwcmJggNaYqMfH7B8jjLmw5sK2gPU5hDFPAVg==}
@@ -535,8 +535,8 @@ packages:
   '@types/node-forge@1.3.11':
     resolution: {integrity: sha512-FQx220y22OKNTqaByeBGqHWYz4cl94tpcxeFdvBo3wjG6XPBuZ0BNgNZRV5J5TFmmcsJ4IzsLkmGRiQbnYsBEQ==}
 
-  '@types/node@22.7.5':
-    resolution: {integrity: sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==}
+  '@types/node@22.7.6':
+    resolution: {integrity: sha512-/d7Rnj0/ExXDMcioS78/kf1lMzYk4BZV8MZGTBKzTGZ6/406ukkbYlIsZmMPhcR5KlkunDHQLrtAVmSq7r+mSw==}
 
   '@types/qs@6.9.16':
     resolution: {integrity: sha512-7i+zxXdPD0T4cKDuxCUXJ4wHcsJLwENa6Z3dCu8cfCK743OGy5Nu1RmAGqDPsoTDINVEcdXKRvR/zre+P2Ku1A==}
@@ -562,8 +562,8 @@ packages:
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
 
-  '@types/serviceworker@0.0.99':
-    resolution: {integrity: sha512-76rUC1nvR6BsOTlE06urHPn8Q/x+ULuor04SGAdwozdUtSqrc5LCvLzmPANqbx/vL3rgDkjMhJBm7DQsFeWmDA==}
+  '@types/serviceworker@0.0.100':
+    resolution: {integrity: sha512-5NREuA2mDbw4jnkwcLQcRIRku6uv3D/h60m2screlf4q1i9Iq1MnhhPOPBtkmlKyX9HiJNEy1/iq/7NZG8eulA==}
 
   '@types/sockjs@0.3.36':
     resolution: {integrity: sha512-MK9V6NzAS1+Ud7JV9lJLFqW85VbC9dq3LmwZCuBe4wBDgKC0Kj/jd8Xl+nSviU+Qc3+m7umHHyHg//2KSa0a0Q==}
@@ -1085,8 +1085,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  electron-to-chromium@1.5.39:
-    resolution: {integrity: sha512-4xkpSR6CjuiaNyvwiWDI85N9AxsvbPawB8xc7yzLPonYTuP19BVgYweKyUMFtHEZgIcHWMt1ks5Cqx2m+6/Grg==}
+  electron-to-chromium@1.5.40:
+    resolution: {integrity: sha512-LYm78o6if4zTasnYclgQzxEcgMoIcybWOhkATWepN95uwVVWV0/IW10v+2sIeHE+bIYWipLneTftVyQm45UY7g==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -2711,13 +2711,13 @@ snapshots:
     dependencies:
       typescript: 5.6.3
 
-  '@mercuryworkshop/bare-mux@2.1.3': {}
+  '@mercuryworkshop/bare-mux@2.1.4': {}
 
-  '@mercuryworkshop/epoxy-tls@2.1.10-1': {}
+  '@mercuryworkshop/epoxy-tls@2.1.11-1': {}
 
-  '@mercuryworkshop/epoxy-transport@2.1.18':
+  '@mercuryworkshop/epoxy-transport@2.1.20':
     dependencies:
-      '@mercuryworkshop/epoxy-tls': 2.1.10-1
+      '@mercuryworkshop/epoxy-tls': 2.1.11-1
 
   '@mercuryworkshop/libcurl-transport@1.3.10(typescript@5.6.3)':
     dependencies:
@@ -3037,26 +3037,26 @@ snapshots:
   '@types/body-parser@1.19.5':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/bonjour@3.5.13':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/connect-history-api-fallback@1.5.4':
     dependencies:
       '@types/express-serve-static-core': 5.0.0
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/cookie@0.4.1': {}
 
   '@types/cors@2.8.17':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/eslint@9.6.1':
     dependencies:
@@ -3069,14 +3069,14 @@ snapshots:
 
   '@types/express-serve-static-core@4.19.6':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
       '@types/qs': 6.9.16
       '@types/range-parser': 1.2.7
       '@types/send': 0.17.4
 
   '@types/express-serve-static-core@5.0.0':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
       '@types/qs': 6.9.16
       '@types/range-parser': 1.2.7
       '@types/send': 0.17.4
@@ -3091,27 +3091,27 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/http-errors@2.0.4': {}
 
   '@types/http-proxy@1.17.15':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/json-schema@7.0.15': {}
 
   '@types/jsonfile@6.1.4':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/mime@1.3.5': {}
 
   '@types/node-forge@1.3.11':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
-  '@types/node@22.7.5':
+  '@types/node@22.7.6':
     dependencies:
       undici-types: 6.19.8
 
@@ -3121,7 +3121,7 @@ snapshots:
 
   '@types/resolve@0.0.8':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/retry@0.12.0': {}
 
@@ -3130,7 +3130,7 @@ snapshots:
   '@types/send@0.17.4':
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/serve-index@1.9.4':
     dependencies:
@@ -3139,14 +3139,14 @@ snapshots:
   '@types/serve-static@1.15.7':
     dependencies:
       '@types/http-errors': 2.0.4
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
       '@types/send': 0.17.4
 
-  '@types/serviceworker@0.0.99': {}
+  '@types/serviceworker@0.0.100': {}
 
   '@types/sockjs@0.3.36':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@types/tapable@2.2.7':
     dependencies:
@@ -3154,7 +3154,7 @@ snapshots:
 
   '@types/ws@8.5.12':
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
 
   '@typescript-eslint/eslint-plugin@8.9.0(@typescript-eslint/parser@8.9.0(eslint@9.12.0)(typescript@5.6.3))(eslint@9.12.0)(typescript@5.6.3)':
     dependencies:
@@ -3463,7 +3463,7 @@ snapshots:
   browserslist@4.24.0:
     dependencies:
       caniuse-lite: 1.0.30001669
-      electron-to-chromium: 1.5.39
+      electron-to-chromium: 1.5.40
       node-releases: 2.0.18
       update-browserslist-db: 1.1.1(browserslist@4.24.0)
 
@@ -3693,7 +3693,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  electron-to-chromium@1.5.39: {}
+  electron-to-chromium@1.5.40: {}
 
   emoji-regex@8.0.0: {}
 
@@ -3709,7 +3709,7 @@ snapshots:
     dependencies:
       '@types/cookie': 0.4.1
       '@types/cors': 2.8.17
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
       accepts: 1.3.8
       base64id: 2.0.0
       cookie: 0.4.2
@@ -4276,7 +4276,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.7.5
+      '@types/node': 22.7.6
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
