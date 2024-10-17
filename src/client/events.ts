@@ -9,3 +9,9 @@ export class UrlChangeEvent extends Event {
 		super("urlchange");
 	}
 }
+
+export class ScramjetContextInit extends Event {
+	constructor(public window: Self) {
+		super("contextInit");
+	}
+}
