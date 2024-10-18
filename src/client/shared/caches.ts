@@ -41,7 +41,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		},
 	});
 
-	client.Proxy("Cache.prototype.delete", {
+	client.Proxy("Cache.prototype.put", {
 		apply(ctx) {
 			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 		},
@@ -55,7 +55,19 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 	client.Proxy("Cache.prototype.matchAll", {
 		apply(ctx) {
-			if (ctx.args[0]) ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;
+			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+		},
+	});
+
+	client.Proxy("Cache.prototype.keys", {
+		apply(ctx) {
+			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+		},
+	});
+
+	client.Proxy("Cache.prototype.delete", {
+		apply(ctx) {
+			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 		},
 	});
 }
