@@ -60,6 +60,7 @@ export default function (client: ScramjetClient) {
 					}
 
 					if (p in CSSStyleDeclaration.prototype) return v;
+					if (!v) return v;
 
 					return unrewriteCss(v);
 				},
