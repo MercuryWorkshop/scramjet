@@ -16,18 +16,16 @@ const cssProperties = [
 export default function (client: ScramjetClient) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
 		apply(ctx) {
-			if (cssProperties.includes(ctx.args[0]))
-				ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
+			if (!ctx.args[1]) return;
+			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
 		},
 	});
 
 	client.Proxy("CSSStyleDeclaration.prototype.getPropertyValue", {
 		apply(ctx) {
-			if (cssProperties.includes(ctx.args[0])) {
-				const realProperty = ctx.call();
-
-				return ctx.return(unrewriteCss(realProperty));
-			}
+			const v = ctx.call();
+			if (!v) return v;
+			ctx.return(unrewriteCss(v));
 		},
 	});
 
@@ -76,14 +74,6 @@ export default function (client: ScramjetClient) {
 		set(ctx, v: string) {
 			// this will actually run the trap for cssText. don't rewrite it here
 			ctx.set(v);
-		},
-	});
-
-	client.Proxy("CSSStyleDeclaration.prototype.getPropertyValue", {
-		apply(ctx) {
-			const v = ctx.call();
-			if (!v) return v;
-			ctx.return(unrewriteCss(v));
 		},
 	});
 }
