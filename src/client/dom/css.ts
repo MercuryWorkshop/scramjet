@@ -50,7 +50,6 @@ export default function (client: ScramjetClient) {
 			return new Proxy(style, {
 				get(t, p) {
 					const v = Reflect.get(t, p);
-					if (p in CSSStyleDeclaration.prototype) return v;
 
 					if (typeof v === "function") {
 						return new Proxy(v, {
@@ -59,6 +58,8 @@ export default function (client: ScramjetClient) {
 							},
 						});
 					}
+
+					if (p in CSSStyleDeclaration.prototype) return v;
 
 					return unrewriteCss(v);
 				},
