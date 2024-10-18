@@ -244,7 +244,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					ctx.args[1],
 					client.cookieStore,
 					client.meta,
-					true
+					false
 				);
 		},
 	})
