@@ -41,12 +41,7 @@ export default function (client: ScramjetClient) {
 				// this WOULD be enough but the source argument of MessageEvent has to return the caller's window
 				// and if we just call it normally it would be coming from here, which WILL NOT BE THE CALLER'S because the accessor is from the parent
 				// so with the stolen function we wrap postmessage so the source will truly be the caller's window (remember that function is scramjet's!!!)
-				const wrappedPostMessage = Function(
-					"data",
-					"origin",
-					"transfer",
-					"this(data, origin, transfer)"
-				);
+				const wrappedPostMessage = Function("...args", "this(...args)");
 
 				ctx.args[0] = {
 					$scramjet$messagetype: "window",
