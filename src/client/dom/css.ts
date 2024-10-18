@@ -86,10 +86,4 @@ export default function (client: ScramjetClient) {
 			ctx.return(unrewriteCss(v));
 		},
 	});
-	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
-		apply(ctx) {
-			if (!ctx.args[1]) return;
-			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
-		},
-	});
 }
