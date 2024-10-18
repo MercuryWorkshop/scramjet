@@ -30,11 +30,8 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 	if (url instanceof URL) {
 		url = url.href;
 	}
-	if (url.startsWith(location.origin)) {
-		// this is jank and should be temporary!!!!
-		// debugger;
-		return url;
-	} else if (url.startsWith("javascript:")) {
+
+	if (url.startsWith("javascript:")) {
 		return "javascript:" + rewriteJs(url.slice("javascript:".length), meta);
 	} else if (url.startsWith("blob:")) {
 		return location.origin + $scramjet.config.prefix + url;
