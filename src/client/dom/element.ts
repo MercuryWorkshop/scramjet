@@ -213,11 +213,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 		get(ctx) {
 			if (ctx.this instanceof self.HTMLScriptElement) {
-
-				const scriptSource = client.natives["Element.prototype.getAttribute"].call(
-					ctx.this,
-					"data-scramjet-script-source-src"
-				)
+				const scriptSource = client.natives[
+					"Element.prototype.getAttribute"
+				].call(ctx.this, "data-scramjet-script-source-src");
 
 				if (scriptSource) {
 					return atob(scriptSource);
@@ -252,7 +250,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					false
 				);
 		},
-	})
+	});
 
 	client.Trap("HTMLIFrameElement.prototype.contentWindow", {
 		get(ctx) {
