@@ -213,12 +213,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 		get(ctx) {
 			if (ctx.this instanceof self.HTMLScriptElement) {
-				return atob(
-					client.natives["Element.prototype.getAttribute"].call(
-						ctx.this,
-						"data-scramjet-script-source-src"
-					)
-				);
+
+				const scriptSource = client.natives["Element.prototype.getAttribute"].call(
+					ctx.this,
+					"data-scramjet-script-source-src"
+				)
+
+				if (scriptSource) {
+					return atob(scriptSource);
+				}
+
+				return ctx.get();
 			}
 			if (ctx.this instanceof self.HTMLStyleElement) {
 				return ctx.get();
