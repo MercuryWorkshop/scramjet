@@ -17,7 +17,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 	client.Proxy("CacheStorage.prototype.match", {
 		apply(ctx) {
-			ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;
+			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 
@@ -29,45 +31,68 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 	client.Proxy("Cache.prototype.add", {
 		apply(ctx) {
-			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 
 	client.Proxy("Cache.prototype.addAll", {
 		apply(ctx) {
 			for (let i = 0; i < ctx.args[0].length; i++) {
-				ctx.args[0][i] = rewriteUrl(ctx.args[0][i], client.meta);
+				if (
+					typeof ctx.args[0][i] === "string" ||
+					ctx.args[0][i] instanceof URL
+				) {
+					ctx.args[0][i] = rewriteUrl(ctx.args[0][i].toString(), client.meta);
+				}
 			}
 		},
 	});
 
 	client.Proxy("Cache.prototype.put", {
 		apply(ctx) {
-			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 
 	client.Proxy("Cache.prototype.match", {
 		apply(ctx) {
-			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 
 	client.Proxy("Cache.prototype.matchAll", {
 		apply(ctx) {
-			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (
+				(ctx.args[0] && typeof ctx.args[0] === "string") ||
+				(ctx.args[0] && ctx.args[0] instanceof URL)
+			) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 
 	client.Proxy("Cache.prototype.keys", {
 		apply(ctx) {
-			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (
+				(ctx.args[0] && typeof ctx.args[0] === "string") ||
+				(ctx.args[0] && ctx.args[0] instanceof URL)
+			) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 
 	client.Proxy("Cache.prototype.delete", {
 		apply(ctx) {
-			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
+				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+			}
 		},
 	});
 }
