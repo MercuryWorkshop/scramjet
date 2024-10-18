@@ -237,6 +237,18 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("Element.prototype.insertAdjacentHTML", {
+		apply(ctx) {
+			if (ctx.args[1])
+				ctx.args[1] = rewriteHtml(
+					ctx.args[1],
+					client.cookieStore,
+					client.meta,
+					true
+				);
+		},
+	})
+
 	client.Trap("HTMLIFrameElement.prototype.contentWindow", {
 		get(ctx) {
 			const realwin = ctx.get() as Window;
