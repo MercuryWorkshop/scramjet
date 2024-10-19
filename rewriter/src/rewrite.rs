@@ -1,6 +1,7 @@
 use core::str;
 use std::str::from_utf8;
 
+use crate::{error, Result, RewriterError};
 use oxc_allocator::Allocator;
 use oxc_ast::{
 	ast::{
@@ -443,20 +444,19 @@ fn random_string() -> String {
 	.to_string()
 }
 
-pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
+pub fn rewrite(js: &str, url: Url, config: Config) -> Result<Vec<u8>> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
 	let ret = Parser::new(&allocator, js, source_type).parse();
 
-	for error in ret.errors {
+	for err in ret.errors {
 		let cloned = js.to_string();
-		let error = error.with_source_code(cloned);
-		println!("{error:?}");
+		let err = err.with_source_code(cloned);
+		println!("oxc parse error {err:?}");
+		error(&format!("oxc parse error {err:?}"))
 	}
 
 	let program = ret.program;
-
-	// dbg!(&program);
 
 	let sourcetag = random_string();
 
@@ -540,7 +540,8 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 					);
 				}
 
-				buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
+				buffer
+					.extend_from_slice(js.get(offset..start).ok_or(RewriterError::Oob)?.as_bytes());
 
 				buffer.extend_from_slice(text.as_bytes());
 				offset = end;
@@ -570,7 +571,8 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 			}
 			JsChange::SourceTag { tagstart } => {
 				let start = *tagstart as usize;
-				buffer.extend_from_slice(unsafe { js.get_unchecked(offset..start) }.as_bytes());
+				buffer
+					.extend_from_slice(js.get(offset..start).ok_or(RewriterError::Oob)?.as_bytes());
 
 				let inject = format!("/*scramtag {} {}*/", start, sourcetag);
 				buffer.extend_from_slice(inject.as_bytes());
@@ -589,10 +591,10 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Vec<u8> {
 
 		sourcemap.extend_from_slice(&buffer);
 
-		return sourcemap;
+		return Ok(sourcemap);
 	}
 
-	buffer
+	Ok(buffer)
 }
 
 fn json_escape_string(s: &str) -> String {
