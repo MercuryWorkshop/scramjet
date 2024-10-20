@@ -124,6 +124,7 @@ fn dorewrite(source_text: &str) -> String {
 				capture_errors: true,
 				do_sourcemaps: true,
 				scramitize: false,
+				strict_rewrites: false,
 			},
 		)
 		.as_slice(),

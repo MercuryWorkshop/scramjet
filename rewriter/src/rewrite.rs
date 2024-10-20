@@ -35,7 +35,7 @@ pub type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
 	jschanges: Vec<JsChange>,
 	base: Url,
-	config: Config,
+	config: Confistrig,
 }
 
 pub struct Config {
@@ -52,6 +52,7 @@ pub struct Config {
 	pub capture_errors: bool,
 	pub scramitize: bool,
 	pub do_sourcemaps: bool,
+	pub strict_rewrites: bool,
 }
 
 impl Rewriter {
@@ -126,6 +127,18 @@ impl<'a> Visit<'a> for Rewriter {
 					});
 
 					return; // unwise to walk the rest of the tree
+				}
+
+				if !self.config.strict_rewrites
+					&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
+				{
+					if let Expression::Identifier(i) = &s.object {
+						// cull tree - this should be safe
+						return;
+					}
+					if let Expression::ThisExpression(_) = &s.object {
+						return;
+					}
 				}
 
 				if self.config.scramitize

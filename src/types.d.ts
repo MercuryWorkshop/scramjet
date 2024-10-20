@@ -27,6 +27,7 @@ type ScramjetFlags = {
 	serviceworkers: boolean;
 	naiiveRewriter: boolean;
 	captureErrors: boolean;
+	strictRewrites: boolean;
 	cleanerrors: boolean;
 	scramitize: boolean;
 	sourcemaps: boolean;

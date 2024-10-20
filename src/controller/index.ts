@@ -29,6 +29,7 @@ export class ScramjetController {
 				serviceworkers: false,
 				naiiveRewriter: false,
 				captureErrors: true,
+				strictRewrites: false,
 				syncxhr: false,
 				cleanerrors: false,
 				scramitize: false,

@@ -75,6 +75,7 @@ fn get_config(scramjet: &Object, url: &str) -> Config {
 		do_sourcemaps: get_flag(scramjet, url, "sourcemaps"),
 		capture_errors: get_flag(scramjet, url, "captureErrors"),
 		scramitize: get_flag(scramjet, url, "scramitize"),
+		strict_rewrites: get_flag(scramjet, url, "strictRewrites"),
 	}
 }
 
