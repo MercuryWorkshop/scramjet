@@ -36,7 +36,7 @@ pub type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
 	jschanges: Vec<JsChange>,
 	base: Url,
-	config: Confistrig,
+	config: Config,
 }
 
 pub struct Config {
