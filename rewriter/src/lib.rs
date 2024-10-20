@@ -4,13 +4,55 @@ use std::{panic, str::FromStr};
 
 use js_sys::{Function, Object, Reflect};
 use rewrite::{rewrite, Config, EncodeFn};
+use thiserror::Error;
 use url::Url;
-use wasm_bindgen::{prelude::*, throw_str};
+use wasm_bindgen::prelude::*;
+
+#[derive(Debug, Error)]
+pub enum RewriterError {
+	#[error("JS: {0}")]
+	Js(String),
+	#[error("URL parse error: {0}")]
+	Url(#[from] url::ParseError),
+
+	#[error("{0} was not {1}")]
+	Not(String, &'static str),
+	#[error("❗❗❗ ❗❗❗ REWRITER OFFSET OOB FAIL ❗❗❗ ❗❗❗")]
+	Oob,
+}
+
+impl From<JsValue> for RewriterError {
+	fn from(value: JsValue) -> Self {
+		Self::Js(format!("{:?}", value))
+	}
+}
+
+impl From<RewriterError> for JsValue {
+	fn from(value: RewriterError) -> Self {
+		JsError::from(value).into()
+	}
+}
+
+impl RewriterError {
+	fn not_str(x: &str, obj: &JsValue) -> Self {
+		Self::Not(format!("{:?} in {:?}", x, obj), "string")
+	}
+
+	fn not_fn(obj: JsValue) -> Self {
+		Self::Not(format!("{:?}", obj), "function")
+	}
+
+	fn not_bool(obj: &JsValue) -> Self {
+		Self::Not(format!("{:?}", obj), "bool")
+	}
+}
+
+pub type Result<T> = std::result::Result<T, RewriterError>;
 
 #[wasm_bindgen]
 extern "C" {
 	#[wasm_bindgen(js_namespace = console)]
-	fn log(s: &str);
+	fn error(s: &str);
 }
 
 #[wasm_bindgen]
@@ -18,65 +60,63 @@ pub fn init() {
 	panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
-fn create_encode_function(encode: JsValue) -> EncodeFn {
-	let Ok(encode) = encode.dyn_into::<Function>() else {
-		throw_str("invalid encode function");
-	};
+fn create_encode_function(encode: JsValue) -> Result<EncodeFn> {
+	let encode = encode.dyn_into::<Function>()?;
 
-	Box::new(move |str| {
+	Ok(Box::new(move |str| {
 		encode
 			.call1(&JsValue::NULL, &str.into())
 			.unwrap()
 			.as_string()
 			.unwrap()
 			.to_string()
-	})
+	}))
 }
 
-fn get_obj(obj: &JsValue, k: &str) -> JsValue {
-	Reflect::get(obj, &k.into()).unwrap()
+fn get_obj(obj: &JsValue, k: &str) -> Result<JsValue> {
+	Ok(Reflect::get(obj, &k.into())?)
 }
 
-fn get_str(obj: &JsValue, k: &str) -> String {
-	Reflect::get(obj, &k.into()).unwrap().as_string().unwrap()
+fn get_str(obj: &JsValue, k: &str) -> Result<String> {
+	Reflect::get(obj, &k.into())?
+		.as_string()
+		.ok_or_else(|| RewriterError::not_str(k, obj))
 }
 
-fn get_flag(scramjet: &Object, url: &str, flag: &str) -> bool {
-	let fenabled = get_obj(scramjet, "flagEnabled")
+fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
+	let fenabled = get_obj(scramjet, "flagEnabled")?
 		.dyn_into::<Function>()
-		.unwrap();
-	fenabled
-		.call2(
-			&JsValue::NULL,
-			&flag.into(),
-			&web_sys::Url::new(url).expect("invalid url").into(),
-		)
-		.expect("error in flagEnabled")
-		.as_bool()
-		.expect("not bool returned from flagEnabled")
+		.map_err(RewriterError::not_fn)?;
+	let ret = fenabled.call2(
+		&JsValue::NULL,
+		&flag.into(),
+		&web_sys::Url::new(url).expect("invalid url").into(),
+	)?;
+
+	ret.as_bool().ok_or_else(|| RewriterError::not_bool(&ret))
 }
 
-fn get_config(scramjet: &Object, url: &str) -> Config {
-	let codec = &get_obj(scramjet, "codec");
-	let config = &get_obj(scramjet, "config");
-	let globals = &get_obj(config, "globals");
+fn get_config(scramjet: &Object, url: &str) -> Result<Config> {
+	let codec = &get_obj(scramjet, "codec")?;
+	let config = &get_obj(scramjet, "config")?;
+	let globals = &get_obj(config, "globals")?;
 
-	Config {
-		prefix: get_str(config, "prefix"),
-		encode: create_encode_function(get_obj(codec, "encode")),
+	Ok(Config {
+		prefix: get_str(config, "prefix")?,
+		encode: create_encode_function(get_obj(codec, "encode")?)?,
 
-		wrapfn: get_str(globals, "wrapfn"),
-		importfn: get_str(globals, "importfn"),
-		rewritefn: get_str(globals, "rewritefn"),
-		metafn: get_str(globals, "metafn"),
-		setrealmfn: get_str(globals, "setrealmfn"),
-		pushsourcemapfn: get_str(globals, "pushsourcemapfn"),
+		wrapfn: get_str(globals, "wrapfn")?,
+		importfn: get_str(globals, "importfn")?,
+		rewritefn: get_str(globals, "rewritefn")?,
+		metafn: get_str(globals, "metafn")?,
+		setrealmfn: get_str(globals, "setrealmfn")?,
+		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
 
-		do_sourcemaps: get_flag(scramjet, url, "sourcemaps"),
-		capture_errors: get_flag(scramjet, url, "captureErrors"),
-		scramitize: get_flag(scramjet, url, "scramitize"),
-		strict_rewrites: get_flag(scramjet, url, "strictRewrites"),
-	}
+		do_sourcemaps: get_flag(scramjet, url, "sourcemaps")?,
+		capture_errors: get_flag(scramjet, url, "captureErrors")?,
+		scramitize: get_flag(scramjet, url, "scramitize")?,
+		strict_rewrites: get_flag(scramjet, url, "strictRewrites")?,
+	})
 }
 
 #[cfg(feature = "drm")]
@@ -90,17 +130,17 @@ fn drmcheck() -> bool {
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js(js: &str, url: &str, scramjet: &Object) -> Vec<u8> {
+pub fn rewrite_js(js: &str, url: &str, scramjet: &Object) -> Result<Vec<u8>> {
 	#[cfg(feature = "drm")]
 	if !drmcheck() {
 		return Vec::new();
 	}
 
-	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet, url))
+	rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> Vec<u8> {
+pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> Result<Vec<u8>> {
 	#[cfg(feature = "drm")]
 	if !drmcheck() {
 		return Vec::new();
@@ -109,5 +149,5 @@ pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> V
 	// we know that this is a valid utf-8 string
 	let js = unsafe { std::str::from_utf8_unchecked(js) };
 
-	rewrite(js, Url::from_str(url).unwrap(), get_config(scramjet, url))
+	rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)
 }

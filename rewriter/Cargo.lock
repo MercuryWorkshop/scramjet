@@ -999,6 +999,7 @@ dependencies = [
  "rand",
  "serde",
  "serde-wasm-bindgen",
+ "thiserror",
  "url",
  "wasm-bindgen",
  "web-sys",
