@@ -53,7 +53,7 @@
 		"wisp-server-node": "^1.1.7"
 	},
 	"dependencies": {
-		"@mercuryworkshop/bare-mux": "^2.1.5",
+		"@mercuryworkshop/bare-mux": "^2.1.6",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.1.0",
