@@ -6,8 +6,10 @@ use std::{
 	str::{from_utf8, FromStr},
 };
 
+pub mod error;
 pub mod rewrite;
 
+use error::Result;
 use rewrite::rewrite;
 use url::Url;
 
@@ -55,8 +57,8 @@ fn append_string(data: &[u8], escaped: &mut String, may_skip: bool) -> bool {
 fn encode_into<E>(
 	mut data: &[u8],
 	may_skip_write: bool,
-	mut push_str: impl FnMut(&str) -> Result<(), E>,
-) -> Result<bool, E> {
+	mut push_str: impl FnMut(&str) -> std::result::Result<(), E>,
+) -> std::result::Result<bool, E> {
 	let mut pushed = false;
 	loop {
 		// Fast path to skip over safe chars at the beginning of the remaining string
@@ -107,8 +109,8 @@ fn encode_string(s: String) -> String {
 	encode(&s).to_string()
 }
 
-fn dorewrite(source_text: &str) -> String {
-	from_utf8(
+fn dorewrite(source_text: &str) -> Result<String> {
+	Ok(from_utf8(
 		rewrite(
 			source_text,
 			Url::from_str("https://google.com/glorngle/si.js").unwrap(),
@@ -126,11 +128,10 @@ fn dorewrite(source_text: &str) -> String {
 				scramitize: false,
 				strict_rewrites: false,
 			},
-		)
+		)?
 		.as_slice(),
-	)
-	.unwrap()
-	.to_string()
+	)?
+	.to_string())
 }
 
 fn main() -> std::io::Result<()> {
@@ -138,14 +139,14 @@ fn main() -> std::io::Result<()> {
 	let path = Path::new(&name);
 	let source_text = std::fs::read_to_string(path)?;
 
-	println!("{}", dorewrite(&source_text));
+	println!("{}", dorewrite(&source_text).unwrap());
 
 	Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-	use std::{fs, path::Path};
+	use std::fs;
 
 	use boa_engine::{
 		js_str, js_string,
@@ -160,7 +161,7 @@ mod tests {
 	fn google() {
 		// sanity check- just making sure it won't crash
 		let source_text = include_str!("../sample/google.js");
-		dorewrite(source_text);
+		dorewrite(source_text).unwrap();
 	}
 
 	#[test]
@@ -239,7 +240,7 @@ function check(val) {
 				))
 				.unwrap();
 
-			let rewritten = dorewrite(&content);
+			let rewritten = dorewrite(&content).unwrap();
 			println!("{}", rewritten);
 
 			context

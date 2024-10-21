@@ -1,7 +1,6 @@
 use core::str;
 use std::str::from_utf8;
 
-use crate::{error, Result, RewriterError};
 use oxc_allocator::Allocator;
 use oxc_ast::{
 	ast::{
@@ -14,6 +13,8 @@ use oxc_parser::Parser;
 use oxc_span::{Atom, SourceType, Span};
 use oxc_syntax::operator::{AssignmentOperator, UnaryOperator};
 use url::Url;
+
+use crate::error::{Result, RewriterError};
 
 #[derive(Debug)]
 enum JsChange {
@@ -466,6 +467,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Result<Vec<u8>> {
 		let cloned = js.to_string();
 		let err = err.with_source_code(cloned);
 		println!("oxc parse error {err:?}");
+		#[cfg(target_family = "wasm")]
 		error(&format!("oxc parse error {err:?}"))
 	}
 

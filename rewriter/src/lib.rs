@@ -1,53 +1,13 @@
+pub mod error;
 pub mod rewrite;
 
 use std::{panic, str::FromStr};
 
+use error::{Result, RewriterError};
 use js_sys::{Function, Object, Reflect};
 use rewrite::{rewrite, Config, EncodeFn};
-use thiserror::Error;
 use url::Url;
 use wasm_bindgen::prelude::*;
-
-#[derive(Debug, Error)]
-pub enum RewriterError {
-	#[error("JS: {0}")]
-	Js(String),
-	#[error("URL parse error: {0}")]
-	Url(#[from] url::ParseError),
-
-	#[error("{0} was not {1}")]
-	Not(String, &'static str),
-	#[error("❗❗❗ ❗❗❗ REWRITER OFFSET OOB FAIL ❗❗❗ ❗❗❗")]
-	Oob,
-}
-
-impl From<JsValue> for RewriterError {
-	fn from(value: JsValue) -> Self {
-		Self::Js(format!("{:?}", value))
-	}
-}
-
-impl From<RewriterError> for JsValue {
-	fn from(value: RewriterError) -> Self {
-		JsError::from(value).into()
-	}
-}
-
-impl RewriterError {
-	fn not_str(x: &str, obj: &JsValue) -> Self {
-		Self::Not(format!("{:?} in {:?}", x, obj), "string")
-	}
-
-	fn not_fn(obj: JsValue) -> Self {
-		Self::Not(format!("{:?}", obj), "function")
-	}
-
-	fn not_bool(obj: &JsValue) -> Self {
-		Self::Not(format!("{:?}", obj), "bool")
-	}
-}
-
-pub type Result<T> = std::result::Result<T, RewriterError>;
 
 #[wasm_bindgen]
 extern "C" {
