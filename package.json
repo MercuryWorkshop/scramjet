@@ -18,7 +18,7 @@
 		"format": "prettier --config .prettierrc.js --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
-		"test": "cd tests && npx playwright test"
+		"test": "npx playwright test"
 	},
 	"files": [
 		"dist",
@@ -60,5 +60,15 @@
 		"htmlparser2": "^9.1.0",
 		"parse-domain": "^8.2.2",
 		"set-cookie-parser": "^2.7.0"
+	},
+	"optionalDependencies": {
+		"@playwright/test": "^1.48.1",
+		"playwright": "^1.48.1"
+	},
+	"pnpm": {
+		"ignoredOptionalDependencies": [
+			"@playwright/test",
+			"playwright"
+		]
 	}
 }
