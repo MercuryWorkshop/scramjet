@@ -1,9 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { setupPage } from "./setupPage";
-
-test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:1337/");
-});
+import { setupPage } from "./util/setupPage";
 
 test.describe("YouTube", () => {
     test("The front page can load.", async ({ page }) => {
@@ -19,12 +15,12 @@ test.describe("YouTube", () => {
         const frame = await setupPage(page, "https://www.youtube.com/results?search_query=bad+apple");
 
         const title = await frame.locator("#video-title > yt-formatted-string").first().textContent({ timeout: 5000 });
-        const thumbnailSelector = "#contents > ytd-video-renderer:nth-child(1) > #dismissible > ytd-thumbnail > a > yt-image > img";
-        await frame.locator(thumbnailSelector).waitFor({ state: "visible" });
+        const thumbnailRef = frame.locator("#contents > ytd-video-renderer:nth-child(1) > #dismissible > ytd-thumbnail > a > yt-image > img")
+        await thumbnailRef.waitFor({ state: "visible" });
 
-        const thumbnailSrc = await frame.locator(thumbnailSelector).getAttribute("src", { timeout: 5000 });
+        const thumbnail = await thumbnailRef.getAttribute("src");
         
         expect(title).not.toBeNull();
-        expect(thumbnailSrc).not.toBeNull();
+        expect(thumbnail).not.toBeNull();
     });
-})
+});
