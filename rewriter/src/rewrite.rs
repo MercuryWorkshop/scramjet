@@ -133,7 +133,7 @@ impl<'a> Visit<'a> for Rewriter {
 				if !self.config.strict_rewrites
 					&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
 				{
-					if let Expression::Identifier(i) = &s.object {
+					if let Expression::Identifier(_) = &s.object {
 						// cull tree - this should be safe
 						return;
 					}
