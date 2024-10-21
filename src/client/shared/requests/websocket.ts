@@ -65,9 +65,25 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			barews.addEventListener("close", (ev) => {
 				fakeEventSend(new CloseEvent("close", ev));
 			});
-			barews.addEventListener("message", (ev) => {
+			barews.addEventListener("message", async (ev) => {
+				let payload = ev.data;
+				if (typeof payload === "string") {
+					// DO NOTHING
+				} else if ("byteLength" in payload) {
+					if (state.binaryType === "blob") {
+						payload = new Blob([payload]);
+					} else {
+						Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+					}
+				} else if ("arrayBuffer" in payload) {
+					if (state.binaryType === "arraybuffer") {
+						payload = await payload.arrayBuffer();
+						Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+					}
+				}
+
 				const fakeev = new MessageEvent("message", {
-					data: ev.data,
+					data: payload,
 					origin: ev.origin,
 					lastEventId: ev.lastEventId,
 					source: ev.source,
