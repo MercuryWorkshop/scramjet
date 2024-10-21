@@ -4,6 +4,7 @@
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"main": "./lib/index.cjs",
 	"types": "./lib/index.d.js",
+	"type": "module",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/MercuryWorkshop/scramjet"
@@ -16,7 +17,8 @@
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --config .prettierrc.js --write .",
 		"lint": "eslint ./src/",
-		"lint:fix": "eslint ./src/ --fix"
+		"lint:fix": "eslint ./src/ --fix",
+		"test": "cd tests && npx playwright test"
 	},
 	"files": [
 		"dist",
@@ -50,7 +52,6 @@
 		"typescript": "^5.6.3",
 		"wisp-server-node": "^1.1.7"
 	},
-	"type": "module",
 	"dependencies": {
 		"@mercuryworkshop/bare-mux": "^2.1.5",
 		"dom-serializer": "^2.0.0",
