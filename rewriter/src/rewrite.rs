@@ -468,7 +468,7 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Result<Vec<u8>> {
 		let err = err.with_source_code(cloned);
 		println!("oxc parse error {err:?}");
 		#[cfg(target_family = "wasm")]
-		error(&format!("oxc parse error {err:?}"))
+		crate::error(&format!("oxc parse error {err:?}"))
 	}
 
 	let program = ret.program;
