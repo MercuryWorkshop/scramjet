@@ -9,6 +9,8 @@ pub enum RewriterError {
 	Url(#[from] url::ParseError),
 	#[error("str fromutf8 error: {0}")]
 	Str(#[from] std::str::Utf8Error),
+	#[error("reflect set failed: {0}")]
+	ReflectSetFail(String),
 
 	#[error("{0} was not {1}")]
 	Not(String, &'static str),

@@ -19,6 +19,15 @@ init();
 
 Error.stackTraceLimit = 50;
 
+function print_errors(errors: string[]) {
+	// TODO: maybe make this a scram flag?
+	if (true) {
+		for (const error of errors) {
+			console.error("oxc parse error", error);
+		}
+	}
+}
+
 export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
@@ -30,13 +39,23 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 
 	// const before = performance.now();
 	if (typeof js === "string") {
-		js = new TextDecoder().decode(rewrite_js(js, meta.base.href, $scramjet));
-	} else {
-		js = rewrite_js_from_arraybuffer(
-			new Uint8Array(js),
+		let { js: js_out, errors } = rewrite_js(
+			js,
 			meta.base.href,
+			"PERCS_PLEASE_FILL_THIS_IN.js",
 			$scramjet
 		);
+		js = new TextDecoder().decode(js_out);
+		print_errors(errors);
+	} else {
+		let { js: js_out, errors } = rewrite_js_from_arraybuffer(
+			new Uint8Array(js),
+			meta.base.href,
+			"PERCS_PLEASE_FILL_THIS_IN.js",
+			$scramjet
+		);
+		js = js_out;
+		print_errors(errors);
 	}
 	// const after = performance.now();
 

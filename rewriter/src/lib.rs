@@ -1,13 +1,25 @@
 pub mod error;
 pub mod rewrite;
 
-use std::{panic, str::FromStr};
+use std::{panic, str::FromStr, sync::Arc};
 
 use error::{Result, RewriterError};
 use js_sys::{Function, Object, Reflect};
+use oxc_diagnostics::{NamedSource, OxcDiagnostic};
 use rewrite::{rewrite, Config, EncodeFn};
 use url::Url;
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(typescript_custom_section)]
+const REWRITER_OUTPUT: &'static str = r#"
+type RewriterOutput = { js: Uint8Array, errors: string[] };
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+	#[wasm_bindgen(typescript_type = "RewriterOutput")]
+	pub type RewriterOutput;
+}
 
 #[wasm_bindgen]
 extern "C" {
@@ -41,6 +53,14 @@ fn get_str(obj: &JsValue, k: &str) -> Result<String> {
 	Reflect::get(obj, &k.into())?
 		.as_string()
 		.ok_or_else(|| RewriterError::not_str(k, obj))
+}
+
+fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
+	if !Reflect::set(&obj.into(), &k.into(), v)? {
+		Err(RewriterError::ReflectSetFail(k.to_string()))
+	} else {
+		Ok(())
+	}
 }
 
 fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
@@ -90,18 +110,51 @@ fn drmcheck() -> bool {
 	return vec![obfstr!("http://localhost:1337")].contains(&true_origin.as_str());
 }
 
+fn create_rewriter_output(
+	out: (Vec<u8>, Vec<OxcDiagnostic>),
+	url: String,
+	src: String,
+) -> Result<RewriterOutput> {
+	let src = Arc::new(NamedSource::new(url, src).with_language("javascript"));
+	let errs: Vec<_> = out
+		.1
+		.into_iter()
+		.map(|x| format!("{:?}", x.with_source_code(src.clone())))
+		.collect();
+
+	let obj = Object::new();
+	set_obj(&obj, "js", &JsValue::from(out.0))?;
+	set_obj(&obj, "errors", &JsValue::from(errs))?;
+
+	Ok(RewriterOutput::from(JsValue::from(obj)))
+}
+
 #[wasm_bindgen]
-pub fn rewrite_js(js: &str, url: &str, scramjet: &Object) -> Result<Vec<u8>> {
+pub fn rewrite_js(
+	js: &str,
+	url: &str,
+	script_url: String,
+	scramjet: &Object,
+) -> Result<RewriterOutput> {
 	#[cfg(feature = "drm")]
 	if !drmcheck() {
 		return Vec::new();
 	}
 
-	rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)
+	create_rewriter_output(
+		rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?,
+		script_url,
+		js.to_string(),
+	)
 }
 
 #[wasm_bindgen]
-pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> Result<Vec<u8>> {
+pub fn rewrite_js_from_arraybuffer(
+	js: &[u8],
+	url: &str,
+	script_url: String,
+	scramjet: &Object,
+) -> Result<RewriterOutput> {
 	#[cfg(feature = "drm")]
 	if !drmcheck() {
 		return Vec::new();
@@ -110,5 +163,9 @@ pub fn rewrite_js_from_arraybuffer(js: &[u8], url: &str, scramjet: &Object) -> R
 	// we know that this is a valid utf-8 string
 	let js = unsafe { std::str::from_utf8_unchecked(js) };
 
-	rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)
+	create_rewriter_output(
+		rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?,
+		script_url,
+		js.to_string(),
+	)
 }

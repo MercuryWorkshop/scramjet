@@ -9,8 +9,9 @@ use oxc_ast::{
 	visit::walk,
 	Visit,
 };
+use oxc_diagnostics::OxcDiagnostic;
 use oxc_parser::Parser;
-use oxc_span::{Atom, SourceType, Span};
+use oxc_span::{Atom, GetSpan, SourceType, Span};
 use oxc_syntax::operator::{AssignmentOperator, UnaryOperator};
 use url::Url;
 
@@ -148,7 +149,7 @@ impl<'a> Visit<'a> for Rewriter {
 					&& !matches!(s.object, Expression::MetaProperty(_))
 					&& !matches!(s.object, Expression::Super(_))
 				{
-					let span = expression_span(&s.object);
+					let span = s.object.span();
 					self.jschanges.push(JsChange::GenericChange {
 						span: Span::new(span.start, span.start),
 						text: " $scramitize(".to_string(),
@@ -359,7 +360,7 @@ impl<'a> Visit<'a> for Rewriter {
 					self.jschanges.push(JsChange::Assignment {
 						name: s.name.to_string(),
 						entirespan: it.span,
-						rhsspan: expression_span(&it.right),
+						rhsspan: it.right.span(),
 						op: it.operator,
 					});
 
@@ -380,55 +381,6 @@ impl<'a> Visit<'a> for Rewriter {
 			}
 		}
 		walk::walk_expression(self, &it.right);
-	}
-}
-
-fn expression_span(e: &Expression) -> Span {
-	// enums.split("\n").filter(f=>f).map(p=>p.trimLeft()).filter(p=>!p.startsWith("#")).map(p=>p.replace(/\(.*/,"")).map(p=>`E::${p}(s) => s.span`).join(",\n")
-	use Expression as E;
-	match e {
-		E::BooleanLiteral(s) => s.span,
-		E::NullLiteral(s) => s.span,
-		E::NumericLiteral(s) => s.span,
-		E::BigIntLiteral(s) => s.span,
-		E::RegExpLiteral(s) => s.span,
-		E::StringLiteral(s) => s.span,
-		E::TemplateLiteral(s) => s.span,
-		E::Identifier(s) => s.span,
-		E::MetaProperty(s) => s.span,
-		E::Super(s) => s.span,
-		E::ArrayExpression(s) => s.span,
-		E::ArrowFunctionExpression(s) => s.span,
-		E::AssignmentExpression(s) => s.span,
-		E::AwaitExpression(s) => s.span,
-		E::BinaryExpression(s) => s.span,
-		E::CallExpression(s) => s.span,
-		E::ChainExpression(s) => s.span,
-		E::ClassExpression(s) => s.span,
-		E::ConditionalExpression(s) => s.span,
-		E::FunctionExpression(s) => s.span,
-		E::ImportExpression(s) => s.span,
-		E::LogicalExpression(s) => s.span,
-		E::NewExpression(s) => s.span,
-		E::ObjectExpression(s) => s.span,
-		E::ParenthesizedExpression(s) => s.span,
-		E::SequenceExpression(s) => s.span,
-		E::TaggedTemplateExpression(s) => s.span,
-		E::ThisExpression(s) => s.span,
-		E::UnaryExpression(s) => s.span,
-		E::UpdateExpression(s) => s.span,
-		E::YieldExpression(s) => s.span,
-		E::PrivateInExpression(s) => s.span,
-		E::JSXElement(s) => s.span,
-		E::JSXFragment(s) => s.span,
-		E::TSAsExpression(s) => s.span,
-		E::TSSatisfiesExpression(s) => s.span,
-		E::TSTypeAssertion(s) => s.span,
-		E::TSNonNullExpression(s) => s.span,
-		E::TSInstantiationExpression(s) => s.span,
-		E::ComputedMemberExpression(s) => s.span,
-		E::StaticMemberExpression(s) => s.span,
-		E::PrivateFieldExpression(s) => s.span,
 	}
 }
 
@@ -459,18 +411,10 @@ fn random_string() -> String {
 	.to_string()
 }
 
-pub fn rewrite(js: &str, url: Url, config: Config) -> Result<Vec<u8>> {
+pub fn rewrite(js: &str, url: Url, config: Config) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
 	let ret = Parser::new(&allocator, js, source_type).parse();
-
-	for err in ret.errors {
-		let cloned = js.to_string();
-		let err = err.with_source_code(cloned);
-		println!("oxc parse error {err:?}");
-		#[cfg(target_family = "wasm")]
-		crate::error(&format!("oxc parse error {err:?}"))
-	}
 
 	let program = ret.program;
 
@@ -575,9 +519,9 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Result<Vec<u8>> {
 					format!(
 						"((t)=>$scramjet$tryset({},\"{}\",t)||({}{}t))({})",
 						name,
-						fmt_op(*op),
+						op.as_str(),
 						name,
-						fmt_op(*op),
+						op.as_str(),
 						&js[rhsspan.start as usize..rhsspan.end as usize]
 					)
 					.as_bytes(),
@@ -607,10 +551,10 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Result<Vec<u8>> {
 
 		sourcemap.extend_from_slice(&buffer);
 
-		return Ok(sourcemap);
+		return Ok((sourcemap, ret.errors));
 	}
 
-	Ok(buffer)
+	Ok((buffer, ret.errors))
 }
 
 fn json_escape_string(s: &str) -> String {
@@ -628,25 +572,4 @@ fn json_escape_string(s: &str) -> String {
 		}
 	}
 	out
-}
-
-fn fmt_op(op: AssignmentOperator) -> &'static str {
-	match op {
-		AssignmentOperator::Assign => "=",
-		AssignmentOperator::Addition => "+=",
-		AssignmentOperator::Subtraction => "-=",
-		AssignmentOperator::Multiplication => "*=",
-		AssignmentOperator::Division => "/=",
-		AssignmentOperator::Remainder => "%=",
-		AssignmentOperator::Exponential => "**=",
-		AssignmentOperator::ShiftLeft => "<<=",
-		AssignmentOperator::ShiftRight => ">>=",
-		AssignmentOperator::ShiftRightZeroFill => ">>>=",
-		AssignmentOperator::BitwiseAnd => "&=",
-		AssignmentOperator::BitwiseXOR => "^=",
-		AssignmentOperator::BitwiseOR => "|=",
-		AssignmentOperator::LogicalAnd => "&&=",
-		AssignmentOperator::LogicalOr => "||=",
-		AssignmentOperator::LogicalNullish => "??=",
-	}
 }
