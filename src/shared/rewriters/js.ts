@@ -6,6 +6,7 @@ import {
 	initSync,
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
+	RewriterOutput,
 } from "../../../rewriter/out/rewriter.js";
 import { $scramjet, flagEnabled } from "../../scramjet";
 
@@ -19,13 +20,51 @@ init();
 
 Error.stackTraceLimit = 50;
 
-function print_errors(errors: string[]) {
+const decoder = new TextDecoder();
+
+function rewriteJsWrapper(
+	input: string | ArrayBuffer,
+	meta: URLMeta
+): string | ArrayBuffer {
+	let out: RewriterOutput;
+	if (typeof input === "string") {
+		out = rewrite_js(
+			input,
+			meta.base.href,
+			"PERCS_PLEASE_FILL_THIS_IN.js",
+			$scramjet
+		);
+	} else {
+		out = rewrite_js_from_arraybuffer(
+			new Uint8Array(input),
+			meta.base.href,
+			"PERCS_PLEASE_FILL_THIS_IN.js",
+			$scramjet
+		);
+	}
+	const { js, errors, duration } = out;
+
 	// TODO: maybe make this a scram flag?
 	if (true) {
 		for (const error of errors) {
 			console.error("oxc parse error", error);
 		}
 	}
+
+	// TODO: maybe make this a scram flag?
+	if (true) {
+		let timespan: string;
+		if (duration < 1n) {
+			timespan = "BLAZINGLY FAST";
+		} else if (duration < 500n) {
+			timespan = "decent speed";
+		} else {
+			timespan = "really slow";
+		}
+		console.log(`oxc rewrite was ${timespan} (${duration}ms)`);
+	}
+
+	return typeof input === "string" ? decoder.decode(js) : js;
 }
 
 export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
@@ -37,29 +76,7 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 		return rewriteJsNaiive(text);
 	}
 
-	// const before = performance.now();
-	if (typeof js === "string") {
-		let { js: js_out, errors } = rewrite_js(
-			js,
-			meta.base.href,
-			"PERCS_PLEASE_FILL_THIS_IN.js",
-			$scramjet
-		);
-		js = new TextDecoder().decode(js_out);
-		print_errors(errors);
-	} else {
-		let { js: js_out, errors } = rewrite_js_from_arraybuffer(
-			new Uint8Array(js),
-			meta.base.href,
-			"PERCS_PLEASE_FILL_THIS_IN.js",
-			$scramjet
-		);
-		js = js_out;
-		print_errors(errors);
-	}
-	// const after = performance.now();
-
-	// dbg.debug("Rewrite took", Math.floor((after - before) * 10) / 10, "ms");
+	js = rewriteJsWrapper(js, meta);
 
 	return js;
 }

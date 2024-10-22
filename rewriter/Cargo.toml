@@ -25,6 +25,7 @@ panic = "abort"
 [dependencies]
 console_error_panic_hook = "0.1.7"
 getrandom = { version = "0.2.15", features = ["js"] }
+instant = { version = "0.1.13", features = ["wasm-bindgen"] }
 js-sys = "0.3.69"
 obfstr = "0.4.3"
 oxc_allocator = "0.32.0"

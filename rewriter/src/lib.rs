@@ -1,9 +1,10 @@
 pub mod error;
 pub mod rewrite;
 
-use std::{panic, str::FromStr, sync::Arc};
+use std::{panic, str::FromStr, sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
+use instant::Instant;
 use js_sys::{Function, Object, Reflect};
 use oxc_diagnostics::{NamedSource, OxcDiagnostic};
 use rewrite::{rewrite, Config, EncodeFn};
@@ -12,7 +13,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
 const REWRITER_OUTPUT: &'static str = r#"
-type RewriterOutput = { js: Uint8Array, errors: string[] };
+type RewriterOutput = { js: Uint8Array, errors: string[], duration: bigint };
 "#;
 
 #[wasm_bindgen]
@@ -110,10 +111,15 @@ fn drmcheck() -> bool {
 	return vec![obfstr!("http://localhost:1337")].contains(&true_origin.as_str());
 }
 
+fn duration_to_millis_f64(duration: Duration) -> f64 {
+	(duration.as_secs() as f64) * 1_000f64 + (duration.subsec_nanos() as f64) / 1_000_000f64
+}
+
 fn create_rewriter_output(
 	out: (Vec<u8>, Vec<OxcDiagnostic>),
 	url: String,
 	src: String,
+	duration: Duration,
 ) -> Result<RewriterOutput> {
 	let src = Arc::new(NamedSource::new(url, src).with_language("javascript"));
 	let errs: Vec<_> = out
@@ -123,8 +129,9 @@ fn create_rewriter_output(
 		.collect();
 
 	let obj = Object::new();
-	set_obj(&obj, "js", &JsValue::from(out.0))?;
-	set_obj(&obj, "errors", &JsValue::from(errs))?;
+	set_obj(&obj, "js", &out.0.into())?;
+	set_obj(&obj, "errors", &errs.into())?;
+	set_obj(&obj, "duration", &duration_to_millis_f64(duration).into())?;
 
 	Ok(RewriterOutput::from(JsValue::from(obj)))
 }
@@ -141,11 +148,11 @@ pub fn rewrite_js(
 		return Vec::new();
 	}
 
-	create_rewriter_output(
-		rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?,
-		script_url,
-		js.to_string(),
-	)
+	let before = Instant::now();
+	let out = rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let after = Instant::now();
+
+	create_rewriter_output(out, script_url, js.to_string(), after - before)
 }
 
 #[wasm_bindgen]
@@ -163,9 +170,9 @@ pub fn rewrite_js_from_arraybuffer(
 	// we know that this is a valid utf-8 string
 	let js = unsafe { std::str::from_utf8_unchecked(js) };
 
-	create_rewriter_output(
-		rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?,
-		script_url,
-		js.to_string(),
-	)
+	let before = Instant::now();
+	let out = rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let after = Instant::now();
+
+	create_rewriter_output(out, script_url, js.to_string(), after - before)
 }
