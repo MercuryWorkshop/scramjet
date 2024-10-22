@@ -3,13 +3,13 @@ import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { config } from "../../shared";
 // import { argdbg } from "./err";
-// import { indirectEval } from "./eval";
+import { indirectEval } from "./eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any) {
-		if (identifier === self.location) {
-			return client.locationProxy;
-		}
+		if (identifier === self) return client.globalProxy;
+		if (identifier === self.location) return client.locationProxy;
+		if (identifier === eval) return indirectEval;
 
 		if (iswindow) {
 			if (identifier === self.parent) {
