@@ -9,7 +9,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any) {
 		if (identifier === self) return client.globalProxy;
 		if (identifier === self.location) return client.locationProxy;
-		if (identifier === eval) return indirectEval;
+		if (identifier === eval) return indirectEval.bind(client);
 
 		if (iswindow) {
 			if (identifier === self.parent) {
