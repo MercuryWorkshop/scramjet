@@ -66,6 +66,7 @@ fn get_config(scramjet: &Object, url: &str) -> Result<Config> {
 		encode: create_encode_function(get_obj(codec, "encode")?)?,
 
 		wrapfn: get_str(globals, "wrapfn")?,
+		wrapthisfn: get_str(globals, "wrapthisfn")?,
 		importfn: get_str(globals, "importfn")?,
 		rewritefn: get_str(globals, "rewritefn")?,
 		metafn: get_str(globals, "metafn")?,

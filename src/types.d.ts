@@ -38,6 +38,7 @@ interface ScramjetConfig {
 	prefix: string;
 	globals: {
 		wrapfn: string;
+		wrapthisfn: string;
 		trysetfn: string;
 		importfn: string;
 		rewritefn: string;

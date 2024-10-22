@@ -118,6 +118,7 @@ fn dorewrite(source_text: &str) -> Result<String> {
 				prefix: "/scrammedjet/".to_string(),
 				encode: Box::new(encode_string),
 				wrapfn: "$wrap".to_string(),
+				wrapthisfn: "$gwrap".to_string(),
 				importfn: "$import".to_string(),
 				rewritefn: "$rewrite".to_string(),
 				metafn: "$meta".to_string(),
@@ -126,7 +127,7 @@ fn dorewrite(source_text: &str) -> Result<String> {
 				capture_errors: true,
 				do_sourcemaps: true,
 				scramitize: false,
-				strict_rewrites: false,
+				strict_rewrites: true,
 			},
 		)?
 		.as_slice(),

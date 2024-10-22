@@ -44,6 +44,7 @@ pub struct Config {
 	pub prefix: String,
 
 	pub wrapfn: String,
+	pub wrapthisfn: String,
 	pub importfn: String,
 	pub rewritefn: String,
 	pub setrealmfn: String,
@@ -171,7 +172,7 @@ impl<'a> Visit<'a> for Rewriter {
 	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
 		self.jschanges.push(JsChange::GenericChange {
 			span: it.span,
-			text: format!("{}(this)", self.config.wrapfn),
+			text: format!("{}(this)", self.config.wrapthisfn),
 		});
 	}
 

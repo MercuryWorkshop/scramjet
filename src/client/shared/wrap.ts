@@ -6,42 +6,25 @@ import { config } from "../../shared";
 // import { indirectEval } from "./eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
-	return function (identifier: any, args: any) {
-		if (iswindow && identifier instanceof self.Window) {
-			return client.globalProxy;
-		} else if (iswindow && identifier instanceof self.parent.self.Window) {
-			if (SCRAMJETCLIENT in self.parent.self) {
-				// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
-				return self.parent.self[SCRAMJETCLIENT].globalProxy;
-			} else {
-				// ... then we should pretend we aren't nested and return the current window
-				return client.globalProxy;
-			}
-		} else if (iswindow && identifier instanceof self.top.self.Window) {
-			// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
-			let current = self.self;
-
-			for (;;) {
-				const test = current.parent.self;
-				if (test === current) break; // there is no parent, actual or emulated.
-
-				// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
-				if (!(SCRAMJETCLIENT in test)) break;
-
-				// test is also insde a proxy, so we should continue up the chain
-				current = test;
-			}
-
-			return current[SCRAMJETCLIENT].globalProxy.window;
-		} else if (
-			(iswindow && identifier instanceof self.Location) ||
-			(isworker && identifier instanceof self.WorkerLocation)
-		) {
+	return function (identifier: any) {
+		if (identifier === self.location) {
 			return client.locationProxy;
-		} else if (iswindow && identifier instanceof self.Document) {
-			return client.documentProxy;
-		} else if (isworker && identifier instanceof self.WorkerGlobalScope) {
-			return client.globalProxy;
+		}
+
+		if (iswindow) {
+			if (identifier === self.parent) {
+				if (SCRAMJETCLIENT in self.parent.self) {
+					// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
+					return self.parent.self[SCRAMJETCLIENT].globalProxy;
+				} else {
+					// ... then we should pretend we aren't nested and return the current window
+					return client.globalProxy;
+				}
+			} else if (identifier === self.document) {
+				return client.documentProxy;
+			}
+
+			// TODO .top
 		}
 
 		return identifier;
@@ -55,6 +38,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	// this presents some issues (see element.ts), but makes us a good bit faster at runtime!
 	Object.defineProperty(self, config.globals.wrapfn, {
 		value: client.wrapfn,
+		writable: false,
+		configurable: false,
+	});
+	Object.defineProperty(self, config.globals.wrapthisfn, {
+		value: function (i) {
+			if (i === self) return client.globalProxy;
+			return i;
+		},
 		writable: false,
 		configurable: false,
 	});
