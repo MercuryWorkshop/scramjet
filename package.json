@@ -32,7 +32,7 @@
 		"@eslint/js": "^9.13.0",
 		"@fastify/static": "^8.0.2",
 		"@mercuryworkshop/bare-as-module3": "^2.2.5",
-		"@mercuryworkshop/epoxy-transport": "^2.1.23",
+		"@mercuryworkshop/epoxy-transport": "^2.1.25",
 		"@mercuryworkshop/libcurl-transport": "^1.3.11",
 		"@nebula-services/bare-server-node": "^2.0.4",
 		"@rsdoctor/rspack-plugin": "^0.4.7",
@@ -42,8 +42,8 @@
 		"@types/estree": "^1.0.6",
 		"@types/node": "^22.7.7",
 		"@types/serviceworker": "^0.0.101",
-		"@typescript-eslint/eslint-plugin": "^8.10.0",
-		"@typescript-eslint/parser": "^8.10.0",
+		"@typescript-eslint/eslint-plugin": "^8.11.0",
+		"@typescript-eslint/parser": "^8.11.0",
 		"dotenv": "^16.4.5",
 		"eslint": "^9.13.0",
 		"fastify": "^5.0.0",
@@ -59,7 +59,7 @@
 		"domutils": "^3.1.0",
 		"htmlparser2": "^9.1.0",
 		"parse-domain": "^8.2.2",
-		"set-cookie-parser": "^2.7.0"
+		"set-cookie-parser": "^2.7.1"
 	},
 	"optionalDependencies": {
 		"@playwright/test": "^1.48.1",
