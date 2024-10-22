@@ -328,7 +328,7 @@ export class ScramjetClient {
 						if ((err.stack as any) instanceof Object) {
 							//@ts-expect-error i'm not going to explain this
 							err.stack = err.stack.stack;
-							console.error("ERROR FROM SCRMAJET INTERNALS", err);
+							console.error("ERROR FROM SCRAMJET INTERNALS", err);
 						} else {
 							throw err;
 						}

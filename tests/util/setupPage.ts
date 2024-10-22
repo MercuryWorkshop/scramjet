@@ -1,8 +1,11 @@
 /* eslint-disable no-async-promise-executor */
 import { expect, FrameLocator, Page } from "@playwright/test";
+import { registerInspect } from "./inspectConsole";
 
 export function setupPage(page: Page, url: string): Promise<FrameLocator> {
     return new Promise(async (resolve) => {
+        // Hack to disable HTTP cache.
+        await page.route("**", route => route.continue());
         // Goto base url defined in config.
         await page.goto("/");
         await page.waitForSelector(".version > b");
@@ -18,6 +21,9 @@ export function setupPage(page: Page, url: string): Promise<FrameLocator> {
         await page.waitForTimeout(1000);
         
         await bar.press("Enter");
+
+        registerInspect(page);
+
         resolve(frame);
     });
 }
