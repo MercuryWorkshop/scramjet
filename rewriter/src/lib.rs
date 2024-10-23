@@ -138,7 +138,7 @@ fn create_rewriter_output(
 
 #[wasm_bindgen]
 pub fn rewrite_js(
-	js: &str,
+	js: String,
 	url: &str,
 	script_url: String,
 	scramjet: &Object,
@@ -149,15 +149,15 @@ pub fn rewrite_js(
 	}
 
 	let before = Instant::now();
-	let out = rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, Url::from_str(url)?, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
-	create_rewriter_output(out, script_url, js.to_string(), after - before)
+	create_rewriter_output(out, script_url, js, after - before)
 }
 
 #[wasm_bindgen]
 pub fn rewrite_js_from_arraybuffer(
-	js: &[u8],
+	js: Vec<u8>,
 	url: &str,
 	script_url: String,
 	scramjet: &Object,
@@ -168,11 +168,11 @@ pub fn rewrite_js_from_arraybuffer(
 	}
 
 	// we know that this is a valid utf-8 string
-	let js = unsafe { std::str::from_utf8_unchecked(js) };
+	let js = unsafe { String::from_utf8_unchecked(js) };
 
 	let before = Instant::now();
-	let out = rewrite(js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, Url::from_str(url)?, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
-	create_rewriter_output(out, script_url, js.to_string(), after - before)
+	create_rewriter_output(out, script_url, js, after - before)
 }
