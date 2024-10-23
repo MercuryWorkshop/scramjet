@@ -13,7 +13,7 @@ import {
 	unrewriteUrl,
 	rewriteUrl,
 } from "../shared";
-import { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
+import type { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
