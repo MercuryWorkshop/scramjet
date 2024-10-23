@@ -9,7 +9,7 @@
 
 <a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
 
-Scramjet is an experimental inteception based web proxy that aims to be the successor to Ultraviolet. It is designed with security, developer friendlyness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
+Scramjet is an experimental interception based web proxy that aims to be the successor to Ultraviolet. It is designed with security, developer friendlyness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
 
 ## Supported Sites
 
