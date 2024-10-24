@@ -16,12 +16,6 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 		},
 	});
 
-	// client.Proxy("Headers", {
-	// 	construct(ctx) {
-	// 		ctx.args[0] = rewriteHeaders(ctx.args[0]);
-	// 	},
-	// });
-
 	client.Proxy("Request", {
 		construct(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
@@ -43,10 +37,4 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 			return unrewriteUrl(ctx.get() as string);
 		},
 	});
-
-	// client.Proxy("Response.redirect", {
-	// 	apply(ctx) {
-	// 		ctx.args[0] = encodeUrl(ctx.args[0]);
-	// 	},
-	// });
 }

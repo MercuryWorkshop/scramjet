@@ -3,7 +3,7 @@ import { rewriteUrl } from "../../shared";
 import { UrlChangeEvent } from "../events";
 
 export default function (client: ScramjetClient, self: typeof globalThis) {
-	client.Proxy("history.pushState", {
+	client.Proxy("History.prototype.pushState", {
 		apply(ctx) {
 			if (ctx.args[2]) ctx.args[2] = rewriteUrl(ctx.args[2], client.meta);
 			ctx.call();
@@ -13,7 +13,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		},
 	});
 
-	client.Proxy("history.replaceState", {
+	client.Proxy("History.prototype.replaceState", {
 		apply(ctx) {
 			if (ctx.args[2]) ctx.args[2] = rewriteUrl(ctx.args[2], client.meta);
 			ctx.call();

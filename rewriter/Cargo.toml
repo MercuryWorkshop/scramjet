@@ -25,13 +25,15 @@ panic = "abort"
 [dependencies]
 console_error_panic_hook = "0.1.7"
 getrandom = { version = "0.2.15", features = ["js"] }
+instant = { version = "0.1.13", features = ["wasm-bindgen"] }
 js-sys = "0.3.69"
 obfstr = "0.4.3"
-oxc_allocator = "0.20.0"
-oxc_ast = { version = "0.20.0", features = ["serialize"]}
-oxc_parser = { version = "0.20.0" }
-oxc_span = "0.20.0"
-oxc_syntax = "0.20.0"
+oxc_allocator = "0.32.0"
+oxc_ast = { version = "0.32.0", features = ["serialize"]}
+oxc_diagnostics = "0.32.0"
+oxc_parser = "0.32.0"
+oxc_span = "0.32.0"
+oxc_syntax = "0.32.0"
 rand = "0.8.5"
 serde = "1.0.204"
 serde-wasm-bindgen = "0.6.5"

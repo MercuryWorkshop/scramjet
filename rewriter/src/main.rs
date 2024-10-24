@@ -130,6 +130,7 @@ fn dorewrite(source_text: &str) -> Result<String> {
 				strict_rewrites: true,
 			},
 		)?
+		.0
 		.as_slice(),
 	)?
 	.to_string())

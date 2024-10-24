@@ -9,7 +9,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any) {
 		if (identifier === self) return client.globalProxy;
 		if (identifier === self.location) return client.locationProxy;
-		if (identifier === eval) return indirectEval;
+		if (identifier === eval) return indirectEval.bind(client);
 
 		if (iswindow) {
 			if (identifier === self.parent) {
@@ -22,9 +22,23 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 				}
 			} else if (identifier === self.document) {
 				return client.documentProxy;
-			}
+			} else if (identifier === self.top) {
+				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
+				let current = self.self;
 
-			// TODO .top
+				for (;;) {
+					const test = current.parent.self;
+					if (test === current) break; // there is no parent, actual or emulated.
+
+					// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
+					if (!(SCRAMJETCLIENT in test)) break;
+
+					// test is also insde a proxy, so we should continue up the chain
+					current = test;
+				}
+
+				return current[SCRAMJETCLIENT].globalProxy.window;
+			}
 		}
 
 		return identifier;
@@ -44,6 +58,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	Object.defineProperty(self, config.globals.wrapthisfn, {
 		value: function (i) {
 			if (i === self) return client.globalProxy;
+
 			return i;
 		},
 		writable: false,

@@ -40,7 +40,7 @@
 		"@rspack/core": "^1.0.13",
 		"@types/eslint": "^9.6.1",
 		"@types/estree": "^1.0.6",
-		"@types/node": "^22.7.7",
+		"@types/node": "^22.7.8",
 		"@types/serviceworker": "^0.0.101",
 		"@typescript-eslint/eslint-plugin": "^8.11.0",
 		"@typescript-eslint/parser": "^8.11.0",

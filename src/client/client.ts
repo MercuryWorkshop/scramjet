@@ -13,7 +13,7 @@ import {
 	unrewriteUrl,
 	rewriteUrl,
 } from "../shared";
-import { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
+import type { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
@@ -328,7 +328,7 @@ export class ScramjetClient {
 						if ((err.stack as any) instanceof Object) {
 							//@ts-expect-error i'm not going to explain this
 							err.stack = err.stack.stack;
-							console.error("ERROR FROM SCRMAJET INTERNALS", err);
+							console.error("ERROR FROM SCRAMJET INTERNALS", err);
 						} else {
 							throw err;
 						}
