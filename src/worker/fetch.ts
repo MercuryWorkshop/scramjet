@@ -139,17 +139,28 @@ export async function swfetch(
 		headers.set("Sec-Fetch-Site", "same-origin");
 		headers.set("Sec-Fetch-Dest", "empty");
 
-		const response: BareResponseFetch = await this.client.fetch(url, {
-			method: request.method,
-			body: request.body,
-			headers: headers.headers,
-			credentials: "omit",
-			mode: request.mode === "cors" ? request.mode : "same-origin",
-			cache: request.cache,
-			redirect: "manual",
-			//@ts-ignore why the fuck is this not typed mircosoft
-			duplex: "half",
-		});
+		const ev = new ScramjetRequestEvent("request");
+		ev.url = url;
+		ev.body = request.body;
+		ev.method = request.method;
+		ev.destination = request.destination;
+		ev.client = client;
+		ev.requestHeaders = headers.headers;
+		this.dispatchEvent(ev);
+
+		const response: BareResponseFetch =
+			ev.response ||
+			(await this.client.fetch(ev.url, {
+				method: ev.method,
+				body: ev.body,
+				headers: ev.requestHeaders,
+				credentials: "omit",
+				mode: request.mode === "cors" ? request.mode : "same-origin",
+				cache: request.cache,
+				redirect: "manual",
+				//@ts-ignore why the fuck is this not typed mircosoft
+				duplex: "half",
+			}));
 
 		return await handleResponse(
 			url,
@@ -309,4 +320,14 @@ export class ScramjetHandleResponseEvent extends Event {
 	public url: URL;
 	public rawResponse: BareResponseFetch;
 	public client: Client;
+}
+
+export class ScramjetRequestEvent extends Event {
+	public url: URL;
+	public destination: string;
+	public client: Client;
+	public method: string;
+	public body: BodyType;
+	public requestHeaders: Record<string, string>;
+	public response?: BareResponseFetch;
 }
