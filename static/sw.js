@@ -1,3 +1,11 @@
+// dumb hack to allow firefox to work (please dont do this in prod)
+if (navigator.userAgent.includes("Firefox")) {
+	Object.defineProperty(globalThis, "crossOriginIsolated", {
+		value: true,
+		writable: false,
+	});
+}
+
 importScripts(
 	"/scram/scramjet.wasm.js",
 	"/scram/scramjet.shared.js",
