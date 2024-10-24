@@ -111,7 +111,7 @@ function PlaygroundApp() {
     <link rel="stylesheet" href="/style.css"></link>
     <script src="/script.js"></script>
 
-    <!-- external resources go through WISP -->
+    <!-- external resources go through WISP (check network tab) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   </head>
   <body>
@@ -123,12 +123,18 @@ function PlaygroundApp() {
 
     <button onclick="checkOrigin()">Test emulated origin</button>
     <button onclick="loadResource('https://example.com/')">Load assets through sandbox</button>
+    <br><br>
+
+    <h2>iframe test</h2>
+    <button onclick="loadiframe()">test iframe nesting</button>
+    <br>
   </body>
 </html>`,
 			language: "html",
 		});
 		const js = monaco.editor.create(this.jsbox, {
 			value: `function checkOrigin() {
+	// real origin is hidden from the page
   alert("origin: " + window.origin);
 }
 
@@ -138,16 +144,31 @@ function loadResource(url) {
   fetch(url).then(r => {
     console.log("loaded", r);
   })
+}
+function loadiframe()  {
+	let frame = document.createElement("iframe");
+	frame.src = "https://google.com";
+	document.body.appendChild(frame);
 }`,
 			language: "javascript",
 		});
 		const css = monaco.editor.create(this.cssbox, {
-			value: `body, html {
+			value: `/* resources loaded by css are intercepted by service worker */
+@import  url('https://fonts.googleapis.com/css2?family=Hind:wght@300;400;500;600;700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+body, html {
   background: #1e1e1e;
   color: white;
   width: 100%;
   height: 100%;
-}`,
+  font-family: "Roboto";
+}
+iframe {
+	zoom: 0.75;
+  width: 50%;
+  height: 50%;
+}
+`,
 			language: "css",
 		});
 		let oldjs;
