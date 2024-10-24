@@ -122,7 +122,7 @@ function Config() {
   `;
 }
 
-function App() {
+function BrowserApp() {
 	this.urlencoded = "";
 	this.css = `
     width: 100%;
@@ -253,9 +253,8 @@ function App() {
     </div>
     `;
 }
-
 window.addEventListener("load", async () => {
-	document.body.appendChild(h(App));
+	document.body.appendChild(h(BrowserApp));
 	function b64(buffer) {
 		let binary = "";
 		const bytes = new Uint8Array(buffer);
