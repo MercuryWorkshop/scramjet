@@ -12,7 +12,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("document.URL", {
+	client.Trap("Document.prototype.URL", {
 		get() {
 			return client.url.href;
 		},
@@ -21,7 +21,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("document.documentURI", {
+	client.Trap("Document.prototype.documentURI", {
 		get() {
 			return client.url.href;
 		},
@@ -30,7 +30,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("document.domain", {
+	client.Trap("Document.prototype.domain", {
 		get() {
 			return client.url.hostname;
 		},

@@ -65,10 +65,12 @@ export async function swfetch(
 			if (response.body) {
 				body = await rewriteBody(
 					response,
-					{
-						base: new URL(new URL(client.url).origin),
-						origin: new URL(new URL(client.url).origin),
-					},
+					client
+						? {
+								base: new URL(new URL(client.url).origin),
+								origin: new URL(new URL(client.url).origin),
+							}
+						: newmeta(new URL(unrewriteUrl(request.referrer))),
 					request.destination,
 					workertype,
 					this.cookieStore
