@@ -123,7 +123,6 @@ function Config() {
 }
 
 function BrowserApp() {
-	this.urlencoded = "";
 	this.css = `
     width: 100%;
     height: 100%;
@@ -269,13 +268,13 @@ window.addEventListener("load", async () => {
 	console.log(
 		"%cb",
 		`
-background-image: url(data:image/png;base64,${b64(arraybuffer)});
-color: transparent;
-padding-left: 200px;
-padding-bottom: 100px;
-background-size: contain;
-background-position: center center;
-background-repeat: no-repeat;
-`
+      background-image: url(data:image/png;base64,${b64(arraybuffer)});
+      color: transparent;
+      padding-left: 200px;
+      padding-bottom: 100px;
+      background-size: contain;
+      background-position: center center;
+      background-repeat: no-repeat;
+  `
 	);
 });
