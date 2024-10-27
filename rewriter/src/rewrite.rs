@@ -1,18 +1,24 @@
 use core::str;
 use std::str::from_utf8;
 
-use oxc_allocator::Allocator;
-use oxc_ast::{
+use oxc::{
+	allocator::Allocator,
 	ast::{
-		AssignmentTarget, Expression, IdentifierReference, MemberExpression, ObjectPropertyKind,
+		ast::{
+			AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
+			ExportAllDeclaration, ExportNamedDeclaration, Expression, ForInStatement,
+			ForOfStatement, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression,
+			MemberExpression, MetaProperty, NewExpression, ObjectExpression, ObjectPropertyKind,
+			ReturnStatement, ThisExpression, UnaryExpression, UpdateExpression,
+		},
+		visit::walk,
+		Visit,
 	},
-	visit::walk,
-	Visit,
+	diagnostics::OxcDiagnostic,
+	parser::Parser,
+	span::{Atom, GetSpan, SourceType, Span},
+	syntax::operator::{AssignmentOperator, UnaryOperator},
 };
-use oxc_diagnostics::OxcDiagnostic;
-use oxc_parser::Parser;
-use oxc_span::{Atom, GetSpan, SourceType, Span};
-use oxc_syntax::operator::{AssignmentOperator, UnaryOperator};
 use url::Url;
 
 use crate::error::{Result, RewriterError};
@@ -116,11 +122,11 @@ impl<'a> Visit<'a> for Rewriter {
 	}
 
 	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
-	fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
+	fn visit_new_expression(&mut self, it: &NewExpression<'a>) {
 		self.walk_member_expression(&it.callee);
 		walk::walk_arguments(self, &it.arguments);
 	}
-	fn visit_member_expression(&mut self, it: &oxc_ast::ast::MemberExpression<'a>) {
+	fn visit_member_expression(&mut self, it: &MemberExpression<'a>) {
 		match it {
 			MemberExpression::StaticMemberExpression(s) => {
 				if s.property.name == "postMessage" {
@@ -170,14 +176,14 @@ impl<'a> Visit<'a> for Rewriter {
 
 		walk::walk_member_expression(self, it);
 	}
-	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
+	fn visit_this_expression(&mut self, it: &ThisExpression) {
 		self.jschanges.push(JsChange::GenericChange {
 			span: it.span,
 			text: format!("{}(this)", self.config.wrapthisfn),
 		});
 	}
 
-	fn visit_debugger_statement(&mut self, it: &oxc_ast::ast::DebuggerStatement) {
+	fn visit_debugger_statement(&mut self, it: &DebuggerStatement) {
 		// delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
 		self.jschanges.push(JsChange::GenericChange {
 			span: it.span,
@@ -187,7 +193,7 @@ impl<'a> Visit<'a> for Rewriter {
 
 	// we can't overwrite window.eval in the normal way because that would make everything an
 	// indirect eval, which could break things. we handle that edge case here
-	fn visit_call_expression(&mut self, it: &oxc_ast::ast::CallExpression<'a>) {
+	fn visit_call_expression(&mut self, it: &CallExpression<'a>) {
 		if let Expression::Identifier(s) = &it.callee {
 			// if it's optional that actually makes it an indirect eval which is handled separately
 			if s.name == "eval" && !it.optional {
@@ -219,7 +225,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_call_expression(self, it);
 	}
 
-	fn visit_import_declaration(&mut self, it: &oxc_ast::ast::ImportDeclaration<'a>) {
+	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'a>) {
 		let name = it.source.value.to_string();
 		let text = self.rewrite_url(name);
 		self.jschanges.push(JsChange::GenericChange {
@@ -228,7 +234,7 @@ impl<'a> Visit<'a> for Rewriter {
 		});
 		walk::walk_import_declaration(self, it);
 	}
-	fn visit_import_expression(&mut self, it: &oxc_ast::ast::ImportExpression<'a>) {
+	fn visit_import_expression(&mut self, it: &ImportExpression<'a>) {
 		self.jschanges.push(JsChange::GenericChange {
 			span: Span::new(it.span.start, it.span.start + 6),
 			text: format!("({}(\"{}\"))", self.config.importfn, self.base),
@@ -236,7 +242,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_import_expression(self, it);
 	}
 
-	fn visit_export_all_declaration(&mut self, it: &oxc_ast::ast::ExportAllDeclaration<'a>) {
+	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
 		let name = it.source.value.to_string();
 		let text = self.rewrite_url(name);
 		self.jschanges.push(JsChange::GenericChange {
@@ -245,7 +251,7 @@ impl<'a> Visit<'a> for Rewriter {
 		});
 	}
 
-	fn visit_export_named_declaration(&mut self, it: &oxc_ast::ast::ExportNamedDeclaration<'a>) {
+	fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'a>) {
 		if let Some(source) = &it.source {
 			let name = source.value.to_string();
 			let text = self.rewrite_url(name);
@@ -258,7 +264,7 @@ impl<'a> Visit<'a> for Rewriter {
 	}
 
 	#[cfg(feature = "debug")]
-	fn visit_try_statement(&mut self, it: &oxc_ast::ast::TryStatement<'a>) {
+	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'a>) {
 		// for debugging we need to know what the error was
 
 		if self.config.capture_errors {
@@ -276,7 +282,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_try_statement(self, it);
 	}
 
-	fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
+	fn visit_object_expression(&mut self, it: &ObjectExpression<'a>) {
 		for prop in &it.properties {
 			#[allow(clippy::single_match)]
 			match prop {
@@ -299,7 +305,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_object_expression(self, it);
 	}
 
-	fn visit_function_body(&mut self, it: &oxc_ast::ast::FunctionBody<'a>) {
+	fn visit_function_body(&mut self, it: &FunctionBody<'a>) {
 		// tag function for use in sourcemaps
 		if self.config.do_sourcemaps {
 			self.jschanges.push(JsChange::SourceTag {
@@ -309,7 +315,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_function_body(self, it);
 	}
 
-	fn visit_return_statement(&mut self, it: &oxc_ast::ast::ReturnStatement<'a>) {
+	fn visit_return_statement(&mut self, it: &ReturnStatement<'a>) {
 		// if let Some(arg) = &it.argument {
 		// 	self.jschanges.push(JsChange::GenericChange {
 		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
@@ -323,7 +329,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_return_statement(self, it);
 	}
 
-	fn visit_unary_expression(&mut self, it: &oxc_ast::ast::UnaryExpression<'a>) {
+	fn visit_unary_expression(&mut self, it: &UnaryExpression<'a>) {
 		if matches!(it.operator, UnaryOperator::Typeof) {
 			// don't walk to identifier rewrites since it won't matter
 			return;
@@ -332,18 +338,18 @@ impl<'a> Visit<'a> for Rewriter {
 	}
 
 	// we don't want to rewrite the identifiers here because of a very specific edge case
-	fn visit_for_in_statement(&mut self, it: &oxc_ast::ast::ForInStatement<'a>) {
+	fn visit_for_in_statement(&mut self, it: &ForInStatement<'a>) {
 		walk::walk_statement(self, &it.body);
 	}
-	fn visit_for_of_statement(&mut self, it: &oxc_ast::ast::ForOfStatement<'a>) {
+	fn visit_for_of_statement(&mut self, it: &ForOfStatement<'a>) {
 		walk::walk_statement(self, &it.body);
 	}
 
-	fn visit_update_expression(&mut self, _it: &oxc_ast::ast::UpdateExpression<'a>) {
+	fn visit_update_expression(&mut self, _it: &UpdateExpression<'a>) {
 		// then no, don't walk it, we don't care
 	}
 
-	fn visit_meta_property(&mut self, it: &oxc_ast::ast::MetaProperty<'a>) {
+	fn visit_meta_property(&mut self, it: &MetaProperty<'a>) {
 		if it.meta.name == "import" {
 			self.jschanges.push(JsChange::GenericChange {
 				span: it.span,
@@ -352,7 +358,7 @@ impl<'a> Visit<'a> for Rewriter {
 		}
 	}
 
-	fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
+	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'a>) {
 		#[allow(clippy::single_match)]
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
