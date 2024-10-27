@@ -11,4 +11,4 @@ cp -r assets/ $DST/assets
 cp -r dist/ $DST/scram
 cp -r static/* $DST
 
-echo 'let _CONFIG = { wispurl: "wss://aluu.xyz/wisp", bareurl: "https://aluu.xyz/bare/" }' > $DST/config.js
+echo 'let _CONFIG = { wispurl: "wss://aluu.xyz/wisp/", bareurl: "https://aluu.xyz/bare/" }' > $DST/config.js
