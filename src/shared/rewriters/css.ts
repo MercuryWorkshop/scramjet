@@ -1,11 +1,11 @@
 import { URLMeta, rewriteUrl, unrewriteUrl } from "./url";
 
 export function rewriteCss(css: string, meta: URLMeta) {
-	return handleCss("unrewrite", css, meta);
+	return handleCss("rewrite", css, meta);
 }
 
 export function unrewriteCss(css: string) {
-	return handleCss("rewrite", css);
+	return handleCss("unrewrite", css);
 }
 
 function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
@@ -17,6 +17,7 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 	css = css.replace(urlRegex, (match, url) => {
 		const encodedUrl =
 			type === "rewrite" ? rewriteUrl(url, meta) : unrewriteUrl(url);
+		console.log(encodedUrl);
 
 		return match.replace(url, encodedUrl);
 	});
