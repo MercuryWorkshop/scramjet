@@ -148,7 +148,6 @@ export const htmlRules: {
 		// csp stuff that must be deleted
 		nonce: "*",
 		crossorigin: "*",
-		"http-equiv": ["meta"],
 		integrity: ["script", "link"],
 		sandbox: ["iframe"],
 		csp: ["iframe"],
