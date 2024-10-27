@@ -147,7 +147,10 @@ export const htmlRules: {
 
 		// csp stuff that must be deleted
 		nonce: "*",
+		crossorigin: "*",
+		"http-equiv": ["meta"],
 		integrity: ["script", "link"],
+		sandbox: ["iframe"],
 		csp: ["iframe"],
 	},
 	{
@@ -155,6 +158,7 @@ export const htmlRules: {
 
 		// srcset
 		srcset: ["img", "source"],
+		srcSet: ["img", "source"],
 		imagesrcset: ["link"],
 	},
 	{

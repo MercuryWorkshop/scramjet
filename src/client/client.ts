@@ -238,6 +238,7 @@ export class ScramjetClient {
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		if (!target) return;
+
 		const original = Reflect.get(target, prop);
 		this.natives[name] = original;
 
