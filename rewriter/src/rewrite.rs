@@ -15,7 +15,7 @@ use oxc::{
 		Visit,
 	},
 	diagnostics::OxcDiagnostic,
-	parser::Parser,
+	parser::{ParseOptions, Parser},
 	span::{Atom, GetSpan, SourceType, Span},
 	syntax::operator::{AssignmentOperator, UnaryOperator},
 };
@@ -420,7 +420,13 @@ fn random_string() -> String {
 pub fn rewrite(js: &str, url: Url, config: Config) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
-	let ret = Parser::new(&allocator, js, source_type).parse();
+	let ret = Parser::new(&allocator, js, source_type)
+		.with_options(ParseOptions {
+			parse_regular_expression: false, // default
+			allow_return_outside_function: true,
+			preserve_parens: true, // default
+		})
+		.parse();
 
 	let program = ret.program;
 
