@@ -49,7 +49,7 @@ export class ScramjetServiceWorker extends EventTarget {
 				const res = db.result;
 				const tx = res.transaction("cookies", "readwrite");
 				const store = tx.objectStore("cookies");
-				store.put(this.cookieStore.dump(), "cookies");
+				store.put(JSON.parse(this.cookieStore.dump()), "cookies");
 			}
 		});
 	}
