@@ -237,6 +237,7 @@ export class ScramjetClient {
 		const split = name.split(".");
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
+		if (!target) return;
 		const original = Reflect.get(target, prop);
 		this.natives[name] = original;
 
@@ -362,6 +363,7 @@ export class ScramjetClient {
 		const split = name.split(".");
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
+		if (!target) return;
 
 		const original = nativeGetOwnPropertyDescriptor(target, prop);
 		this.descriptors[name] = original;
