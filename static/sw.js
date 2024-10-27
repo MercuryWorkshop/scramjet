@@ -36,17 +36,17 @@ self.addEventListener("message", ({ data }) => {
 
 scramjet.addEventListener("request", (e) => {
 	let headers = {};
-	if (e.url.href === playgroundData.origin + "/") {
+	if (playgroundData && e.url.href === playgroundData.origin + "/") {
 		headers["content-type"] = "text/html";
 		e.response = new Response(playgroundData.html, {
 			headers,
 		});
-	} else if (e.url.href === playgroundData.origin + "/style.css") {
+	} else if (playgroundData && e.url.href === playgroundData.origin + "/style.css") {
 		headers["content-type"] = "text/css";
 		e.response = new Response(playgroundData.css, {
 			headers,
 		});
-	} else if (e.url.href === playgroundData.origin + "/script.js") {
+	} else if (playgroundData && e.url.href === playgroundData.origin + "/script.js") {
 		headers["content-type"] = "application/javascript";
 		e.response = new Response(playgroundData.js, {
 			headers,
