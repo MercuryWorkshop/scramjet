@@ -1,11 +1,11 @@
 import { URLMeta, rewriteUrl, unrewriteUrl } from "./url";
 
 export function rewriteCss(css: string, meta: URLMeta) {
-	handleCss("unrewrite", css, meta);
+	return handleCss("unrewrite", css, meta);
 }
 
 export function unrewriteCss(css: string) {
-	handleCss("rewrite", css);
+	return handleCss("rewrite", css);
 }
 
 function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
