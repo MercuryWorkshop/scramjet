@@ -123,7 +123,7 @@ export const htmlRules: {
 			"input",
 			"track",
 		],
-		href: ["a", "link", "area"],
+		href: ["a", "link", "area", "use"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
@@ -149,7 +149,6 @@ export const htmlRules: {
 		nonce: "*",
 		crossorigin: "*",
 		integrity: ["script", "link"],
-		sandbox: ["iframe"],
 		csp: ["iframe"],
 	},
 	{
