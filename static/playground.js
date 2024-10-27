@@ -146,7 +146,9 @@ function loadResource(url) {
   })
 }
 function loadiframe()  {
+	if (document.getElementById("nested-frame")) return;
 	let frame = document.createElement("iframe");
+	frame.id = "nested-frame";
 	frame.src = "https://google.com";
 	document.body.appendChild(frame);
 }`,

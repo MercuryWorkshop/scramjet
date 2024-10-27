@@ -1,64 +1,43 @@
-// This CSS rewriter uses code from Meteor
-// You can find the original source code at https://github.com/MeteorProxy/Meteor
-
 import { URLMeta, rewriteUrl, unrewriteUrl } from "./url";
 
 export function rewriteCss(css: string, meta: URLMeta) {
-	const regex =
-		/(@import\s+(?!url\())?\s*url\(\s*(['"]?)([^'")]+)\2\s*\)|@import\s+(['"])([^'"]+)\4/g;
-
-	return css.replace(
-		regex,
-		(
-			match,
-			importStatement,
-			urlQuote,
-			urlContent,
-			importQuote,
-			importContent
-		) => {
-			const url = urlContent || importContent;
-			const encodedUrl = rewriteUrl(url.trim(), meta);
-
-			if (importStatement) {
-				return `@import url(${urlQuote}${encodedUrl}${urlQuote})`;
-			}
-
-			if (importQuote) {
-				return `@import ${importQuote}${encodedUrl}${importQuote}`;
-			}
-
-			return `url(${urlQuote}${encodedUrl}${urlQuote})`;
-		}
-	);
+	return handleCss("rewrite", css, meta);
 }
 
 export function unrewriteCss(css: string) {
-	const regex =
-		/(@import\s+(?!url\())?\s*url\(\s*(['"]?)([^'")]+)\2\s*\)|@import\s+(['"])([^'"]+)\4/g;
+	return handleCss("unrewrite", css);
+}
 
-	return css.replace(
-		regex,
-		(
-			match,
+function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
+	// regex from vk6 (https://github.com/ading2210)
+	const urlRegex = /url\(['"]?(.+?)['"]?\)/gm;
+	const Atruleregex =
+		/@import\s+(url\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gm;
+	css = new String(css).toString();
+	css = css.replace(urlRegex, (match, url) => {
+		const encodedUrl =
+			type === "rewrite" ? rewriteUrl(url, meta) : unrewriteUrl(url);
+		console.log(encodedUrl);
+
+		return match.replace(url, encodedUrl);
+	});
+	css = css.replace(Atruleregex, (match, importStatement) => {
+		return match.replace(
 			importStatement,
-			urlQuote,
-			urlContent,
-			importQuote,
-			importContent
-		) => {
-			const url = urlContent || importContent;
-			const encodedUrl = unrewriteUrl(url.trim());
+			importStatement.replace(
+				/^(url\(['"]?|['"]|)(.+?)(['"]|['"]?\)|)$/gm,
+				(match, firstQuote, url, endQuote) => {
+					if (firstQuote.startsWith("url")) {
+						return match;
+					}
+					const encodedUrl =
+						type === "rewrite" ? rewriteUrl(url, meta) : unrewriteUrl(url);
 
-			if (importStatement) {
-				return `@import url(${urlQuote}${encodedUrl}${urlQuote})`;
-			}
+					return `${firstQuote}${encodedUrl}${endQuote}`;
+				}
+			)
+		);
+	});
 
-			if (importQuote) {
-				return `@import ${importQuote}${encodedUrl}${importQuote}`;
-			}
-
-			return `url(${urlQuote}${encodedUrl}${urlQuote})`;
-		}
-	);
+	return css;
 }
