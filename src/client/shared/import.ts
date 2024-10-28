@@ -10,7 +10,7 @@ export default function (client: ScramjetClient, self: Self) {
 			const resolved = new URL(url, base).href;
 
 			return Function(
-				`return import("${rewriteUrl(resolved, client.meta)}")`
+				`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
 			)();
 		};
 	};

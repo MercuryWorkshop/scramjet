@@ -24,7 +24,7 @@ export function rewriteWorkers(
 	script("client");
 	console.log(str);
 
-	let rewritten = rewriteJs(js, meta);
+	let rewritten = rewriteJs(js, type === "module", meta);
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
 	}

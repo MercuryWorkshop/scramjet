@@ -139,6 +139,7 @@ fn create_rewriter_output(
 #[wasm_bindgen]
 pub fn rewrite_js(
 	js: String,
+	module: bool,
 	url: &str,
 	script_url: String,
 	scramjet: &Object,
@@ -149,7 +150,7 @@ pub fn rewrite_js(
 	}
 
 	let before = Instant::now();
-	let out = rewrite(&js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, module, Url::from_str(url)?, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)
@@ -158,6 +159,7 @@ pub fn rewrite_js(
 #[wasm_bindgen]
 pub fn rewrite_js_from_arraybuffer(
 	js: Vec<u8>,
+	module: bool,
 	url: &str,
 	script_url: String,
 	scramjet: &Object,
@@ -171,7 +173,7 @@ pub fn rewrite_js_from_arraybuffer(
 	let js = unsafe { String::from_utf8_unchecked(js) };
 
 	let before = Instant::now();
-	let out = rewrite(&js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, module, Url::from_str(url)?, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)

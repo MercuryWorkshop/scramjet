@@ -24,12 +24,14 @@ const decoder = new TextDecoder();
 
 function rewriteJsWrapper(
 	input: string | ArrayBuffer,
+	module: boolean,
 	meta: URLMeta
 ): string | ArrayBuffer {
 	let out: RewriterOutput;
 	if (typeof input === "string") {
 		out = rewrite_js(
 			input,
+			module,
 			meta.base.href,
 			"PERCS_PLEASE_FILL_THIS_IN.js",
 			$scramjet
@@ -37,6 +39,7 @@ function rewriteJsWrapper(
 	} else {
 		out = rewrite_js_from_arraybuffer(
 			new Uint8Array(input),
+			module,
 			meta.base.href,
 			"PERCS_PLEASE_FILL_THIS_IN.js",
 			$scramjet
@@ -67,17 +70,27 @@ function rewriteJsWrapper(
 	return typeof input === "string" ? decoder.decode(js) : js;
 }
 
-export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
-	if (flagEnabled("naiiveRewriter", meta.origin)) {
-		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
+export function rewriteJs(
+	js: string | ArrayBuffer,
+	module: boolean,
+	meta: URLMeta
+) {
+	const j = rewriteJsWrapper(js, module, meta);
 
-		console.log("naiive");
+	const text = typeof j === "string" ? j : new TextDecoder().decode(j);
+	if (module) {
+		js = `
+			let location = $scramjet$wrap(self.location);
+			let window = $scramjet$wrap(self.window);
+			let globalThis = $scramjet$wrap(self.globalThis);
 
-		return rewriteJsNaiive(text);
+			${text}
+		`;
+	} else {
+		js = `(function(window, location, globalThis) {
+			${text}
+		}).call($scramjet$wrap(this), $scramjet$wrap(window), $scramjet$wrap(location), $scramjet$wrap(globalThis))`;
 	}
-
-	js = rewriteJsWrapper(js, meta);
-
 	return js;
 }
 
@@ -93,10 +106,10 @@ export function rewriteJsNaiive(js: string | ArrayBuffer) {
 	}
 
 	return `
-		with (${$scramjet.config.globals.wrapfn}(globalThis)) {
+	with (${$scramjet.config.globals.wrapfn} (globalThis)) {
 
 			${js}
 
-		}
+	}
 	`;
 }

@@ -5,6 +5,7 @@ use oxc_allocator::Allocator;
 use oxc_ast::{
 	ast::{
 		AssignmentTarget, Expression, IdentifierReference, MemberExpression, ObjectPropertyKind,
+		Statement, VariableDeclaration,
 	},
 	visit::walk,
 	Visit,
@@ -65,7 +66,7 @@ impl Rewriter {
 
 		let urlencoded = (self.config.encode)(url.to_string());
 
-		format!("\"{}{}\"", self.config.prefix, urlencoded)
+		format!("\"{}{}?type=module\"", self.config.prefix, urlencoded)
 	}
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
@@ -106,20 +107,23 @@ impl<'a> Visit<'a> for Rewriter {
 		// 		),
 		// 	});
 		// } else {
-		if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
-			self.jschanges.push(JsChange::GenericChange {
-				span: it.span,
-				text: format!("{}({})", self.config.wrapfn, it.name),
-			});
-		}
+		// if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
+		// 	self.jschanges.push(JsChange::GenericChange {
+		// 		span: it.span,
+		// 		text: format!("{}({})", self.config.wrapfn, it.name),
+		// 	});
+		// }
 		// }
 	}
 
+	// fn visit_program(&mut self, it: &oxc_ast::ast::Program<'a>) {
+	//     it.directives[0].
+	// }
 	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
-	fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
-		self.walk_member_expression(&it.callee);
-		walk::walk_arguments(self, &it.arguments);
-	}
+	// fn visit_new_expression(&mut self, it: &oxc_ast::ast::NewExpression<'a>) {
+	// 	// self.walk_member_expression(&it.callee);
+	// 	walk::walk_arguments(self, &it.arguments);
+	// }
 	fn visit_member_expression(&mut self, it: &oxc_ast::ast::MemberExpression<'a>) {
 		match it {
 			MemberExpression::StaticMemberExpression(s) => {
@@ -131,18 +135,6 @@ impl<'a> Visit<'a> for Rewriter {
 					});
 
 					return; // unwise to walk the rest of the tree
-				}
-
-				if !self.config.strict_rewrites
-					&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
-				{
-					if let Expression::Identifier(_) = &s.object {
-						// cull tree - this should be safe
-						return;
-					}
-					if let Expression::ThisExpression(_) = &s.object {
-						return;
-					}
 				}
 
 				if self.config.scramitize
@@ -170,12 +162,12 @@ impl<'a> Visit<'a> for Rewriter {
 
 		walk::walk_member_expression(self, it);
 	}
-	fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
-		self.jschanges.push(JsChange::GenericChange {
-			span: it.span,
-			text: format!("{}(this)", self.config.wrapthisfn),
-		});
-	}
+	// fn visit_this_expression(&mut self, it: &oxc_ast::ast::ThisExpression) {
+	// 	self.jschanges.push(JsChange::GenericChange {
+	// 		span: it.span,
+	// 		text: format!("{}(this)", self.config.wrapthisfn),
+	// 	});
+	// }
 
 	fn visit_debugger_statement(&mut self, it: &oxc_ast::ast::DebuggerStatement) {
 		// delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
@@ -276,28 +268,28 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_try_statement(self, it);
 	}
 
-	fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
-		for prop in &it.properties {
-			#[allow(clippy::single_match)]
-			match prop {
-				ObjectPropertyKind::ObjectProperty(p) => match &p.value {
-					Expression::Identifier(s) => {
-						if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
-							self.jschanges.push(JsChange::GenericChange {
-								span: s.span,
-								text: format!("{}: ({}({}))", s.name, self.config.wrapfn, s.name),
-							});
-							return;
-						}
-					}
-					_ => {}
-				},
-				_ => {}
-			}
-		}
-
-		walk::walk_object_expression(self, it);
-	}
+	// fn visit_object_expression(&mut self, it: &oxc_ast::ast::ObjectExpression<'a>) {
+	// 	for prop in &it.properties {
+	// 		#[allow(clippy::single_match)]
+	// 		match prop {
+	// 			ObjectPropertyKind::ObjectProperty(p) => match &p.value {
+	// 				Expression::Identifier(s) => {
+	// 					if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
+	// 						self.jschanges.push(JsChange::GenericChange {
+	// 							span: s.span,
+	// 							text: format!("{}: ({}({}))", s.name, self.config.wrapfn, s.name),
+	// 						});
+	// 						return;
+	// 					}
+	// 				}
+	// 				_ => {}
+	// 			},
+	// 			_ => {}
+	// 		}
+	// 	}
+	//
+	// 	walk::walk_object_expression(self, it);
+	// }
 
 	fn visit_function_body(&mut self, it: &oxc_ast::ast::FunctionBody<'a>) {
 		// tag function for use in sourcemaps
@@ -411,7 +403,12 @@ fn random_string() -> String {
 	.to_string()
 }
 
-pub fn rewrite(js: &str, url: Url, config: Config) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
+pub fn rewrite(
+	js: &str,
+	module: bool,
+	url: Url,
+	config: Config,
+) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
 	let ret = Parser::new(&allocator, js, source_type).parse();
@@ -426,7 +423,28 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Result<(Vec<u8>, Vec<OxcDi
 		config,
 	};
 
+	// dbg!(&program);
 	ast_pass.visit_program(&program);
+
+	if !module {
+		for s in &program.body {
+			if let Statement::VariableDeclaration(it) = s {
+				if !it.kind.is_var() {
+					continue;
+				}
+				ast_pass.jschanges.push(JsChange::GenericChange {
+					span: Span::new(it.span.start, it.declarations[0].span.start),
+					text: String::new(),
+				});
+				for d in &it.declarations {
+					ast_pass.jschanges.push(JsChange::GenericChange {
+						span: Span::new(d.id.span().start, d.id.span().start),
+						text: "fakeVars.".to_string(),
+					});
+				}
+			}
+		}
+	}
 
 	// sorrt changse
 	ast_pass.jschanges.sort_by(|a, b| {

@@ -113,6 +113,7 @@ fn dorewrite(source_text: &str) -> Result<String> {
 	Ok(from_utf8(
 		rewrite(
 			source_text,
+			false,
 			Url::from_str("https://google.com/glorngle/si.js").unwrap(),
 			Config {
 				prefix: "/scrammedjet/".to_string(),

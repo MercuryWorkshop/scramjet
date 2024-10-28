@@ -55,6 +55,21 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		writable: false,
 		configurable: false,
 	});
+
+	Object.defineProperty(self, "fakeVars", {
+		writable: false,
+		configurable: false,
+		value: new Proxy(
+			{},
+			{
+				set(t, p, v) {
+					console.log(p, v);
+					self[p] = v;
+					return true;
+				},
+			}
+		),
+	});
 	Object.defineProperty(self, config.globals.wrapthisfn, {
 		value: function (i) {
 			if (i === self) return client.globalProxy;

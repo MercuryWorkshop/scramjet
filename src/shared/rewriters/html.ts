@@ -113,16 +113,7 @@ export const htmlRules: {
 		},
 
 		// url rewrites
-		src: [
-			"embed",
-			"script",
-			"img",
-			"image",
-			"iframe",
-			"source",
-			"input",
-			"track",
-		],
+		src: ["embed", "img", "image", "iframe", "source", "input", "track"],
 		href: ["a", "link", "area"],
 		data: ["object"],
 		action: ["form"],
@@ -227,17 +218,28 @@ function traverseParsedHtml(
 		node.name === "script" &&
 		/(application|text)\/javascript|module|importmap|undefined/.test(
 			node.attribs.type
-		) &&
-		node.children[0] !== undefined
+		)
 	) {
-		let js = node.children[0].data;
-		// node.attribs[`data-scramjet-script-source-src`] = btoa(js);
-		node.attribs["data-scramjet-script-source-src"] = bytesToBase64(
-			new TextEncoder().encode(js)
-		);
-		const htmlcomment = /<!--[\s\S]*?-->/g;
-		js = js.replace(htmlcomment, "");
-		node.children[0].data = rewriteJs(js, meta);
+		if (node.children[0] !== undefined) {
+			let js = node.children[0].data;
+			// node.attribs[`data-scramjet-script-source-src`] = btoa(js);
+			node.attribs["data-scramjet-script-source-src"] = bytesToBase64(
+				new TextEncoder().encode(js)
+			);
+			const htmlcomment = /<!--[\s\S]*?-->/g;
+			js = js.replace(htmlcomment, "");
+			node.children[0].data = rewriteJs(
+				js,
+				node.attribs["type"] === "module",
+				meta
+			);
+		} else if (node.attribs["src"]) {
+			let url = rewriteUrl(node.attribs["src"], meta);
+			if (node.attribs["type"] === "module") url += "?type=module";
+
+			node.attribs["data-scramjet-src"] = node.attribs["src"];
+			node.attribs["src"] = url;
+		}
 	}
 
 	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {

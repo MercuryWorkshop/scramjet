@@ -202,7 +202,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		set(ctx, value: string) {
 			let newval;
 			if (ctx.this instanceof self.HTMLScriptElement) {
-				newval = rewriteJs(value, client.meta);
+				newval = rewriteJs(value, false, client.meta);
 			} else if (ctx.this instanceof self.HTMLStyleElement) {
 				newval = rewriteCss(value, client.meta);
 			} else {

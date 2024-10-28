@@ -300,7 +300,11 @@ async function rewriteBody(
 				return response.body;
 			}
 		case "script":
-			return rewriteJs(await response.arrayBuffer(), meta);
+			return rewriteJs(
+				await response.arrayBuffer(),
+				workertype === "module",
+				meta
+			);
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
