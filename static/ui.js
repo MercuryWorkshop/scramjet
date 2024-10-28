@@ -228,6 +228,7 @@ function BrowserApp() {
 
 	const cfg = h(Config);
 	document.body.appendChild(cfg);
+	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/tree/${$scramjet.version.build}`;
 
 	return html`
       <div>
@@ -245,7 +246,7 @@ function BrowserApp() {
         <button on:click=${() => window.open(scramjet.encodeUrl(this.url))}>open</button>
 
         <p class="version">
-          <b>scramjet</b> ${$scramjet.version.version} <a href="https://github.com/MercuryWorkshop/scramjet/tree/${$scramjet.version.build}">${$scramjet.version.build}</a>
+          <b>scramjet</b> ${$scramjet.version.version} <a href=${use(this.githubURL)}>${$scramjet.version.build}</a>
         </p>
       </div>
       ${frame.frame}
