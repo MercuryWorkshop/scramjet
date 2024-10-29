@@ -63,8 +63,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			{},
 			{
 				set(t, p, v) {
-					console.log(p, v);
-					self[p] = v;
+					try {
+						self[p] = v;
+					} catch {}
 					return true;
 				},
 			}
