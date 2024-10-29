@@ -206,7 +206,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 			} else if (ctx.this instanceof self.HTMLStyleElement) {
 				newval = rewriteCss(value, client.meta);
 			} else {
-				newval = rewriteHtml(value, client.cookieStore, client.meta);
+				try {
+					newval = rewriteHtml(value, client.cookieStore, client.meta);
+				} catch {
+					newval = value;
+				}
 			}
 
 			ctx.set(newval);
@@ -239,7 +243,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return unrewriteHtml(ctx.get());
 		},
 	});
-
 	client.Proxy("Element.prototype.insertAdjacentHTML", {
 		apply(ctx) {
 			if (ctx.args[1])
