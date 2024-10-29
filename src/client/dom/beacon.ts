@@ -1,5 +1,5 @@
-import { rewriteUrl } from "../../../shared";
-import { ScramjetClient } from "../../client";
+import { rewriteUrl } from "../../shared";
+import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self) {
 	client.Proxy("Navigator.prototype.sendBeacon", {
