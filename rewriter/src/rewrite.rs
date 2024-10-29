@@ -426,6 +426,7 @@ pub fn rewrite(
 	// dbg!(&program);
 	ast_pass.visit_program(&program);
 
+	let mut hoists = String::new();
 	if !module {
 		for s in &program.body {
 			if let Statement::VariableDeclaration(it) = s {
@@ -437,11 +438,39 @@ pub fn rewrite(
 					text: String::new(),
 				});
 				for d in &it.declarations {
-					ast_pass.jschanges.push(JsChange::GenericChange {
-						span: Span::new(d.id.span().start, d.id.span().start),
-						text: "fakeVars.".to_string(),
-					});
+					let Some(id) = d.id.get_identifier() else {
+						continue; // destructures are todo
+					};
+					if d.init.is_some() {
+						ast_pass.jschanges.push(JsChange::GenericChange {
+							span: Span::new(d.id.span().start, d.id.span().start),
+							text: "fakeVars.".to_string(),
+						});
+					} else {
+						ast_pass.jschanges.push(JsChange::GenericChange {
+							span: Span::new(d.id.span().start, d.id.span().end),
+							text: format!("fakeVars.{}??=undefined", id),
+						});
+					}
+					hoists += &format!(";fakeVars.{}??=undefined;", id);
 				}
+			}
+
+			// TODO the function stuff breaks easily if you overwrite it
+			if let Statement::FunctionDeclaration(it) = s {
+				let Some(id) = &it.id else { continue };
+				ast_pass.jschanges.push(JsChange::GenericChange {
+					span: Span::new(it.span.end, it.span.end),
+					text: format!(";fakeVars.{}={};", id, id),
+				});
+			}
+
+			if let Statement::ClassDeclaration(it) = s {
+				let Some(id) = &it.id else { continue };
+				ast_pass.jschanges.push(JsChange::GenericChange {
+					span: Span::new(it.span.end, it.span.end),
+					text: format!(";fakeVars.{}={};", id, id),
+				});
 			}
 		}
 	}
@@ -491,6 +520,7 @@ pub fn rewrite(
 
 	let size_estimate = (original_len as i32 + difference) as usize;
 	let mut buffer: Vec<u8> = Vec::with_capacity(size_estimate);
+	buffer.extend_from_slice(hoists.as_bytes());
 
 	let mut sourcemap: Vec<u8> = Vec::new();
 	if ast_pass.config.do_sourcemaps {
