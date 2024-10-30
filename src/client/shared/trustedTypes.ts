@@ -4,5 +4,5 @@ export default function (client, self) {
 	delete self.TrustedScriptURL;
 	delete self.TrustedTypePolicy;
 	delete self.TrustedTypePolicyFactory;
-	delete self.trustedTypes;
+	self.__defineGetter__("trustedTypes", () => undefined);
 }
