@@ -135,11 +135,13 @@ export async function swfetch(
 		if (cookies.length) {
 			headers.set("Cookie", cookies);
 		}
-
+		/*
+		// yeah this is VERY wrong, never do this again
 		// TODO this is wrong somehow
 		headers.set("Sec-Fetch-Mode", "cors");
 		headers.set("Sec-Fetch-Site", "same-origin");
 		headers.set("Sec-Fetch-Dest", "empty");
+		*/
 
 		const ev = new ScramjetRequestEvent("request");
 		ev.url = url;
