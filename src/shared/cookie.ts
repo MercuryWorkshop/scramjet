@@ -67,6 +67,7 @@ export class CookieStore {
 	}
 
 	load(cookies: string) {
+		if (typeof cookies === "object") return cookies;
 		this.cookies = JSON.parse(cookies);
 	}
 
