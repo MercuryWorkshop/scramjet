@@ -218,8 +218,10 @@ function traverseParsedHtml(
 				}
 			}
 		}
+		/*
 		for (const [attr, value] of Object.entries(node.attribs)) {
 			if (attr.startsWith("on")) {
+				console.log(`${attr}: ${value}`);
 				node.attribs[`data-scramjet-${attr}`] = attr;
 				node.attribs[attr] = rewriteJs(
 					value as string,
@@ -228,6 +230,7 @@ function traverseParsedHtml(
 				);
 			}
 		}
+		*/
 	}
 
 	if (node.name === "style" && node.children[0] !== undefined)
