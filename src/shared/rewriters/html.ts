@@ -198,7 +198,7 @@ function traverseParsedHtml(
 		meta.base = new URL(node.attribs.href, meta.origin);
 	}
 
-	if (node.attribs)
+	if (node.attribs) {
 		for (const rule of htmlRules) {
 			for (const attr in rule) {
 				const sel = rule[attr];
@@ -218,6 +218,17 @@ function traverseParsedHtml(
 				}
 			}
 		}
+		for (const [attr, value] of Object.entries(node.attribs)) {
+			if (attr.startsWith("on")) {
+				node.attribs[`data-scramjet-${attr}`] = attr;
+				node.attribs[attr] = rewriteJs(
+					value as string,
+					`(inline ${attr} on element)`,
+					meta
+				);
+			}
+		}
+	}
 
 	if (node.name === "style" && node.children[0] !== undefined)
 		node.children[0].data = rewriteCss(node.children[0].data, meta);
@@ -239,7 +250,7 @@ function traverseParsedHtml(
 		node.children[0].data = rewriteJs(js, "(inline script element)", meta);
 	}
 
-	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {
+	if (node.name === "meta" && node.attribs["http-equiv"] !== undefined) {
 		if (
 			node.attribs["http-equiv"].toLowerCase() === "content-security-policy"
 		) {
