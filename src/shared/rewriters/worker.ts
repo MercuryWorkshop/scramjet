@@ -6,6 +6,7 @@ const clientscripts = ["wasm", "shared", "client"];
 export function rewriteWorkers(
 	js: string | ArrayBuffer,
 	type: string,
+	url: string,
 	meta: URLMeta
 ) {
 	let str = "";
@@ -24,7 +25,7 @@ export function rewriteWorkers(
 	script("client");
 	console.log(str);
 
-	let rewritten = rewriteJs(js, meta);
+	let rewritten = rewriteJs(js, url, meta);
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
 	}

@@ -305,7 +305,12 @@ async function rewriteBody(
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
 		case "worker":
-			return rewriteWorkers(await response.arrayBuffer(), workertype, meta);
+			return rewriteWorkers(
+				await response.arrayBuffer(),
+				workertype,
+				response.url,
+				meta
+			);
 		default:
 			return response.body;
 	}
