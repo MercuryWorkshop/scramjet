@@ -24,21 +24,17 @@ const decoder = new TextDecoder();
 
 function rewriteJsWrapper(
 	input: string | ArrayBuffer,
+	url: string | null,
 	meta: URLMeta
 ): string | ArrayBuffer {
 	let out: RewriterOutput;
 	if (typeof input === "string") {
-		out = rewrite_js(
-			input,
-			meta.base.href,
-			"PERCS_PLEASE_FILL_THIS_IN.js",
-			$scramjet
-		);
+		out = rewrite_js(input, meta.base.href, url || "(unknown)", $scramjet);
 	} else {
 		out = rewrite_js_from_arraybuffer(
 			new Uint8Array(input),
 			meta.base.href,
-			"PERCS_PLEASE_FILL_THIS_IN.js",
+			url || "(unknown)",
 			$scramjet
 		);
 	}
@@ -67,7 +63,11 @@ function rewriteJsWrapper(
 	return typeof input === "string" ? decoder.decode(js) : js;
 }
 
-export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
+export function rewriteJs(
+	js: string | ArrayBuffer,
+	url: string | null,
+	meta: URLMeta
+) {
 	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
 
@@ -76,7 +76,7 @@ export function rewriteJs(js: string | ArrayBuffer, meta: URLMeta) {
 		return rewriteJsNaiive(text);
 	}
 
-	js = rewriteJsWrapper(js, meta);
+	js = rewriteJsWrapper(js, url, meta);
 
 	return js;
 }

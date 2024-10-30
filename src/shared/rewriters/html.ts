@@ -236,7 +236,7 @@ function traverseParsedHtml(
 		);
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
-		node.children[0].data = rewriteJs(js, meta);
+		node.children[0].data = rewriteJs(js, "(inline script element)", meta);
 	}
 
 	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {
