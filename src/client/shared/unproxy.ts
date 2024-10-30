@@ -43,6 +43,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 			} catch (e) {}
 		}
 	}
+	// this is probably not how stuff should be done but you cant run defineProperty on the window proxy so...
+	client.Proxy("Object.defineProperty", {
+		apply(ctx) {
+			unproxy(ctx, client);
+		},
+	});
 
 	client.Proxy("Object.getOwnPropertyDescriptor", {
 		apply(ctx) {
