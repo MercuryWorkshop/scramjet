@@ -18,14 +18,6 @@ import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
 
-declare global {
-	interface Window {
-		$s: any;
-		$tryset: any;
-		$sImport: any;
-	}
-}
-
 //eslint-disable-next-line
 export type AnyFunction = Function;
 

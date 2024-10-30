@@ -147,7 +147,6 @@ export const htmlRules: {
 
 		// csp stuff that must be deleted
 		nonce: "*",
-		crossorigin: "*",
 		integrity: ["script", "link"],
 		csp: ["iframe"],
 	},
