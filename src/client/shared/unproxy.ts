@@ -19,7 +19,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 						},
 					});
 				}
-			} catch (e) {}
+			} catch {}
 		}
 	}
 
@@ -40,7 +40,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 						},
 					});
 				}
-			} catch (e) {}
+			} catch {}
 		}
 	}
 	// this is probably not how stuff should be done but you cant run defineProperty on the window proxy so...
