@@ -34,38 +34,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 					if (!this.has(target, prop)) return undefined;
 
-					if (value instanceof Attr) {
-						const attr = value;
-
-						return new Proxy(attr, {
-							get(target, prop) {
-								if (
-									prop === "value" ||
-									prop === "nodeValue" ||
-									prop === "textContent"
-								) {
-									// we're using the proxied getAttribute here
-									return target.ownerElement.getAttribute(target.name);
-								}
-
-								return Reflect.get(target, prop);
-							},
-							set(target, prop, value) {
-								if (
-									prop === "value" ||
-									prop === "nodeValue" ||
-									prop === "textContent"
-								) {
-									target.ownerElement.setAttribute(target.name, value);
-
-									return true;
-								}
-
-								return Reflect.set(target, prop, value);
-							},
-						});
-					}
-
 					return value;
 				},
 				ownKeys(target) {
@@ -83,6 +51,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 			});
 
 			return proxy;
+		},
+	});
+
+	client.Trap("Attr.prototype.value", {
+		get(ctx) {
+			return ctx.this.ownerElement.getAttribute(ctx.this.name);
+		},
+		set(ctx, value) {
+			return ctx.this.ownerElement.setAttribute(ctx.this.name, value);
 		},
 	});
 }
