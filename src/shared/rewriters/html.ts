@@ -85,7 +85,7 @@ export function unrewriteHtml(html: string) {
 				}
 
 				if (key.startsWith("data-scramjet-")) {
-					node.attribs[key.slice(13)] = node.attribs[key];
+					node.attribs["data-scramjet-".length] = node.attribs[key];
 					delete node.attribs[key];
 				}
 			}
