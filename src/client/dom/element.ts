@@ -55,9 +55,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	for (const attr of attrs) {
 		for (const element of attrObject[attr]) {
+			const descriptor = nativeGetOwnPropertyDescriptor(
+				element.prototype,
+				attr
+			);
 			Object.defineProperty(element.prototype, attr, {
 				get() {
-					return this.getAttribute(attr);
+					if (["src", "data", "href", "action", "formaction"].includes(attr)) {
+						return unrewriteUrl(descriptor.get.call(this));
+					}
+
+					return descriptor.get.call(this);
 				},
 
 				set(value) {
