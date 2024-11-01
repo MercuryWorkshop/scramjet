@@ -149,6 +149,7 @@ export const htmlRules: {
 		nonce: "*",
 		integrity: ["script", "link"],
 		csp: ["iframe"],
+		credentialless: ["iframe"],
 	},
 	{
 		fn: (value: string, meta: URLMeta) => rewriteSrcset(value, meta),
@@ -216,19 +217,6 @@ function traverseParsedHtml(
 				}
 			}
 		}
-		/*
-		for (const [attr, value] of Object.entries(node.attribs)) {
-			if (attr.startsWith("on")) {
-				console.log(`${attr}: ${value}`);
-				node.attribs[`data-scramjet-${attr}`] = attr;
-				node.attribs[attr] = rewriteJs(
-					value as string,
-					`(inline ${attr} on element)`,
-					meta
-				);
-			}
-		}
-		*/
 	}
 
 	if (node.name === "style" && node.children[0] !== undefined)

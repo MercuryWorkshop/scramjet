@@ -25,6 +25,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		nonce: [self.HTMLElement],
 		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
 		csp: [self.HTMLIFrameElement],
+		credentialless: [self.HTMLIFrameElement],
 		src: [
 			self.HTMLImageElement,
 			self.HTMLMediaElement,
