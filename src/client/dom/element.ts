@@ -55,48 +55,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	for (const attr of attrs) {
 		for (const element of attrObject[attr]) {
-			const descriptor = nativeGetOwnPropertyDescriptor(
-				element.prototype,
-				attr
-			);
 			Object.defineProperty(element.prototype, attr, {
 				get() {
-					if (["src", "data", "href", "action", "formaction"].includes(attr)) {
-						return unrewriteUrl(descriptor.get.call(this));
-					}
-
-					return descriptor.get.call(this);
+					return this.getAttribute(attr);
 				},
 
 				set(value) {
-					nativeSetAttribute.call(this, "data-scramjet-" + attr, value);
-					if (["nonce", "integrity", "csp"].includes(attr)) {
-						return;
-					} else if (
-						["src", "data", "href", "action", "formaction"].includes(attr)
-					) {
-						if (element === HTMLMediaElement && value.startsWith("blob:")) {
-							// mediasource blobs cannot be handled in the service worker and must be sourced here
-							value = unrewriteBlob(value);
-						} else {
-							value = rewriteUrl(value, client.meta);
-						}
-					} else if (attr === "srcdoc") {
-						value = rewriteHtml(
-							value,
-							client.cookieStore,
-							{
-								// srcdoc preserves parent origin i think
-								base: new URL(client.url.origin),
-								origin: new URL(client.url.origin),
-							} as URLMeta,
-							true
-						);
-					} else if (["srcset", "imagesrcset"].includes(attr)) {
-						value = rewriteSrcset(value, client.meta);
-					}
-
-					descriptor.set.call(this, value);
+					return this.setAttribute(attr, value);
 				},
 			});
 		}
