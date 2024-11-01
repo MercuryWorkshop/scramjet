@@ -155,7 +155,6 @@ export const htmlRules: {
 
 		// srcset
 		srcset: ["img", "source"],
-		srcSet: ["img", "source"],
 		imagesrcset: ["link"],
 	},
 	{
@@ -200,7 +199,7 @@ function traverseParsedHtml(
 	if (node.attribs) {
 		for (const rule of htmlRules) {
 			for (const attr in rule) {
-				const sel = rule[attr];
+				const sel = rule[attr.toLowerCase()];
 				if (typeof sel === "function") continue;
 
 				if (sel === "*" || sel.includes(node.name)) {

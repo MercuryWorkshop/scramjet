@@ -123,7 +123,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const [name, value] = ctx.args;
 
 			const ruleList = htmlRules.find((rule) => {
-				const r = rule[name];
+				const r = rule[name.toLowerCase()];
 				if (!r) return false;
 				if (r === "*") return true;
 				if (typeof r === "function") return false; // this can't happen but ts
@@ -142,7 +142,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const [namespace, name, value] = ctx.args;
 
 			const ruleList = htmlRules.find((rule) => {
-				const r = rule[name];
+				const r = rule[name.toLowerCase()];
 				if (!r) return false;
 				if (r === "*") return true;
 				if (typeof r === "function") return false; // this can't happen but ts
