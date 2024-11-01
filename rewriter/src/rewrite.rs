@@ -136,6 +136,7 @@ impl<'a> Visit<'a> for Rewriter {
 						text: format!("{}({{}}).{}", self.config.setrealmfn, s.property.name),
 					});
 
+					walk::walk_expression(self, &s.object);
 					return; // unwise to walk the rest of the tree
 				}
 
