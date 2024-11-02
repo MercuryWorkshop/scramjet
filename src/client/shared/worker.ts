@@ -4,11 +4,6 @@ import { rewriteUrl } from "../../shared";
 import type { MessageC2W } from "../../worker";
 import { ScramjetClient } from "../client";
 
-const sharedworkerpostmessage = MessagePort.prototype.postMessage;
-let workerpostmessage;
-if (self.Worker) {
-	workerpostmessage = Worker.prototype.postMessage;
-}
 export default function (client: ScramjetClient, self: typeof globalThis) {
 	if (self.Worker) {
 		client.Proxy("Worker", {
@@ -26,7 +21,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 				(async () => {
 					const port = await conn.getInnerPort();
-					workerpostmessage.call(
+					client.natives["Worker.prototype.postMessage"].call(
 						worker,
 						{
 							$scramjet$type: "baremuxinit",
@@ -71,7 +66,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 				(async () => {
 					const port = await conn.getInnerPort();
-					sharedworkerpostmessage.call(
+					client.natives["MessagePort.prototype.postMessage"].call(
 						worker.port,
 						{
 							$scramjet$type: "baremuxinit",
