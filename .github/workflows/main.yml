@@ -36,7 +36,7 @@ jobs:
         run: npm install
 
       - name: Build Rewriter
-        run: npm run rewriter:build
+        run: RELEASE=1 npm run rewriter:build
 
       - name: Build Scramjet
         run: npm run build
