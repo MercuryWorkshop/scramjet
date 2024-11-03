@@ -5,7 +5,9 @@ import { ScramjetClient } from "../../client";
 export default function (client: ScramjetClient, self: Self) {
 	let worker;
 	if (self.Worker && flagEnabled("syncxhr", client.url)) {
-		worker = new client.natives["Worker"](config.files.sync);
+		worker = new (client.natives["Worker"] ? client.natives["Worker"] : Worker)(
+			config.files.sync
+		);
 	}
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");

@@ -3,7 +3,7 @@ import { config } from "../../shared";
 import { rewriteUrl } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: Self) {
-	const Function = client.natives.Function;
+	const Function = client.natives["Function"];
 
 	self[config.globals.importfn] = function (base: string) {
 		return function (url: string) {
