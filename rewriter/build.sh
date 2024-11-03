@@ -14,8 +14,16 @@ if [ "$(wasm-bindgen -V)" != "$WBG" ]; then
 	exit 1
 fi
 
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --features "${FEATURES:-}" --release
-wasm-bindgen --weak-refs --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
+if ! [ "${RELEASE:-0}" = "1" ]; then
+	: "${WASMOPTFLAGS:=-g}"
+	: "${FEATURES:=debug}"
+else
+	: "${WASMOPTFLAGS:=}"
+	: "${FEATURES:=}"
+fi
+
+RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --no-default-features --features "$FEATURES" --release
+wasm-bindgen --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
 
 sed -i 's/import.meta.url/""/g' out/rewriter.js
 
@@ -23,13 +31,8 @@ cd ..
 
 WASM=rewriter/out/rewriter_bg.wasm
 
-if ! [ "${RELEASE:-0}" = "1" ]; then
-	WASMOPTFLAGS="-g"
-else
-	WASMOPTFLAGS=""
-fi
-
-time wasm-opt $WASMOPTFLAGS -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
+# shellcheck disable=SC2086
+time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
 
 mkdir dist/ || true
 

@@ -114,6 +114,7 @@ fn dorewrite(source_text: &str) -> Result<String> {
 		rewrite(
 			source_text,
 			Url::from_str("https://google.com/glorngle/si.js").unwrap(),
+			"glongle1".to_string(),
 			Config {
 				prefix: "/scrammedjet/".to_string(),
 				encode: Box::new(encode_string),

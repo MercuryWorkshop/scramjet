@@ -9,7 +9,6 @@ crate-type = ["cdylib"]
 [features]
 default = ["debug"]
 debug = []
-drm = []
 
 [profile.speed]
 inherits = "release"
@@ -23,15 +22,9 @@ codegen-units = 1
 panic = "abort"
 
 [dependencies]
-console_error_panic_hook = "0.1.7"
-getrandom = { version = "0.2.15", features = ["js"] }
 instant = { version = "0.1.13", features = ["wasm-bindgen"] }
 js-sys = "0.3.69"
-obfstr = "0.4.3"
 oxc = "0.34.0"
-rand = "0.8.5"
-serde = "1.0.204"
-serde-wasm-bindgen = "0.6.5"
 thiserror = "1.0.64"
 url = "2.5.2"
 wasm-bindgen =  "0.2.92"

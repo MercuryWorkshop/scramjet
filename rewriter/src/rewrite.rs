@@ -1,5 +1,4 @@
 use core::str;
-use std::str::from_utf8;
 
 use oxc::{
 	allocator::Allocator,
@@ -405,20 +404,7 @@ const UNSAFE_GLOBALS: &[&str] = &[
 	"frames",
 ];
 
-fn random_string() -> String {
-	use rand::{distributions::Alphanumeric, thread_rng, Rng};
-
-	from_utf8(
-		&thread_rng()
-			.sample_iter(&Alphanumeric)
-			.take(10)
-			.collect::<Vec<u8>>(),
-	)
-	.unwrap()
-	.to_string()
-}
-
-pub fn rewrite(js: &str, url: Url, config: Config) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
+pub fn rewrite(js: &str, url: Url, sourcetag: String, config: Config) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
 	let ret = Parser::new(&allocator, js, source_type)
@@ -430,8 +416,6 @@ pub fn rewrite(js: &str, url: Url, config: Config) -> Result<(Vec<u8>, Vec<OxcDi
 		.parse();
 
 	let program = ret.program;
-
-	let sourcetag = random_string();
 
 	let mut ast_pass = Rewriter {
 		jschanges: Vec::new(),

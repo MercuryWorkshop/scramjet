@@ -1,7 +1,7 @@
 pub mod error;
 pub mod rewrite;
 
-use std::{panic, str::FromStr, sync::Arc, time::Duration};
+use std::{str::FromStr, sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
 use instant::Instant;
@@ -16,6 +16,18 @@ const REWRITER_OUTPUT: &'static str = r#"
 type RewriterOutput = { js: Uint8Array, errors: string[], duration: bigint };
 "#;
 
+#[wasm_bindgen(inline_js = r#"
+// slightly modified https://github.com/ungap/random-uuid/blob/main/index.js
+export function scramtag() {
+    return (""+1e10).replace(/[018]/g,
+      c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+}
+"#)]
+extern "C" {
+	pub fn scramtag() -> String;
+}
+
 #[wasm_bindgen]
 extern "C" {
 	#[wasm_bindgen(typescript_type = "RewriterOutput")]
@@ -26,11 +38,6 @@ extern "C" {
 extern "C" {
 	#[wasm_bindgen(js_namespace = console)]
 	fn error(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn init() {
-	panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
 fn create_encode_function(encode: JsValue) -> Result<EncodeFn> {
@@ -101,16 +108,6 @@ fn get_config(scramjet: &Object, url: &str) -> Result<Config> {
 	})
 }
 
-#[cfg(feature = "drm")]
-#[inline(always)]
-fn drmcheck() -> bool {
-	use js_sys::global;
-	use obfstr::obfstr;
-
-	let true_origin = get_str(&get_obj(&global(), obfstr!("location")), obfstr!("origin"));
-	return vec![obfstr!("http://localhost:1337")].contains(&true_origin.as_str());
-}
-
 fn duration_to_millis_f64(duration: Duration) -> f64 {
 	(duration.as_secs() as f64) * 1_000f64 + (duration.subsec_nanos() as f64) / 1_000_000f64
 }
@@ -122,6 +119,7 @@ fn create_rewriter_output(
 	duration: Duration,
 ) -> Result<RewriterOutput> {
 	let src = Arc::new(NamedSource::new(url, src).with_language("javascript"));
+	#[cfg(feature = "debug")]
 	let errs: Vec<_> = out
 		.1
 		.into_iter()
@@ -130,7 +128,10 @@ fn create_rewriter_output(
 
 	let obj = Object::new();
 	set_obj(&obj, "js", &out.0.into())?;
+	#[cfg(feature = "debug")]
 	set_obj(&obj, "errors", &errs.into())?;
+	#[cfg(not(feature = "debug"))]
+	set_obj(&obj, "errors", &js_sys::Array::new())?;
 	set_obj(&obj, "duration", &duration_to_millis_f64(duration).into())?;
 
 	Ok(RewriterOutput::from(JsValue::from(obj)))
@@ -143,13 +144,8 @@ pub fn rewrite_js(
 	script_url: String,
 	scramjet: &Object,
 ) -> Result<RewriterOutput> {
-	#[cfg(feature = "drm")]
-	if !drmcheck() {
-		return Vec::new();
-	}
-
 	let before = Instant::now();
-	let out = rewrite(&js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, Url::from_str(url)?, scramtag(), get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)
@@ -162,16 +158,11 @@ pub fn rewrite_js_from_arraybuffer(
 	script_url: String,
 	scramjet: &Object,
 ) -> Result<RewriterOutput> {
-	#[cfg(feature = "drm")]
-	if !drmcheck() {
-		return Vec::new();
-	}
-
 	// we know that this is a valid utf-8 string
 	let js = unsafe { String::from_utf8_unchecked(js) };
 
 	let before = Instant::now();
-	let out = rewrite(&js, Url::from_str(url)?, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, Url::from_str(url)?, scramtag(), get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)
