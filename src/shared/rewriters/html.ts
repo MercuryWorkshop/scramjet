@@ -143,11 +143,15 @@ export const htmlRules: {
 		src: ["video", "audio"],
 	},
 	{
+		fn: () => "",
+
+		integrity: ["script", "link"],
+	},
+	{
 		fn: () => null,
 
 		// csp stuff that must be deleted
 		nonce: "*",
-		integrity: ["script", "link"],
 		csp: ["iframe"],
 		credentialless: ["iframe"],
 	},
