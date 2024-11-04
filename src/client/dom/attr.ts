@@ -32,6 +32,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 						});
 					}
 
+					if (
+						(typeof prop === "string" || typeof prop === "number") &&
+						!isNaN(Number(prop))
+					) {
+						const position = Object.keys(proxy)[prop];
+
+						return map[position];
+					}
+
 					if (!this.has(target, prop)) return undefined;
 
 					return value;
