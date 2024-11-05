@@ -54,7 +54,9 @@ function rewriteJsWrapper(
 		} else {
 			timespan = "really slow";
 		}
-		console.log(`oxc rewrite was ${timespan} (${duration}ms)`);
+		console.log(
+			`oxc rewrite for "${url || "(unknown)"}" was ${timespan} (${duration}ms)`
+		);
 	}
 
 	return typeof input === "string" ? decoder.decode(js) : js;

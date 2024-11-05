@@ -333,6 +333,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ftree"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "241f9dd9089e67c0b269989e9f884b12a61f68fc07ea8a4be6af8ee164e1abf7"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -495,6 +504,15 @@ checksum = "707907fe3c25f5424cce2cb7e1cbcafee6bdbe735ca90ef77c29e84591e5b9da"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.0",
+]
+
+[[package]]
+name = "indexset"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6279c421b4feea3fb8e07ea6bd0934b38b641f6601d5f6677062fad15272ed57"
+dependencies = [
+ "ftree",
 ]
 
 [[package]]
@@ -1032,6 +1050,7 @@ name = "rewriter"
 version = "0.1.0"
 dependencies = [
  "boa_engine",
+ "indexset",
  "instant",
  "js-sys",
  "oxc",

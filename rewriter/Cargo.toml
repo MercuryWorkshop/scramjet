@@ -10,18 +10,15 @@ crate-type = ["cdylib"]
 default = ["debug"]
 debug = []
 
-[profile.speed]
-inherits = "release"
-opt-level = 3
-
 [profile.release]
-opt-level = "z"
+opt-level = 3
 debug = true
 lto = true
 codegen-units = 1
 panic = "abort"
 
 [dependencies]
+indexset = "0.5.0"
 instant = { version = "0.1.13", features = ["wasm-bindgen"] }
 js-sys = "0.3.69"
 oxc = "0.34.0"

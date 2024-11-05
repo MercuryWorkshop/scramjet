@@ -1,5 +1,6 @@
-use core::str;
+use std::str;
 
+use indexset::BTreeSet;
 use oxc::{
 	allocator::Allocator,
 	ast::{
@@ -22,7 +23,7 @@ use url::Url;
 
 use crate::error::{Result, RewriterError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum JsChange {
 	GenericChange {
 		span: Span,
@@ -39,9 +40,47 @@ enum JsChange {
 	},
 }
 
+impl JsChange {
+	fn inner_cmp(&self, other: &Self) -> std::cmp::Ordering {
+		let a = match self {
+			JsChange::GenericChange { span, text: _ } => span.start,
+			JsChange::Assignment {
+				name: _,
+				entirespan,
+				rhsspan: _,
+				op: _,
+			} => entirespan.start,
+			JsChange::SourceTag { tagstart } => *tagstart,
+		};
+		let b = match other {
+			JsChange::GenericChange { span, text: _ } => span.start,
+			JsChange::Assignment {
+				name: _,
+				entirespan,
+				rhsspan: _,
+				op: _,
+			} => entirespan.start,
+			JsChange::SourceTag { tagstart } => *tagstart,
+		};
+		a.cmp(&b)
+	}
+}
+
+impl PartialOrd for JsChange {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		Some(self.inner_cmp(other))
+	}
+}
+
+impl Ord for JsChange {
+	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+		self.inner_cmp(other)
+	}
+}
+
 pub type EncodeFn = Box<dyn Fn(String) -> String>;
 struct Rewriter {
-	jschanges: Vec<JsChange>,
+	jschanges: BTreeSet<JsChange>,
 	base: Url,
 	config: Config,
 }
@@ -75,7 +114,7 @@ impl Rewriter {
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
 		if UNSAFE_GLOBALS.contains(&name.to_string().as_str()) {
-			self.jschanges.push(JsChange::GenericChange {
+			self.jschanges.insert(JsChange::GenericChange {
 				span,
 				text: format!("({}({}))", self.config.wrapfn, name),
 			});
@@ -103,7 +142,7 @@ impl Rewriter {
 impl<'a> Visit<'a> for Rewriter {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference<'a>) {
 		// if self.config.capture_errors {
-		// 	self.jschanges.push(JsChange::GenericChange {
+		// 	self.jschanges.insert(JsChange::GenericChange {
 		// 		span: it.span,
 		// 		text: format!(
 		// 			"{}({}, typeof arguments != 'undefined' && arguments)",
@@ -112,7 +151,7 @@ impl<'a> Visit<'a> for Rewriter {
 		// 	});
 		// } else {
 		if UNSAFE_GLOBALS.contains(&it.name.to_string().as_str()) {
-			self.jschanges.push(JsChange::GenericChange {
+			self.jschanges.insert(JsChange::GenericChange {
 				span: it.span,
 				text: format!("{}({})", self.config.wrapfn, it.name),
 			});
@@ -129,7 +168,7 @@ impl<'a> Visit<'a> for Rewriter {
 		match it {
 			MemberExpression::StaticMemberExpression(s) => {
 				if s.property.name == "postMessage" {
-					self.jschanges.push(JsChange::GenericChange {
+					self.jschanges.insert(JsChange::GenericChange {
 						span: s.property.span,
 						// an empty object will let us safely reconstruct the realm later
 						text: format!("{}({{}}).{}", self.config.setrealmfn, s.property.name),
@@ -156,11 +195,11 @@ impl<'a> Visit<'a> for Rewriter {
 					&& !matches!(s.object, Expression::Super(_))
 				{
 					let span = s.object.span();
-					self.jschanges.push(JsChange::GenericChange {
+					self.jschanges.insert(JsChange::GenericChange {
 						span: Span::new(span.start, span.start),
 						text: " $scramitize(".to_string(),
 					});
-					self.jschanges.push(JsChange::GenericChange {
+					self.jschanges.insert(JsChange::GenericChange {
 						span: Span::new(span.end, span.end),
 						text: ")".to_string(),
 					});
@@ -177,7 +216,7 @@ impl<'a> Visit<'a> for Rewriter {
 		walk::walk_member_expression(self, it);
 	}
 	fn visit_this_expression(&mut self, it: &ThisExpression) {
-		self.jschanges.push(JsChange::GenericChange {
+		self.jschanges.insert(JsChange::GenericChange {
 			span: it.span,
 			text: format!("{}(this)", self.config.wrapthisfn),
 		});
@@ -185,7 +224,7 @@ impl<'a> Visit<'a> for Rewriter {
 
 	fn visit_debugger_statement(&mut self, it: &DebuggerStatement) {
 		// delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
-		self.jschanges.push(JsChange::GenericChange {
+		self.jschanges.insert(JsChange::GenericChange {
 			span: it.span,
 			text: "".to_string(),
 		});
@@ -197,11 +236,11 @@ impl<'a> Visit<'a> for Rewriter {
 		if let Expression::Identifier(s) = &it.callee {
 			// if it's optional that actually makes it an indirect eval which is handled separately
 			if s.name == "eval" && !it.optional {
-				self.jschanges.push(JsChange::GenericChange {
+				self.jschanges.insert(JsChange::GenericChange {
 					span: Span::new(s.span.start, s.span.end + 1),
 					text: format!("eval({}(", self.config.rewritefn),
 				});
-				self.jschanges.push(JsChange::GenericChange {
+				self.jschanges.insert(JsChange::GenericChange {
 					span: Span::new(it.span.end, it.span.end),
 					text: ")".to_string(),
 				});
@@ -213,11 +252,11 @@ impl<'a> Visit<'a> for Rewriter {
 			}
 		}
 		if self.config.scramitize {
-			self.jschanges.push(JsChange::GenericChange {
+			self.jschanges.insert(JsChange::GenericChange {
 				span: Span::new(it.span.start, it.span.start),
 				text: " $scramitize(".to_string(),
 			});
-			self.jschanges.push(JsChange::GenericChange {
+			self.jschanges.insert(JsChange::GenericChange {
 				span: Span::new(it.span.end, it.span.end),
 				text: ")".to_string(),
 			});
@@ -228,14 +267,14 @@ impl<'a> Visit<'a> for Rewriter {
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'a>) {
 		let name = it.source.value.to_string();
 		let text = self.rewrite_url(name);
-		self.jschanges.push(JsChange::GenericChange {
+		self.jschanges.insert(JsChange::GenericChange {
 			span: it.source.span,
 			text,
 		});
 		walk::walk_import_declaration(self, it);
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'a>) {
-		self.jschanges.push(JsChange::GenericChange {
+		self.jschanges.insert(JsChange::GenericChange {
 			span: Span::new(it.span.start, it.span.start + 6),
 			text: format!("({}(\"{}\"))", self.config.importfn, self.base),
 		});
@@ -245,7 +284,7 @@ impl<'a> Visit<'a> for Rewriter {
 	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
 		let name = it.source.value.to_string();
 		let text = self.rewrite_url(name);
-		self.jschanges.push(JsChange::GenericChange {
+		self.jschanges.insert(JsChange::GenericChange {
 			span: it.source.span,
 			text,
 		});
@@ -255,7 +294,7 @@ impl<'a> Visit<'a> for Rewriter {
 		if let Some(source) = &it.source {
 			let name = source.value.to_string();
 			let text = self.rewrite_url(name);
-			self.jschanges.push(JsChange::GenericChange {
+			self.jschanges.insert(JsChange::GenericChange {
 				span: source.span,
 				text,
 			});
@@ -271,7 +310,7 @@ impl<'a> Visit<'a> for Rewriter {
 			if let Some(h) = &it.handler {
 				if let Some(name) = &h.param {
 					if let Some(name) = name.pattern.get_identifier() {
-						self.jschanges.push(JsChange::GenericChange {
+						self.jschanges.insert(JsChange::GenericChange {
 							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
 							text: format!("$scramerr({});", name),
 						});
@@ -289,7 +328,7 @@ impl<'a> Visit<'a> for Rewriter {
 				ObjectPropertyKind::ObjectProperty(p) => match &p.value {
 					Expression::Identifier(s) => {
 						if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
-							self.jschanges.push(JsChange::GenericChange {
+							self.jschanges.insert(JsChange::GenericChange {
 								span: s.span,
 								text: format!("{}: ({}({}))", s.name, self.config.wrapfn, s.name),
 							});
@@ -308,7 +347,7 @@ impl<'a> Visit<'a> for Rewriter {
 	fn visit_function_body(&mut self, it: &FunctionBody<'a>) {
 		// tag function for use in sourcemaps
 		if self.config.do_sourcemaps {
-			self.jschanges.push(JsChange::SourceTag {
+			self.jschanges.insert(JsChange::SourceTag {
 				tagstart: it.span.start,
 			});
 		}
@@ -317,11 +356,11 @@ impl<'a> Visit<'a> for Rewriter {
 
 	fn visit_return_statement(&mut self, it: &ReturnStatement<'a>) {
 		// if let Some(arg) = &it.argument {
-		// 	self.jschanges.push(JsChange::GenericChange {
+		// 	self.jschanges.insert(JsChange::GenericChange {
 		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
 		// 		text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
 		// 	});
-		// 	self.jschanges.push(JsChange::GenericChange {
+		// 	self.jschanges.insert(JsChange::GenericChange {
 		// 		span: Span::new(expression_span(arg).end, expression_span(arg).end),
 		// 		text: format!("))"),
 		// 	});
@@ -351,7 +390,7 @@ impl<'a> Visit<'a> for Rewriter {
 
 	fn visit_meta_property(&mut self, it: &MetaProperty<'a>) {
 		if it.meta.name == "import" {
-			self.jschanges.push(JsChange::GenericChange {
+			self.jschanges.insert(JsChange::GenericChange {
 				span: it.span,
 				text: format!("{}(\"{}\")", self.config.metafn, self.base),
 			});
@@ -363,7 +402,7 @@ impl<'a> Visit<'a> for Rewriter {
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				if ["location"].contains(&s.name.to_string().as_str()) {
-					self.jschanges.push(JsChange::Assignment {
+					self.jschanges.insert(JsChange::Assignment {
 						name: s.name.to_string(),
 						entirespan: it.span,
 						rhsspan: it.right.span(),
@@ -404,7 +443,12 @@ const UNSAFE_GLOBALS: &[&str] = &[
 	"frames",
 ];
 
-pub fn rewrite(js: &str, url: Url, sourcetag: String, config: Config) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
+pub fn rewrite(
+	js: &str,
+	url: Url,
+	sourcetag: String,
+	config: Config,
+) -> Result<(Vec<u8>, Vec<OxcDiagnostic>)> {
 	let allocator = Allocator::default();
 	let source_type = SourceType::default();
 	let ret = Parser::new(&allocator, js, source_type)
@@ -418,37 +462,12 @@ pub fn rewrite(js: &str, url: Url, sourcetag: String, config: Config) -> Result<
 	let program = ret.program;
 
 	let mut ast_pass = Rewriter {
-		jschanges: Vec::new(),
+		jschanges: BTreeSet::new(),
 		base: url,
 		config,
 	};
 
 	ast_pass.visit_program(&program);
-
-	// sorrt changse
-	ast_pass.jschanges.sort_by(|a, b| {
-		let a = match a {
-			JsChange::GenericChange { span, text: _ } => span.start,
-			JsChange::Assignment {
-				name: _,
-				entirespan,
-				rhsspan: _,
-				op: _,
-			} => entirespan.start,
-			JsChange::SourceTag { tagstart } => *tagstart,
-		};
-		let b = match b {
-			JsChange::GenericChange { span, text: _ } => span.start,
-			JsChange::Assignment {
-				name: _,
-				entirespan,
-				rhsspan: _,
-				op: _,
-			} => entirespan.start,
-			JsChange::SourceTag { tagstart } => *tagstart,
-		};
-		a.cmp(&b)
-	});
 
 	let original_len = js.len();
 	let mut difference = 0i32;
