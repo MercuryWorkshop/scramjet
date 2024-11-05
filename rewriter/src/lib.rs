@@ -78,7 +78,7 @@ fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
 	let ret = fenabled.call2(
 		&JsValue::NULL,
 		&flag.into(),
-		&web_sys::Url::new(url).expect("invalid url").into(),
+		&web_sys::Url::new(url)?.into(),
 	)?;
 
 	ret.as_bool().ok_or_else(|| RewriterError::not_bool(&ret))
