@@ -1,6 +1,5 @@
 node_modules
 dist
-dist/*.wasm
 static/scramjet*
 static/bare-mux.js
 static/bare-client.js

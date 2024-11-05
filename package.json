@@ -21,7 +21,8 @@
 		"test": "npx playwright test"
 	},
 	"files": [
-		"dist",
+		"dist/*.js",
+		"dist/*.js.map",
 		"lib"
 	],
 	"keywords": [],
