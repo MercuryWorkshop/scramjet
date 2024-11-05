@@ -60,7 +60,7 @@ fn get_obj(obj: &JsValue, k: &str) -> Result<JsValue> {
 fn get_str(obj: &JsValue, k: &str) -> Result<String> {
 	Reflect::get(obj, &k.into())?
 		.as_string()
-		.ok_or_else(|| RewriterError::not_str(k, obj))
+		.ok_or_else(|| RewriterError::not_str(k))
 }
 
 fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
@@ -74,14 +74,14 @@ fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
 fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
 	let fenabled = get_obj(scramjet, "flagEnabled")?
 		.dyn_into::<Function>()
-		.map_err(RewriterError::not_fn)?;
+		.map_err(|_| RewriterError::not_fn("scramjet.flagEnabled"))?;
 	let ret = fenabled.call2(
 		&JsValue::NULL,
 		&flag.into(),
 		&web_sys::Url::new(url)?.into(),
 	)?;
 
-	ret.as_bool().ok_or_else(|| RewriterError::not_bool(&ret))
+	ret.as_bool().ok_or_else(|| RewriterError::not_bool("scramjet.flagEnabled return value"))
 }
 
 fn get_config(scramjet: &Object, url: &str) -> Result<Config> {
@@ -123,7 +123,7 @@ fn create_rewriter_output(
 	let errs: Vec<_> = out
 		.1
 		.into_iter()
-		.map(|x| format!("{:?}", x.with_source_code(src.clone())))
+		.map(|x| format!("{}", x.with_source_code(src.clone())))
 		.collect();
 
 	let obj = Object::new();
@@ -145,7 +145,12 @@ pub fn rewrite_js(
 	scramjet: &Object,
 ) -> Result<RewriterOutput> {
 	let before = Instant::now();
-	let out = rewrite(&js, Url::from_str(url)?, scramtag(), get_config(scramjet, url)?)?;
+	let out = rewrite(
+		&js,
+		Url::from_str(url)?,
+		scramtag(),
+		get_config(scramjet, url)?,
+	)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)
@@ -162,7 +167,12 @@ pub fn rewrite_js_from_arraybuffer(
 	let js = unsafe { String::from_utf8_unchecked(js) };
 
 	let before = Instant::now();
-	let out = rewrite(&js, Url::from_str(url)?, scramtag(), get_config(scramjet, url)?)?;
+	let out = rewrite(
+		&js,
+		Url::from_str(url)?,
+		scramtag(),
+		get_config(scramjet, url)?,
+	)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)

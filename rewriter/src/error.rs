@@ -1,3 +1,4 @@
+use js_sys::Error;
 use thiserror::Error;
 use wasm_bindgen::{JsError, JsValue};
 
@@ -20,7 +21,7 @@ pub enum RewriterError {
 
 impl From<JsValue> for RewriterError {
 	fn from(value: JsValue) -> Self {
-		Self::Js(format!("{:?}", value))
+		Self::Js(Error::from(value).to_string().into())
 	}
 }
 
@@ -31,16 +32,16 @@ impl From<RewriterError> for JsValue {
 }
 
 impl RewriterError {
-	pub fn not_str(x: &str, obj: &JsValue) -> Self {
-		Self::Not(format!("{:?} in {:?}", x, obj), "string")
+	pub fn not_str(x: &str) -> Self {
+		Self::Not(x.to_string(), "string")
 	}
 
-	pub fn not_fn(obj: JsValue) -> Self {
-		Self::Not(format!("{:?}", obj), "function")
+	pub fn not_fn(x: &str) -> Self {
+		Self::Not(x.to_string(), "function")
 	}
 
-	pub fn not_bool(obj: &JsValue) -> Self {
-		Self::Not(format!("{:?}", obj), "bool")
+	pub fn not_bool(x: &str) -> Self {
+		Self::Not(x.to_string(), "bool")
 	}
 }
 

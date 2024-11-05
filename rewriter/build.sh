@@ -22,7 +22,7 @@ else
 	: "${FEATURES:=}"
 fi
 
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --no-default-features --features "$FEATURES" --release
+RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none -Zfmt-debug=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --no-default-features --features "$FEATURES" --release
 wasm-bindgen --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
 
 sed -i 's/import.meta.url/""/g' out/rewriter.js
