@@ -135,21 +135,24 @@ export async function swfetch(
 		if (cookies.length) {
 			headers.set("Cookie", cookies);
 		}
-		/*
-		// yeah this is VERY wrong, never do this again
-		// TODO this is wrong somehow
-		headers.set("Sec-Fetch-Mode", "cors");
-		headers.set("Sec-Fetch-Site", "same-origin");
-		headers.set("Sec-Fetch-Dest", "empty");
-		*/
 
-		const ev = new ScramjetRequestEvent("request");
-		ev.url = url;
-		ev.body = request.body;
-		ev.method = request.method;
-		ev.destination = request.destination;
-		ev.client = client;
-		ev.requestHeaders = headers.headers;
+		headers.set("Sec-Fetch-Dest", request.destination);
+		headers.set(
+			"Sec-Fetch-Mode",
+			request.mode === "cors" ? request.mode : "same-origin"
+		);
+
+		//TODO: Emulate this later
+		//headers.set("Sec-Fetch-Site", "same-origin");
+
+		const ev = new ScramjetRequestEvent(
+			url,
+			request.body,
+			request.method,
+			request.destination,
+			client,
+			headers.headers
+		);
 		this.dispatchEvent(ev);
 
 		const response: BareResponseFetch =
@@ -268,15 +271,16 @@ async function handleResponse(
 		responseHeaders["Cross-Origin-Opener-Policy"] = "same-origin";
 	}
 
-	const ev = new ScramjetHandleResponseEvent("handleResponse");
-	ev.responseBody = responseBody;
-	ev.responseHeaders = responseHeaders;
-	ev.status = response.status;
-	ev.statusText = response.statusText;
-	ev.destination = destination;
-	ev.url = url;
-	ev.rawResponse = response;
-	ev.client = client;
+	const ev = new ScramjetHandleResponseEvent(
+		responseBody,
+		responseHeaders,
+		response.status,
+		response.statusText,
+		destination,
+		url,
+		response,
+		client
+	);
 	swtarget.dispatchEvent(ev);
 
 	return new Response(ev.responseBody, {
@@ -322,22 +326,30 @@ async function rewriteBody(
 type BodyType = string | ArrayBuffer | Blob | ReadableStream<any>;
 
 export class ScramjetHandleResponseEvent extends Event {
-	public responseHeaders: Record<string, string>;
-	public responseBody: BodyType;
-	public status: number;
-	public statusText: string;
-	public destination: string;
-	public url: URL;
-	public rawResponse: BareResponseFetch;
-	public client: Client;
+	constructor(
+		public responseBody: BodyType,
+		public responseHeaders: Record<string, string>,
+		public status: number,
+		public statusText: string,
+		public destination: string,
+		public url: URL,
+		public rawResponse: BareResponseFetch,
+		public client: Client
+	) {
+		super("handleResponse");
+	}
 }
 
 export class ScramjetRequestEvent extends Event {
-	public url: URL;
-	public destination: string;
-	public client: Client;
-	public method: string;
-	public body: BodyType;
-	public requestHeaders: Record<string, string>;
+	constructor(
+		public url: URL,
+		public body: BodyType,
+		public method: string,
+		public destination: string,
+		public client: Client,
+		public requestHeaders: Record<string, string>
+	) {
+		super("request");
+	}
 	public response?: BareResponseFetch;
 }
