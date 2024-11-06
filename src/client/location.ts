@@ -2,6 +2,7 @@
 import { ScramjetClient } from "./client";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
 import { unrewriteUrl, rewriteUrl } from "../shared";
+import { UrlChangeEvent } from "./events";
 import { iswindow } from ".";
 
 export function createLocationProxy(
@@ -51,7 +52,13 @@ export function createLocationProxy(
 
 						return;
 					}
+					if (prop === "hash") {
+						self.location.hash = args[0];
+						const ev = new UrlChangeEvent(client.url.href);
+						if (client.frame) client.frame.dispatchEvent(ev);
 
+						return;
+					}
 					const url = new URL(client.url.href);
 					url[prop] = args[0];
 					client.url = url;
