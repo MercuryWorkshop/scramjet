@@ -91,6 +91,6 @@ jobs:
           name: Continuous Build
           tag: latest
           commit: main
-          body: ${{ github.event.head_commit.message }}
+          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
           artifacts: "scramjet.zip"
           prerelease: true
