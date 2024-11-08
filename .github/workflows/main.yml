@@ -16,27 +16,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
       - name: install wbg
         run: cargo install wasm-bindgen-cli
       - name: Setup Binaryen
         uses: Aandreba/setup-binaryen@v1.0.0
         with:
           token: ${{ github.token }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Build Rewriter
-        run: RELEASE=1 npm run rewriter:build
+        run: RELEASE=1 pnpm rewriter:build
 
       - name: Build Scramjet
-        run: npm run build
+        run: pnpm build
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -89,16 +95,21 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "pnpm"
 
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: npm install --dev
+        run: pnpm install
 
       - name: Get artifacts
         uses: actions/download-artifact@v4
