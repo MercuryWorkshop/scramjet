@@ -16,27 +16,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: install wbg
-        run: cargo install wasm-bindgen-cli
-      - name: Setup Binaryen
-        uses: Aandreba/setup-binaryen@v1.0.0
-        with:
-          token: ${{ github.token }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: latest
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Install dependencies
         run: pnpm install
+
+      - name: install wbg
+        run: cargo install wasm-bindgen-cli
+
+      - name: Setup Binaryen
+        uses: Aandreba/setup-binaryen@v1.0.0
+        with:
+          token: ${{ github.token }}
 
       - name: Build Rewriter
         run: RELEASE=1 pnpm rewriter:build
@@ -95,18 +98,19 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: latest
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: pnpm install
