@@ -9,7 +9,7 @@ which cargo wasm-bindgen wasm-opt &> /dev/null || {
 }
 
 WBG="wasm-bindgen 0.2.95"
-if [ "$(wasm-bindgen -V)" != "$WBG" ]; then
+if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
 	echo "Incorrect wasm-bindgen-cli version: '$(wasm-bindgen -V)' != '$WBG'"
 	exit 1
 fi
