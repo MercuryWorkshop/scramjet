@@ -14,3 +14,4 @@ rewriter/*.js
 pnpm-lock.yaml
 playwright-report
 test-results
+*.tgz

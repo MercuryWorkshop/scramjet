@@ -41,13 +41,16 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - name: Build Rewriter
-        run: RELEASE=1 pnpm rewriter:build
+      - name: Pack Scramjet
+        run: pnpm pack
 
-      - name: Build Scramjet
-        run: pnpm build
+      - name: Upload Artifact (pnpm pack)
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: mercuryworkshop-scramjet-*.tgz
 
-      - name: Upload Artifact
+      - name: Upload Artifact (dist)
         uses: actions/upload-artifact@v4
         with:
           name: scramjet
@@ -73,14 +76,8 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: scramjet
-          path: build
-
-      - name: Display structure of downloaded files
-        run: ls -R
-
-      - name: Zip files
-        run: zip -r scramjet.zip build/
+          name: packaged-scramjet
+          path: .
 
       - name: Release to GitHub
         uses: ncipollo/release-action@v1
@@ -89,7 +86,7 @@ jobs:
           tag: latest
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "scramjet.zip"
+          artifacts: "mercuryworkshop-scramjet-*.tgz"
           prerelease: true
 
   pages:
