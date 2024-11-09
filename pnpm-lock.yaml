@@ -46,8 +46,8 @@ importers:
         specifier: ^2.1.26
         version: 2.1.26
       '@mercuryworkshop/libcurl-transport':
-        specifier: ^1.3.12
-        version: 1.3.12
+        specifier: ^1.3.13
+        version: 1.3.13
       '@nebula-services/bare-server-node':
         specifier: ^2.0.4
         version: 2.0.4(bufferutil@4.0.8)(utf-8-validate@6.0.5)
@@ -261,8 +261,8 @@ packages:
   '@mercuryworkshop/epoxy-transport@2.1.26':
     resolution: {integrity: sha512-ihQ2aL3MB4ZJM5tGHVxYLMY9m+jZmnSvMP32Lu7u9eYqzP96h6JJrwgqMSqHoiavOmEDV5/b8uJbuWeJbfgmcA==}
 
-  '@mercuryworkshop/libcurl-transport@1.3.12':
-    resolution: {integrity: sha512-SIOeXwiP/p9VMA7Lz20ou3vUDU55ZRZ62eaKOcB2XENK336n6038GQ0lwI+RtZABwbEywXwAqD0+RFp2tqJHHg==}
+  '@mercuryworkshop/libcurl-transport@1.3.13':
+    resolution: {integrity: sha512-9zyd7AfWdSSYmvZtMMh/r6roLZjrXOIOX72xqbT1/56G8FtyuVXW+nOmdFz2eJXP48jolABwed557Gs4b9iUig==}
 
   '@module-federation/runtime-tools@0.5.1':
     resolution: {integrity: sha512-nfBedkoZ3/SWyO0hnmaxuz0R0iGPSikHZOAZ0N/dVSQaIzlffUo35B5nlC2wgWIc0JdMZfkwkjZRrnuuDIJbzg==}
@@ -1714,8 +1714,8 @@ packages:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
     engines: {node: '>=0.10.0'}
 
-  object-inspect@1.13.2:
-    resolution: {integrity: sha512-IRZSRuzJiynemAXPYtPe5BoI/RESNYR7TYm50MC5Mqbd3Jmw5y790sErYw3V6SryFJD64b74qQQs9wn5Bg/k3g==}
+  object-inspect@1.13.3:
+    resolution: {integrity: sha512-kDCGIbxkDSXE3euJZZXzc6to7fCrKHNI/hSRQnRuQ+BWjFNzZwiFF8fj/6o2t2G9/jTj8PSIYTfCLelLZEeRpA==}
     engines: {node: '>= 0.4'}
 
   obuf@1.1.2:
@@ -2585,7 +2585,7 @@ snapshots:
     dependencies:
       '@mercuryworkshop/epoxy-tls': 2.1.15-1
 
-  '@mercuryworkshop/libcurl-transport@1.3.12':
+  '@mercuryworkshop/libcurl-transport@1.3.13':
     dependencies:
       libcurl.js: 0.6.19
 
@@ -4212,7 +4212,7 @@ snapshots:
 
   object-assign@4.1.1: {}
 
-  object-inspect@1.13.2: {}
+  object-inspect@1.13.3: {}
 
   obuf@1.1.2: {}
 
@@ -4544,7 +4544,7 @@ snapshots:
       call-bind: 1.0.7
       es-errors: 1.3.0
       get-intrinsic: 1.2.4
-      object-inspect: 1.13.2
+      object-inspect: 1.13.3
 
   signal-exit@3.0.7: {}
 
