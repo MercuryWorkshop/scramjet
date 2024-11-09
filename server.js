@@ -85,24 +85,25 @@ fastify.listen({
 	host: "0.0.0.0",
 });
 console.log(`Listening on port ${PORT}`);
+if (!process.env.CI) {
+	try {
+		writeFileSync(
+			".git/hooks/pre-commit",
+			"pnpm prettier . -w\ngit update-index --again"
+		);
+		chmodSync(".git/hooks/pre-commit", 0o755);
+	} catch {}
 
-try {
-	writeFileSync(
-		".git/hooks/pre-commit",
-		"pnpm prettier . -w\ngit update-index --again"
-	);
-	chmodSync(".git/hooks/pre-commit", 0o755);
-} catch {}
+	const watch = spawn("pnpm", ["rspack", "-w"], {
+		detached: true,
+		cwd: process.cwd(),
+	});
 
-const watch = spawn("pnpm", ["rspack", "-w"], {
-	detached: true,
-	cwd: process.cwd(),
-});
+	watch.stdout.on("data", (data) => {
+		console.log(`${data}`);
+	});
 
-watch.stdout.on("data", (data) => {
-	console.log(`${data}`);
-});
-
-watch.stderr.on("data", (data) => {
-	console.log(`${data}`);
-});
+	watch.stderr.on("data", (data) => {
+		console.log(`${data}`);
+	});
+}

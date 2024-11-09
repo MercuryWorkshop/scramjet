@@ -8,7 +8,7 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: 2,
-	reporter: "html",
+	reporter: process.env.CI ? "github" : "html",
 	timeout: 20000,
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
