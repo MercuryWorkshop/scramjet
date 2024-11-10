@@ -31,6 +31,7 @@
 	"devDependencies": {
 		"@eslint/eslintrc": "^3.1.0",
 		"@eslint/js": "^9.14.0",
+		"@estruyf/github-actions-reporter": "^1.9.2",
 		"@fastify/static": "^8.0.2",
 		"@mercuryworkshop/bare-as-module3": "^2.2.5",
 		"@mercuryworkshop/epoxy-transport": "^2.1.26",

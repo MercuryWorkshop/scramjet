@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import type { GitHubActionOptions } from "@estruyf/github-actions-reporter";
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -8,7 +9,18 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: 2,
-	reporter: process.env.CI ? "github" : "html",
+	reporter: process.env.CI
+		? [
+				[
+					"@estruyf/github-actions-reporter",
+					<GitHubActionOptions>{
+						title: "My custom title",
+						useDetails: true,
+						showError: true,
+					},
+				],
+			]
+		: "html",
 	timeout: 20000,
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
