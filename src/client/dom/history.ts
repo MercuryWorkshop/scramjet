@@ -2,7 +2,7 @@ import { ScramjetClient } from "../client";
 import { rewriteUrl } from "../../shared";
 import { UrlChangeEvent } from "../events";
 
-export default function (client: ScramjetClient, self: typeof globalThis) {
+export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("History.prototype.pushState", {
 		apply(ctx) {
 			if (ctx.args[2] || ctx.args[2] === "")

@@ -1,4 +1,4 @@
-import { iswindow, isworker } from "..";
+import { iswindow } from "..";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { config } from "../../shared";

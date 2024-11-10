@@ -1,4 +1,4 @@
-import { config, rewriteUrl } from "../../shared";
+import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { type MessageC2W } from "../../worker";
 import { getOwnPropertyDescriptorHandler } from "../helpers";

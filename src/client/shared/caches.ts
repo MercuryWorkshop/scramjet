@@ -1,7 +1,7 @@
 import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
-export default function (client: ScramjetClient, self: typeof globalThis) {
+export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("CacheStorage.prototype.open", {
 		apply(ctx) {
 			ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;

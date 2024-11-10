@@ -2,7 +2,7 @@ import { $scramjet } from "../../scramjet";
 import { rewriteJs } from "./js";
 import { URLMeta } from "./url";
 
-const clientscripts = ["wasm", "shared", "client"];
+// const clientscripts = ["wasm", "shared", "client"];
 export function rewriteWorkers(
 	js: string | ArrayBuffer,
 	type: string,

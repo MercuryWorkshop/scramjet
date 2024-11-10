@@ -1,17 +1,18 @@
 import { ScramjetClient } from "../client";
 import { rewriteCss, unrewriteCss } from "../../shared";
 
-const cssProperties = [
-	"background",
-	"background-image",
-	"mask",
-	"mask-image",
-	"list-style",
-	"list-style-image",
-	"border-image",
-	"border-image-source",
-	"cursor",
-];
+// Why is this here?
+// const cssProperties = [
+// 	"background",
+// 	"background-image",
+// 	"mask",
+// 	"mask-image",
+// 	"list-style",
+// 	"list-style-image",
+// 	"border-image",
+// 	"border-image-source",
+// 	"cursor",
+// ];
 
 export default function (client: ScramjetClient) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {

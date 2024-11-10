@@ -5,16 +5,12 @@ import {
 	unrewriteUrl,
 	htmlRules,
 	unrewriteHtml,
-	unrewriteBlob,
 } from "../../shared";
 import {
-	rewriteUrl,
 	rewriteCss,
 	rewriteHtml,
 	rewriteJs,
-	rewriteSrcset,
 } from "../../shared";
-import type { URLMeta } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	const _nativeGetAttribute = self.Element.prototype.getAttribute;
@@ -140,7 +136,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 	client.Proxy("Element.prototype.setAttributeNS", {
 		apply(ctx) {
-			const [namespace, name, value] = ctx.args;
+			const [_namespace, name, value] = ctx.args;
 
 			const ruleList = htmlRules.find((rule) => {
 				const r = rule[name.toLowerCase()];

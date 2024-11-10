@@ -123,7 +123,7 @@ function handleMessage(
 
 function trustEvent(event: Event): Event {
 	return new Proxy(event, {
-		get(target, prop, reciever) {
+		get(target, prop, _reciever) {
 			if (prop === "isTrusted") return true;
 
 			return Reflect.get(target, prop);

@@ -4,7 +4,6 @@ import { SCRAMJETCLIENT } from "../symbols";
 import { ScramjetClient } from "./client";
 // import { config } from "../shared";
 import { getOwnPropertyDescriptorHandler } from "./helpers";
-import { indirectEval } from "./shared/eval";
 
 export const UNSAFE_GLOBALS = [
 	"window",

@@ -1,11 +1,11 @@
 import { ScramjetClient } from "../client";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, _self: typeof window) {
 	client.Trap("Element.prototype.attributes", {
 		get(ctx) {
 			const map = ctx.get() as NamedNodeMap;
 			const proxy = new Proxy(map, {
-				get(target, prop, receiver) {
+				get(target, prop, _receiver) {
 					const value = Reflect.get(target, prop);
 
 					if (prop === "length") {

@@ -1,7 +1,7 @@
 import { rewriteHtml } from "../../shared";
 import { ScramjetClient } from "../client";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Document.prototype.write", {
 		apply(ctx) {
 			if (ctx.args[0])
