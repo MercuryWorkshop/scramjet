@@ -1,16 +1,8 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
-import {
-	unrewriteUrl,
-	htmlRules,
-	unrewriteHtml,
-} from "../../shared";
-import {
-	rewriteCss,
-	rewriteHtml,
-	rewriteJs,
-} from "../../shared";
+import { unrewriteUrl, htmlRules, unrewriteHtml } from "../../shared";
+import { rewriteCss, rewriteHtml, rewriteJs } from "../../shared";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	const _nativeGetAttribute = self.Element.prototype.getAttribute;
