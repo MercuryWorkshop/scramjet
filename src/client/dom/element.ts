@@ -166,6 +166,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 		apply(ctx) {
 			const [name] = ctx.args;
 
+			if (name.startsWith("scramjet-data")) {
+				return ctx.return(null);
+			}
+
 			if (ctx.fn.call(ctx.this, `scramjet-data-${name}`)) {
 				ctx.return(ctx.fn.call(ctx.this, `scramjet-data-${name}`));
 			}
@@ -237,7 +241,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			if (!realwin) return realwin;
 
 			if (SCRAMJETCLIENT in realwin.self) {
-				if (realwin.location.href.includes("accounts.google.com")) return null; // don't question it
+				//				if (realwin.location.href.includes("accounts.google.com")) return null; // don't question it
 
 				return realwin.self[SCRAMJETCLIENT].globalProxy;
 			} else {
