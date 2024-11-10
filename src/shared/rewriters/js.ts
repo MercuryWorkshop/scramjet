@@ -38,14 +38,14 @@ function rewriteJsWrapper(
 	const { js, errors, duration } = out;
 
 	// TODO: maybe make this a scram flag?
-	if (true) {
+	if (flagEnabled("rewriterLogs", meta.base)) {
 		for (const error of errors) {
 			console.error("oxc parse error", error);
 		}
 	}
 
 	// TODO: maybe make this a scram flag?
-	if (true) {
+	if (flagEnabled("rewriterLogs", meta.base)) {
 		let timespan: string;
 		if (duration < 1n) {
 			timespan = "BLAZINGLY FAST";

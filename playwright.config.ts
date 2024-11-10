@@ -14,7 +14,7 @@ export default defineConfig({
 				[
 					"@estruyf/github-actions-reporter",
 					<GitHubActionOptions>{
-						title: "My custom title",
+						title: "Test summary",
 						useDetails: true,
 						showError: true,
 					},

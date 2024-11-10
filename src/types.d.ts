@@ -32,6 +32,7 @@ type ScramjetFlags = {
 	scramitize: boolean;
 	sourcemaps: boolean;
 	syncxhr: boolean;
+	rewriterLogs: boolean;
 };
 
 interface ScramjetConfig {

@@ -35,6 +35,7 @@ export class ScramjetController {
 				cleanerrors: false,
 				scramitize: false,
 				sourcemaps: false,
+				rewriterLogs: false,
 			},
 			siteFlags: {},
 			codec: {
