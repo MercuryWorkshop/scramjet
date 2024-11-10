@@ -78,14 +78,14 @@ export function unrewriteHtml(html: string) {
 	function traverse(node: ChildNode) {
 		if ("attribs" in node) {
 			for (const key in node.attribs) {
-				if (key == "data-scramjet-script-source-src") {
+				if (key == "scramjet-data-script-source-src") {
 					if (node.children[0] && "data" in node.children[0])
 						node.children[0].data = atob(node.attribs[key]);
 					continue;
 				}
 
-				if (key.startsWith("data-scramjet-")) {
-					node.attribs["data-scramjet-".length] = node.attribs[key];
+				if (key.startsWith("scramjet-data-")) {
+					node.attribs["scramjet-data-".length] = node.attribs[key];
 					delete node.attribs[key];
 				}
 			}
@@ -216,14 +216,14 @@ function traverseParsedHtml(
 						else {
 							node.attribs[attr] = v;
 						}
-						node.attribs[`data-scramjet-${attr}`] = value;
+						node.attribs[`scramjet-data-${attr}`] = value;
 					}
 				}
 			}
 		}
 		for (const [attr, value] of Object.entries(node.attribs)) {
 			if (eventAttributes.includes(attr)) {
-				node.attribs[`data-scramjet-${attr}`] = attr;
+				node.attribs[`scramjet-data-${attr}`] = attr;
 				node.attribs[attr] = rewriteJs(
 					value as string,
 					`(inline ${attr} on element)`,
@@ -244,8 +244,8 @@ function traverseParsedHtml(
 		node.children[0] !== undefined
 	) {
 		let js = node.children[0].data;
-		// node.attribs[`data-scramjet-script-source-src`] = btoa(js);
-		node.attribs["data-scramjet-script-source-src"] = bytesToBase64(
+		// node.attribs[`scramjet-data-script-source-src`] = btoa(js);
+		node.attribs["scramjet-data-script-source-src"] = bytesToBase64(
 			new TextEncoder().encode(js)
 		);
 		const htmlcomment = /<!--[\s\S]*?-->/g;

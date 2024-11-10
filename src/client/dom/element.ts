@@ -134,7 +134,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (ruleList) {
 				ctx.args[1] = ruleList.fn(value, client.meta, client.cookieStore);
-				ctx.fn.call(ctx.this, `data-scramjet-${ctx.args[0]}`, value);
+				ctx.fn.call(ctx.this, `scramjet-data-${ctx.args[0]}`, value);
 			}
 		},
 	});
@@ -155,7 +155,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[2] = ruleList.fn(value, client.meta, client.cookieStore);
 				nativeSetAttribute.call(
 					ctx.this,
-					`data-scramjet-${ctx.args[1]}`,
+					`scramjet-data-${ctx.args[1]}`,
 					value
 				);
 			}
@@ -166,8 +166,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 		apply(ctx) {
 			const [name] = ctx.args;
 
-			if (ctx.fn.call(ctx.this, `data-scramjet-${name}`)) {
-				ctx.return(ctx.fn.call(ctx.this, `data-scramjet-${name}`));
+			if (ctx.fn.call(ctx.this, `scramjet-data-${name}`)) {
+				ctx.return(ctx.fn.call(ctx.this, `scramjet-data-${name}`));
 			}
 		},
 	});
@@ -193,7 +193,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			if (ctx.this instanceof self.HTMLScriptElement) {
 				const scriptSource = client.natives[
 					"Element.prototype.getAttribute"
-				].call(ctx.this, "data-scramjet-script-source-src");
+				].call(ctx.this, "scramjet-data-script-source-src");
 
 				if (scriptSource) {
 					return atob(scriptSource);

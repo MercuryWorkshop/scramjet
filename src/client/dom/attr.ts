@@ -52,8 +52,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				},
 				has(target, prop) {
 					if (typeof prop === "symbol") return Reflect.has(target, prop);
-					if (prop.startsWith("data-scramjet-")) return false;
-					if (map[prop]?.name?.startsWith("data-scramjet-")) return false;
+					if (prop.startsWith("scramjet-data-")) return false;
+					if (map[prop]?.name?.startsWith("scramjet-data-")) return false;
 
 					return Reflect.has(target, prop);
 				},
