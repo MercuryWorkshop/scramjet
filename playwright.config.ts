@@ -19,6 +19,7 @@ export default defineConfig({
 						showError: true,
 					},
 				],
+				["github"],
 			]
 		: "html",
 	timeout: 20000,

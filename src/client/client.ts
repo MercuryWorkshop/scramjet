@@ -21,6 +21,16 @@ import type { URLMeta } from "../shared/rewriters/url";
 //eslint-disable-next-line
 export type AnyFunction = Function;
 
+export type ScramjetModule = {
+	enabled: (client: ScramjetClient) => boolean | undefined;
+	disabled: (
+		client: ScramjetClient,
+		self: typeof globalThis
+	) => void | undefined;
+	order: number | undefined;
+	default: (client: ScramjetClient, self: typeof globalThis) => void;
+};
+
 export type ProxyCtx = {
 	fn: AnyFunction;
 	this: any;
@@ -77,7 +87,7 @@ export class ScramjetClient {
 	constructor(public global: typeof globalThis) {
 		if (SCRAMJETCLIENT in global) {
 			console.error(
-				"attempted to initialize a scramjet client, but one is already loaded - this is very bad"
+				"attempted to initialize a scramjet cl ient, but one is already loaded - this is very bad"
 			);
 			throw new Error();
 		}
@@ -171,10 +181,10 @@ export class ScramjetClient {
 			recursive: true,
 		});
 
-		const modules = [];
+		const modules: ScramjetModule[] = [];
 
 		for (const key of context.keys()) {
-			const module = context(key);
+			const module: ScramjetModule = context(key);
 			if (!key.endsWith(".ts")) continue;
 			if (
 				(key.startsWith("./dom/") && "window" in this.global) ||
