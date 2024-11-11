@@ -9,6 +9,14 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                 reload.addEventListener("click", () => location.reload());
                 version.textContent = ${JSON.stringify($scramjet.version.version)};
                 build.textContent = ${JSON.stringify($scramjet.version.build)};
+                
+                document.getElementById('copy-button').addEventListener('click', async () => {
+                    const text = document.getElementById('errorTrace').value;
+                    await navigator.clipboard.writeText(text);
+                    const btn = document.getElementById('copy-button');
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = 'Copy', 2000);
+                });
         `;
 
 	return `<!DOCTYPE html>
@@ -54,6 +62,7 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                         resize: none;
                         height: 20em;
                         text-align: left;
+                        color: red;
                         font-family: var(--font-monospace);
                     }
 
@@ -94,10 +103,11 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                     }
 
                     #version-wrapper {
-                        width: 100%;
-                        text-align: center;
+                        width: auto;
+                        text-align: right;
                         position: absolute;
-                        bottom: 0.2rem;
+                        top: 0.5rem;
+                        right: 0.5rem;
                         font-size: 0.8rem;
                         color: var(--shore)!important;
                         i {
@@ -106,6 +116,26 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                             padding: 0.2em 0.5em;
                         }
                         z-index: 101;
+                    }
+
+                    #errorTrace-wrapper {
+                        position: relative;
+                        width: fit-content;
+                    }
+
+                    #copy-button {
+                        position: absolute;
+                        top: 0.5em;
+                        right: 0.5em;
+                        padding: 0.23em;
+                        cursor: pointer;
+                        opacity: 0;
+                        transition: opacity 0.4s;
+                        font-size: 0.9em;
+                    }
+
+                    #errorTrace-wrapper:hover #copy-button {
+                        opacity: 1;
                     }
                     </style>
                 </head>
@@ -117,8 +147,10 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                         <!-- <p id="errorMessage">Internal Server Error</p> -->
 
                         <div id="info">
-                            <textarea id="errorTrace" cols="40" rows="10" readonly>
-                            </textarea>
+                            <div id="errorTrace-wrapper">
+                                <textarea id="errorTrace" cols="40" rows="10" readonly></textarea>
+                                <button id="copy-button" class="primary">Copy</button>
+                            </div>
                             <div id="troubleshooting">
                                 <p>Try:</p>
                                 <ul>

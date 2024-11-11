@@ -179,11 +179,29 @@ export async function swfetch(
 			this
 		);
 	} catch (err) {
-		console.error("ERROR FROM SERVICE WORKER FETCH", err);
+		const errorDetails = {
+			message: err.message,
+			url: request.url,
+			destination: request.destination,
+			timestamp: new Date().toISOString(),
+		};
+		if (err.stack) {
+			errorDetails["stack"] = err.stack;
+		}
+
+		console.error("ERROR FROM SERVICE WORKER FETCH: ", errorDetails);
+
 		if (!["document", "iframe"].includes(request.destination))
 			return new Response(undefined, { status: 500 });
 
-		return renderError(err, unrewriteUrl(request.url));
+		const formattedError = Object.entries(errorDetails)
+			.map(
+				([key, value]) =>
+					`${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`
+			)
+			.join("\n\n");
+
+		return renderError(formattedError, unrewriteUrl(request.url));
 	}
 }
 
