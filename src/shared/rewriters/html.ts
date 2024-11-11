@@ -52,10 +52,13 @@ export function rewriteHtml(
 
 		const script = (src) => new Element("script", { src });
 
+		// for compatibility purpose
+		const base64Injected = bytesToBase64(new TextEncoder().encode(injected));
+
 		head.children.unshift(
 			script($scramjet.config.files.wasm),
 			script($scramjet.config.files.shared),
-			script("data:application/javascript;base64," + btoa(injected)),
+			script("data:application/javascript;base64," + base64Injected),
 			script($scramjet.config.files.client)
 		);
 	}
