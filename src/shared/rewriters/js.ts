@@ -25,6 +25,7 @@ function rewriteJsWrapper(
 	meta: URLMeta
 ): string | ArrayBuffer {
 	let out: RewriterOutput;
+	const before = performance.now();
 	if (typeof input === "string") {
 		out = rewrite_js(input, meta.base.href, url || "(unknown)", $scramjet);
 	} else {
@@ -35,16 +36,15 @@ function rewriteJsWrapper(
 			$scramjet
 		);
 	}
+	const after = performance.now();
 	const { js, errors, duration } = out;
 
-	// TODO: maybe make this a scram flag?
 	if (flagEnabled("rewriterLogs", meta.base)) {
 		for (const error of errors) {
 			console.error("oxc parse error", error);
 		}
 	}
 
-	// TODO: maybe make this a scram flag?
 	if (flagEnabled("rewriterLogs", meta.base)) {
 		let timespan: string;
 		if (duration < 1n) {
@@ -54,8 +54,9 @@ function rewriteJsWrapper(
 		} else {
 			timespan = "really slow";
 		}
+		const overhead = (after - before - Number(duration)).toFixed(2);
 		console.log(
-			`oxc rewrite for "${url || "(unknown)"}" was ${timespan} (${duration}ms)`
+			`oxc rewrite for "${url || "(unknown)"}" was ${timespan} (${duration}ms; ${overhead}ms overhead)`
 		);
 	}
 
