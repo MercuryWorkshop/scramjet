@@ -15,6 +15,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
 			if (ctx.args[1]) ctx.args[1] = rewriteUrl(ctx.args[1], client.meta);
+			if (ctx.args[2] === undefined) ctx.args[2] = true;
 			ctx.this[ARGS] = ctx.args;
 		},
 	});
