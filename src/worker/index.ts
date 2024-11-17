@@ -1,5 +1,5 @@
 import { FakeServiceWorker } from "./fakesw";
-import { swfetch } from "./fetch";
+import { handleFetch } from "./fetch";
 import type BareClient from "@mercuryworkshop/bare-mux";
 import { ScramjetConfig } from "../types";
 import { $scramjet, loadCodecs } from "../scramjet";
@@ -90,7 +90,7 @@ export class ScramjetServiceWorker extends EventTarget {
 	async fetch({ request, clientId }: FetchEvent) {
 		const client = await self.clients.get(clientId);
 
-		return swfetch.call(this, request, client);
+		return handleFetch.call(this, request, client);
 	}
 }
 

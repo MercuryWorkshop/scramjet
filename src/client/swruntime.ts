@@ -60,15 +60,14 @@ function handleMessage(
 	const port = this.recvport;
 	const type = data.scramjet$type;
 	const token = data.scramjet$token;
+	const handlers = client.eventcallbacks.get(self);
 
 	if (type === "fetch") {
 		dbg.log("ee", data);
-		const fetchhandlers = client.eventcallbacks.get(self);
+		const fetchhandlers = handlers.filter((event) => event.event === "fetch");
 		if (!fetchhandlers) return;
 
 		for (const handler of fetchhandlers) {
-			if (handler.event !== "fetch") continue;
-
 			const request = data.scramjet$request;
 
 			const Request = client.natives["Request"];

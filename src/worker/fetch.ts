@@ -25,7 +25,7 @@ function newmeta(url: URL): URLMeta {
 	};
 }
 
-export async function swfetch(
+export async function handleFetch(
 	this: ScramjetServiceWorker,
 	request: Request,
 	client: Client | null
@@ -137,13 +137,12 @@ export async function swfetch(
 		}
 
 		headers.set("Sec-Fetch-Dest", request.destination);
+		//TODO: Emulate this later (like really)
+		headers.set("Sec-Fetch-Site", "same-origin");
 		headers.set(
 			"Sec-Fetch-Mode",
 			request.mode === "cors" ? request.mode : "same-origin"
 		);
-
-		//TODO: Emulate this later
-		//headers.set("Sec-Fetch-Site", "same-origin");
 
 		const ev = new ScramjetRequestEvent(
 			url,
