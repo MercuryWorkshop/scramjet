@@ -52,10 +52,13 @@ export function rewriteHtml(
 
 		const script = (src) => new Element("script", { src });
 
+		// for compatibility purpose
+		const base64Injected = bytesToBase64(new TextEncoder().encode(injected));
+
 		head.children.unshift(
 			script($scramjet.config.files.wasm),
 			script($scramjet.config.files.shared),
-			script("data:application/javascript;base64," + btoa(injected)),
+			script("data:application/javascript;base64," + base64Injected),
 			script($scramjet.config.files.client)
 		);
 	}
@@ -283,17 +286,20 @@ function traverseParsedHtml(
 }
 
 export function rewriteSrcset(srcset: string, meta: URLMeta) {
-	const urls = srcset.split(/ [0-9]+x,? ?/g);
-	if (!urls) return "";
-	const sufixes = srcset.match(/ [0-9]+x,? ?/g);
-	if (!sufixes) return "";
-	const rewrittenUrls = urls.map((url, i) => {
-		if (url && sufixes[i]) {
-			return rewriteUrl(url, meta) + sufixes[i];
-		}
+	const sources = srcset.split(",").map((src) => src.trim());
+	const rewrittenSources = sources.map((source) => {
+		// Split into URLs and descriptors (if any)
+		// e.g. url0, url1 1.5x, url2 2x
+		const [url, ...descriptors] = source.split(/\s+/);
+
+		// Rewrite the URLs and keep the descriptors (if any)
+		const rewrittenUrl = rewriteUrl(url.trim(), meta);
+		return descriptors.length > 0
+			? `${rewrittenUrl} ${descriptors.join(" ")}`
+			: rewrittenUrl;
 	});
 
-	return rewrittenUrls.join("");
+	return rewrittenSources.join(", ");
 }
 
 // function base64ToBytes(base64) {
