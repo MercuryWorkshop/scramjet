@@ -62,7 +62,6 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                         resize: none;
                         height: 20em;
                         text-align: left;
-                        color: red;
                         font-family: var(--font-monospace);
                     }
 
