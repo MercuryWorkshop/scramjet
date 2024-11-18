@@ -161,7 +161,7 @@ export async function handleFetch(
 				body: ev.body,
 				headers: ev.requestHeaders,
 				//@ts-expect-error no types
-				duplex: request.duplex,
+				duplex: "half",
 			}));
 
 		return await handleResponse(
