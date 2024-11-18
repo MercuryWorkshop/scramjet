@@ -226,7 +226,7 @@ function traverseParsedHtml(
 		}
 		for (const [attr, value] of Object.entries(node.attribs)) {
 			if (eventAttributes.includes(attr)) {
-				node.attribs[`scramjet-data-${attr}`] = attr;
+				node.attribs[`scramjet-data-${attr}`] = value;
 				node.attribs[attr] = rewriteJs(
 					value as string,
 					`(inline ${attr} on element)`,
