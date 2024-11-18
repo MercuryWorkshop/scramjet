@@ -160,6 +160,8 @@ export async function handleFetch(
 				method: ev.method,
 				body: ev.body,
 				headers: ev.requestHeaders,
+				//@ts-expect-error no types
+				duplex: request.duplex,
 			}));
 
 		return await handleResponse(
