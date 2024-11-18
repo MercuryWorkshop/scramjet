@@ -60,7 +60,8 @@ scramjet.addEventListener("request", (e) => {
 	} else {
 		return;
 	}
-
-	e.response.rawHeaders = headers;
-	e.response.finalURL = e.url;
+	if (playgroundData) {
+		e.response.rawHeaders = headers;
+		e.response.finalURL = e.url;
+	}
 });

@@ -160,12 +160,6 @@ export async function handleFetch(
 				method: ev.method,
 				body: ev.body,
 				headers: ev.requestHeaders,
-				credentials: "omit",
-				mode: request.mode === "cors" ? request.mode : "same-origin",
-				cache: request.cache,
-				redirect: "manual",
-				//@ts-ignore why the fuck is this not typed mircosoft
-				duplex: "half",
 			}));
 
 		return await handleResponse(
@@ -323,8 +317,7 @@ async function rewriteBody(
 				return response.body;
 			}
 		case "script":
-			// @ts-ignore perc idk why
-			return rewriteJs(await response.arrayBuffer(), response.finalURL, meta);
+			return rewriteJs(await response.arrayBuffer(), response.url, meta);
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
