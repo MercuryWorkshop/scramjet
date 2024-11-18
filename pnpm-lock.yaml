@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@mercuryworkshop/bare-mux':
-        specifier: ^2.1.6
-        version: 2.1.6
+        specifier: ^2.1.7
+        version: 2.1.7
       dom-serializer:
         specifier: ^2.0.0
         version: 2.0.0
@@ -76,8 +76,8 @@ importers:
         specifier: ^22.9.0
         version: 22.9.0
       '@types/serviceworker':
-        specifier: ^0.0.102
-        version: 0.0.102
+        specifier: ^0.0.103
+        version: 0.0.103
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.13.0
         version: 8.13.0(@typescript-eslint/parser@8.13.0(eslint@9.14.0)(typescript@5.6.3))(eslint@9.14.0)(typescript@5.6.3)
@@ -276,8 +276,8 @@ packages:
   '@mercuryworkshop/bare-as-module3@2.2.5':
     resolution: {integrity: sha512-KWlMVJoJ3h1ya3chlpzIyQrt01rSU21AU1vBsGUrhZngCVTs9SIMGMqBx61TM0gWtEUogYFfU5U0UF1XCYeUHQ==}
 
-  '@mercuryworkshop/bare-mux@2.1.6':
-    resolution: {integrity: sha512-SMpPwHrRjeqBfuh5N9SKD2G7uzfQiOeiENcYjb0BYTpOEOFvoPDhjSppSZMSkN1maJJ1NNtCRv9Qb+uCeJWwgw==}
+  '@mercuryworkshop/bare-mux@2.1.7':
+    resolution: {integrity: sha512-BUamyc7jsIFbWQVVWjVjaD+Wot77EPwolkrbP3UuIs6QeHR1RY52+IR2fq3GkRAbOOrAZNT7EgZSsupkh1NowQ==}
 
   '@mercuryworkshop/epoxy-tls@2.1.15-1':
     resolution: {integrity: sha512-XcagLkLBIi+rjgr4WcI37m5EJ+FZbURDusnBvphtpQbcSVs5D/FwzUgVBLw92U6+Uragt0HC9POZ2UWmYkt0aA==}
@@ -514,8 +514,8 @@ packages:
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
 
-  '@types/serviceworker@0.0.102':
-    resolution: {integrity: sha512-RAjnnU9rNWwlO5cyrifmShjudE4yQtFpFhwA7SOf2t0pk0DeRh1aBROJd4zk4er/WOU0o0eTRTi/CBuxuO27Gg==}
+  '@types/serviceworker@0.0.103':
+    resolution: {integrity: sha512-EOiLGcQeb/r/POn4Nlbz8XVApoYPtLNACbaqpge6sSuydA8nj/5S6oqISFRwQ33n8pIOIrWFm17S9cnmrO2QAw==}
 
   '@types/sockjs@0.3.36':
     resolution: {integrity: sha512-MK9V6NzAS1+Ud7JV9lJLFqW85VbC9dq3LmwZCuBe4wBDgKC0Kj/jd8Xl+nSviU+Qc3+m7umHHyHg//2KSa0a0Q==}
@@ -2647,7 +2647,7 @@ snapshots:
     dependencies:
       typescript: 5.6.3
 
-  '@mercuryworkshop/bare-mux@2.1.6': {}
+  '@mercuryworkshop/bare-mux@2.1.7': {}
 
   '@mercuryworkshop/epoxy-tls@2.1.15-1': {}
 
@@ -3019,7 +3019,7 @@ snapshots:
       '@types/node': 22.9.0
       '@types/send': 0.17.4
 
-  '@types/serviceworker@0.0.102': {}
+  '@types/serviceworker@0.0.103': {}
 
   '@types/sockjs@0.3.36':
     dependencies:

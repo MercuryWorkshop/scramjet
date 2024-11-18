@@ -160,7 +160,11 @@ export async function handleFetch(
 				method: ev.method,
 				body: ev.body,
 				headers: ev.requestHeaders,
-				//@ts-expect-error no types
+				credentials: "omit",
+				mode: request.mode === "cors" ? request.mode : "same-origin",
+				cache: request.cache,
+				redirect: "manual",
+				//@ts-ignore why the fuck is this not typed mircosoft
 				duplex: "half",
 			}));
 
@@ -304,7 +308,7 @@ async function handleResponse(
 }
 
 async function rewriteBody(
-	response: Response,
+	response: BareResponseFetch,
 	meta: URLMeta,
 	destination: RequestDestination,
 	workertype: string,
@@ -319,7 +323,7 @@ async function rewriteBody(
 				return response.body;
 			}
 		case "script":
-			return rewriteJs(await response.arrayBuffer(), response.url, meta);
+			return rewriteJs(await response.arrayBuffer(), response.finalURL, meta);
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
@@ -327,7 +331,7 @@ async function rewriteBody(
 			return rewriteWorkers(
 				await response.arrayBuffer(),
 				workertype,
-				response.url,
+				response.finalURL,
 				meta
 			);
 		default:

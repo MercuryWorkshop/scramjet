@@ -44,7 +44,7 @@
 		"@types/eslint": "^9.6.1",
 		"@types/estree": "^1.0.6",
 		"@types/node": "^22.9.0",
-		"@types/serviceworker": "^0.0.102",
+		"@types/serviceworker": "^0.0.103",
 		"@typescript-eslint/eslint-plugin": "^8.13.0",
 		"@typescript-eslint/parser": "^8.13.0",
 		"dotenv": "^16.4.5",
@@ -57,7 +57,7 @@
 		"wisp-server-node": "^1.1.7"
 	},
 	"dependencies": {
-		"@mercuryworkshop/bare-mux": "^2.1.6",
+		"@mercuryworkshop/bare-mux": "^2.1.7",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.1.0",
