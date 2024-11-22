@@ -294,6 +294,7 @@ export function rewriteSrcset(srcset: string, meta: URLMeta) {
 
 		// Rewrite the URLs and keep the descriptors (if any)
 		const rewrittenUrl = rewriteUrl(url.trim(), meta);
+
 		return descriptors.length > 0
 			? `${rewrittenUrl} ${descriptors.join(" ")}`
 			: rewrittenUrl;

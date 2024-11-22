@@ -30,6 +30,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		self.MutationObserver.prototype,
 		self.document,
 		self.MouseEvent.prototype,
+		self.Range.prototype,
 	]) {
 		for (const prop in target) {
 			try {

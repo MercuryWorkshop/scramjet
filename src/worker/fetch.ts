@@ -58,13 +58,14 @@ export async function handleFetch(
 				dataurl = unrewriteBlob(dataurl);
 			}
 
-			const response: Response = await fetch(dataurl, {});
-
+			const response: Partial<BareResponseFetch> = await fetch(dataurl, {});
+			const url = dataurl.startsWith("blob:") ? dataurl : "(data url)";
+			response.finalURL = url;
 			let body: BodyType;
 
 			if (response.body) {
 				body = await rewriteBody(
-					response,
+					response as BareResponseFetch,
 					client
 						? {
 								base: new URL(new URL(client.url).origin),

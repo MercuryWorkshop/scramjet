@@ -7,7 +7,7 @@ import { rewriteCss, rewriteHtml, rewriteJs } from "../../shared";
 export default function (client: ScramjetClient, self: typeof window) {
 	const _nativeGetAttribute = self.Element.prototype.getAttribute;
 	const nativeSetAttribute = self.Element.prototype.setAttribute;
-	const _nativeHasAttribute = self.Element.prototype.hasAttribute;
+	const nativeHasAttribute = self.Element.prototype.hasAttribute;
 
 	const attrObject = {
 		nonce: [self.HTMLElement],
@@ -158,8 +158,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return ctx.return(null);
 			}
 
-			if (ctx.fn.call(ctx.this, `scramjet-data-${name}`)) {
-				ctx.return(ctx.fn.call(ctx.this, `scramjet-data-${name}`));
+			if (nativeHasAttribute.call(ctx.this, `scramjet-data-${name}`)) {
+				const attrib = ctx.fn.call(ctx.this, `scramjet-data-${name}`);
+				if (attrib === null) return ctx.return("");
+
+				return ctx.return(attrib);
 			}
 		},
 	});
@@ -209,6 +212,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return unrewriteHtml(ctx.get());
 		},
 	});
+
 	client.Proxy("Element.prototype.insertAdjacentHTML", {
 		apply(ctx) {
 			if (ctx.args[1])
@@ -292,6 +296,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 			"Node.prototype.parentElement",
 			"Node.prototype.previousSibling",
 			"Node.prototype.nextSibling",
+			"Range.prototype.commonAncestorContainer",
+			"AbstractRange.prototype.endContainer",
+			"AbstractRange.prototype.startContainer",
 		],
 		{
 			get(ctx) {
@@ -302,6 +309,22 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (!scram) return n; // ??
 
 				return scram.documentProxy;
+			},
+		}
+	);
+
+	client.Proxy(
+		[
+			"HTMLIFrameElement.prototype.getSVGDocument",
+			"HTMLObjectElement.prototype.getSVGDocument",
+			"HTMLEmbedElement.prototype.getSVGDocument",
+		],
+		{
+			apply(ctx) {
+				const document = ctx.call();
+				if (document) {
+					ctx.return(ctx.this.contentDocument);
+				}
 			},
 		}
 	);

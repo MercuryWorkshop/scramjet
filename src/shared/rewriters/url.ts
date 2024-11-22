@@ -46,15 +46,13 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 
 		if (base.startsWith("about:")) base = unrewriteUrl(self.location.href); // jank!!!!! weird jank!!!
 		const realUrl = tryCanParseURL(url, base);
-		if (realUrl) {
-			return (
-				location.origin +
-				$scramjet.config.prefix +
-				$scramjet.codec.encode(realUrl.href)
-			);
-		} else {
-			return url;
-		}
+		if (!realUrl) return url;
+
+		return (
+			location.origin +
+			$scramjet.config.prefix +
+			$scramjet.codec.encode(realUrl.href)
+		);
 	}
 }
 

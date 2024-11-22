@@ -22,7 +22,6 @@ export function rewriteWorkers(
 	script("shared");
 	str += `self.$scramjet.config = ${JSON.stringify($scramjet.config)};`;
 	script("client");
-	console.log(str);
 
 	let rewritten = rewriteJs(js, url, meta);
 	if (rewritten instanceof Uint8Array) {
@@ -31,7 +30,7 @@ export function rewriteWorkers(
 
 	str += rewritten;
 
-	dbg.log("Rewrite", type, str);
+	// dbg.log("Rewrite", type, str);
 
 	return str;
 }
