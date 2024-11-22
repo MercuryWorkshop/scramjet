@@ -18,6 +18,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			self.HTMLImageElement,
 			self.HTMLMediaElement,
 			self.HTMLIFrameElement,
+			self.HTMLFrameElement,
 			self.HTMLEmbedElement,
 			self.HTMLScriptElement,
 			self.HTMLSourceElement,

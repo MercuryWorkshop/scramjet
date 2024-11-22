@@ -122,6 +122,7 @@ export const htmlRules: {
 			"img",
 			"image",
 			"iframe",
+			"frame",
 			"source",
 			"input",
 			"track",
