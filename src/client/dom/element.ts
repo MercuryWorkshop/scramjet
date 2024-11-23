@@ -233,13 +233,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const realwin = ctx.get() as Window;
 			if (!realwin) return realwin;
 
-			if (SCRAMJETCLIENT in realwin.self) {
-				//				if (realwin.location.href.includes("accounts.google.com")) return null; // don't question it
-
-				return realwin.self[SCRAMJETCLIENT].globalProxy;
+			if (SCRAMJETCLIENT in realwin) {
+				return realwin[SCRAMJETCLIENT].globalProxy;
 			} else {
 				// hook the iframe
-				const newclient = new ScramjetClient(realwin.self);
+				const newclient = new ScramjetClient(realwin);
 				newclient.hook();
 
 				return newclient.globalProxy;
@@ -254,10 +252,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const realwin = contentwindow.apply(ctx.this);
 			if (!realwin) return realwin;
 
-			if (SCRAMJETCLIENT in realwin.self) {
-				return realwin.self[SCRAMJETCLIENT].documentProxy;
+			if (SCRAMJETCLIENT in realwin) {
+				return realwin[SCRAMJETCLIENT].documentProxy;
 			} else {
-				const newclient = new ScramjetClient(realwin.self);
+				const newclient = new ScramjetClient(realwin);
 				newclient.hook();
 
 				return newclient.documentProxy;

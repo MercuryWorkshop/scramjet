@@ -35,33 +35,36 @@ self.addEventListener("message", ({ data }) => {
 });
 
 scramjet.addEventListener("request", (e) => {
-	let headers = {};
-	if (playgroundData && e.url.href === playgroundData.origin + "/") {
-		headers["content-type"] = "text/html";
-		e.response = new Response(playgroundData.html, {
-			headers,
-		});
-	} else if (
-		playgroundData &&
-		e.url.href === playgroundData.origin + "/style.css"
-	) {
-		headers["content-type"] = "text/css";
-		e.response = new Response(playgroundData.css, {
-			headers,
-		});
-	} else if (
-		playgroundData &&
-		e.url.href === playgroundData.origin + "/script.js"
-	) {
-		headers["content-type"] = "application/javascript";
-		e.response = new Response(playgroundData.js, {
-			headers,
-		});
+	if (playgroundData && e.url.href.startsWith(playgroundData.origin)) {
+		const headers = {};
+		const origin = playgroundData.origin;
+		if (e.url.href === origin + "/") {
+			headers["content-type"] = "text/html";
+			e.response = new Response(playgroundData.html, {
+				headers,
+			});
+		} else if (e.url.href === origin + "/style.css") {
+			headers["content-type"] = "text/css";
+			e.response = new Response(playgroundData.css, {
+				headers,
+			});
+		} else if (e.url.href === origin + "/script.js") {
+			headers["content-type"] = "application/javascript";
+			e.response = new Response(playgroundData.js, {
+				headers,
+			});
+			e.response.rawHeaders = headers;
+			e.response.rawResponse = {
+				body: e.response.body,
+				headers: headers,
+				status: e.response.status,
+				statusText: e.response.statusText,
+			};
+			e.response.finalURL = e.url.toString();
+		} else {
+			return;
+		}
 	} else {
 		return;
-	}
-	if (playgroundData) {
-		e.response.rawHeaders = headers;
-		e.response.finalURL = e.url.toString();
 	}
 });
