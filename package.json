@@ -63,6 +63,8 @@
 		"domutils": "^3.1.0",
 		"htmlparser2": "^9.1.0",
 		"parse-domain": "^8.2.2",
+		"parse5": "^7.2.1",
+		"parse5-htmlparser2-tree-adapter": "^7.1.0",
 		"set-cookie-parser": "^2.7.1"
 	}
 }

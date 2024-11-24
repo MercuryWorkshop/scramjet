@@ -1,5 +1,6 @@
-import { ElementType, Parser } from "htmlparser2";
-import { ChildNode, DomHandler, Element } from "domhandler";
+import * as parse5 from "parse5";
+import { adapter as htmlparser2Adapter } from "parse5-htmlparser2-tree-adapter";
+import { ChildNode, Element } from "domhandler";
 import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "./url";
 import { rewriteCss } from "./css";
@@ -14,15 +15,13 @@ export function rewriteHtml(
 	meta: URLMeta,
 	fromTop: boolean = false
 ) {
-	const handler = new DomHandler((err, dom) => dom);
-	const parser = new Parser(handler);
-
-	parser.write(html);
-	parser.end();
-	traverseParsedHtml(handler.root, cookieStore, meta);
+	const handler = parse5.parse(html, {
+		treeAdapter: htmlparser2Adapter,
+	});
+	traverseParsedHtml(handler, cookieStore, meta);
 
 	function findhead(node) {
-		if (node.type === ElementType.Tag && node.name === "head") {
+		if (node.type === "tag" && node.name === "head") {
 			return node as Element;
 		} else if (node.childNodes) {
 			for (const child of node.childNodes) {
@@ -35,10 +34,10 @@ export function rewriteHtml(
 	}
 
 	if (fromTop) {
-		let head = findhead(handler.root);
+		let head = findhead(handler);
 		if (!head) {
 			head = new Element("head", {}, []);
-			handler.root.children.unshift(head);
+			handler.childNodes.unshift(head);
 		}
 
 		const dump = JSON.stringify(cookieStore.dump());
@@ -63,7 +62,7 @@ export function rewriteHtml(
 		);
 	}
 
-	return render(handler.root);
+	return render(handler);
 }
 
 // type ParseState = {
@@ -72,11 +71,9 @@ export function rewriteHtml(
 // };
 
 export function unrewriteHtml(html: string) {
-	const handler = new DomHandler((err, dom) => dom);
-	const parser = new Parser(handler);
-
-	parser.write(html);
-	parser.end();
+	const handler = parse5.parse(html, {
+		treeAdapter: htmlparser2Adapter,
+	});
 
 	function traverse(node: ChildNode) {
 		if ("attribs" in node) {
@@ -101,9 +98,9 @@ export function unrewriteHtml(html: string) {
 		}
 	}
 
-	traverse(handler.root);
+	traverse(handler);
 
-	return render(handler.root);
+	return render(handler);
 }
 
 export const htmlRules: {
