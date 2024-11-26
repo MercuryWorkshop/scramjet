@@ -21,7 +21,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("WebSocket", {
 		construct(ctx) {
 			const fakeWebSocket = new EventTarget() as WebSocket;
-			Object.setPrototypeOf(fakeWebSocket, self.WebSocket.prototype);
+			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;
 
 			const trustEvent = (ev: Event) =>

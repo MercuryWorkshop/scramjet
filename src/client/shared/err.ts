@@ -6,11 +6,8 @@ export const enabled = (client: ScramjetClient) =>
 export function argdbg(arg, recurse = []) {
 	switch (typeof arg) {
 		case "string":
-			if (arg.includes("localhost:1337/scramjet/") && arg.includes("m3u8"))
-				debugger;
 			break;
 		case "object":
-			// if (arg instanceof Location) debugger;
 			if (
 				arg &&
 				arg[Symbol.iterator] &&

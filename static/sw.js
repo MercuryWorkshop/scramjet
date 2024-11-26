@@ -53,17 +53,19 @@ scramjet.addEventListener("request", (e) => {
 			e.response = new Response(playgroundData.js, {
 				headers,
 			});
-			e.response.rawHeaders = headers;
-			e.response.rawResponse = {
-				body: e.response.body,
-				headers: headers,
-				status: e.response.status,
-				statusText: e.response.statusText,
-			};
-			e.response.finalURL = e.url.toString();
 		} else {
-			return;
+			e.response = new Response("empty response", {
+				headers,
+			});
 		}
+		e.response.rawHeaders = headers;
+		e.response.rawResponse = {
+			body: e.response.body,
+			headers: headers,
+			status: e.response.status,
+			statusText: e.response.statusText,
+		};
+		e.response.finalURL = e.url.toString();
 	} else {
 		return;
 	}
