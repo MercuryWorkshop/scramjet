@@ -50,6 +50,10 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				binaryType: "blob",
 				barews,
 
+				onclose: null,
+				onerror: null,
+				onmessage: null,
+				onopen: null,
 				captureListeners: {},
 				listeners: {},
 			};

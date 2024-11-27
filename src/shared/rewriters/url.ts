@@ -28,7 +28,7 @@ export function unrewriteBlob(url: string) {
 
 export function rewriteUrl(url: string | URL, meta: URLMeta) {
 	if (url instanceof URL) {
-		url = url.href;
+		url = url.toString();
 	}
 
 	if (url.startsWith("javascript:")) {
@@ -58,7 +58,7 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 
 export function unrewriteUrl(url: string | URL) {
 	if (url instanceof URL) {
-		url = url.href;
+		url = url.toString();
 	}
 
 	const prefixed = location.origin + $scramjet.config.prefix;

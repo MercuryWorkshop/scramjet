@@ -228,7 +228,7 @@ function BrowserApp() {
 
 	const cfg = h(Config);
 	document.body.appendChild(cfg);
-	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/tree/${$scramjet.version.build}`;
+	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/commit/${$scramjet.version.build}`;
 
 	return html`
       <div>

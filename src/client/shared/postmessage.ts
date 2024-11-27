@@ -20,6 +20,7 @@ export default function (client: ScramjetClient) {
 				} else if (typeof ctx.args[2] === "object" && ctx.args[2] !== null) {
 					pollutant = ctx.args[2]; // next try to use transfer
 				} else if (
+					ctx.this &&
 					POLLUTANT in ctx.this &&
 					typeof ctx.this[POLLUTANT] === "object" &&
 					ctx.this[POLLUTANT] !== null

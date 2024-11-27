@@ -320,8 +320,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 		],
 		{
 			apply(ctx) {
-				const document = ctx.call();
-				if (document) {
+				const doc = ctx.call();
+				if (doc) {
 					ctx.return(ctx.this.contentDocument);
 				}
 			},

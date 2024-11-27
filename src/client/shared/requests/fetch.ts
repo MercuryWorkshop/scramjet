@@ -9,7 +9,7 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 	client.Proxy("fetch", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 
 				if (isemulatedsw) ctx.args[0] += "?from=swruntime";
 			}
@@ -19,7 +19,7 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 	client.Proxy("Request", {
 		construct(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 
 				if (isemulatedsw) ctx.args[0] += "?from=swruntime";
 			}
