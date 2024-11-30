@@ -7,10 +7,10 @@ type FakeWebSocketState = {
 	url: string;
 	binaryType: string;
 	barews: BareWebSocket;
-
+	/*
 	captureListeners: Record<string, EventListener[]>;
 	listeners: Record<string, EventListener[]>;
-
+	*/
 	onclose?: (ev: CloseEvent) => any;
 	onerror?: (ev: Event) => any;
 	onmessage?: (ev: MessageEvent) => any;
@@ -49,13 +49,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				url: ctx.args[0],
 				binaryType: "blob",
 				barews,
-
+				/*
+				captureListeners: {},
+				listeners: {},
+				*/
 				onclose: null,
 				onerror: null,
 				onmessage: null,
 				onopen: null,
-				captureListeners: {},
-				listeners: {},
 			};
 
 			function fakeEventSend(fakeev: Event) {
@@ -106,7 +107,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			ctx.return(fakeWebSocket);
 		},
 	});
-
+	// i have no clue why this is here but it prevents the real event listener from ever happening so im commenting it out for now
+	/*
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
@@ -156,7 +158,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			ctx.return(undefined);
 		},
 	});
-
+	*/
 	client.Trap("WebSocket.prototype.binaryType", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);

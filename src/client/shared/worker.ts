@@ -7,8 +7,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	if (self.Worker) {
 		client.Proxy("Worker", {
 			construct({ args, call }) {
-				if (args[0] instanceof URL) args[0] = args[0].href;
-
 				args[0] = rewriteUrl(args[0], client.meta) + "?dest=worker";
 
 				if (args[1] && args[1].type === "module") {
@@ -43,8 +41,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		// sharedworkers can only be constructed from window
 		client.Proxy("SharedWorker", {
 			construct({ args, call }) {
-				if (args[0] instanceof URL) args[0] = args[0].href;
-
 				args[0] = rewriteUrl(args[0], client.meta) + "?dest=worker";
 
 				if (args[1] && typeof args[1] === "string")
