@@ -263,6 +263,57 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap("HTMLFrameElement.prototype.contentWindow", {
+		get(ctx) {
+			const realwin = ctx.get() as Window;
+			if (!realwin) return realwin;
+
+			if (SCRAMJETCLIENT in realwin) {
+				return realwin[SCRAMJETCLIENT].globalProxy;
+			} else {
+				// hook the iframe
+				const newclient = new ScramjetClient(realwin);
+				newclient.hook();
+
+				return newclient.globalProxy;
+			}
+		},
+	});
+
+	client.Trap("HTMLFrameElement.prototype.contentDocument", {
+		get(ctx) {
+			const contentwindow =
+				client.descriptors["HTMLFrameElement.prototype.contentWindow"].get;
+			const realwin = contentwindow.apply(ctx.this);
+			if (!realwin) return realwin;
+
+			if (SCRAMJETCLIENT in realwin) {
+				return realwin[SCRAMJETCLIENT].documentProxy;
+			} else {
+				const newclient = new ScramjetClient(realwin);
+				newclient.hook();
+
+				return newclient.documentProxy;
+			}
+		},
+	});
+
+	client.Proxy(
+		[
+			"HTMLIFrameElement.prototype.getSVGDocument",
+			"HTMLObjectElement.prototype.getSVGDocument",
+			"HTMLEmbedElement.prototype.getSVGDocument",
+		],
+		{
+			apply(ctx) {
+				const doc = ctx.call();
+				if (doc) {
+					ctx.return(ctx.this.contentDocument);
+				}
+			},
+		}
+	);
+
 	client.Trap("TreeWalker.prototype.currentNode", {
 		get(ctx) {
 			return ctx.get();
@@ -308,22 +359,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (!scram) return n; // ??
 
 				return scram.documentProxy;
-			},
-		}
-	);
-
-	client.Proxy(
-		[
-			"HTMLIFrameElement.prototype.getSVGDocument",
-			"HTMLObjectElement.prototype.getSVGDocument",
-			"HTMLEmbedElement.prototype.getSVGDocument",
-		],
-		{
-			apply(ctx) {
-				const doc = ctx.call();
-				if (doc) {
-					ctx.return(ctx.this.contentDocument);
-				}
 			},
 		}
 	);

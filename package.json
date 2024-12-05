@@ -27,7 +27,7 @@
 	],
 	"keywords": [],
 	"author": "",
-	"license": "ISC",
+	"license": "MIT",
 	"devDependencies": {
 		"@eslint/eslintrc": "^3.2.0",
 		"@eslint/js": "^9.16.0",

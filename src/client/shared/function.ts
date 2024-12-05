@@ -10,7 +10,12 @@ function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 
 export default function (client: ScramjetClient, _self: Self) {
 	const handler: Proxy = {
-		apply(ctx) {
+		apply(ctx: ProxyCtx) {
+			if ((ctx.fn as any).alreadyProxied) {
+				debugger;
+				throw new Error("blah slop");
+			}
+			(ctx.fn as any).alreadyProxied = true;
 			rewriteFunction(ctx, client);
 		},
 		construct(ctx) {
@@ -19,7 +24,7 @@ export default function (client: ScramjetClient, _self: Self) {
 	};
 
 	client.Proxy("Function", handler);
-
+	/*
 	// god i love javascript
 	client.RawProxy(function () {}.constructor.prototype, "constructor", handler);
 	client.RawProxy(
@@ -37,4 +42,5 @@ export default function (client: ScramjetClient, _self: Self) {
 		"constructor",
 		handler
 	);
+	*/
 }
