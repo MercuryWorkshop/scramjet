@@ -48,7 +48,3 @@ pnpm dev
 ```
 
 Scramjet should now be running at `localhost:1337` and should rebuild upon a file being changed (excluding the rewriter).
-
-## Documentation
-
-See the current index of documentation [here](./documentation/README.md).
