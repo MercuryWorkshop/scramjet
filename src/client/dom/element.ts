@@ -240,75 +240,58 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("HTMLIFrameElement.prototype.contentWindow", {
-		get(ctx) {
-			const realwin = ctx.get() as Window;
-			if (!realwin) return realwin;
+	client.Trap(
+		[
+			"HTMLIFrameElement.prototype.contentWindow",
+			"HTMLFrameElement.prototype.contentWindow",
+			"HTMLObjectElement.prototype.contentWindow",
+			"HTMLEmbedElement.prototype.contentWindow",
+		],
+		{
+			get(ctx) {
+				const realwin = ctx.get() as Window;
+				if (!realwin) return realwin;
 
-			if (SCRAMJETCLIENT in realwin) {
-				return realwin[SCRAMJETCLIENT].globalProxy;
-			} else {
-				// hook the iframe
-				const newclient = new ScramjetClient(realwin);
-				newclient.hook();
+				if (SCRAMJETCLIENT in realwin) {
+					return realwin[SCRAMJETCLIENT].globalProxy;
+				} else {
+					// hook the iframe
+					const newclient = new ScramjetClient(realwin);
+					newclient.hook();
 
-				return newclient.globalProxy;
-			}
-		},
-	});
+					return newclient.globalProxy;
+				}
+			},
+		}
+	);
 
-	client.Trap("HTMLIFrameElement.prototype.contentDocument", {
-		get(ctx) {
-			const contentwindow =
-				client.descriptors["HTMLIFrameElement.prototype.contentWindow"].get;
-			const realwin = contentwindow.apply(ctx.this);
-			if (!realwin) return realwin;
+	client.Trap(
+		[
+			"HTMLIFrameElement.prototype.contentDocument",
+			"HTMLFrameElement.prototype.contentDocument",
+			"HTMLObjectElement.prototype.contentDocument",
+			"HTMLEmbedElement.prototype.contentDocument",
+		],
+		{
+			get(ctx) {
+				const contentwindow =
+					client.descriptors[
+						`${ctx.this.constructor.name}.prototype.contentWindow`
+					].get;
+				const realwin = contentwindow.apply(ctx.this);
+				if (!realwin) return realwin;
 
-			if (SCRAMJETCLIENT in realwin) {
-				return realwin[SCRAMJETCLIENT].documentProxy;
-			} else {
-				const newclient = new ScramjetClient(realwin);
-				newclient.hook();
+				if (SCRAMJETCLIENT in realwin) {
+					return realwin[SCRAMJETCLIENT].documentProxy;
+				} else {
+					const newclient = new ScramjetClient(realwin);
+					newclient.hook();
 
-				return newclient.documentProxy;
-			}
-		},
-	});
-
-	client.Trap("HTMLFrameElement.prototype.contentWindow", {
-		get(ctx) {
-			const realwin = ctx.get() as Window;
-			if (!realwin) return realwin;
-
-			if (SCRAMJETCLIENT in realwin) {
-				return realwin[SCRAMJETCLIENT].globalProxy;
-			} else {
-				// hook the iframe
-				const newclient = new ScramjetClient(realwin);
-				newclient.hook();
-
-				return newclient.globalProxy;
-			}
-		},
-	});
-
-	client.Trap("HTMLFrameElement.prototype.contentDocument", {
-		get(ctx) {
-			const contentwindow =
-				client.descriptors["HTMLFrameElement.prototype.contentWindow"].get;
-			const realwin = contentwindow.apply(ctx.this);
-			if (!realwin) return realwin;
-
-			if (SCRAMJETCLIENT in realwin) {
-				return realwin[SCRAMJETCLIENT].documentProxy;
-			} else {
-				const newclient = new ScramjetClient(realwin);
-				newclient.hook();
-
-				return newclient.documentProxy;
-			}
-		},
-	});
+					return newclient.documentProxy;
+				}
+			},
+		}
+	);
 
 	client.Proxy(
 		[
@@ -320,7 +303,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			apply(ctx) {
 				const doc = ctx.call();
 				if (doc) {
-					ctx.return(ctx.this.contentDocument);
+					return ctx.return(ctx.this.contentDocument);
 				}
 			},
 		}
@@ -331,7 +314,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return ctx.get();
 		},
 		set(ctx, value) {
-			if (value == client.documentProxy) {
+			if (value === client.documentProxy) {
 				return ctx.set(self.document);
 			}
 
@@ -339,9 +322,19 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("Document.prototype.open", {
+		apply(ctx) {
+			const doc = ctx.call() as Document;
+
+			const scram: ScramjetClient = doc[SCRAMJETCLIENT];
+			if (!scram) return ctx.return(doc); // ??
+
+			return ctx.return(scram.documentProxy);
+		},
+	});
+
 	client.Trap("Node.prototype.ownerDocument", {
 		get(ctx) {
-			// return client.documentProxy;
 			const doc = ctx.get() as Document | null;
 			if (!doc) return null;
 

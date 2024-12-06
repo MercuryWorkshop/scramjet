@@ -11,11 +11,6 @@ function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 export default function (client: ScramjetClient, _self: Self) {
 	const handler: Proxy = {
 		apply(ctx: ProxyCtx) {
-			if ((ctx.fn as any).alreadyProxied) {
-				debugger;
-				throw new Error("blah slop");
-			}
-			(ctx.fn as any).alreadyProxied = true;
 			rewriteFunction(ctx, client);
 		},
 		construct(ctx) {

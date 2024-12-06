@@ -319,7 +319,19 @@ async function rewriteBody(
 		case "iframe":
 		case "document":
 			if (response.headers.get("content-type")?.startsWith("text/html")) {
-				return rewriteHtml(await response.text(), cookieStore, meta, true);
+				// note from percs: i think this has the potential to be slow asf, but for right now its fine (we should probably look for a better solution)
+				const buf = await response.arrayBuffer();
+				const decode = new TextDecoder("utf-8").decode(buf);
+				const charsetHeader = response.headers.get("content-type");
+				const charset =
+					charsetHeader?.split("charset=")[1] ||
+					decode.match(/charset=([^"]+)/)?.[1] ||
+					"utf-8";
+				const htmlContent = charset
+					? new TextDecoder(charset).decode(buf)
+					: decode;
+
+				return rewriteHtml(htmlContent, cookieStore, meta, true);
 			} else {
 				return response.body;
 			}
