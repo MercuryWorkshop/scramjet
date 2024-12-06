@@ -220,6 +220,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("Element.prototype.getHTML", {
+		apply(ctx) {
+			ctx.return(unrewriteHtml(ctx.call()));
+		},
+	});
+
 	client.Proxy("Element.prototype.insertAdjacentHTML", {
 		apply(ctx) {
 			if (ctx.args[1])
