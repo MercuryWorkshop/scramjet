@@ -5,10 +5,6 @@ import { unrewriteUrl, htmlRules, unrewriteHtml } from "../../shared";
 import { rewriteCss, rewriteHtml, rewriteJs } from "../../shared";
 
 export default function (client: ScramjetClient, self: typeof window) {
-	const _nativeGetAttribute = self.Element.prototype.getAttribute;
-	const nativeSetAttribute = self.Element.prototype.setAttribute;
-	const nativeHasAttribute = self.Element.prototype.hasAttribute;
-
 	const attrObject = {
 		nonce: [self.HTMLElement],
 		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
@@ -122,7 +118,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return ctx.return(null);
 			}
 
-			if (nativeHasAttribute.call(ctx.this, `scramjet-attr-${name}`)) {
+			if (
+				client.natives["Element.prototype.hasAttribute"].call(
+					ctx.this,
+					`scramjet-attr-${name}`
+				)
+			) {
 				const attrib = ctx.fn.call(ctx.this, `scramjet-attr-${name}`);
 				if (attrib === null) return ctx.return("");
 
@@ -139,6 +140,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 			);
 
 			ctx.return(cleaned);
+		},
+	});
+
+	client.Proxy("Element.prototype.hasAttribute", {
+		apply(ctx) {
+			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(false);
 		},
 	});
 
@@ -182,7 +189,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (ruleList) {
 				ctx.args[2] = ruleList.fn(value, client.meta, client.cookieStore);
-				nativeSetAttribute.call(
+				client.natives["Element.prototype.setAttribute"].call(
 					ctx.this,
 					`scramjet-attr-${ctx.args[1]}`,
 					value

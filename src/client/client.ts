@@ -66,7 +66,7 @@ export class ScramjetClient {
 	bare: BareClientType;
 
 	descriptors: Record<string, PropertyDescriptor> = {};
-	natives: Record<string, any> = {};
+	natives: Record<string, any>;
 	wrapfn: (i: any, ...args: any) => any;
 
 	cookieStore = new CookieStore();
@@ -120,7 +120,51 @@ export class ScramjetClient {
 				})
 			);
 		}
+		this.natives = new Proxy(
+			{},
+			{
+				get: (target, prop: string) => {
+					if (prop in target) {
+						return target[prop];
+					} else {
+						const split = prop.split(".");
+						const realProp = split.pop();
+						const realTarget = split.reduce((a, b) => a?.[b], this.global);
 
+						if (!realTarget) return;
+
+						const original = Reflect.get(realTarget, realProp);
+						target[prop] = original;
+
+						return target[prop];
+					}
+				},
+			}
+		);
+		this.descriptors = new Proxy(
+			{},
+			{
+				get: (target, prop: string) => {
+					if (prop in target) {
+						return target[prop];
+					} else {
+						const split = prop.split(".");
+						const realProp = split.pop();
+						const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+						if (!realTarget) return;
+
+						const original = nativeGetOwnPropertyDescriptor(
+							realTarget,
+							realProp
+						);
+						target[prop] = original;
+
+						return target[prop];
+					}
+				},
+			}
+		);
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const client = this;
 		this.meta = {
