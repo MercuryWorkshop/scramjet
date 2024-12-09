@@ -127,7 +127,10 @@ export async function handleFetch(
 				// console.log(headers);
 			} else {
 				headers.set("Referer", clientURL.toString());
-				headers.set("Origin", clientURL.origin);
+				headers.set(
+					"Origin",
+					clientURL.origin ? `${clientURL.protocol}//${clientURL.host}` : "null"
+				);
 			}
 		}
 
@@ -320,6 +323,8 @@ async function rewriteBody(
 		case "document":
 			if (response.headers.get("content-type")?.startsWith("text/html")) {
 				// note from percs: i think this has the potential to be slow asf, but for right now its fine (we should probably look for a better solution)
+				// another note from percs: regex seems to be broken, gonna comment this out
+				/*
 				const buf = await response.arrayBuffer();
 				const decode = new TextDecoder("utf-8").decode(buf);
 				const charsetHeader = response.headers.get("content-type");
@@ -330,8 +335,8 @@ async function rewriteBody(
 				const htmlContent = charset
 					? new TextDecoder(charset).decode(buf)
 					: decode;
-
-				return rewriteHtml(htmlContent, cookieStore, meta, true);
+				*/
+				return rewriteHtml(await response.text(), cookieStore, meta, true);
 			} else {
 				return response.body;
 			}
