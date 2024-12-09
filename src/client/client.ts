@@ -126,18 +126,18 @@ export class ScramjetClient {
 				get: (target, prop: string) => {
 					if (prop in target) {
 						return target[prop];
-					} else {
-						const split = prop.split(".");
-						const realProp = split.pop();
-						const realTarget = split.reduce((a, b) => a?.[b], this.global);
-
-						if (!realTarget) return;
-
-						const original = Reflect.get(realTarget, realProp);
-						target[prop] = original;
-
-						return target[prop];
 					}
+
+					const split = prop.split(".");
+					const realProp = split.pop();
+					const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+					if (!realTarget) return;
+
+					const original = Reflect.get(realTarget, realProp);
+					target[prop] = original;
+
+					return target[prop];
 				},
 			}
 		);
@@ -147,21 +147,18 @@ export class ScramjetClient {
 				get: (target, prop: string) => {
 					if (prop in target) {
 						return target[prop];
-					} else {
-						const split = prop.split(".");
-						const realProp = split.pop();
-						const realTarget = split.reduce((a, b) => a?.[b], this.global);
-
-						if (!realTarget) return;
-
-						const original = nativeGetOwnPropertyDescriptor(
-							realTarget,
-							realProp
-						);
-						target[prop] = original;
-
-						return target[prop];
 					}
+
+					const split = prop.split(".");
+					const realProp = split.pop();
+					const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+					if (!realTarget) return;
+
+					const original = nativeGetOwnPropertyDescriptor(realTarget, realProp);
+					target[prop] = original;
+
+					return target[prop];
 				},
 			}
 		);

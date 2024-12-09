@@ -65,10 +65,18 @@ export default function (client: ScramjetClient, _self: typeof window) {
 
 	client.Trap("Attr.prototype.value", {
 		get(ctx) {
-			return ctx.this.ownerElement?.getAttribute(ctx.this.name);
+			if (ctx.this?.ownerElement) {
+				return ctx.this.ownerElement.getAttribute(ctx.this.name);
+			}
+
+			return ctx.get();
 		},
 		set(ctx, value) {
-			return ctx.this.ownerElement?.setAttribute(ctx.this.name, value);
+			if (ctx.this?.ownerElement) {
+				return ctx.this.ownerElement.setAttribute(ctx.this.name, value);
+			}
+
+			return ctx.set(value);
 		},
 	});
 }

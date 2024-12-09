@@ -143,6 +143,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("Element.prototype.getAttributeNode", {
+		apply(ctx) {
+			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(null);
+		},
+	});
+
 	client.Proxy("Element.prototype.hasAttribute", {
 		apply(ctx) {
 			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(false);
