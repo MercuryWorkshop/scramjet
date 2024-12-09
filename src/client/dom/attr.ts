@@ -52,8 +52,8 @@ export default function (client: ScramjetClient, _self: typeof window) {
 				},
 				has(target, prop) {
 					if (typeof prop === "symbol") return Reflect.has(target, prop);
-					if (prop.startsWith("scramjet-data-")) return false;
-					if (map[prop]?.name?.startsWith("scramjet-data-")) return false;
+					if (prop.startsWith("scramjet-attr-")) return false;
+					if (map[prop]?.name?.startsWith("scramjet-attr-")) return false;
 
 					return Reflect.has(target, prop);
 				},
@@ -65,10 +65,10 @@ export default function (client: ScramjetClient, _self: typeof window) {
 
 	client.Trap("Attr.prototype.value", {
 		get(ctx) {
-			return ctx.this.ownerElement.getAttribute(ctx.this.name);
+			return ctx.this.ownerElement?.getAttribute(ctx.this.name);
 		},
 		set(ctx, value) {
-			return ctx.this.ownerElement.setAttribute(ctx.this.name, value);
+			return ctx.this.ownerElement?.setAttribute(ctx.this.name, value);
 		},
 	});
 }

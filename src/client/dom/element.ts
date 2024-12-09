@@ -114,6 +114,34 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("Element.prototype.getAttribute", {
+		apply(ctx) {
+			const [name] = ctx.args;
+
+			if (name.startsWith("scramjet-attr")) {
+				return ctx.return(null);
+			}
+
+			if (nativeHasAttribute.call(ctx.this, `scramjet-attr-${name}`)) {
+				const attrib = ctx.fn.call(ctx.this, `scramjet-attr-${name}`);
+				if (attrib === null) return ctx.return("");
+
+				return ctx.return(attrib);
+			}
+		},
+	});
+
+	client.Proxy("Element.prototype.getAttributeNames", {
+		apply(ctx) {
+			const attrNames = ctx.call() as string[];
+			const cleaned = attrNames.filter(
+				(attr) => !attr.startsWith("scramjet-attr")
+			);
+
+			ctx.return(cleaned);
+		},
+	});
+
 	client.Proxy("Element.prototype.setAttribute", {
 		apply(ctx) {
 			const [name, value] = ctx.args;
@@ -129,10 +157,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (ruleList) {
 				ctx.args[1] = ruleList.fn(value, client.meta, client.cookieStore);
-				ctx.fn.call(ctx.this, `scramjet-data-${ctx.args[0]}`, value);
+				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`, value);
 			}
 		},
 	});
+
+	// i actually need to do something with this
+	client.Proxy("Element.prototype.setAttributeNode", {
+		apply(ctx) {},
+	});
+
 	client.Proxy("Element.prototype.setAttributeNS", {
 		apply(ctx) {
 			const [_namespace, name, value] = ctx.args;
@@ -150,27 +184,22 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.args[2] = ruleList.fn(value, client.meta, client.cookieStore);
 				nativeSetAttribute.call(
 					ctx.this,
-					`scramjet-data-${ctx.args[1]}`,
+					`scramjet-attr-${ctx.args[1]}`,
 					value
 				);
 			}
 		},
 	});
 
-	client.Proxy("Element.prototype.getAttribute", {
+	client.Proxy("Element.prototype.removeAttribute", {
 		apply(ctx) {
-			const [name] = ctx.args;
+			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(undefined);
+		},
+	});
 
-			if (name.startsWith("scramjet-data")) {
-				return ctx.return(null);
-			}
-
-			if (nativeHasAttribute.call(ctx.this, `scramjet-data-${name}`)) {
-				const attrib = ctx.fn.call(ctx.this, `scramjet-data-${name}`);
-				if (attrib === null) return ctx.return("");
-
-				return ctx.return(attrib);
-			}
+	client.Proxy("Element.prototype.toggleAttribute", {
+		apply(ctx) {
+			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(false);
 		},
 	});
 
@@ -195,7 +224,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			if (ctx.this instanceof self.HTMLScriptElement) {
 				const scriptSource = client.natives[
 					"Element.prototype.getAttribute"
-				].call(ctx.this, "scramjet-data-script-source-src");
+				].call(ctx.this, "scramjet-attr-script-source-src");
 
 				if (scriptSource) {
 					return atob(scriptSource);
@@ -217,6 +246,19 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 		get(ctx) {
 			return unrewriteHtml(ctx.get());
+		},
+	});
+
+	client.Proxy("Element.prototype.setHTMLUnsafe", {
+		apply(ctx) {
+			try {
+				ctx.args[0] = rewriteHtml(
+					ctx.args[0],
+					client.cookieStore,
+					client.meta,
+					false
+				);
+			} catch {}
 		},
 	});
 
@@ -380,18 +422,24 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("DOMParser.prototype.parseFromString", {
-		apply(ctx) {
-			if (ctx.args[1] === "text/html") {
-				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.cookieStore,
-						client.meta,
-						false
-					);
-				} catch {}
-			}
-		},
-	});
+	client.Proxy(
+		[
+			"DOMParser.prototype.parseFromString",
+			"Document.prototype.parseHTMLUnsafe",
+		],
+		{
+			apply(ctx) {
+				if (ctx.args[1] === "text/html") {
+					try {
+						ctx.args[0] = rewriteHtml(
+							ctx.args[0],
+							client.cookieStore,
+							client.meta,
+							false
+						);
+					} catch {}
+				}
+			},
+		}
+	);
 }
