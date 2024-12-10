@@ -8,6 +8,7 @@ import { CookieStore } from "../cookie";
 import { unrewriteBlob } from "../../shared/rewriters/url";
 import { $scramjet } from "../../scramjet";
 
+const encoder = new TextEncoder();
 export function rewriteHtml(
 	html: string,
 	cookieStore: CookieStore,
@@ -53,7 +54,7 @@ export function rewriteHtml(
 		const script = (src) => new Element("script", { src });
 
 		// for compatibility purpose
-		const base64Injected = bytesToBase64(new TextEncoder().encode(injected));
+		const base64Injected = bytesToBase64(encoder.encode(injected));
 
 		head.children.unshift(
 			script($scramjet.config.files.wasm),
@@ -249,7 +250,7 @@ function traverseParsedHtml(
 		let js = node.children[0].data;
 		// node.attribs[`scramjet-attr-script-source-src`] = btoa(js);
 		node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
-			new TextEncoder().encode(js)
+			encoder.encode(js)
 		);
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");

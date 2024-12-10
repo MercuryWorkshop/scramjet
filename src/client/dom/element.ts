@@ -4,6 +4,14 @@ import { nativeGetOwnPropertyDescriptor } from "../natives";
 import { unrewriteUrl, htmlRules, unrewriteHtml } from "../../shared";
 import { rewriteCss, rewriteHtml, rewriteJs } from "../../shared";
 
+const encoder = new TextEncoder();
+function bytesToBase64(bytes: Uint8Array) {
+	const binString = Array.from(bytes, (byte) =>
+		String.fromCodePoint(byte)
+	).join("");
+
+	return btoa(binString);
+}
 export default function (client: ScramjetClient, self: typeof window) {
 	const attrObject = {
 		nonce: [self.HTMLElement],
@@ -207,12 +215,28 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.removeAttribute", {
 		apply(ctx) {
 			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(undefined);
+			if (
+				client.natives["Element.prototype.hasAttribute"].call(
+					ctx.this,
+					ctx.args[0]
+				)
+			) {
+				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
+			}
 		},
 	});
 
 	client.Proxy("Element.prototype.toggleAttribute", {
 		apply(ctx) {
 			if (ctx.args[0].startsWith("scramjet-attr")) return ctx.return(false);
+			if (
+				client.natives["Element.prototype.hasAttribute"].call(
+					ctx.this,
+					ctx.args[0]
+				)
+			) {
+				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
+			}
 		},
 	});
 
@@ -221,6 +245,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 			let newval;
 			if (ctx.this instanceof self.HTMLScriptElement) {
 				newval = rewriteJs(value, "(anonymous script element)", client.meta);
+				client.natives["Element.prototype.setAttribute"].call(
+					ctx.this,
+					"scramjet-attr-script-source-src",
+					bytesToBase64(encoder.encode(newval))
+				);
 			} else if (ctx.this instanceof self.HTMLStyleElement) {
 				newval = rewriteCss(value, client.meta);
 			} else {
