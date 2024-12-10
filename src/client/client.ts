@@ -18,6 +18,16 @@ import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
 
+type NativeStore = {
+	store: Record<string, any>;
+	call: (target: string, that: any, ...args) => any;
+	construct: (target: string, ...args) => any;
+};
+type DescriptorStore = {
+	store: Record<string, PropertyDescriptor>;
+	get: (target: string, that: any) => any;
+	set: (target: string, that: any, value: any) => void;
+};
 //eslint-disable-next-line
 export type AnyFunction = Function;
 
@@ -65,8 +75,8 @@ export class ScramjetClient {
 	serviceWorker: ServiceWorkerContainer;
 	bare: BareClientType;
 
-	descriptors: Record<string, PropertyDescriptor> = {};
-	natives: Record<string, any>;
+	natives: NativeStore;
+	descriptors: DescriptorStore;
 	wrapfn: (i: any, ...args: any) => any;
 
 	cookieStore = new CookieStore();
@@ -120,48 +130,79 @@ export class ScramjetClient {
 				})
 			);
 		}
-		this.natives = new Proxy(
-			{},
-			{
-				get: (target, prop: string) => {
-					if (prop in target) {
+		this.natives = {
+			store: new Proxy(
+				{},
+				{
+					get: (target, prop: string) => {
+						if (prop in target) {
+							return target[prop];
+						}
+
+						const split = prop.split(".");
+						const realProp = split.pop();
+						const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+						if (!realTarget) return;
+
+						const original = Reflect.get(realTarget, realProp);
+						target[prop] = original;
+
 						return target[prop];
-					}
+					},
+				}
+			),
+			construct(target: string, ...args) {
+				const original = this.store[target];
+				if (!original) return;
 
-					const split = prop.split(".");
-					const realProp = split.pop();
-					const realTarget = split.reduce((a, b) => a?.[b], this.global);
+				return new original(...args);
+			},
+			call(target: string, that: any, ...args) {
+				const original = this.store[target];
+				if (!original) return;
 
-					if (!realTarget) return;
+				return original.call(that, ...args);
+			},
+		};
+		this.descriptors = {
+			store: new Proxy(
+				{},
+				{
+					get: (target, prop: string) => {
+						if (prop in target) {
+							return target[prop];
+						}
 
-					const original = Reflect.get(realTarget, realProp);
-					target[prop] = original;
+						const split = prop.split(".");
+						const realProp = split.pop();
+						const realTarget = split.reduce((a, b) => a?.[b], this.global);
 
-					return target[prop];
-				},
-			}
-		);
-		this.descriptors = new Proxy(
-			{},
-			{
-				get: (target, prop: string) => {
-					if (prop in target) {
+						if (!realTarget) return;
+
+						const original = nativeGetOwnPropertyDescriptor(
+							realTarget,
+							realProp
+						);
+						target[prop] = original;
+
 						return target[prop];
-					}
+					},
+				}
+			),
+			get(target: string, that: any) {
+				const original = this.store[target];
+				if (!original) return;
 
-					const split = prop.split(".");
-					const realProp = split.pop();
-					const realTarget = split.reduce((a, b) => a?.[b], this.global);
+				return original.get.call(that);
+			},
+			set(target: string, that: any, value: any) {
+				const original = this.store[target];
+				if (!original) return;
 
-					if (!realTarget) return;
-
-					const original = nativeGetOwnPropertyDescriptor(realTarget, realProp);
-					target[prop] = original;
-
-					return target[prop];
-				},
-			}
-		);
+				original.set.call(that, value);
+			},
+		};
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const client = this;
 		this.meta = {
@@ -285,7 +326,7 @@ export class ScramjetClient {
 		if (!target) return;
 
 		const original = Reflect.get(target, prop);
-		this.natives[name] = original;
+		this.natives.store[name] = original;
 
 		this.RawProxy(target, prop, handler);
 	}
@@ -412,7 +453,7 @@ export class ScramjetClient {
 		if (!target) return;
 
 		const original = nativeGetOwnPropertyDescriptor(target, prop);
-		this.descriptors[name] = original;
+		this.descriptors.store[name] = original;
 
 		return this.RawTrap(target, prop, descriptor);
 	}

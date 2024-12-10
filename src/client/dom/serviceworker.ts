@@ -67,8 +67,7 @@ export default function (client: ScramjetClient, _self: Self) {
 				url += "&type=module";
 			}
 
-			const nativeSharedWorker = client.natives["SharedWorker"];
-			const worker = new nativeSharedWorker(url);
+			const worker = client.natives.construct("SharedWorker", url);
 
 			const handle = worker.port;
 
