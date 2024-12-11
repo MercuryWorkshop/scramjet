@@ -230,7 +230,6 @@ impl JsChanges {
 		self.inner.sort();
 
 		for change in &self.inner {
-			println!("{:?}", change);
 			let span = change.get_span();
 			let start = span.start as usize;
 			let end = span.end as usize;
