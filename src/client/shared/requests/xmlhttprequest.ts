@@ -33,7 +33,7 @@ export default function (client: ScramjetClient, self: Self) {
 			if (!flagEnabled("syncxhr", client.url)) {
 				console.warn("ignoring request - sync xhr disabled in flags");
 
-				return;
+				return ctx.return(undefined);
 			}
 
 			// it's a sync request

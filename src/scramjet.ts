@@ -27,7 +27,7 @@ export function loadCodecs() {
 }
 
 export function flagEnabled(flag: keyof ScramjetFlags, url: URL): boolean {
-	const value = $scramjet.config.defaultFlags[flag];
+	const value = $scramjet.config.flags[flag];
 	for (const regex in $scramjet.config.siteFlags) {
 		const partialflags = $scramjet.config.siteFlags[regex];
 		if (new RegExp(regex).test(url.href) && flag in partialflags) {

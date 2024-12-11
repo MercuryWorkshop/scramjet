@@ -7,7 +7,7 @@ export class ScramjetController {
 
 	constructor(config: Partial<ScramjetConfig>) {
 		// sane ish defaults
-		const defaultConfig: Partial<ScramjetConfig> = {
+		const defaultConfig: ScramjetConfig = {
 			prefix: "/scramjet/",
 			globals: {
 				wrapfn: "$scramjet$wrap",
@@ -26,7 +26,7 @@ export class ScramjetController {
 				client: "/scramjet.client.js",
 				sync: "/scramjet.sync.js",
 			},
-			defaultFlags: {
+			flags: {
 				serviceworkers: false,
 				naiiveRewriter: false,
 				captureErrors: true,

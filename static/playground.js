@@ -6,10 +6,9 @@ const scramjet = new ScramjetController({
 		shared: "/scram/scramjet.shared.js",
 		sync: "/scram/scramjet.sync.js",
 	},
-	siteFlags: {
-		"https://worker-playground.glitch.me/.*": {
-			serviceworkers: true,
-		},
+	flags: {
+		serviceworkers: true,
+		syncxhr: true,
 	},
 });
 
