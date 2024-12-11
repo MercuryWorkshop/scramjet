@@ -1,14 +1,6 @@
-[package]
-name = "rewriter"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib"]
-
-[features]
-default = ["debug"]
-debug = []
+[workspace]
+members = ["native", "rewriter", "wasm"]
+resolver = "2"
 
 [profile.release]
 opt-level = 3
@@ -17,18 +9,6 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
-[dependencies]
-indexset = "0.5.0"
-instant = { version = "0.1.13", features = ["wasm-bindgen"] }
-js-sys = "0.3.69"
-oxc = "0.37.0"
-thiserror = "2.0.3"
-url = "2.5.2"
-wasm-bindgen =  "0.2.95"
-web-sys = { version = "0.3.72", features = ["Url"] }
+[workspace.dependencies]
+oxc = "0.40.1"
 
-[dev-dependencies]
-boa_engine = "0.19.0"
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(wasm_bindgen_unstable_test_coverage)'] }

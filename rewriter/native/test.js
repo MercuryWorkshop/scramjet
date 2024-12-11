@@ -25,5 +25,3 @@ function f() { return import("x") }
 
 
 let window = (1, window);
-
-

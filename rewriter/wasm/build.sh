@@ -8,7 +8,7 @@ which cargo wasm-bindgen wasm-opt &> /dev/null || {
 	exit 1
 }
 
-WBG="wasm-bindgen 0.2.95"
+WBG="wasm-bindgen 0.2.99"
 if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
 	echo "Incorrect wasm-bindgen-cli version: '$(wasm-bindgen -V)' != '$WBG'"
 	exit 1
@@ -23,16 +23,14 @@ else
 fi
 
 RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none -Zfmt-debug=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --no-default-features --features "$FEATURES" --release
-wasm-bindgen --target web --out-dir out/ target/wasm32-unknown-unknown/release/rewriter.wasm
+wasm-bindgen --target web --out-dir out/ ../target/wasm32-unknown-unknown/release/wasm.wasm
 
-sed -i 's/import.meta.url/""/g' out/rewriter.js
+sed -i 's/import.meta.url/""/g' out/wasm.js
 
-cd ..
-
-WASM=rewriter/out/rewriter_bg.wasm
+cd ../../
 
 # shellcheck disable=SC2086
-time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd "$WASM" -o rewriter/out/optimized.wasm
+time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/optimized.wasm
 
 mkdir dist/ || true
 
@@ -44,7 +42,7 @@ if ("document" in self && document?.currentScript) {
 }
 EOF
 echo -n "self.WASM = '"
-base64 -w0 < "rewriter/out/optimized.wasm"
+base64 -w0 < "rewriter/wasm/out/optimized.wasm"
 echo -n "';"
 
 } > dist/scramjet.wasm.js

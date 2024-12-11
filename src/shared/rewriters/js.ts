@@ -6,7 +6,7 @@ import {
 	rewrite_js,
 	rewrite_js_from_arraybuffer,
 	RewriterOutput,
-} from "../../../rewriter/out/rewriter.js";
+} from "../../../rewriter/wasm/out/wasm.js";
 import { $scramjet, flagEnabled } from "../../scramjet";
 
 initSync({
