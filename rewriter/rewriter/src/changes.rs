@@ -112,7 +112,11 @@ impl JsChange {
 
 	// returns (bunch of stuff to add before, option<bunch of stuff to add after>)
 	// bunch of stuff to add after should only be some if it's not a replace op
-	fn to_inner<'a>(&'a self, cfg: &'a Config) -> JsChangeInner<'a> {
+	fn to_inner<'a, E>(&'a self, cfg: &'a Config<E>) -> JsChangeInner<'a>
+	where
+		E: Fn(String) -> String,
+		E: Clone,
+	{
 		match self {
 			Self::WrapFn { ident, wrapped, .. } => JsChangeInner::Replace(if *wrapped {
 				smallvec!["(", cfg.wrapfn.as_str(), "(", ident.as_str(), ")", ")"]
@@ -220,7 +224,11 @@ impl JsChanges {
 		self.inner.push(change);
 	}
 
-	pub fn perform(&mut self, js: &str, cfg: &Config) -> JsChangeResult {
+	pub fn perform<E>(&mut self, js: &str, cfg: &Config<E>) -> JsChangeResult
+	where
+		E: Fn(String) -> String,
+		E: Clone,
+	{
 		let mut offset = 0;
 		let mut buffer = Vec::with_capacity(((js.len() as u64 * 120) / 100) as usize);
 

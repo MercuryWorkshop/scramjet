@@ -1,11 +1,11 @@
 use cfg::Config;
 use changes::{JsChange, JsChangeResult, JsChanges};
 use oxc::{
-    allocator::Allocator,
-    ast::Visit,
-    diagnostics::OxcDiagnostic,
-    parser::{ParseOptions, Parser},
-    span::SourceType,
+	allocator::Allocator,
+	ast::Visit,
+	diagnostics::OxcDiagnostic,
+	parser::{ParseOptions, Parser},
+	span::SourceType,
 };
 use thiserror::Error;
 use visitor::Visitor;
@@ -16,50 +16,54 @@ mod visitor;
 
 #[derive(Error, Debug)]
 pub enum RewriterError {
-    #[error("oxc panicked in parser")]
-    OxcPanicked,
+	#[error("oxc panicked in parser")]
+	OxcPanicked,
 }
 
 #[derive(Debug)]
 pub struct RewriteResult {
-    pub js: Vec<u8>,
-    pub sourcemap: Vec<u8>,
-    pub errors: Vec<OxcDiagnostic>,
-    pub changes: Vec<JsChange>,
+	pub js: Vec<u8>,
+	pub sourcemap: Vec<u8>,
+	pub errors: Vec<OxcDiagnostic>,
+	pub changes: Vec<JsChange>,
 }
 
-pub fn rewrite(js: &str, config: Config) -> Result<RewriteResult, RewriterError> {
-    let allocator = Allocator::default();
-    let source_type = SourceType::default();
-    let ret = Parser::new(&allocator, js, source_type)
-        .with_options(ParseOptions {
-            parse_regular_expression: false, // default
-            allow_return_outside_function: true,
-            preserve_parens: true, // default
-        })
-        .parse();
+pub fn rewrite<E>(js: &str, config: Config<E>) -> Result<RewriteResult, RewriterError>
+where
+	E: Fn(String) -> String,
+	E: Clone,
+{
+	let allocator = Allocator::default();
+	let source_type = SourceType::default();
+	let ret = Parser::new(&allocator, js, source_type)
+		.with_options(ParseOptions {
+			parse_regular_expression: false, // default
+			allow_return_outside_function: true,
+			preserve_parens: true, // default
+		})
+		.parse();
 
-    if ret.panicked {
-        return Err(RewriterError::OxcPanicked);
-    }
+	if ret.panicked {
+		return Err(RewriterError::OxcPanicked);
+	}
 
-    let mut visitor = Visitor {
-        jschanges: JsChanges::new(),
-        config,
-    };
-    visitor.visit_program(&ret.program);
-    let Visitor {
-        mut jschanges,
-        config,
-    } = visitor;
+	let mut visitor = Visitor {
+		jschanges: JsChanges::new(),
+		config,
+	};
+	visitor.visit_program(&ret.program);
+	let Visitor {
+		mut jschanges,
+		config,
+	} = visitor;
 
-    let JsChangeResult { js, sourcemap } = jschanges.perform(js, &config);
-    let JsChanges { inner: changes } = jschanges;
+	let JsChangeResult { js, sourcemap } = jschanges.perform(js, &config);
+	let JsChanges { inner: changes } = jschanges;
 
-    Ok(RewriteResult {
-        js,
-        sourcemap,
-        errors: ret.errors,
-        changes,
-    })
+	Ok(RewriteResult {
+		js,
+		sourcemap,
+		errors: ret.errors,
+		changes,
+	})
 }

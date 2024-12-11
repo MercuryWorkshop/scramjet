@@ -37,33 +37,41 @@ fn dorewrite(data: &str) -> Result<RewriteResult> {
 	.context("failed to rewrite file")
 }
 
+fn dobench(data: String) {
+	loop {
+		let _ = dorewrite(&data);
+	}
+}
+
 fn main() -> Result<()> {
 	let file = env::args().nth(1).unwrap_or_else(|| "test.js".to_string());
 	let data = fs::read_to_string(file).context("failed to read file")?;
 	let bench = env::args().nth(2).is_some();
 
 	if bench {
-		loop {
-			dorewrite(&data)?;
+		for _ in 0..15 {
+			let data = data.clone();
+			std::thread::spawn(move || dobench(data));
 		}
+		dobench(data);
+	} else {
+		let res = dorewrite(&data)?;
+
+		let source = Arc::new(
+			NamedSource::new(data, "https://google.com/glorngle/si.js").with_language("javascript"),
+		);
+		eprintln!("errors:");
+		for err in res.errors {
+			eprintln!("{}", err.with_source_code(source.clone()));
+		}
+
+		println!("changes: {:#?}", res.changes);
+
+		println!(
+			"rewritten:\n{}",
+			String::from_utf8(res.js).context("failed to parse rewritten js")?
+		);
 	}
-
-	let res = dorewrite(&data)?;
-
-	let source = Arc::new(
-		NamedSource::new(data, "https://google.com/glorngle/si.js").with_language("javascript"),
-	);
-	eprintln!("errors:");
-	for err in res.errors {
-		eprintln!("{}", err.with_source_code(source.clone()));
-	}
-
-	println!("changes: {:#?}", res.changes);
-
-	println!(
-		"rewritten:\n{}",
-		String::from_utf8(res.js).context("failed to parse rewritten js")?
-	);
 
 	Ok(())
 }

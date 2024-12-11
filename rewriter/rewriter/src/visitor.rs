@@ -34,12 +34,20 @@ const UNSAFE_GLOBALS: &[&str] = &[
 	"frames",
 ];
 
-pub struct Visitor {
+pub struct Visitor<E>
+where
+	E: Fn(String) -> String,
+	E: Clone,
+{
 	pub jschanges: JsChanges,
-	pub config: Config,
+	pub config: Config<E>,
 }
 
-impl Visitor {
+impl<E> Visitor<E>
+where
+	E: Fn(String) -> String,
+	E: Clone,
+{
 	fn rewrite_url(&mut self, url: String) -> String {
 		let url = self.config.base.join(&url).unwrap();
 
@@ -80,7 +88,11 @@ impl Visitor {
 	}
 }
 
-impl<'a> Visit<'a> for Visitor {
+impl<'a, E> Visit<'a> for Visitor<E>
+where
+	E: Fn(String) -> String,
+	E: Clone,
+{
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
 		// if self.config.capture_errors {
 		// 	self.jschanges.insert(JsChange::GenericChange {
