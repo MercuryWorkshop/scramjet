@@ -6,10 +6,7 @@ use error::{Result, RewriterError};
 use instant::Instant;
 use js_sys::{Function, Object, Reflect};
 use oxc::diagnostics::NamedSource;
-use rewriter::{
-	cfg::{Config, EncodeFn},
-	rewrite, RewriteResult,
-};
+use rewriter::{cfg::Config, rewrite, RewriteResult};
 use url::Url;
 use wasm_bindgen::prelude::*;
 
@@ -42,17 +39,17 @@ extern "C" {
 	fn error(s: &str);
 }
 
-fn create_encode_function(encode: JsValue) -> Result<EncodeFn> {
+fn create_encode_function(encode: JsValue) -> Result<impl Fn(String) -> String + Clone> {
 	let encode = encode.dyn_into::<Function>()?;
 
-	Ok(Box::new(move |str| {
+	Ok(move |str: String| {
 		encode
 			.call1(&JsValue::NULL, &str.into())
 			.unwrap()
 			.as_string()
 			.unwrap()
 			.to_string()
-	}))
+	})
 }
 
 fn get_obj(obj: &JsValue, k: &str) -> Result<JsValue> {
@@ -87,7 +84,7 @@ fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
 		.ok_or_else(|| RewriterError::not_bool("scramjet.flagEnabled return value"))
 }
 
-fn get_config(scramjet: &Object, url: &str) -> Result<Config> {
+fn get_config(scramjet: &Object, url: &str) -> Result<Config<impl Fn(String) -> String + Clone>> {
 	let codec = &get_obj(scramjet, "codec")?;
 	let config = &get_obj(scramjet, "config")?;
 	let globals = &get_obj(config, "globals")?;
