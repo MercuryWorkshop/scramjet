@@ -15,7 +15,7 @@ use oxc::{
 
 use crate::{
 	cfg::Config,
-	changes::{JsChange, JsChanges},
+	changes::{Rewrite, JsChanges},
 };
 
 // js MUST not be able to get a reference to any of these because sbx
@@ -58,7 +58,7 @@ where
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
 		if UNSAFE_GLOBALS.contains(&name.as_str()) {
-			self.jschanges.add(JsChange::WrapFn {
+			self.jschanges.add(Rewrite::WrapFn {
 				span,
 				wrapped: true,
 			});
@@ -83,7 +83,7 @@ where
 	}
 
 	fn scramitize(&mut self, span: Span) {
-		self.jschanges.add(JsChange::Scramitize { span });
+		self.jschanges.add(Rewrite::Scramitize { span });
 	}
 }
 
@@ -104,7 +104,7 @@ where
 		// } else {
 		//
 		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
-			self.jschanges.add(JsChange::WrapFn {
+			self.jschanges.add(Rewrite::WrapFn {
 				span: it.span,
 				wrapped: false,
 			});
@@ -122,7 +122,7 @@ where
 		match it {
 			MemberExpression::StaticMemberExpression(s) => {
 				if s.property.name == "postMessage" {
-					self.jschanges.add(JsChange::SetRealmFn {
+					self.jschanges.add(Rewrite::SetRealmFn {
 						span: s.property.span,
 					});
 
@@ -159,12 +159,12 @@ where
 		walk::walk_member_expression(self, it);
 	}
 	fn visit_this_expression(&mut self, it: &ThisExpression) {
-		self.jschanges.add(JsChange::WrapThisFn { span: it.span });
+		self.jschanges.add(Rewrite::WrapThisFn { span: it.span });
 	}
 
 	fn visit_debugger_statement(&mut self, it: &DebuggerStatement) {
 		// delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
-		self.jschanges.add(JsChange::Delete { span: it.span });
+		self.jschanges.add(Rewrite::Delete { span: it.span });
 	}
 
 	// we can't overwrite window.eval in the normal way because that would make everything an
@@ -173,7 +173,7 @@ where
 		if let Expression::Identifier(s) = &it.callee {
 			// if it's optional that actually makes it an indirect eval which is handled separately
 			if s.name == "eval" && !it.optional {
-				self.jschanges.add(JsChange::Eval {
+				self.jschanges.add(Rewrite::Eval {
 					span: Span::new(it.span.start, it.span.end),
 					inner: Span::new(s.span.end + 1, it.span.end),
 				});
@@ -193,14 +193,14 @@ where
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'a>) {
 		let name = it.source.value.to_string();
 		let text = self.rewrite_url(name);
-		self.jschanges.add(JsChange::Replace {
+		self.jschanges.add(Rewrite::Replace {
 			span: it.source.span,
 			text,
 		});
 		walk::walk_import_declaration(self, it);
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'a>) {
-		self.jschanges.add(JsChange::ImportFn {
+		self.jschanges.add(Rewrite::ImportFn {
 			span: Span::new(it.span.start, it.span.start + 6),
 		});
 		walk::walk_import_expression(self, it);
@@ -209,7 +209,7 @@ where
 	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
 		let name = it.source.value.to_string();
 		let text = self.rewrite_url(name);
-		self.jschanges.add(JsChange::Replace {
+		self.jschanges.add(Rewrite::Replace {
 			span: it.source.span,
 			text,
 		});
@@ -218,7 +218,7 @@ where
 		if let Some(source) = &it.source {
 			let name = source.value.to_string();
 			let text = self.rewrite_url(name);
-			self.jschanges.add(JsChange::Replace {
+			self.jschanges.add(Rewrite::Replace {
 				span: source.span,
 				text,
 			});
@@ -234,7 +234,7 @@ where
 			if let Some(h) = &it.handler {
 				if let Some(name) = &h.param {
 					if let Some(name) = name.pattern.get_identifier() {
-						self.jschanges.add(JsChange::ScramErr {
+						self.jschanges.add(Rewrite::ScramErr {
 							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
 							name: name.to_compact_str(),
 						});
@@ -251,7 +251,7 @@ where
 				match &p.value {
 					Expression::Identifier(s) => {
 						if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
-							self.jschanges.add(JsChange::ShorthandObj {
+							self.jschanges.add(Rewrite::ShorthandObj {
 								span: s.span,
 								name: s.name.to_compact_str(),
 							});
@@ -269,7 +269,7 @@ where
 	fn visit_function_body(&mut self, it: &FunctionBody<'a>) {
 		// tag function for use in sourcemaps
 		if self.config.do_sourcemaps {
-			self.jschanges.add(JsChange::SourceTag {
+			self.jschanges.add(Rewrite::SourceTag {
 				span: Span::new(it.span.start, it.span.start),
 				tagname: it.span.start.to_string(),
 			});
@@ -313,7 +313,7 @@ where
 
 	fn visit_meta_property(&mut self, it: &MetaProperty<'a>) {
 		if it.meta.name == "import" {
-			self.jschanges.add(JsChange::MetaFn { span: it.span });
+			self.jschanges.add(Rewrite::MetaFn { span: it.span });
 		}
 	}
 
@@ -321,7 +321,7 @@ where
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				if ["location"].contains(&s.name.to_string().as_str()) {
-					self.jschanges.add(JsChange::Assignment {
+					self.jschanges.add(Rewrite::Assignment {
 						name: s.name.to_compact_str(),
 						entirespan: it.span,
 						rhsspan: it.right.span(),

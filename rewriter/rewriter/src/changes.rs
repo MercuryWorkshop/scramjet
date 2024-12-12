@@ -4,10 +4,10 @@ use oxc::{
 };
 use smallvec::{smallvec, SmallVec};
 
-use crate::cfg::Config;
+use crate::{cfg::Config, RewriterError};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum JsChange {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Rewrite {
 	/// `(cfg.wrapfn(ident))` | `cfg.wrapfn(ident)`
 	WrapFn {
 		span: Span,
@@ -72,21 +72,7 @@ pub enum JsChange {
 	},
 }
 
-type Changes<'a> = SmallVec<[&'a str; 8]>;
-
-enum JsChangeInner<'a> {
-	Wrap {
-		/// Changes to add before span
-		before: Changes<'a>,
-		/// Span to add in between
-		span: &'a Span,
-		/// Changes to add after span
-		after: Changes<'a>,
-	},
-	Replace(Changes<'a>),
-}
-
-impl JsChange {
+impl Rewrite {
 	pub fn get_span(&self) -> &Span {
 		match self {
 			Self::WrapFn { span, .. } => span,
@@ -120,25 +106,27 @@ impl JsChange {
 				if *wrapped {
 					JsChangeInner::Wrap {
 						before: smallvec!["(", cfg.wrapfn.as_str(), "("],
-						span,
+						inner: span,
 						after: smallvec!["))"],
 					}
 				} else {
 					JsChangeInner::Wrap {
 						before: smallvec![cfg.wrapfn.as_str(), "("],
-						span,
+						inner: span,
 						after: smallvec![")"],
 					}
 				}
 			}
 			Self::SetRealmFn { span } => JsChangeInner::Wrap {
 				before: smallvec![cfg.setrealmfn.as_str(), "({})."],
-				span,
+				inner: span,
 				after: smallvec![],
 			},
-			Self::WrapThisFn { .. } => {
-				JsChangeInner::Replace(smallvec![cfg.wrapthisfn.as_str(), "(this)"])
-			}
+			Self::WrapThisFn { span } => JsChangeInner::Wrap {
+				before: smallvec![cfg.wrapthisfn.as_str(), "("],
+				inner: span,
+				after: smallvec![")"],
+			},
 			Self::ImportFn { .. } => JsChangeInner::Replace(smallvec![
 				"(",
 				cfg.importfn.as_str(),
@@ -153,18 +141,19 @@ impl JsChange {
 				"\")"
 			]),
 
+			// maps to insert
 			Self::ScramErr { name, .. } => {
 				JsChangeInner::Replace(smallvec!["$scramerr(", name.as_str(), ");"])
 			}
 			Self::Scramitize { span } => JsChangeInner::Wrap {
 				before: smallvec!["$scramitize("],
-				span,
+				inner: span,
 				after: smallvec![")"],
 			},
 
 			Self::Eval { inner, .. } => JsChangeInner::Wrap {
 				before: smallvec!["eval(", cfg.rewritefn.as_str(), "("],
-				span: inner,
+				inner,
 				after: smallvec![")"],
 			},
 			Self::Assignment {
@@ -180,9 +169,10 @@ impl JsChange {
 					op.as_str(),
 					"t))("
 				],
-				span: rhsspan,
+				inner: rhsspan,
 				after: smallvec![")"],
 			},
+			// maps to insert
 			Self::ShorthandObj { name, .. } => JsChangeInner::Replace(smallvec![
 				name.as_str(),
 				":",
@@ -191,6 +181,7 @@ impl JsChange {
 				name.as_str(),
 				")"
 			]),
+			// maps to insert
 			Self::SourceTag { tagname, .. } => JsChangeInner::Replace(smallvec![
 				"/*scramtag ",
 				tagname.as_str(),
@@ -204,16 +195,32 @@ impl JsChange {
 	}
 }
 
-impl PartialOrd for JsChange {
+impl PartialOrd for Rewrite {
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
-impl Ord for JsChange {
+impl Ord for Rewrite {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
 		self.get_span().start.cmp(&other.get_span().start)
 	}
+}
+
+type Changes<'a> = SmallVec<[&'a str; 8]>;
+
+enum JsChangeInner<'a> {
+	Wrap {
+		/// Changes to add before span
+		before: Changes<'a>,
+		/// Span to add in between
+		inner: &'a Span,
+		/// Changes to add after span
+		after: Changes<'a>,
+	},
+	Replace {
+		str: Changes<'a>,
+	},
 }
 
 pub(crate) struct JsChangeResult {
@@ -222,7 +229,7 @@ pub(crate) struct JsChangeResult {
 }
 
 pub(crate) struct JsChanges {
-	pub inner: Vec<JsChange>,
+	pub inner: Vec<Rewrite>,
 }
 
 impl JsChanges {
@@ -230,11 +237,11 @@ impl JsChanges {
 		Self { inner: Vec::new() }
 	}
 
-	pub fn add(&mut self, change: JsChange) {
+	pub fn add(&mut self, change: Rewrite) {
 		self.inner.push(change);
 	}
 
-	pub fn perform<E>(&mut self, js: &str, cfg: &Config<E>) -> JsChangeResult
+	pub fn perform<E>(&mut self, js: &str, cfg: &Config<E>) -> Result<JsChangeResult, RewriterError>
 	where
 		E: Fn(String) -> String,
 		E: Clone,
@@ -252,13 +259,17 @@ impl JsChanges {
 			let start = span.start as usize;
 			let end = span.end as usize;
 
-			buffer.extend_from_slice(js[offset..start].as_bytes());
+			buffer.extend_from_slice(
+				js.get(offset..start)
+					.ok_or_else(|| RewriterError::Oob(offset..start))?
+					.as_bytes(),
+			);
 
-			let change = change.to_inner(cfg);
-			match change {
+			let inner = change.to_inner(cfg);
+			match inner {
 				JsChangeInner::Wrap {
 					before,
-					span: wrapspan,
+					inner: wrapspan,
 					after,
 				} => {
 					// wrap op
@@ -268,7 +279,11 @@ impl JsChanges {
 
 					let wrapstart = wrapspan.start as usize;
 					let wrapend = wrapspan.end as usize;
-					buffer.extend_from_slice(js[wrapstart..wrapend].as_bytes());
+					buffer.extend_from_slice(
+						js.get(wrapstart..wrapend)
+							.ok_or_else(|| RewriterError::Oob(wrapstart..wrapend))?
+							.as_bytes(),
+					);
 
 					for str in after {
 						buffer.extend_from_slice(str.as_bytes());
@@ -284,11 +299,16 @@ impl JsChanges {
 			offset = end;
 		}
 
-		buffer.extend_from_slice(js[offset..].as_bytes());
+		let js_len = js.len();
+		buffer.extend_from_slice(
+			js.get(offset..js_len)
+				.ok_or_else(|| RewriterError::Oob(offset..js_len))?
+				.as_bytes(),
+		);
 
-		JsChangeResult {
+		Ok(JsChangeResult {
 			js: buffer,
 			sourcemap: map,
-		}
+		})
 	}
 }

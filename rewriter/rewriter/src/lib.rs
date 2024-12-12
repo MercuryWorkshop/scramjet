@@ -1,5 +1,7 @@
+use std::ops::Range;
+
 use cfg::Config;
-use changes::{JsChange, JsChangeResult, JsChanges};
+use changes::{Rewrite, JsChangeResult, JsChanges};
 use oxc::{
 	allocator::Allocator,
 	ast::Visit,
@@ -18,6 +20,8 @@ mod visitor;
 pub enum RewriterError {
 	#[error("oxc panicked in parser")]
 	OxcPanicked,
+	#[error("out of bounds while applying range: {0:?})")]
+	Oob(Range<usize>),
 }
 
 #[derive(Debug)]
@@ -25,7 +29,7 @@ pub struct RewriteResult {
 	pub js: Vec<u8>,
 	pub sourcemap: Vec<u8>,
 	pub errors: Vec<OxcDiagnostic>,
-	pub changes: Vec<JsChange>,
+	pub changes: Vec<Rewrite>,
 }
 
 pub fn rewrite<E>(js: &str, config: Config<E>) -> Result<RewriteResult, RewriterError>
@@ -57,7 +61,7 @@ where
 		config,
 	} = visitor;
 
-	let JsChangeResult { js, sourcemap } = jschanges.perform(js, &config);
+	let JsChangeResult { js, sourcemap } = jschanges.perform(js, &config)?;
 	let JsChanges { inner: changes } = jschanges;
 
 	Ok(RewriteResult {
