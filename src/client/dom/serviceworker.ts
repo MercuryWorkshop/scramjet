@@ -13,10 +13,6 @@ export const enabled = (client: ScramjetClient) =>
 export function disabled(_client: ScramjetClient, _self: Self) {
 	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }
-let realPostMessage;
-if (self.ServiceWorker) {
-	realPostMessage = ServiceWorker.prototype.postMessage;
-}
 
 export default function (client: ScramjetClient, _self: Self) {
 	let registration;
@@ -39,40 +35,47 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.Proxy("navigator.serviceWorker.getRegistration", {
+	client.Proxy("ServiceWorkerContainer.prototype.getRegistration", {
 		apply(ctx) {
 			ctx.return(new Promise((resolve) => resolve(registration)));
 		},
 	});
 
-	client.Proxy("navigator.serviceWorker.getRegistrations", {
+	client.Proxy("ServiceWorkerContainer.prototype.getRegistrations", {
 		apply(ctx) {
 			ctx.return(new Promise((resolve) => resolve([registration])));
 		},
 	});
 
-	client.Trap("navigator.serviceWorker.ready", {
+	client.Trap("ServiceWorkerContainer.prototype.ready", {
 		get(_ctx) {
-			console.log(registration);
-
 			return new Promise((resolve) => resolve(registration));
 		},
 	});
 
-	client.Proxy("navigator.serviceWorker.register", {
+	client.Trap("ServiceWorkerContainer.prototype.controller", {
+		get(ctx) {
+			return registration?.active;
+		},
+	});
+
+	client.Proxy("ServiceWorkerContainer.prototype.register", {
 		apply(ctx) {
-			if (ctx.args[0] instanceof URL) ctx.args[0] = ctx.args[0].href;
 			let url = rewriteUrl(ctx.args[0], client.meta) + "?dest=serviceworker";
 			if (ctx.args[1] && ctx.args[1].type === "module") {
 				url += "&type=module";
 			}
 
 			const worker = client.natives.construct("SharedWorker", url);
-
 			const handle = worker.port;
+			const controller = client.descriptors.get(
+				"ServiceWorkerContainer.prototype.controller",
+				client.serviceWorker
+			);
 
-			realPostMessage.call(
-				client.serviceWorker.controller,
+			client.natives.call(
+				"ServiceWorker.prototype.postMessage",
+				controller,
 				{
 					scramjet$type: "registerServiceWorker",
 					port: handle,

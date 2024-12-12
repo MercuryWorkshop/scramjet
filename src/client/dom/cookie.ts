@@ -15,9 +15,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 		set(ctx, value: string) {
 			client.cookieStore.setCookies([value], client.url);
-
-			if (client.serviceWorker.controller) {
-				client.serviceWorker.controller!.postMessage({
+			const controller = client.descriptors.get(
+				"ServiceWorkerContainer.prototype.controller",
+				client.serviceWorker
+			);
+			if (controller) {
+				client.natives.call("ServiceWorker.prototype.postMessage", controller, {
 					scramjet$type: "cookie",
 					cookie: value,
 					url: client.url.href,
