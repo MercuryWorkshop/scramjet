@@ -60,7 +60,6 @@ where
 		if UNSAFE_GLOBALS.contains(&name.as_str()) {
 			self.jschanges.add(JsChange::WrapFn {
 				span,
-				ident: name.to_compact_str(),
 				wrapped: true,
 			});
 		}
@@ -107,7 +106,6 @@ where
 		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
 			self.jschanges.add(JsChange::WrapFn {
 				span: it.span,
-				ident: it.name.to_compact_str(),
 				wrapped: false,
 			});
 		}
@@ -126,7 +124,6 @@ where
 				if s.property.name == "postMessage" {
 					self.jschanges.add(JsChange::SetRealmFn {
 						span: s.property.span,
-						ident: s.property.name.to_compact_str(),
 					});
 
 					walk::walk_expression(self, &s.object);

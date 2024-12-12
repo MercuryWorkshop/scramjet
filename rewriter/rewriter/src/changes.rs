@@ -11,13 +11,11 @@ pub enum JsChange {
 	/// `(cfg.wrapfn(ident))` | `cfg.wrapfn(ident)`
 	WrapFn {
 		span: Span,
-		ident: CompactStr,
 		wrapped: bool,
 	},
 	/// `cfg.setrealmfn({}).ident`
 	SetRealmFn {
 		span: Span,
-		ident: CompactStr,
 	},
 	/// `cfg.wrapthis(this)`
 	WrapThisFn {
@@ -118,14 +116,26 @@ impl JsChange {
 		E: Clone,
 	{
 		match self {
-			Self::WrapFn { ident, wrapped, .. } => JsChangeInner::Replace(if *wrapped {
-				smallvec!["(", cfg.wrapfn.as_str(), "(", ident.as_str(), ")", ")"]
-			} else {
-				smallvec![cfg.wrapfn.as_str(), "(", ident.as_str(), ")"]
-			}),
-			Self::SetRealmFn { ident, .. } => {
-				JsChangeInner::Replace(smallvec![cfg.setrealmfn.as_str(), "({}).", ident.as_str()])
+			Self::WrapFn { wrapped, span } => {
+				if *wrapped {
+					JsChangeInner::Wrap {
+						before: smallvec!["(", cfg.wrapfn.as_str(), "("],
+						span,
+						after: smallvec!["))"],
+					}
+				} else {
+					JsChangeInner::Wrap {
+						before: smallvec![cfg.wrapfn.as_str(), "("],
+						span,
+						after: smallvec![")"],
+					}
+				}
 			}
+			Self::SetRealmFn { span } => JsChangeInner::Wrap {
+				before: smallvec![cfg.setrealmfn.as_str(), "({})."],
+				span,
+				after: smallvec![],
+			},
 			Self::WrapThisFn { .. } => {
 				JsChangeInner::Replace(smallvec![cfg.wrapthisfn.as_str(), "(this)"])
 			}
