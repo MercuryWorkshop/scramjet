@@ -1,7 +1,6 @@
 import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { type MessageC2W } from "../../worker";
-import { getOwnPropertyDescriptorHandler } from "../helpers";
 import { flagEnabled } from "../../scramjet";
 
 // we need a late order because we're mangling with addEventListener at a higher level
@@ -14,9 +13,16 @@ export function disabled(_client: ScramjetClient, _self: Self) {
 	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
 }
 
-export default function (client: ScramjetClient, _self: Self) {
-	let registration;
+type FakeRegistrationState = {
+	scope: string;
+	active: ServiceWorker;
+};
 
+export default function (client: ScramjetClient, _self: Self) {
+	const registrationmap: WeakMap<
+		ServiceWorkerRegistration,
+		FakeRegistrationState
+	> = new WeakMap();
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			if (registration === ctx.this) {
@@ -61,6 +67,12 @@ export default function (client: ScramjetClient, _self: Self) {
 
 	client.Proxy("ServiceWorkerContainer.prototype.register", {
 		apply(ctx) {
+			const fakeRegistration = new EventTarget() as ServiceWorkerRegistration;
+			Object.setPrototypeOf(
+				fakeRegistration,
+				self.ServiceWorkerRegistration.prototype
+			);
+			fakeRegistration.constructor = ctx.fn;
 			let url = rewriteUrl(ctx.args[0], client.meta) + "?dest=serviceworker";
 			if (ctx.args[1] && ctx.args[1].type === "module") {
 				url += "&type=module";
@@ -68,6 +80,10 @@ export default function (client: ScramjetClient, _self: Self) {
 
 			const worker = client.natives.construct("SharedWorker", url);
 			const handle = worker.port;
+			const state: FakeRegistrationState = {
+				scope: ctx.args[0],
+				active: handle as ServiceWorker,
+			};
 			const controller = client.descriptors.get(
 				"ServiceWorkerContainer.prototype.controller",
 				client.serviceWorker
@@ -84,39 +100,7 @@ export default function (client: ScramjetClient, _self: Self) {
 				[handle]
 			);
 
-			const fakeRegistration = new Proxy(
-				{
-					__proto__: ServiceWorkerRegistration.prototype,
-				},
-				{
-					get(target, prop) {
-						if (prop === "installing") {
-							return null;
-						}
-						if (prop === "waiting") {
-							return null;
-						}
-						if (prop === "active") {
-							return handle;
-						}
-						if (prop === "scope") {
-							return ctx.args[0];
-						}
-						if (prop === "unregister") {
-							return () => {};
-						}
-
-						if (prop === "addEventListener") {
-							return () => {};
-						}
-
-						return Reflect.get(target, prop);
-					},
-					getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
-				}
-			);
-			registration = fakeRegistration;
-
+			registrationmap.set(fakeRegistration, state);
 			ctx.return(new Promise((resolve) => resolve(fakeRegistration)));
 		},
 	});
