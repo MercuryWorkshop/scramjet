@@ -65,8 +65,6 @@ fn main() -> Result<()> {
 			eprintln!("{}", err.with_source_code(source.clone()));
 		}
 
-		println!("changes: {:#?}", res.changes);
-
 		println!(
 			"rewritten:\n{}",
 			String::from_utf8(res.js).context("failed to parse rewritten js")?
@@ -160,6 +158,10 @@ function $wrap(val) {
     return val;
 }
 
+const $gwrap = $wrap;
+
+function $scramitize(val) { return val }
+
 function assert(val) {
 	if (!val) fail();
 }
@@ -172,7 +174,7 @@ function check(val) {
 				.unwrap();
 
 			let rewritten = dorewrite(&content).unwrap();
-			println!("{:?}", rewritten);
+			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
 
 			context.eval(Source::from_bytes(&rewritten.js)).unwrap();
 			println!("PASS");
