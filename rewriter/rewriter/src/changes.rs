@@ -191,7 +191,7 @@ enum JsChange {
 	/// insert scramtag
 	SourceTag { span: Span, tagname: String },
 
-	/// replace span with `(${cfg.importfn}("${cfg.base}")`
+	/// replace span with `(${cfg.importfn}("${cfg.base}"))`
 	ImportFn { span: Span },
 	/// replace span with `${cfg.metafn}("${cfg.base}")`
 	MetaFn { span: Span },
@@ -290,7 +290,7 @@ impl JsChange {
 				],
 			},
 			Self::ImportFn { .. } => JsChangeInner::Replace {
-				str: smallvec!["(", cfg.importfn.as_str(), "(\"", cfg.base.as_str(), "\")"],
+				str: smallvec!["(", cfg.importfn.as_str(), "(\"", cfg.base.as_str(), "\"))"],
 			},
 			Self::MetaFn { .. } => JsChangeInner::Replace {
 				str: smallvec![cfg.metafn.as_str(), "(\"", cfg.base.as_str()],
