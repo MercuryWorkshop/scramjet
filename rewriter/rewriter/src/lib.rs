@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use cfg::Config;
-use changes::{JsChangeResult, JsChanges, Rewrite};
+use changes::{JsChangeResult, JsChanges};
 use oxc::{
 	allocator::Allocator,
 	ast::Visit,

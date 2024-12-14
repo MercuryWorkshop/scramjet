@@ -26,15 +26,22 @@ function rewriteJsWrapper(
 ): string | ArrayBuffer {
 	let out: RewriterOutput;
 	const before = performance.now();
-	if (typeof input === "string") {
-		out = rewrite_js(input, meta.base.href, url || "(unknown)", $scramjet);
-	} else {
-		out = rewrite_js_from_arraybuffer(
-			new Uint8Array(input),
-			meta.base.href,
-			url || "(unknown)",
-			$scramjet
-		);
+	try {
+		if (typeof input === "string") {
+			out = rewrite_js(input, meta.base.href, url || "(unknown)", $scramjet);
+		} else {
+			out = rewrite_js_from_arraybuffer(
+				new Uint8Array(input),
+				meta.base.href,
+				url || "(unknown)",
+				$scramjet
+			);
+		}
+	} catch (err) {
+		let err1 = err as Error;
+		console.error("failed rewriting js for", url, err1, input);
+		err1.message = `failed rewriting js for "${url}": ${err1.message}`;
+		throw err1;
 	}
 	const after = performance.now();
 	const { js, errors, duration } = out;
