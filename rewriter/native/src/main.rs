@@ -30,7 +30,7 @@ fn dorewrite(data: &str) -> Result<RewriteResult> {
 
 			capture_errors: true,
 			do_sourcemaps: true,
-			scramitize: true,
+			scramitize: false,
 			strict_rewrites: true,
 		},
 	)

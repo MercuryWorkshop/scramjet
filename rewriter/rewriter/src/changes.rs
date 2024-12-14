@@ -282,8 +282,9 @@ impl JsChange {
 				loc: span.start,
 				str: smallvec![
 					"/*scramtag ",
-					cfg.sourcetag.as_str(),
 					tagname.as_str(),
+					" ",
+					cfg.sourcetag.as_str(),
 					"*/"
 				],
 			},
@@ -302,7 +303,7 @@ impl JsChange {
 					"\",t)||(",
 					name.as_str(),
 					op.as_str(),
-					"t)("
+					"t))("
 				],
 			},
 			Self::ReplaceClosingParen { span } => JsChangeInner::Replace {
@@ -373,6 +374,13 @@ impl JsChanges {
 		let mut offset = 0;
 		let mut buffer = Vec::with_capacity(((js.len() as u64 * 120) / 100) as usize);
 
+		macro_rules! tryget {
+			($range:expr) => {
+				js.get($range)
+					.ok_or_else(|| RewriterError::Oob($range))?
+			};
+		}
+
 		// TODO: add sourcemaps
 		let map = Vec::with_capacity(js.len() * 2);
 
@@ -383,18 +391,17 @@ impl JsChanges {
 			let start = span.start as usize;
 			let end = span.end as usize;
 
-			buffer.extend_from_slice(
-				js.get(offset..start)
-					.ok_or_else(|| RewriterError::Oob(offset..start))?
-					.as_bytes(),
-			);
+			buffer.extend_from_slice(tryget!(offset..start).as_bytes());
 
 			let inner = change.to_inner(cfg);
 			match inner {
 				JsChangeInner::Insert { loc, str } => {
+					let loc = loc as usize;
+					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
 					for str in str {
 						buffer.extend_from_slice(str.as_bytes());
 					}
+					buffer.extend_from_slice(tryget!(loc..end).as_bytes());
 				}
 				JsChangeInner::Replace { str } => {
 					for str in str {
