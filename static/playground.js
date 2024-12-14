@@ -9,6 +9,7 @@ const scramjet = new ScramjetController({
 	flags: {
 		serviceworkers: true,
 		syncxhr: true,
+		scramitize: true,
 	},
 });
 

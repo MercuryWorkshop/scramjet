@@ -25,7 +25,7 @@ export default function (client: ScramjetClient, _self: Self) {
 	> = new WeakMap();
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
-			if (registration === ctx.this) {
+			if (registrationmap.get(ctx.this)) {
 				// do nothing
 				ctx.return(undefined);
 			}
@@ -34,7 +34,7 @@ export default function (client: ScramjetClient, _self: Self) {
 
 	client.Proxy("EventTarget.prototype.removeEventListener", {
 		apply(ctx) {
-			if (registration === ctx.this) {
+			if (registrationmap.get(ctx.this)) {
 				// do nothing
 				ctx.return(undefined);
 			}

@@ -7,10 +7,7 @@ type FakeWebSocketState = {
 	url: string;
 	binaryType: string;
 	barews: BareWebSocket;
-	/*
-	captureListeners: Record<string, EventListener[]>;
-	listeners: Record<string, EventListener[]>;
-	*/
+
 	onclose?: (ev: CloseEvent) => any;
 	onerror?: (ev: Event) => any;
 	onmessage?: (ev: MessageEvent) => any;
@@ -49,10 +46,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				url: ctx.args[0],
 				binaryType: "blob",
 				barews,
-				/*
-				captureListeners: {},
-				listeners: {},
-				*/
+
 				onclose: null,
 				onerror: null,
 				onmessage: null,
@@ -107,58 +101,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			ctx.return(fakeWebSocket);
 		},
 	});
-	// i have no clue why this is here but it prevents the real event listener from ever happening so im commenting it out for now
-	/*
-	client.Proxy("EventTarget.prototype.addEventListener", {
-		apply(ctx) {
-			const ws = socketmap.get(ctx.this);
-			if (!ws) return; // it's not a websocket ignore it
-
-			const [type, listener, opts] = ctx.args;
-
-			if (
-				(typeof opts === "object" && opts.capture) ||
-				(typeof opts === "boolean" && opts)
-			) {
-				const listeners = (ws.captureListeners[type] ??= []);
-				listeners.push(listener);
-				ws.captureListeners[type] = listeners;
-			} else {
-				const listeners = (ws.listeners[type] ??= []);
-				listeners.push(listener);
-				ws.listeners[type] = listeners;
-			}
-
-			ctx.return(undefined);
-		},
-	});
-
-	client.Proxy("EventTarget.prototype.removeEventListener", {
-		apply(ctx) {
-			const ws = socketmap.get(ctx.this);
-			if (!ws) return;
-
-			const [type, listener, opts] = ctx.args;
-
-			if (
-				(typeof opts === "object" && opts.capture) ||
-				(typeof opts === "boolean" && opts)
-			) {
-				const listeners = (ws.captureListeners[type] ??= []);
-				const idx = listeners.indexOf(listener);
-				if (idx !== -1) listeners.splice(idx, 1);
-				ws.captureListeners[type] = listeners;
-			} else {
-				const listeners = (ws.listeners[type] ??= []);
-				const idx = listeners.indexOf(listener);
-				if (idx !== -1) listeners.splice(idx, 1);
-				ws.listeners[type] = listeners;
-			}
-
-			ctx.return(undefined);
-		},
-	});
-	*/
 	client.Trap("WebSocket.prototype.binaryType", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
