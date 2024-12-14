@@ -32,8 +32,9 @@ cd ../../
 # shellcheck disable=SC2086
 time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/optimized.wasm
 
-mkdir dist/ || true
+mkdir -p dist/
 
+cp rewriter/wasm/out/optimized.wasm dist/scramjet.wasm.wasm
 {
 
 cat <<EOF

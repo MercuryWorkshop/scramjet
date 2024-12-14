@@ -33,7 +33,8 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 
 	if (url.startsWith("javascript:")) {
 		return (
-			"javascript:" + rewriteJs(url.slice("javascript:".length), null, meta)
+			"javascript:" +
+			rewriteJs(url.slice("javascript:".length), "(javascript: url)", meta)
 		);
 	} else if (url.startsWith("blob:")) {
 		return location.origin + $scramjet.config.prefix + url;
