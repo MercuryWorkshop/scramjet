@@ -77,7 +77,8 @@ where
 		} {
 			return true;
 		}
-		walk::walk_expression(self, it);
+
+		// don't walk further here it causes issues with constructors
 		false
 	}
 

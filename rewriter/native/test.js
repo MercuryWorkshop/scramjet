@@ -25,3 +25,5 @@ function f() { return import("x") }
 
 
 let window = (1, window);
+
+let x = new this.Abc();
