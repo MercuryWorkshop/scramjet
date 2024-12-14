@@ -10,5 +10,5 @@ codegen-units = 1
 panic = "abort"
 
 [workspace.dependencies]
-oxc = "0.40.1"
+oxc = "0.41.0"
 
