@@ -1320,7 +1320,6 @@ dependencies = [
  "oxc",
  "smallvec",
  "thiserror 2.0.7",
- "url",
 ]
 
 [[package]]
@@ -1682,7 +1681,6 @@ dependencies = [
  "oxc",
  "rewriter",
  "thiserror 2.0.7",
- "url",
  "wasm-bindgen",
  "web-sys",
 ]

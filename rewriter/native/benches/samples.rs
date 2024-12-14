@@ -1,22 +1,21 @@
+use std::str::FromStr;
+
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
 use rewriter::{cfg::Config, rewrite};
-use std::str::FromStr;
 use url::Url;
 use urlencoding::encode;
-
-fn encode_string(str: String) -> String {
-	encode(&str).to_string()
-}
 
 pub fn bench(c: &mut Criterion) {
 	let discord = include_str!("../sample/discord.js");
 	let google = include_str!("../sample/google.js");
+	let url = Url::from_str("https://google.com/glorngle/si.js").expect("failed to make url");
 
 	let cfg = Config {
 		prefix: "/scrammedjet/".to_string(),
-		encoder: Box::new(encode_string),
 
-		base: Url::from_str("https://google.com/glorngle/si.js").expect("invalid base"),
+		base: url.to_string(),
+		urlrewriter: Box::new(move |x: String| encode(url.join(&x).unwrap().as_str()).to_string()),
+
 		sourcetag: "glongle1".to_string(),
 
 		wrapfn: "$wrap".to_string(),

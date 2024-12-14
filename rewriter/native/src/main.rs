@@ -6,18 +6,17 @@ use rewriter::{cfg::Config, rewrite, RewriteResult};
 use url::Url;
 use urlencoding::encode;
 
-fn encode_string(str: String) -> String {
-	encode(&str).to_string()
-}
-
 fn dorewrite(data: &str) -> Result<RewriteResult> {
+	let url = Url::from_str("https://google.com/glorngle/si.js").context("failed to make url")?;
 	rewrite(
 		data,
 		Config {
 			prefix: "/scrammedjet/".to_string(),
-			encoder: Box::new(encode_string),
+			base: url.to_string(),
+			urlrewriter: Box::new(move |x: String| {
+				encode(url.join(&x).unwrap().as_str()).to_string()
+			}),
 
-			base: Url::from_str("https://google.com/glorngle/si.js").context("invalid base")?,
 			sourcetag: "glongle1".to_string(),
 
 			wrapfn: "$wrap".to_string(),

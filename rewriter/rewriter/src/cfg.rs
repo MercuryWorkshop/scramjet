@@ -1,5 +1,3 @@
-use url::Url;
-
 #[derive(Clone)]
 pub struct Config<E>
 where
@@ -8,7 +6,7 @@ where
 {
 	pub prefix: String,
 	pub sourcetag: String,
-	pub base: Url,
+	pub base: String,
 
 	pub wrapfn: String,
 	pub wrapthisfn: String,
@@ -18,7 +16,8 @@ where
 	pub metafn: String,
 	pub pushsourcemapfn: String,
 
-	pub encoder: E,
+	/// URL REWRITER IS RESPONSIBLE FOR ADDING BASE
+	pub urlrewriter: E,
 
 	pub capture_errors: bool,
 	pub scramitize: bool,

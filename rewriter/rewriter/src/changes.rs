@@ -35,7 +35,6 @@ pub(crate) enum Rewrite {
 	/// `$scramerr(name)`
 	ScramErr {
 		span: Span,
-		name: CompactStr,
 	},
 	/// `$scramitize(span)`
 	Scramitize {

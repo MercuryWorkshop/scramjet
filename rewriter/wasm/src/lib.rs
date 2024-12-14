@@ -1,14 +1,14 @@
 pub mod error;
 
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
 use instant::Instant;
 use js_sys::{Function, Object, Reflect};
 use oxc::diagnostics::NamedSource;
 use rewriter::{cfg::Config, rewrite, RewriteResult};
-use url::Url;
 use wasm_bindgen::prelude::*;
+use web_sys::Url;
 
 #[wasm_bindgen(typescript_custom_section)]
 const REWRITER_OUTPUT: &'static str = r#"
@@ -39,12 +39,16 @@ extern "C" {
 	fn error(s: &str);
 }
 
-fn create_encode_function(encode: JsValue) -> Result<impl Fn(String) -> String + Clone> {
+fn create_encode_function(
+	encode: JsValue,
+	base: String,
+) -> Result<impl Fn(String) -> String + Clone> {
 	let encode = encode.dyn_into::<Function>()?;
 
 	Ok(move |str: String| {
+		let url = Url::new_with_base(&str, &base).unwrap().to_string();
 		encode
-			.call1(&JsValue::NULL, &str.into())
+			.call1(&JsValue::NULL, &url.into())
 			.unwrap()
 			.as_string()
 			.unwrap()
@@ -74,25 +78,20 @@ fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
 	let fenabled = get_obj(scramjet, "flagEnabled")?
 		.dyn_into::<Function>()
 		.map_err(|_| RewriterError::not_fn("scramjet.flagEnabled"))?;
-	let ret = fenabled.call2(
-		&JsValue::NULL,
-		&flag.into(),
-		&web_sys::Url::new(url)?.into(),
-	)?;
+	let ret = fenabled.call2(&JsValue::NULL, &flag.into(), &Url::new(url)?.into())?;
 
 	ret.as_bool()
 		.ok_or_else(|| RewriterError::not_bool("scramjet.flagEnabled return value"))
 }
 
-fn get_config(scramjet: &Object, url: &str) -> Result<Config<impl Fn(String) -> String + Clone>> {
+fn get_config(scramjet: &Object, url: String) -> Result<Config<impl Fn(String) -> String + Clone>> {
 	let codec = &get_obj(scramjet, "codec")?;
 	let config = &get_obj(scramjet, "config")?;
 	let globals = &get_obj(config, "globals")?;
 
 	Ok(Config {
 		prefix: get_str(config, "prefix")?,
-		encoder: create_encode_function(get_obj(codec, "encode")?)?,
-		base: Url::from_str(url)?,
+		base: url.clone(),
 		sourcetag: scramtag(),
 
 		wrapfn: get_str(globals, "wrapfn")?,
@@ -103,10 +102,12 @@ fn get_config(scramjet: &Object, url: &str) -> Result<Config<impl Fn(String) -> 
 		setrealmfn: get_str(globals, "setrealmfn")?,
 		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
 
-		do_sourcemaps: get_flag(scramjet, url, "sourcemaps")?,
-		capture_errors: get_flag(scramjet, url, "captureErrors")?,
-		scramitize: get_flag(scramjet, url, "scramitize")?,
-		strict_rewrites: get_flag(scramjet, url, "strictRewrites")?,
+		do_sourcemaps: get_flag(scramjet, &url, "sourcemaps")?,
+		capture_errors: get_flag(scramjet, &url, "captureErrors")?,
+		scramitize: get_flag(scramjet, &url, "scramitize")?,
+		strict_rewrites: get_flag(scramjet, &url, "strictRewrites")?,
+
+		urlrewriter: create_encode_function(get_obj(codec, "encode")?, url)?,
 	})
 }
 
@@ -142,7 +143,7 @@ fn create_rewriter_output(
 #[wasm_bindgen]
 pub fn rewrite_js(
 	js: String,
-	url: &str,
+	url: String,
 	script_url: String,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
@@ -156,7 +157,7 @@ pub fn rewrite_js(
 #[wasm_bindgen]
 pub fn rewrite_js_from_arraybuffer(
 	js: Vec<u8>,
-	url: &str,
+	url: String,
 	script_url: String,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {

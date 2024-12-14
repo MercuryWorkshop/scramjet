@@ -49,9 +49,7 @@ where
 	E: Clone,
 {
 	fn rewrite_url(&mut self, url: String) -> String {
-		let url = self.config.base.join(&url).unwrap();
-
-		let urlencoded = (self.config.encoder)(url.to_string());
+		let urlencoded = (self.config.urlrewriter)(url);
 
 		format!("\"{}{}\"", self.config.prefix, urlencoded)
 	}
@@ -233,10 +231,9 @@ where
 		if self.config.capture_errors {
 			if let Some(h) = &it.handler {
 				if let Some(name) = &h.param {
-					if let Some(name) = name.pattern.get_identifier() {
+					if name.pattern.get_identifier().is_some() {
 						self.jschanges.add(Rewrite::ScramErr {
 							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
-							name: name.to_compact_str(),
 						});
 					}
 				}

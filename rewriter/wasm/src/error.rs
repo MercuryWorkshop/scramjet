@@ -7,8 +7,6 @@ use wasm_bindgen::{JsError, JsValue};
 pub enum RewriterError {
 	#[error("JS: {0}")]
 	Js(String),
-	#[error("URL parse error: {0}")]
-	Url(#[from] url::ParseError),
 	#[error("str fromutf8 error: {0}")]
 	Str(#[from] std::str::Utf8Error),
 	#[error("Rewriter: {0}")]
