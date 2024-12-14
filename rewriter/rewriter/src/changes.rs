@@ -361,11 +361,15 @@ pub(crate) struct JsChanges {
 
 impl JsChanges {
 	pub fn new() -> Self {
-		Self { inner: Vec::new() }
+		Self {
+			inner: Default::default(),
+		}
 	}
 
-	pub fn add(&mut self, change: Rewrite) {
-		self.inner.extend(change.into_inner());
+	pub fn add(&mut self, rewrite: Rewrite) {
+		for change in rewrite.into_inner() {
+			self.inner.push(change);
+		}
 	}
 
 	pub fn perform<E>(&mut self, js: &str, cfg: &Config<E>) -> Result<JsChangeResult, RewriterError>
@@ -374,7 +378,7 @@ impl JsChanges {
 		E: Clone,
 	{
 		let mut offset = 0;
-		let mut buffer = Vec::with_capacity(((js.len() as u64 * 120) / 100) as usize);
+		let mut buffer = Vec::with_capacity(js.len() * 2);
 
 		macro_rules! tryget {
 			($range:expr) => {
@@ -385,7 +389,7 @@ impl JsChanges {
 		// TODO: add sourcemaps
 		let map = Vec::with_capacity(js.len() * 2);
 
-		self.inner.sort();
+		self.inner.sort_unstable();
 
 		for change in &self.inner {
 			let span = change.get_span();

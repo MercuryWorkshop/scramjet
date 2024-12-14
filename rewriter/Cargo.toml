@@ -11,4 +11,4 @@ panic = "abort"
 
 [workspace.dependencies]
 oxc = "0.41.0"
-
+url = "2.5.4"

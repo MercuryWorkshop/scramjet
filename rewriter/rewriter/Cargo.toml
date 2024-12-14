@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 oxc = { workspace = true }
+url = { workspace = true }
 smallvec = "1.13.2"
 thiserror = "2.0.6"
-url = "2.5.4"
 
 [features]
 debug = []

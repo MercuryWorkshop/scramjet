@@ -30,17 +30,11 @@ fn dorewrite(data: &str) -> Result<RewriteResult> {
 
 			capture_errors: true,
 			do_sourcemaps: true,
-			scramitize: false,
+			scramitize: true,
 			strict_rewrites: true,
 		},
 	)
 	.context("failed to rewrite file")
-}
-
-fn dobench(data: String) {
-	loop {
-		let _ = dorewrite(&data);
-	}
 }
 
 fn main() -> Result<()> {
@@ -49,11 +43,14 @@ fn main() -> Result<()> {
 	let bench = env::args().nth(2).is_some();
 
 	if bench {
-		for _ in 0..15 {
-			let data = data.clone();
-			std::thread::spawn(move || dobench(data));
+		let mut i = 0;
+		loop {
+			let _ = dorewrite(&data);
+			i += 1;
+			if i % 100 == 0 {
+				println!("{}...", i);
+			}
 		}
-		dobench(data);
 	} else {
 		let res = dorewrite(&data)?;
 
