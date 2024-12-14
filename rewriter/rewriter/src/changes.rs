@@ -271,7 +271,7 @@ impl JsChange {
 			},
 			Self::ScramitizeFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec!["$scramitize("],
+				str: smallvec![" $scramitize("],
 			},
 			Self::EvalRewriteFn { .. } => JsChangeInner::Replace {
 				str: smallvec!["eval(", cfg.rewritefn.as_str(), "("],
