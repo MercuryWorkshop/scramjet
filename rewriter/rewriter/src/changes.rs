@@ -35,6 +35,7 @@ pub(crate) enum Rewrite {
 	/// `$scramerr(name)`
 	ScramErr {
 		span: Span,
+		ident: CompactStr,
 	},
 	/// `$scramitize(span)`
 	Scramitize {
@@ -113,16 +114,11 @@ impl Rewrite {
 			Self::ImportFn { span } => smallvec![JsChange::ImportFn { span }],
 			Self::MetaFn { span } => smallvec![JsChange::MetaFn { span }],
 
-			Self::ScramErr { span, .. } => {
-				smallvec![
-					JsChange::ScramErrFn {
-						span: Span::new(span.start, span.start)
-					},
-					JsChange::ClosingParen {
-						span: Span::new(span.end, span.end),
-						semi: true
-					}
-				]
+			Self::ScramErr { span, ident } => {
+				smallvec![JsChange::ScramErrFn {
+					span: Span::new(span.start, span.start),
+					ident,
+				},]
 			}
 			Self::Scramitize { span } => {
 				smallvec![
@@ -180,8 +176,8 @@ enum JsChange {
 	SetRealmFn { span: Span },
 	/// insert `${cfg.wrapthis}(`
 	WrapThisFn { span: Span },
-	/// insert `$scramerr(`
-	ScramErrFn { span: Span },
+	/// insert `$scramerr(ident);`
+	ScramErrFn { span: Span, ident: CompactStr },
 	/// insert `$scramitize(`
 	ScramitizeFn { span: Span },
 	/// insert `eval(${cfg.rewritefn}(`
@@ -221,7 +217,7 @@ impl JsChange {
 			Self::WrapFn { span, .. }
 			| Self::SetRealmFn { span }
 			| Self::WrapThisFn { span }
-			| Self::ScramErrFn { span }
+			| Self::ScramErrFn { span, .. }
 			| Self::ScramitizeFn { span }
 			| Self::EvalRewriteFn { span }
 			| Self::ShorthandObj { span, .. }
@@ -264,9 +260,9 @@ impl JsChange {
 				loc: span.start,
 				str: smallvec![cfg.wrapthisfn.as_str(), "("],
 			},
-			Self::ScramErrFn { span } => JsChangeInner::Insert {
+			Self::ScramErrFn { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec!["$scramerr("],
+				str: smallvec!["$scramerr(", ident.as_str(), ");"],
 			},
 			Self::ScramitizeFn { span } => JsChangeInner::Insert {
 				loc: span.start,
