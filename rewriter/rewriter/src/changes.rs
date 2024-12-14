@@ -30,6 +30,8 @@ pub(crate) enum Rewrite {
 		span: Span,
 	},
 
+	// dead code only if debug is disabled
+	#[allow(dead_code)]
 	/// `$scramerr(name)`
 	ScramErr {
 		span: Span,
@@ -288,13 +290,13 @@ impl JsChange {
 					"*/"
 				],
 			},
-			Self::ImportFn { span } => JsChangeInner::Replace {
+			Self::ImportFn { .. } => JsChangeInner::Replace {
 				str: smallvec!["(", cfg.importfn.as_str(), "(\"", cfg.base.as_str(), "\")"],
 			},
-			Self::MetaFn { span } => JsChangeInner::Replace {
+			Self::MetaFn { .. } => JsChangeInner::Replace {
 				str: smallvec![cfg.metafn.as_str(), "(\"", cfg.base.as_str()],
 			},
-			Self::AssignmentLeft { span, name, op } => JsChangeInner::Replace {
+			Self::AssignmentLeft { name, op, .. } => JsChangeInner::Replace {
 				str: smallvec![
 					"((t)=>$scramjet$tryset(",
 					name.as_str(),
@@ -306,7 +308,7 @@ impl JsChange {
 					"t))("
 				],
 			},
-			Self::ReplaceClosingParen { span } => JsChangeInner::Replace {
+			Self::ReplaceClosingParen { .. } => JsChangeInner::Replace {
 				str: smallvec![")"],
 			},
 			Self::ClosingParen { span, semi } => JsChangeInner::Insert {
@@ -321,10 +323,10 @@ impl JsChange {
 				loc: span.start,
 				str: smallvec!["))"],
 			},
-			Self::Replace { span, text } => JsChangeInner::Replace {
+			Self::Replace { text, .. } => JsChangeInner::Replace {
 				str: smallvec![text.as_str()],
 			},
-			Self::Delete { span } => JsChangeInner::Replace { str: smallvec![""] },
+			Self::Delete { .. } => JsChangeInner::Replace { str: smallvec![""] },
 		}
 	}
 }
@@ -354,7 +356,7 @@ pub(crate) struct JsChangeResult {
 }
 
 pub(crate) struct JsChanges {
-	pub inner: Vec<JsChange>,
+	inner: Vec<JsChange>,
 }
 
 impl JsChanges {
@@ -363,7 +365,7 @@ impl JsChanges {
 	}
 
 	pub fn add(&mut self, change: Rewrite) {
-		self.inner.extend(change.into_inner().into_iter());
+		self.inner.extend(change.into_inner());
 	}
 
 	pub fn perform<E>(&mut self, js: &str, cfg: &Config<E>) -> Result<JsChangeResult, RewriterError>
@@ -376,8 +378,7 @@ impl JsChanges {
 
 		macro_rules! tryget {
 			($range:expr) => {
-				js.get($range)
-					.ok_or_else(|| RewriterError::Oob($range))?
+				js.get($range).ok_or_else(|| RewriterError::Oob($range))?
 			};
 		}
 
@@ -414,11 +415,7 @@ impl JsChanges {
 		}
 
 		let js_len = js.len();
-		buffer.extend_from_slice(
-			js.get(offset..js_len)
-				.ok_or_else(|| RewriterError::Oob(offset..js_len))?
-				.as_bytes(),
-		);
+		buffer.extend_from_slice(tryget!(offset..js_len).as_bytes());
 
 		Ok(JsChangeResult {
 			js: buffer,

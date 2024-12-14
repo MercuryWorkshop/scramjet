@@ -15,7 +15,7 @@ use oxc::{
 
 use crate::{
 	cfg::Config,
-	changes::{Rewrite, JsChanges},
+	changes::{JsChanges, Rewrite},
 };
 
 // js MUST not be able to get a reference to any of these because sbx
@@ -77,8 +77,7 @@ where
 		} {
 			return true;
 		}
-		// TODO: WE SHOULD PROBABLY WALK THE REST OF THE TREE
-		// walk::walk_expression(self, it);
+		walk::walk_expression(self, it);
 		false
 	}
 
@@ -248,17 +247,14 @@ where
 	fn visit_object_expression(&mut self, it: &ObjectExpression<'a>) {
 		for prop in &it.properties {
 			if let ObjectPropertyKind::ObjectProperty(p) = prop {
-				match &p.value {
-					Expression::Identifier(s) => {
-						if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
-							self.jschanges.add(Rewrite::ShorthandObj {
-								span: s.span,
-								name: s.name.to_compact_str(),
-							});
-							return;
-						}
+				if let Expression::Identifier(s) = &p.value {
+					if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
+						self.jschanges.add(Rewrite::ShorthandObj {
+							span: s.span,
+							name: s.name.to_compact_str(),
+						});
+						return;
 					}
-					_ => {}
 				}
 			}
 		}
