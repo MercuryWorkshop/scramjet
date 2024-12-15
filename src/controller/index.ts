@@ -29,7 +29,7 @@ export class ScramjetController {
 			flags: {
 				serviceworkers: false,
 				naiiveRewriter: false,
-				captureErrors: true,
+				captureErrors: false,
 				strictRewrites: true,
 				syncxhr: false,
 				cleanerrors: false,
@@ -82,6 +82,12 @@ export class ScramjetController {
 		if (url instanceof URL) url = url.toString();
 
 		return $scramjet.config.prefix + $scramjet.codec.encode(url);
+	}
+
+	decodeUrl(url: string | URL) {
+		if (url instanceof URL) url = url.toString();
+
+		return $scramjet.codec.decode(url);
 	}
 
 	async openIDB(): Promise<IDBDatabase> {
