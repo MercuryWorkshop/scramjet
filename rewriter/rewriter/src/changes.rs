@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use oxc::{
 	ast::ast::AssignmentOperator,
 	span::{CompactStr, Span},
@@ -334,7 +336,14 @@ impl PartialOrd for JsChange {
 
 impl Ord for JsChange {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-		self.get_span().start.cmp(&other.get_span().start)
+		match self.get_span().start.cmp(&other.get_span().start) {
+			Ordering::Equal => match (self, other) {
+				(Self::ScramErrFn { .. }, _) => Ordering::Greater,
+				(_, Self::ScramErrFn { .. }) => Ordering::Less,
+				_ => Ordering::Equal,
+			},
+			x => x,
+		}
 	}
 }
 
