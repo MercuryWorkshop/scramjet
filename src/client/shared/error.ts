@@ -3,7 +3,8 @@ import { config, unrewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
 export const enabled = (client: ScramjetClient) =>
-	flagEnabled("cleanerrors", client.url);
+	flagEnabled("cleanErrors", client.url);
+
 export default function (client: ScramjetClient, _self: Self) {
 	// v8 only. all we need to do is clean the scramjet urls from stack traces
 	const closure = (error, stack) => {
