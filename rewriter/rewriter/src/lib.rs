@@ -37,7 +37,9 @@ where
 	E: Clone,
 {
 	let allocator = Allocator::default();
-	let source_type = SourceType::default();
+	let source_type = SourceType::unambiguous()
+		.with_javascript(true)
+		.with_standard(true);
 	let ret = Parser::new(&allocator, js, source_type)
 		.with_options(ParseOptions {
 			parse_regular_expression: false, // default
