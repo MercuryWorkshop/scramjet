@@ -55,7 +55,14 @@ wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm 
 	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_type_reference' \
 	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_type_operator' \
 	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_type_literal' \
-	'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::is_at_enum_declaration'
+	'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::is_at_enum_declaration' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_element' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_identifier' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_element_name' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_children' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_fragment' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_expression_container' \
+	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_expression'
 #
 #	these are confirmed to break oxc
 #	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_ts_type' \
