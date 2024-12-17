@@ -6,7 +6,7 @@ import { ScramjetClient } from "./client";
 import { ScramjetContextInit } from "./events";
 import { ScramjetServiceWorkerRuntime } from "./swruntime";
 
-export const iswindow = "window" in self;
+export const iswindow = "window" in self && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in self;
 export const issw = "ServiceWorkerGlobalScope" in self;
 export const isdedicated = "DedicatedWorkerGlobalScope" in self;
@@ -34,6 +34,8 @@ if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 	client.frame?.dispatchEvent(ev);
 }
 
+Reflect.deleteProperty(self, "WASM");
+Reflect.deleteProperty(self, "COOKIE");
 if ("document" in self && document?.currentScript) {
 	document.currentScript.remove();
 }
