@@ -29,8 +29,10 @@ sed -i 's/import.meta.url/""/g' out/wasm.js
 
 cd ../../
 
+wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm -p 'oxc_regular_expression::.*' -p 'oxc_parser::ts::.*'
+
 # shellcheck disable=SC2086
-time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/optimized.wasm
+time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm
 
 mkdir -p dist/
 

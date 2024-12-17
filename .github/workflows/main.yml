@@ -39,6 +39,9 @@ jobs:
         with:
           token: ${{ github.token }}
 
+      - name: Setup wasm-snip
+        run: "cargo install --git https://github.com/r58playz/wasm-snip"
+
       - name: Pack Scramjet
         run: pnpm pack
 
