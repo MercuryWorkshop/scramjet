@@ -386,7 +386,8 @@ impl JsChanges {
 
 		macro_rules! tryget {
 			($range:expr) => {
-				js.get($range).ok_or_else(|| RewriterError::Oob($range))?
+				js.get($range)
+					.ok_or_else(|| RewriterError::Oob(($range).start, ($range).end))?
 			};
 		}
 

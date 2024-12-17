@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use cfg::Config;
 use changes::{JsChangeResult, JsChanges};
 use oxc::{
@@ -18,10 +16,10 @@ mod visitor;
 
 #[derive(Error, Debug)]
 pub enum RewriterError {
-	#[error("oxc panicked in parser: {0:?}")]
-	OxcPanicked(Vec<OxcDiagnostic>),
-	#[error("out of bounds while applying range: {0:?})")]
-	Oob(Range<usize>),
+	#[error("oxc panicked in parser: {0}")]
+	OxcPanicked(String),
+	#[error("out of bounds while applying range: {0}..{1})")]
+	Oob(usize, usize),
 }
 
 #[derive(Debug)]
@@ -49,7 +47,12 @@ where
 		.parse();
 
 	if ret.panicked {
-		return Err(RewriterError::OxcPanicked(ret.errors));
+		let mut errors = String::new();
+		for error in ret.errors {
+			errors.push_str(&format!("{}", error));
+			errors.push('\n');
+		}
+		return Err(RewriterError::OxcPanicked(errors));
 	}
 
 	let mut visitor = Visitor {
