@@ -74,11 +74,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			debugger;
 		}
 
-		if (v === self && v.$scramjet) {
+		if (v === self && v?.$scramjet) {
 			debugger;
 		}
 
-		if (iswindow && v instanceof Document && v.defaultView.$scramjet) {
+		if (iswindow && v instanceof Document && v.defaultView?.$scramjet) {
 			debugger;
 		}
 

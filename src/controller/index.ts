@@ -32,7 +32,7 @@ export class ScramjetController {
 				naiiveRewriter: false,
 				strictRewrites: true,
 				rewriterLogs: true,
-				captureErrors: false,
+				captureErrors: true,
 				cleanErrors: false,
 				scramitize: false,
 				sourcemaps: false,
