@@ -1,8 +1,5 @@
 pub mod error;
 
-#[global_allocator]
-static ALLOCATOR: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 use std::{sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
