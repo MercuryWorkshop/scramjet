@@ -338,8 +338,8 @@ impl Ord for JsChange {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
 		match self.get_span().start.cmp(&other.get_span().start) {
 			Ordering::Equal => match (self, other) {
-				(Self::ScramErrFn { .. }, _) => Ordering::Greater,
-				(_, Self::ScramErrFn { .. }) => Ordering::Less,
+				(Self::ScramErrFn { .. }, _) => Ordering::Less,
+				(_, Self::ScramErrFn { .. }) => Ordering::Greater,
 				_ => Ordering::Equal,
 			},
 			x => x,
