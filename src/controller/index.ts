@@ -20,7 +20,7 @@ export class ScramjetController {
 				pushsourcemapfn: "$scramjet$pushsourcemap",
 			},
 			files: {
-				wasm: "/scramjet.wasm.wasm",
+				wasm: "/scramjet.wasm.js",
 				shared: "/scramjet.shared.js",
 				worker: "/scramjet.worker.js",
 				client: "/scramjet.client.js",
@@ -29,10 +29,10 @@ export class ScramjetController {
 			flags: {
 				serviceworkers: false,
 				syncxhr: false,
-				strictRewrites: true,
 				naiiveRewriter: false,
+				strictRewrites: true,
 				rewriterLogs: true,
-				captureErrors: true,
+				captureErrors: false,
 				cleanErrors: false,
 				scramitize: false,
 				sourcemaps: false,
