@@ -77,8 +77,18 @@ wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm 
 #	'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::parse_ts_type_annotation' \
 
 
-# shellcheck disable=SC2086
-time wasm-opt $WASMOPTFLAGS --converge -tnh -O4 --vacuum --dce --enable-threads --enable-bulk-memory --enable-simd rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm
+(
+	G="--generate-global-effects"
+	# shellcheck disable=SC2086
+	time wasm-opt $WASMOPTFLAGS \
+		rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm \
+		--converge -tnh --enable-threads --enable-bulk-memory --enable-simd \
+		$G --type-unfinalizing $G --type-ssa $G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G --type-merging $G --type-finalizing $G -O4 \
+		$G --type-unfinalizing $G --type-ssa $G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G --type-merging $G --type-finalizing $G -Oz \
+		$G --abstract-type-refining $G --code-folding $G --const-hoisting $G --dae $G --flatten $G --dfo $G --merge-locals $G --merge-similar-functions --type-finalizing \
+		$G --type-unfinalizing $G --type-ssa $G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G --type-merging $G --type-finalizing $G -O4 \
+		$G --type-unfinalizing $G --type-ssa $G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G --type-merging $G --type-finalizing $G -Oz 
+)
 
 mkdir -p dist/
 
