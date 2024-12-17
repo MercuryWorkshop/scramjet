@@ -44,6 +44,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 			} catch {}
 		}
 	}
+
+	client.Proxy("IntersectionObserver", {
+		construct(ctx) {
+			if (ctx.args[1] && ctx.args[1].root) ctx.args[1].root = self.document;
+		},
+	});
+
 	// this is probably not how stuff should be done but you cant run defineProperty on the window proxy so...
 	client.Proxy("Object.defineProperty", {
 		apply(ctx) {

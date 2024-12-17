@@ -154,13 +154,13 @@ export class ScramjetClient {
 			),
 			construct(target: string, ...args) {
 				const original = this.store[target];
-				if (!original) return;
+				if (!original) return null;
 
 				return new original(...args);
 			},
 			call(target: string, that: any, ...args) {
 				const original = this.store[target];
-				if (!original) return;
+				if (!original) return null;
 
 				return original.call(that, ...args);
 			},
@@ -192,13 +192,13 @@ export class ScramjetClient {
 			),
 			get(target: string, that: any) {
 				const original = this.store[target];
-				if (!original) return;
+				if (!original) return null;
 
 				return original.get.call(that);
 			},
 			set(target: string, that: any, value: any) {
 				const original = this.store[target];
-				if (!original) return;
+				if (!original) return null;
 
 				original.set.call(that, value);
 			},
@@ -211,7 +211,11 @@ export class ScramjetClient {
 			},
 			get base() {
 				if (iswindow) {
-					const base = client.global.document.querySelector("base");
+					const base = client.natives.call(
+						"Document.prototype.querySelector",
+						client.global.document,
+						"base"
+					);
 					if (base) {
 						let url = base.getAttribute("href");
 						const frag = url.indexOf("#");
@@ -231,9 +235,7 @@ export class ScramjetClient {
 
 	get frame(): ScramjetFrame | null {
 		if (!iswindow) return null;
-		const frame = this.descriptors["window.frameElement"]
-			? this.descriptors["window.frameElement"].get.call(this.global)
-			: this.global.window.frameElement;
+		const frame = this.descriptors.get("window.frameElement", this.global);
 
 		if (!frame) return null; // we're top level
 		const sframe = frame[SCRAMJETFRAME];
