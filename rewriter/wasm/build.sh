@@ -82,18 +82,22 @@ wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm 
 #	'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::parse_ts_type_annotation' \
 
 
-(
-	G="--generate-global-effects"
-	# shellcheck disable=SC2086
-	time wasm-opt $WASMOPTFLAGS \
-		rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm \
-		--converge -tnh --enable-threads --enable-bulk-memory --enable-simd \
-		$G --type-unfinalizing $G --type-ssa $G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G --type-merging $G --type-finalizing $G -O4 \
-		$G --type-unfinalizing $G --type-ssa $G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G --type-merging $G --type-finalizing $G -Oz \
-		$G --abstract-type-refining $G --code-folding $G --const-hoisting $G --dae $G --flatten $G --dfo $G --merge-locals $G --merge-similar-functions --type-finalizing \
-		$G --type-unfinalizing $G --type-ssa $G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G --type-merging $G --type-finalizing $G -O4 \
-		$G --type-unfinalizing $G --type-ssa $G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G --type-merging $G --type-finalizing $G -Oz 
-)
+if [ "${RELEASE:-0}" = "1" ]; then
+	(
+		G="--generate-global-effects"
+		# shellcheck disable=SC2086
+		time wasm-opt $WASMOPTFLAGS \
+			rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm \
+			--converge -tnh --enable-threads --enable-bulk-memory --enable-simd \
+			$G --type-unfinalizing $G --type-ssa $G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G --type-merging $G --type-finalizing $G -O4 \
+			$G --type-unfinalizing $G --type-ssa $G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G --type-merging $G --type-finalizing $G -Oz \
+			$G --abstract-type-refining $G --code-folding $G --const-hoisting $G --dae $G --flatten $G --dfo $G --merge-locals $G --merge-similar-functions --type-finalizing \
+			$G --type-unfinalizing $G --type-ssa $G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G --type-merging $G --type-finalizing $G -O4 \
+			$G --type-unfinalizing $G --type-ssa $G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G --type-merging $G --type-finalizing $G -Oz 
+	)
+else
+	cp rewriter/wasm/out/wasm_snipped.wasm rewriter/wasm/out/optimized.wasm
+fi
 
 mkdir -p dist/
 
