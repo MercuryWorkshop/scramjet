@@ -31,6 +31,7 @@ Some of the popular websites that Scramjet supports include:
 -   `rustup`
 -   `wasm-bindgen`
 -   `wasm-opt`
+-   [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
 
 #### Building
 
