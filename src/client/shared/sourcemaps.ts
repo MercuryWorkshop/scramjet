@@ -1,18 +1,70 @@
-import { flagEnabled } from "../../scramjet";
+import { $scramjet, flagEnabled } from "../../scramjet";
 import { ScramjetClient } from "../client";
 
-type Mapping = [string, number, number];
+enum RewriteType {
+	Insert = 0,
+	Replace = 1,
+}
 
-const sourcemaps: Record<string, Mapping[]> = {};
+type Rewrite =
+	| {
+			type: RewriteType.Insert;
+			// start of insertion
+			start: number;
+			// size of insertion
+			size: number;
+	  }
+	| {
+			type: RewriteType.Replace;
+			// start of replacement
+			start: number;
+			// end of replacement
+			end: number;
+			// old string
+			str: string;
+	  };
+
+const sourcemaps: Record<string, Rewrite[]> = {};
 
 export const enabled = (client: ScramjetClient) =>
 	flagEnabled("sourcemaps", client.url);
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
-	Object.defineProperty(self, "$scramjet$pushsourcemap", {
-		value: (maps: Mapping[], tag: string) => {
-			sourcemaps[tag] = maps;
+	Object.defineProperty(self, $scramjet.config.globals.pushsourcemapfn, {
+		value: (buf: Array<number>, tag: string) => {
+			const sourcemap = Uint8Array.from(buf);
+			const view = new DataView(sourcemap.buffer);
+			const decoder = new TextDecoder("utf-8");
+
+			const rewrites = [];
+
+			const rewritelen = view.getUint32(0, true);
+			let cursor = 0;
+			for (let i = 0; i < rewritelen; i++) {
+				const type = view.getUint8(cursor) as RewriteType;
+				cursor += 1;
+
+				if (type == RewriteType.Insert) {
+					const start = view.getUint32(cursor, true);
+					cursor += 4;
+					const size = view.getUint32(cursor, true);
+					cursor += 4;
+
+					rewrites.push({ type, start, size });
+				} else if (type == RewriteType.Replace) {
+					const start = view.getUint32(cursor, true);
+					cursor += 4;
+					const end = view.getUint32(cursor, true);
+					cursor += 4;
+
+					const str = decoder.decode(sourcemap.subarray(start, end));
+
+					rewrites.push({ type, start, end, str });
+				}
+			}
+
+			sourcemaps[tag] = rewrites;
 		},
 		enumerable: false,
 		writable: false,
@@ -60,6 +112,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 			let j = 0;
 			while (j < maps.length) {
+				/* TODO
 				const [str, start, end] = maps[j];
 				if (start < absindex) {
 					j++;
@@ -74,6 +127,7 @@ export default function (client: ScramjetClient, self: Self) {
 				i = start - absindex + offset + str.length;
 
 				j++;
+				*/
 			}
 
 			newString += stringified.slice(i);

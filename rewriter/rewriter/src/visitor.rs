@@ -117,40 +117,31 @@ where
 	}
 
 	fn visit_member_expression(&mut self, it: &MemberExpression) {
-		match it {
-			MemberExpression::StaticMemberExpression(s) => {
-				if s.property.name == "postMessage" {
-					self.jschanges.add(Rewrite::SetRealmFn {
-						span: s.property.span,
-					});
+		// TODO
+		// you could break this with ["postMessage"] etc
+		// however this code only exists because of recaptcha whatever
+		// and it would slow down js execution a lot
+		if let MemberExpression::StaticMemberExpression(s) = it {
+			if s.property.name == "postMessage" {
+				self.jschanges.add(Rewrite::SetRealmFn {
+					span: s.property.span,
+				});
 
-					walk::walk_expression(self, &s.object);
-					return; // unwise to walk the rest of the tree
-				}
+				walk::walk_expression(self, &s.object);
+				return; // unwise to walk the rest of the tree
+			}
 
-				if !self.config.strict_rewrites
-					&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
-				{
-					if let Expression::Identifier(_) = &s.object {
-						// cull tree - this should be safe
-						return;
-					}
-					if let Expression::ThisExpression(_) = &s.object {
-						return;
-					}
-				}
-
-				if self.config.scramitize
-					&& !matches!(s.object, Expression::MetaProperty(_) | Expression::Super(_))
-				{
-					self.scramitize(s.object.span());
+			if !self.config.strict_rewrites && !UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+				if let Expression::Identifier(_) | Expression::ThisExpression(_) = &s.object {
+					// cull tree - this should be safe
+					return;
 				}
 			}
-			_ => {
-				// TODO
-				// you could break this with ["postMessage"] etc
-				// however this code only exists because of recaptcha whatever
-				// and it would slow down js execution a lot
+
+			if self.config.scramitize
+				&& !matches!(s.object, Expression::MetaProperty(_) | Expression::Super(_))
+			{
+				self.scramitize(s.object.span());
 			}
 		}
 

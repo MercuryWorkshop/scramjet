@@ -12,7 +12,13 @@ use web_sys::Url;
 
 #[wasm_bindgen(typescript_custom_section)]
 const REWRITER_OUTPUT: &'static str = r#"
-type RewriterOutput = { js: Uint8Array, errors: string[], duration: bigint };
+type RewriterOutput = { 
+	js: Uint8Array,
+	map: Uint8Array,
+	scramtag: string,
+	errors: string[],
+	duration: bigint
+};
 "#;
 
 #[wasm_bindgen(inline_js = r#"
@@ -67,10 +73,10 @@ fn get_str(obj: &JsValue, k: &str) -> Result<String> {
 }
 
 fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
-	if !Reflect::set(&obj.into(), &k.into(), v)? {
-		Err(RewriterError::ReflectSetFail(k.to_string()))
-	} else {
+	if Reflect::set(&obj.into(), &k.into(), v)? {
 		Ok(())
+	} else {
+		Err(RewriterError::ReflectSetFail(k.to_string()))
 	}
 }
 
@@ -111,6 +117,7 @@ fn get_config(scramjet: &Object, url: String) -> Result<Config<impl Fn(String) -
 	})
 }
 
+#[allow(clippy::cast_precision_loss, clippy::cast_lossless)]
 fn duration_to_millis_f64(duration: Duration) -> f64 {
 	(duration.as_secs() as f64) * 1_000f64 + (duration.subsec_nanos() as f64) / 1_000_000f64
 }
@@ -131,6 +138,8 @@ fn create_rewriter_output(
 
 	let obj = Object::new();
 	set_obj(&obj, "js", &out.js.into())?;
+	set_obj(&obj, "map", &out.sourcemap.into())?;
+	set_obj(&obj, "scramtag", &out.sourcetag.into())?;
 	#[cfg(feature = "debug")]
 	set_obj(&obj, "errors", &errs.into())?;
 	#[cfg(not(feature = "debug"))]
@@ -148,7 +157,7 @@ pub fn rewrite_js(
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
 	let before = Instant::now();
-	let out = rewrite(&js, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, 1024, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)
@@ -165,7 +174,7 @@ pub fn rewrite_js_from_arraybuffer(
 	let js = unsafe { String::from_utf8_unchecked(js) };
 
 	let before = Instant::now();
-	let out = rewrite(&js, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, 1024, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)

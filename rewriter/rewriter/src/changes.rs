@@ -364,9 +364,9 @@ pub(crate) struct JsChanges {
 }
 
 impl JsChanges {
-	pub fn new() -> Self {
+	pub fn new(capacity: usize) -> Self {
 		Self {
-			inner: Default::default(),
+			inner: Vec::with_capacity(capacity),
 		}
 	}
 
@@ -391,8 +391,8 @@ impl JsChanges {
 			};
 		}
 
-		// TODO: add sourcemaps
-		let map = Vec::with_capacity(js.len() * 2);
+		let mut map = Vec::with_capacity(js.len() * 2);
+		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
 
 		self.inner.sort_unstable();
 
@@ -406,6 +406,13 @@ impl JsChanges {
 			let inner = change.to_inner(cfg);
 			match inner {
 				JsChangeInner::Insert { loc, str } => {
+					// INSERT op
+					map.push(0);
+					// start
+					map.extend_from_slice(&loc.to_le_bytes());
+					// size
+					map.extend_from_slice(&(str.len() as u32).to_le_bytes());
+
 					let loc = loc as usize;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
 					for str in str {
@@ -414,6 +421,15 @@ impl JsChanges {
 					buffer.extend_from_slice(tryget!(loc..end).as_bytes());
 				}
 				JsChangeInner::Replace { str } => {
+					// REPLACE op
+					map.push(1);
+					// start
+					map.extend_from_slice(&span.start.to_le_bytes());
+					// end
+					map.extend_from_slice(&span.end.to_le_bytes());
+					// oldstr
+					map.extend_from_slice(tryget!(start..end).as_bytes());
+
 					for str in str {
 						buffer.extend_from_slice(str.as_bytes());
 					}

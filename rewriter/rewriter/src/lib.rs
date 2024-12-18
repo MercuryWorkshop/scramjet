@@ -26,10 +26,15 @@ pub enum RewriterError {
 pub struct RewriteResult {
 	pub js: Vec<u8>,
 	pub sourcemap: Vec<u8>,
+	pub sourcetag: String,
 	pub errors: Vec<OxcDiagnostic>,
 }
 
-pub fn rewrite<E>(js: &str, config: Config<E>) -> Result<RewriteResult, RewriterError>
+pub fn rewrite<E>(
+	js: &str,
+	capacity: usize,
+	config: Config<E>,
+) -> Result<RewriteResult, RewriterError>
 where
 	E: Fn(String) -> String,
 	E: Clone,
@@ -49,14 +54,14 @@ where
 	if ret.panicked {
 		let mut errors = String::new();
 		for error in ret.errors {
-			errors.push_str(&format!("{}", error));
+			errors.push_str(&format!("{error}"));
 			errors.push('\n');
 		}
 		return Err(RewriterError::OxcPanicked(errors));
 	}
 
 	let mut visitor = Visitor {
-		jschanges: JsChanges::new(),
+		jschanges: JsChanges::new(capacity),
 		config,
 	};
 	visitor.visit_program(&ret.program);
@@ -70,6 +75,7 @@ where
 	Ok(RewriteResult {
 		js,
 		sourcemap,
+		sourcetag: config.sourcetag,
 		errors: ret.errors,
 	})
 }
