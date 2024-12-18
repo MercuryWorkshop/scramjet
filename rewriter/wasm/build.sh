@@ -22,7 +22,12 @@ else
 	: "${FEATURES:=}"
 fi
 
-RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none -Zfmt-debug=none' cargo build --lib --target wasm32-unknown-unknown -Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort --no-default-features --features "$FEATURES" --release
+(
+	export RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none -Zfmt-debug=none'
+	cargo build --release --target wasm32-unknown-unknown \
+		-Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort,optimize_for_size \
+		--no-default-features --features "$FEATURES"
+)
 wasm-bindgen --target web --out-dir out/ ../target/wasm32-unknown-unknown/release/wasm.wasm
 
 sed -i 's/import.meta.url/""/g' out/wasm.js
