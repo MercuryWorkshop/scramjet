@@ -3,8 +3,8 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 # Check for cargo and wasm-bindgen
-which cargo wasm-bindgen wasm-opt &> /dev/null || {
-	echo "Please install cargo, wasm-bindgen, and wasm-opt! Exiting..."
+which cargo wasm-bindgen wasm-opt wasm-snip &> /dev/null || {
+	echo "Please install cargo, wasm-bindgen, wasm-opt, and wasm-snip! Exiting..."
 	exit 1
 }
 

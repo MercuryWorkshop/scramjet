@@ -9,5 +9,6 @@ rm -rf binaryen-${VER}-x86_64-linux.tar.gz
 mv binaryen-${VER}/bin/* ~/.local/bin
 mv binaryen-${VER}/lib/* ~/.local/lib
 rm -rf binaryen-${VER}
+cargo install --git https://github.com/r58playz/wasm-snip
 pnpm rewriter:build
 pnpm build
