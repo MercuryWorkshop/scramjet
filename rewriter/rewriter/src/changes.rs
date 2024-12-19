@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use oxc::{
 	ast::ast::AssignmentOperator,
-	span::{CompactStr, Span},
+	span::{format_compact_str, CompactStr, Span},
 };
 use smallvec::{smallvec, SmallVec};
 
@@ -63,7 +63,6 @@ pub(crate) enum Rewrite {
 	},
 	SourceTag {
 		span: Span,
-		tagname: String,
 	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
@@ -163,11 +162,59 @@ impl Rewrite {
 				span: Span::new(span.end, span.end)
 			}],
 			// maps to insert
-			Self::SourceTag { tagname, span } => smallvec![JsChange::SourceTag { span, tagname }],
+			Self::SourceTag { span } => smallvec![JsChange::SourceTag { span }],
 			Self::Replace { text, span } => smallvec![JsChange::Replace { span, text }],
 			Self::Delete { span } => smallvec![JsChange::Delete { span }],
 		}
 	}
+}
+
+enum Change<'a> {
+	Str(&'a str),
+	Number(usize),
+}
+
+impl<'a> From<&'a str> for Change<'a> {
+	fn from(value: &'a str) -> Self {
+		Self::Str(value)
+	}
+}
+
+impl<'a> From<&'a CompactStr> for Change<'a> {
+	fn from(value: &'a CompactStr) -> Self {
+		Self::Str(value.as_str())
+	}
+}
+
+impl<'a> From<&'a String> for Change<'a> {
+	fn from(value: &'a String) -> Self {
+		Self::Str(value.as_str())
+	}
+}
+
+impl<'a> From<&'a AssignmentOperator> for Change<'a> {
+	fn from(value: &'a AssignmentOperator) -> Self {
+		Self::Str(value.as_str())
+	}
+}
+
+impl From<usize> for Change<'static> {
+	fn from(value: usize) -> Self {
+		Self::Number(value)
+	}
+}
+
+macro_rules! changes {
+	[$($change:expr),+] => {
+		smallvec![$(Change::from($change)),+]
+    };
+}
+
+type Changes<'a> = SmallVec<[Change<'a>; 8]>;
+
+enum JsChangeInner<'a> {
+	Insert { loc: u32, str: Changes<'a> },
+	Replace { str: Changes<'a> },
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -187,7 +234,7 @@ enum JsChange {
 	/// insert `: ${cfg.wrapfn}(ident)`
 	ShorthandObj { span: Span, ident: CompactStr },
 	/// insert scramtag
-	SourceTag { span: Span, tagname: String },
+	SourceTag { span: Span },
 
 	/// replace span with `(${cfg.importfn}("${cfg.base}"))`
 	ImportFn { span: Span },
@@ -235,7 +282,7 @@ impl JsChange {
 		}
 	}
 
-	fn to_inner<'a, E>(&'a self, cfg: &'a Config<E>) -> JsChangeInner<'a>
+	fn to_inner<'a, E>(&'a self, cfg: &'a Config<E>, offset: usize) -> JsChangeInner<'a>
 	where
 		E: Fn(String) -> String,
 		E: Clone,
@@ -245,85 +292,79 @@ impl JsChange {
 				if *extra {
 					JsChangeInner::Insert {
 						loc: span.start,
-						str: smallvec!["(", cfg.wrapfn.as_str(), "("],
+						str: changes!["(", &cfg.wrapfn, "("],
 					}
 				} else {
 					JsChangeInner::Insert {
 						loc: span.start,
-						str: smallvec![cfg.wrapfn.as_str(), "("],
+						str: changes![&cfg.wrapfn, "("],
 					}
 				}
 			}
 			Self::SetRealmFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec![cfg.setrealmfn.as_str(), "({})."],
+				str: changes![&cfg.setrealmfn, "({})."],
 			},
 			Self::WrapThisFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec![cfg.wrapthisfn.as_str(), "("],
+				str: changes![&cfg.wrapthisfn, "("],
 			},
 			Self::ScramErrFn { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec!["$scramerr(", ident.as_str(), ");"],
+				str: changes!["$scramerr(", ident, ");"],
 			},
 			Self::ScramitizeFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec![" $scramitize("],
+				str: changes![" $scramitize("],
 			},
 			Self::EvalRewriteFn { .. } => JsChangeInner::Replace {
-				str: smallvec!["eval(", cfg.rewritefn.as_str(), "("],
+				str: changes!["eval(", &cfg.rewritefn, "("],
 			},
 			Self::ShorthandObj { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec![":", cfg.wrapfn.as_str(), "(", ident.as_str(), ")"],
+				str: changes![":", &cfg.wrapfn, "(", ident, ")"],
 			},
-			Self::SourceTag { span, tagname } => JsChangeInner::Insert {
+			Self::SourceTag { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec![
+				str: changes![
 					"/*scramtag ",
-					tagname.as_str(),
+					span.start as usize + offset,
 					" ",
-					cfg.sourcetag.as_str(),
+					&cfg.sourcetag,
 					"*/"
 				],
 			},
 			Self::ImportFn { .. } => JsChangeInner::Replace {
-				str: smallvec!["(", cfg.importfn.as_str(), "(\"", cfg.base.as_str(), "\"))"],
+				str: changes!["(", &cfg.importfn, "(\"", &cfg.base, "\"))"],
 			},
 			Self::MetaFn { .. } => JsChangeInner::Replace {
-				str: smallvec![cfg.metafn.as_str(), "(\"", cfg.base.as_str()],
+				str: changes![&cfg.metafn, "(\"", &cfg.base],
 			},
 			Self::AssignmentLeft { name, op, .. } => JsChangeInner::Replace {
-				str: smallvec![
+				str: changes![
 					"((t)=>$scramjet$tryset(",
-					name.as_str(),
+					name,
 					",\"",
-					op.as_str(),
+					op,
 					"\",t)||(",
-					name.as_str(),
-					op.as_str(),
+					name,
+					op,
 					"t))("
 				],
 			},
-			Self::ReplaceClosingParen { .. } => JsChangeInner::Replace {
-				str: smallvec![")"],
-			},
+			Self::ReplaceClosingParen { .. } => JsChangeInner::Replace { str: changes![")"] },
 			Self::ClosingParen { span, semi } => JsChangeInner::Insert {
 				loc: span.start,
-				str: if *semi {
-					smallvec![");"]
-				} else {
-					smallvec![")"]
-				},
+				str: if *semi { changes![");"] } else { changes![")"] },
 			},
 			Self::DoubleClosingParen { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: smallvec!["))"],
+				str: changes!["))"],
 			},
 			Self::Replace { text, .. } => JsChangeInner::Replace {
-				str: smallvec![text.as_str()],
+				str: changes![text],
 			},
-			Self::Delete { .. } => JsChangeInner::Replace { str: smallvec![""] },
+			Self::Delete { .. } => JsChangeInner::Replace { str: changes![""] },
 		}
 	}
 }
@@ -345,13 +386,6 @@ impl Ord for JsChange {
 			x => x,
 		}
 	}
-}
-
-type Changes<'a> = SmallVec<[&'a str; 8]>;
-
-enum JsChangeInner<'a> {
-	Insert { loc: u32, str: Changes<'a> },
-	Replace { str: Changes<'a> },
 }
 
 pub(crate) struct JsChangeResult {
@@ -390,6 +424,17 @@ impl JsChanges {
 					.ok_or_else(|| RewriterError::Oob(($range).start, ($range).end))?
 			};
 		}
+		macro_rules! eval {
+			($change:expr) => {
+				match $change {
+					Change::Str(x) => buffer.extend_from_slice(x.as_bytes()),
+					Change::Number(x) => {
+						let x = format_compact_str!("{}", x);
+						buffer.extend_from_slice(x.as_bytes());
+					}
+				}
+			};
+		}
 
 		let mut map = Vec::with_capacity(js.len() * 2);
 		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
@@ -403,11 +448,12 @@ impl JsChanges {
 
 			buffer.extend_from_slice(tryget!(offset..start).as_bytes());
 
-			let inner = change.to_inner(cfg);
-			match inner {
+			match change.to_inner(cfg, offset) {
 				JsChangeInner::Insert { loc, str } => {
 					// INSERT op
 					map.push(0);
+					// offset
+					map.extend_from_slice(&(offset as u32).to_le_bytes());
 					// start
 					map.extend_from_slice(&loc.to_le_bytes());
 					// size
@@ -416,13 +462,15 @@ impl JsChanges {
 					let loc = loc as usize;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
 					for str in str {
-						buffer.extend_from_slice(str.as_bytes());
+						eval!(str);
 					}
 					buffer.extend_from_slice(tryget!(loc..end).as_bytes());
 				}
 				JsChangeInner::Replace { str } => {
 					// REPLACE op
 					map.push(1);
+					// offset
+					map.extend_from_slice(&(offset as u32).to_le_bytes());
 					// start
 					map.extend_from_slice(&span.start.to_le_bytes());
 					// end
@@ -431,7 +479,7 @@ impl JsChanges {
 					map.extend_from_slice(tryget!(start..end).as_bytes());
 
 					for str in str {
-						buffer.extend_from_slice(str.as_bytes());
+						eval!(str);
 					}
 				}
 			}

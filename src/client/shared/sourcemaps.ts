@@ -9,6 +9,8 @@ enum RewriteType {
 type Rewrite =
 	| {
 			type: RewriteType.Insert;
+			// offset before this rewrite
+			offset: number;
 			// start of insertion
 			start: number;
 			// size of insertion
@@ -16,6 +18,8 @@ type Rewrite =
 	  }
 	| {
 			type: RewriteType.Replace;
+			// offset before this rewrite
+			offset: number;
 			// start of replacement
 			start: number;
 			// end of replacement
@@ -46,13 +50,17 @@ export default function (client: ScramjetClient, self: Self) {
 				cursor += 1;
 
 				if (type == RewriteType.Insert) {
+					const offset = view.getUint32(cursor, true);
+					cursor += 4;
 					const start = view.getUint32(cursor, true);
 					cursor += 4;
 					const size = view.getUint32(cursor, true);
 					cursor += 4;
 
-					rewrites.push({ type, start, size });
+					rewrites.push({ type, offset, start, size });
 				} else if (type == RewriteType.Replace) {
+					const offset = view.getUint32(cursor, true);
+					cursor += 4;
 					const start = view.getUint32(cursor, true);
 					cursor += 4;
 					const end = view.getUint32(cursor, true);
@@ -60,7 +68,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 					const str = decoder.decode(sourcemap.subarray(start, end));
 
-					rewrites.push({ type, start, end, str });
+					rewrites.push({ type, offset, start, end, str });
 				}
 			}
 
