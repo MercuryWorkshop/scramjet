@@ -13,7 +13,7 @@
 		"build": "rspack build --mode production",
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
-		"prepack": "RELEASE=1 npm run rewriter:build && npm run build",
+		"prepack": "OPTIMIZE_FOR_SIZE=1 RELEASE=1 npm run rewriter:build && npm run build",
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --config .prettierrc.js --write .",
 		"lint": "eslint ./src/",

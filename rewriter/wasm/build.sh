@@ -14,6 +14,8 @@ if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
 	exit 1
 fi
 
+echo "FLAGS: RELEASE=${RELEASE:-0} OPTIMIZE_FOR_SIZE=${OPTIMIZE_FOR_SIZE:-0}"
+
 if ! [ "${RELEASE:-0}" = "1" ]; then
 	: "${WASMOPTFLAGS:=-g}"
 	: "${FEATURES:=debug}"
