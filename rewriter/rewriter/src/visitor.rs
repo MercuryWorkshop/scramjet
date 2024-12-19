@@ -257,7 +257,6 @@ where
 		if self.config.do_sourcemaps {
 			self.jschanges.add(Rewrite::SourceTag {
 				span: Span::new(it.span.start, it.span.start),
-				tagname: it.span.start.to_string(),
 			});
 		}
 		walk::walk_function_body(self, it);

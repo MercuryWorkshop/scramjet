@@ -24,6 +24,9 @@ fi
 
 (
 	export RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none -Zfmt-debug=none'
+	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
+		export RUSTFLAGS="${RUSTFLAGS} -C opt-level=z"
+	fi
 	cargo build --release --target wasm32-unknown-unknown \
 		-Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort,optimize_for_size \
 		--no-default-features --features "$FEATURES"
