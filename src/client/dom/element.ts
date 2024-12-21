@@ -106,7 +106,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Node.prototype.baseURI", {
 		get(ctx) {
 			const node = ctx.this as Node;
-			const base = node.ownerDocument.querySelector("base");
+			let base = node.ownerDocument?.querySelector("base");
+			if (node instanceof Document) base = node.querySelector("base");
+
 			if (base) {
 				return new URL(base.href, client.url.origin).href;
 			}
