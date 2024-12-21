@@ -104,16 +104,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 	}
 
 	client.Trap("Node.prototype.baseURI", {
-		get() {
-			// TODO this should be using ownerdocument but who gaf
-			const base = self.document.querySelector("base");
+		get(ctx) {
+			const node = ctx.this as Node;
+			const base = node.ownerDocument.querySelector("base");
 			if (base) {
 				return new URL(base.href, client.url.origin).href;
 			}
 
 			return client.url.origin;
 		},
-		set() {
+		set(ctx, v) {
 			return false;
 		},
 	});
@@ -470,24 +470,18 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy(
-		[
-			"DOMParser.prototype.parseFromString",
-			"Document.prototype.parseHTMLUnsafe",
-		],
-		{
-			apply(ctx) {
-				if (ctx.args[1] === "text/html") {
-					try {
-						ctx.args[0] = rewriteHtml(
-							ctx.args[0],
-							client.cookieStore,
-							client.meta,
-							false
-						);
-					} catch {}
-				}
-			},
-		}
-	);
+	client.Proxy("DOMParser.prototype.parseFromString", {
+		apply(ctx) {
+			if (ctx.args[1] === "text/html") {
+				try {
+					ctx.args[0] = rewriteHtml(
+						ctx.args[0],
+						client.cookieStore,
+						client.meta,
+						false
+					);
+				} catch {}
+			}
+		},
+	});
 }
