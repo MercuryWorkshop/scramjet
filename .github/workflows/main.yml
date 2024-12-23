@@ -154,7 +154,7 @@ jobs:
           path: dist
 
       - name: build statics
-        run: bash buildstatic.sh
+        run: bash ./ci/buildstatic.sh
 
       - name: upload pages artifact
         uses: actions/upload-pages-artifact@v3

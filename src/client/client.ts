@@ -243,7 +243,7 @@ export class ScramjetClient {
 		if (!sframe) {
 			// we're in a subframe, recurse upward until we find one
 			let currentwin = this.global.window;
-			while (currentwin.parent != currentwin) {
+			while (currentwin.parent !== currentwin) {
 				if (!currentwin.frameElement) return null; // ??
 				if (currentwin.frameElement && currentwin.frameElement[SCRAMJETFRAME]) {
 					return currentwin.frameElement[SCRAMJETFRAME];
