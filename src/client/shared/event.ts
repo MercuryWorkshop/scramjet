@@ -46,8 +46,6 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	};
 
-	// TODO! window.event not proxied
-
 	function wraplistener(listener: (...args: any) => any) {
 		return new Proxy(listener, {
 			apply(target, thisArg, argArray) {
