@@ -6,7 +6,7 @@ import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import wisp from "wisp-server-node";
+import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 
 //transports
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
