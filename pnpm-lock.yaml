@@ -56,16 +56,16 @@ importers:
         version: 0.3.3
       '@nebula-services/bare-server-node':
         specifier: ^2.0.4
-        version: 2.0.4(bufferutil@4.0.8)
+        version: 2.0.4(bufferutil@4.0.9)
       '@playwright/test':
         specifier: ^1.49.1
         version: 1.49.1
       '@rsdoctor/rspack-plugin':
         specifier: ^0.4.12
-        version: 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
+        version: 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
       '@rspack/cli':
         specifier: ^1.1.8
-        version: 1.1.8(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.8)(webpack@5.97.1)
+        version: 1.1.8(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.9)(webpack@5.97.1)
       '@rspack/core':
         specifier: ^1.1.8
         version: 1.1.8
@@ -786,8 +786,8 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
-  bufferutil@4.0.8:
-    resolution: {integrity: sha512-4T53u4PdgsXqKaIctwF8ifXlRTTmEPJ8iEPWFdGZvcf7sbwYo6FKFEX9eNNAnzFZ7EzJAQ3CJeOtCRA4rDp7Pw==}
+  bufferutil@4.0.9:
+    resolution: {integrity: sha512-WDtdLmJvAuNNPzByAYpRo2rF1Mmradw6gvWsQKf63476DDXmomT9zUiGypLcG4ibIM67vhAj8jJRdbmEws2Aqw==}
     engines: {node: '>=6.14.2'}
 
   bundle-name@4.1.0:
@@ -1098,8 +1098,8 @@ packages:
     resolution: {integrity: sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==}
     engines: {node: '>= 0.4'}
 
-  es-module-lexer@1.5.4:
-    resolution: {integrity: sha512-MVNK56NiMrOwitFB7cqDwq0CQutbw+0BvLshJSse0MUNU+y1FC3bUS/AQg7oUng+/wKrrki7JfmwtVHkVfPLlw==}
+  es-module-lexer@1.6.0:
+    resolution: {integrity: sha512-qqnD1yMU6tk/jnaMosogGySTZP8YtUgAffA9nMN+E/rjxcfRQ6IEk7IiozUjgxKoFHBGjTLnrHB/YC45r/59EQ==}
 
   es-object-atoms@1.0.0:
     resolution: {integrity: sha512-MZ4iQ6JwHOBQjahnjwaC1ZtIBH+2ohjamzAO3oaHcXYup7qxjF2fixyH+Q71voWHeOkI2q/TnJao/KfXYIZWbw==}
@@ -2683,10 +2683,10 @@ snapshots:
 
   '@mercuryworkshop/wisp-js@0.3.3':
     dependencies:
-      bufferutil: 4.0.8
+      bufferutil: 4.0.9
       commander: 12.1.0
       ipaddr.js: 2.2.0
-      ws: 8.18.0(bufferutil@4.0.8)
+      ws: 8.18.0(bufferutil@4.0.9)
     transitivePeerDependencies:
       - utf-8-validate
 
@@ -2706,7 +2706,7 @@ snapshots:
       '@module-federation/runtime': 0.5.1
       '@module-federation/sdk': 0.5.1
 
-  '@nebula-services/bare-server-node@2.0.4(bufferutil@4.0.8)':
+  '@nebula-services/bare-server-node@2.0.4(bufferutil@4.0.9)':
     dependencies:
       async-exit-hook: 2.0.1
       commander: 10.0.1
@@ -2714,7 +2714,7 @@ snapshots:
       http-errors: 2.0.0
       ipaddr.js: 2.2.0
       source-map-support: 0.5.21
-      ws: 8.18.0(bufferutil@4.0.8)
+      ws: 8.18.0(bufferutil@4.0.9)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -2742,10 +2742,10 @@ snapshots:
 
   '@rsdoctor/client@0.4.12': {}
 
-  '@rsdoctor/core@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)':
+  '@rsdoctor/core@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)':
     dependencies:
-      '@rsdoctor/graph': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
-      '@rsdoctor/sdk': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
+      '@rsdoctor/graph': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
+      '@rsdoctor/sdk': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
       '@rsdoctor/types': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       '@rsdoctor/utils': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       axios: 1.7.9
@@ -2756,7 +2756,7 @@ snapshots:
       path-browserify: 1.0.1
       semver: 7.6.3
       source-map: 0.7.4
-      webpack-bundle-analyzer: 4.10.2(bufferutil@4.0.8)
+      webpack-bundle-analyzer: 4.10.2(bufferutil@4.0.9)
     transitivePeerDependencies:
       - '@rspack/core'
       - bufferutil
@@ -2765,12 +2765,12 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/graph@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)':
+  '@rsdoctor/graph@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)':
     dependencies:
       '@rsdoctor/types': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       '@rsdoctor/utils': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       lodash: 4.17.21
-      socket.io: 4.8.1(bufferutil@4.0.8)
+      socket.io: 4.8.1(bufferutil@4.0.9)
       source-map: 0.7.4
     transitivePeerDependencies:
       - '@rspack/core'
@@ -2779,11 +2779,11 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/rspack-plugin@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)':
+  '@rsdoctor/rspack-plugin@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)':
     dependencies:
-      '@rsdoctor/core': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
-      '@rsdoctor/graph': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
-      '@rsdoctor/sdk': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
+      '@rsdoctor/core': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
+      '@rsdoctor/graph': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
+      '@rsdoctor/sdk': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
       '@rsdoctor/types': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       '@rsdoctor/utils': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       '@rspack/core': 1.1.8
@@ -2795,10 +2795,10 @@ snapshots:
       - utf-8-validate
       - webpack
 
-  '@rsdoctor/sdk@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)':
+  '@rsdoctor/sdk@0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)':
     dependencies:
       '@rsdoctor/client': 0.4.12
-      '@rsdoctor/graph': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.8)(webpack@5.97.1)
+      '@rsdoctor/graph': 0.4.12(@rspack/core@1.1.8)(bufferutil@4.0.9)(webpack@5.97.1)
       '@rsdoctor/types': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       '@rsdoctor/utils': 0.4.12(@rspack/core@1.1.8)(webpack@5.97.1)
       '@types/fs-extra': 11.0.4
@@ -2810,7 +2810,7 @@ snapshots:
       lodash: 4.17.21
       open: 8.4.2
       serve-static: 1.16.2
-      socket.io: 4.8.1(bufferutil@4.0.8)
+      socket.io: 4.8.1(bufferutil@4.0.9)
       source-map: 0.7.4
       tapable: 2.2.1
     transitivePeerDependencies:
@@ -2894,17 +2894,17 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.1.8
       '@rspack/binding-win32-x64-msvc': 1.1.8
 
-  '@rspack/cli@1.1.8(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.8)(webpack@5.97.1)':
+  '@rspack/cli@1.1.8(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.9)(webpack@5.97.1)':
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
       '@rspack/core': 1.1.8
-      '@rspack/dev-server': 1.0.9(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.8)(webpack@5.97.1)
+      '@rspack/dev-server': 1.0.9(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.9)(webpack@5.97.1)
       colorette: 2.0.19
       exit-hook: 4.0.0
       interpret: 3.1.1
       rechoir: 0.8.0
       semver: 7.6.3
-      webpack-bundle-analyzer: 4.6.1(bufferutil@4.0.8)
+      webpack-bundle-analyzer: 4.6.1(bufferutil@4.0.9)
       yargs: 17.6.2
     transitivePeerDependencies:
       - '@types/express'
@@ -2922,7 +2922,7 @@ snapshots:
       '@rspack/lite-tapable': 1.0.1
       caniuse-lite: 1.0.30001690
 
-  '@rspack/dev-server@1.0.9(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.8)(webpack@5.97.1)':
+  '@rspack/dev-server@1.0.9(@rspack/core@1.1.8)(@types/express@4.17.21)(bufferutil@4.0.9)(webpack@5.97.1)':
     dependencies:
       '@rspack/core': 1.1.8
       chokidar: 3.6.0
@@ -2932,8 +2932,8 @@ snapshots:
       mime-types: 2.1.35
       p-retry: 4.6.2
       webpack-dev-middleware: 7.4.2(webpack@5.97.1)
-      webpack-dev-server: 5.0.4(bufferutil@4.0.8)(webpack@5.97.1)
-      ws: 8.18.0(bufferutil@4.0.8)
+      webpack-dev-server: 5.0.4(bufferutil@4.0.9)(webpack@5.97.1)
+      ws: 8.18.0(bufferutil@4.0.9)
     transitivePeerDependencies:
       - '@types/express'
       - bufferutil
@@ -3379,7 +3379,7 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
-  bufferutil@4.0.8:
+  bufferutil@4.0.9:
     dependencies:
       node-gyp-build: 4.8.4
 
@@ -3617,7 +3617,7 @@ snapshots:
 
   engine.io-parser@5.2.3: {}
 
-  engine.io@6.6.2(bufferutil@4.0.8):
+  engine.io@6.6.2(bufferutil@4.0.9):
     dependencies:
       '@types/cookie': 0.4.1
       '@types/cors': 2.8.17
@@ -3628,7 +3628,7 @@ snapshots:
       cors: 2.8.5
       debug: 4.3.7
       engine.io-parser: 5.2.3
-      ws: 8.17.1(bufferutil@4.0.8)
+      ws: 8.17.1(bufferutil@4.0.9)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -3656,7 +3656,7 @@ snapshots:
 
   es-errors@1.3.0: {}
 
-  es-module-lexer@1.5.4: {}
+  es-module-lexer@1.6.0: {}
 
   es-object-atoms@1.0.0:
     dependencies:
@@ -4693,10 +4693,10 @@ snapshots:
       mrmime: 2.0.0
       totalist: 3.0.1
 
-  socket.io-adapter@2.5.5(bufferutil@4.0.8):
+  socket.io-adapter@2.5.5(bufferutil@4.0.9):
     dependencies:
       debug: 4.3.7
-      ws: 8.17.1(bufferutil@4.0.8)
+      ws: 8.17.1(bufferutil@4.0.9)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -4709,14 +4709,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  socket.io@4.8.1(bufferutil@4.0.8):
+  socket.io@4.8.1(bufferutil@4.0.9):
     dependencies:
       accepts: 1.3.8
       base64id: 2.0.0
       cors: 2.8.5
       debug: 4.3.7
-      engine.io: 6.6.2(bufferutil@4.0.8)
-      socket.io-adapter: 2.5.5(bufferutil@4.0.8)
+      engine.io: 6.6.2(bufferutil@4.0.9)
+      socket.io-adapter: 2.5.5(bufferutil@4.0.9)
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
       - bufferutil
@@ -4927,7 +4927,7 @@ snapshots:
     dependencies:
       minimalistic-assert: 1.0.1
 
-  webpack-bundle-analyzer@4.10.2(bufferutil@4.0.8):
+  webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
       acorn: 8.14.0
@@ -4940,12 +4940,12 @@ snapshots:
       opener: 1.5.2
       picocolors: 1.1.1
       sirv: 2.0.4
-      ws: 7.5.10(bufferutil@4.0.8)
+      ws: 7.5.10(bufferutil@4.0.9)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  webpack-bundle-analyzer@4.6.1(bufferutil@4.0.8):
+  webpack-bundle-analyzer@4.6.1(bufferutil@4.0.9):
     dependencies:
       acorn: 8.14.0
       acorn-walk: 8.3.4
@@ -4955,7 +4955,7 @@ snapshots:
       lodash: 4.17.21
       opener: 1.5.2
       sirv: 1.0.19
-      ws: 7.5.10(bufferutil@4.0.8)
+      ws: 7.5.10(bufferutil@4.0.9)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -4971,7 +4971,7 @@ snapshots:
     optionalDependencies:
       webpack: 5.97.1
 
-  webpack-dev-server@5.0.4(bufferutil@4.0.8)(webpack@5.97.1):
+  webpack-dev-server@5.0.4(bufferutil@4.0.9)(webpack@5.97.1):
     dependencies:
       '@types/bonjour': 3.5.13
       '@types/connect-history-api-fallback': 1.5.4
@@ -5002,7 +5002,7 @@ snapshots:
       sockjs: 0.3.24
       spdy: 4.0.2
       webpack-dev-middleware: 7.4.2(webpack@5.97.1)
-      ws: 8.18.0(bufferutil@4.0.8)
+      ws: 8.18.0(bufferutil@4.0.9)
     optionalDependencies:
       webpack: 5.97.1
     transitivePeerDependencies:
@@ -5024,7 +5024,7 @@ snapshots:
       browserslist: 4.24.3
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.18.0
-      es-module-lexer: 1.5.4
+      es-module-lexer: 1.6.0
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
@@ -5069,17 +5069,17 @@ snapshots:
       string-width: 5.1.2
       strip-ansi: 7.1.0
 
-  ws@7.5.10(bufferutil@4.0.8):
+  ws@7.5.10(bufferutil@4.0.9):
     optionalDependencies:
-      bufferutil: 4.0.8
+      bufferutil: 4.0.9
 
-  ws@8.17.1(bufferutil@4.0.8):
+  ws@8.17.1(bufferutil@4.0.9):
     optionalDependencies:
-      bufferutil: 4.0.8
+      bufferutil: 4.0.9
 
-  ws@8.18.0(bufferutil@4.0.8):
+  ws@8.18.0(bufferutil@4.0.9):
     optionalDependencies:
-      bufferutil: 4.0.8
+      bufferutil: 4.0.9
 
   y18n@5.0.8: {}
 
