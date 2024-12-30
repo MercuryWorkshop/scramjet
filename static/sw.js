@@ -14,17 +14,11 @@ importScripts(
 
 const scramjet = new ScramjetServiceWorker();
 
-async function handleRequest(event) {
+self.addEventListener("fetch", async (event) => {
 	await scramjet.loadConfig();
 	if (scramjet.route(event)) {
-		return scramjet.fetch(event);
+		event.respondWith(scramjet.fetch(event));
 	}
-
-	return fetch(event.request);
-}
-
-self.addEventListener("fetch", (event) => {
-	event.respondWith(handleRequest(event));
 });
 
 let playgroundData;

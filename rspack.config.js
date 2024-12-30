@@ -79,7 +79,7 @@ export default defineConfig({
 				}
 			})(),
 		}),
-		process.env.DEBUG === "true"
+		process.env.DEBUG
 			? new RsdoctorRspackPlugin({
 					supports: {
 						parseBundle: true,

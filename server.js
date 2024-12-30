@@ -94,16 +94,8 @@ if (!process.env.CI) {
 		chmodSync(".git/hooks/pre-commit", 0o755);
 	} catch {}
 
-	const watch = spawn("pnpm", ["rspack", "-w"], {
-		detached: true,
+	spawn("pnpm", ["rspack", "-w"], {
+		stdio: "inherit",
 		cwd: process.cwd(),
-	});
-
-	watch.stdout.on("data", (data) => {
-		console.log(`${data}`);
-	});
-
-	watch.stderr.on("data", (data) => {
-		console.log(`${data}`);
 	});
 }
