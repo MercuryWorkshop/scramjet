@@ -97,7 +97,7 @@ export class ScramjetClient {
 	constructor(public global: typeof globalThis) {
 		if (SCRAMJETCLIENT in global) {
 			console.error(
-				"attempted to initialize a scramjet cl ient, but one is already loaded - this is very bad"
+				"attempted to initialize a scramjet client, but one is already loaded - this is very bad"
 			);
 			throw new Error();
 		}

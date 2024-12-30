@@ -59,15 +59,11 @@ export class ScramjetController {
 		$scramjet.config = deepMerge(defaultConfig, config);
 	}
 
-	async init(serviceWorkerPath: string): Promise<ServiceWorkerRegistration> {
+	async init(): Promise<void> {
 		loadCodecs();
 
 		await this.openIDB();
-
-		const reg = await navigator.serviceWorker.register(serviceWorkerPath);
-		dbg.log("service worker registered");
-
-		return reg;
+		dbg.log("config loaded");
 	}
 
 	createFrame(frame?: HTMLIFrameElement): ScramjetFrame {

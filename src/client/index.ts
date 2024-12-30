@@ -14,7 +14,7 @@ export const isshared = "SharedWorkerGlobalScope" in self;
 export const isemulatedsw =
 	new URL(self.location.href).searchParams.get("dest") === "serviceworker";
 
-dbg.log("scrammin");
+dbg.log("initializing scramjet client");
 // if it already exists, that means the handlers have probably already been setup by the parent document
 if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 	loadCodecs();
