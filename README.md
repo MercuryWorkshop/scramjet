@@ -30,7 +30,7 @@ Some of the popular websites that Scramjet supports include:
 -   Recent versions of `node.js` and `pnpm`
 -   `rustup`
 -   `wasm-bindgen`
--   `wasm-opt`
+-   [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
 -   [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
 
 #### Building
