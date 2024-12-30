@@ -4,6 +4,8 @@ import { createServer } from "http";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
+import rspackConfig from "./rspack.config.js";
+import { rspack } from "@rspack/core";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
@@ -94,8 +96,14 @@ if (!process.env.CI) {
 		chmodSync(".git/hooks/pre-commit", 0o755);
 	} catch {}
 
-	spawn("pnpm", ["rspack", "-w"], {
-		stdio: "inherit",
-		cwd: process.cwd(),
+	const compiler = rspack(rspackConfig);
+	compiler.watch({}, (err, stats) => {
+		console.log(
+			stats.toString({
+				preset: "minimal",
+				colors: true,
+				version: false,
+			})
+		);
 	});
 }
