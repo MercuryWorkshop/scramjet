@@ -1,5 +1,3 @@
-// TODO this whole file should be inlined and deleted it's a weird relic from ssd era
-
 import { URLMeta, rewriteUrl } from "./url";
 import { BareHeaders } from "@mercuryworkshop/bare-mux";
 const cspHeaders = [

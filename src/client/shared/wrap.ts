@@ -66,21 +66,16 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	});
 
 	self.$scramitize = function (v) {
-		if (typeof v === "string" && v.includes("scramjet")) {
-			debugger;
+		if (v === self) debugger;
+		if (v === location) debugger;
+		if (iswindow) {
+			if (v === self.parent) debugger;
+			if (v === self.document) debugger;
+			if (v === self.top) debugger;
 		}
 
-		if (typeof v === "string" && v.includes(location.origin)) {
-			debugger;
-		}
-
-		if (v === self && v?.$scramjet) {
-			debugger;
-		}
-
-		if (iswindow && v instanceof Document && v.defaultView?.$scramjet) {
-			debugger;
-		}
+		if (typeof v === "string" && v.includes("scramjet")) debugger;
+		if (typeof v === "string" && v.includes(location.origin)) debugger;
 
 		return v;
 	};

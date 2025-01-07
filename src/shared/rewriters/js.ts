@@ -21,26 +21,26 @@ const decoder = new TextDecoder();
 
 function rewriteJsWrapper(
 	input: string | ArrayBuffer,
-	url: string | null,
+	source: string | null,
 	meta: URLMeta
 ): string | ArrayBuffer {
 	let out: RewriterOutput;
 	const before = performance.now();
 	try {
 		if (typeof input === "string") {
-			out = rewrite_js(input, meta.base.href, url || "(unknown)", $scramjet);
+			out = rewrite_js(input, meta.base.href, source || "(unknown)", $scramjet);
 		} else {
 			out = rewrite_js_from_arraybuffer(
 				new Uint8Array(input),
 				meta.base.href,
-				url || "(unknown)",
+				source || "(unknown)",
 				$scramjet
 			);
 		}
 	} catch (err) {
-		let err1 = err as Error;
-		console.error("failed rewriting js for", url, err1, input);
-		err1.message = `failed rewriting js for "${url}": ${err1.message}`;
+		const err1 = err as Error;
+		console.error("failed rewriting js for", source, err1, input);
+		err1.message = `failed rewriting js for "${source}": ${err1.message}`;
 		throw err1;
 	}
 	const after = performance.now();
@@ -63,7 +63,7 @@ function rewriteJsWrapper(
 		}
 		const overhead = (after - before - Number(duration)).toFixed(2);
 		console.log(
-			`oxc rewrite for "${url || "(unknown)"}" was ${timespan} (${duration}ms; ${overhead}ms overhead)`
+			`oxc rewrite for "${source || "(unknown)"}" was ${timespan} (${duration}ms; ${overhead}ms overhead)`
 		);
 	}
 
@@ -78,14 +78,10 @@ export function rewriteJs(
 	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
 
-		console.log("naiive");
-
 		return rewriteJsNaiive(text);
 	}
 
-	js = rewriteJsWrapper(js, url, meta);
-
-	return js;
+	return rewriteJsWrapper(js, url, meta);
 }
 
 // 1. does not work with modules
