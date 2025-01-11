@@ -28,11 +28,18 @@ function rewriteJsWrapper(
 	const before = performance.now();
 	try {
 		if (typeof input === "string") {
-			out = rewrite_js(input, meta.base.href, source || "(unknown)", $scramjet);
+			out = rewrite_js(
+				input,
+				meta.base.href,
+				false,
+				source || "(unknown)",
+				$scramjet
+			);
 		} else {
 			out = rewrite_js_from_arraybuffer(
 				new Uint8Array(input),
 				meta.base.href,
+				false,
 				source || "(unknown)",
 				$scramjet
 			);

@@ -153,11 +153,12 @@ fn create_rewriter_output(
 pub fn rewrite_js(
 	js: String,
 	url: String,
+	module: bool,
 	script_url: String,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
 	let before = Instant::now();
-	let out = rewrite(&js, 1024, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, module, 1024, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)
@@ -167,6 +168,7 @@ pub fn rewrite_js(
 pub fn rewrite_js_from_arraybuffer(
 	js: Vec<u8>,
 	url: String,
+	module: bool,
 	script_url: String,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
@@ -174,7 +176,7 @@ pub fn rewrite_js_from_arraybuffer(
 	let js = unsafe { String::from_utf8_unchecked(js) };
 
 	let before = Instant::now();
-	let out = rewrite(&js, 1024, get_config(scramjet, url)?)?;
+	let out = rewrite(&js, module, 1024, get_config(scramjet, url)?)?;
 	let after = Instant::now();
 
 	create_rewriter_output(out, script_url, js, after - before)

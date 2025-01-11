@@ -10,6 +10,7 @@ fn dorewrite(data: &str) -> Result<RewriteResult> {
 	let url = Url::from_str("https://google.com/glorngle/si.js").context("failed to make url")?;
 	rewrite(
 		data,
+		true,
 		1024,
 		Config {
 			prefix: "/scrammedjet/".to_string(),
