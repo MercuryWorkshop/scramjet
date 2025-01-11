@@ -40,7 +40,6 @@ cd ../../
 wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm \
 	-p 'oxc_regular_expression::.*' \
 	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_non_array_type' \
-	'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::parse_declaration' \
 	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_ts_import_type' \
 	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_type_operator_or_higher' \
 	'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::parse_ts_interface_declaration' \
