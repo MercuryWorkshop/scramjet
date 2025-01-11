@@ -29,3 +29,6 @@ let window = (1, window);
 let x = new this.Abc();
 
 try{}catch(e){this.a.log()};
+
+await import("test")
+

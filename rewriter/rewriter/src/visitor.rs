@@ -190,7 +190,7 @@ where
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'a>) {
 		self.jschanges.add(Rewrite::ImportFn {
-			span: Span::new(it.span.start, it.span.start + 6),
+			span: Span::new(it.span.start, it.span.start + 7),
 		});
 		walk::walk_import_expression(self, it);
 	}
