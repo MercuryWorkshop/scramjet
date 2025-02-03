@@ -345,7 +345,7 @@ export class ScramjetClient {
 		if (handler.construct) {
 			h.construct = function (
 				constructor: any,
-				argArray: any[],
+				args: any[],
 				newTarget: AnyFunction
 			) {
 				let returnValue: any = undefined;
@@ -354,7 +354,7 @@ export class ScramjetClient {
 				const ctx: ProxyCtx = {
 					fn: constructor,
 					this: null,
-					args: argArray,
+					args,
 					newTarget: newTarget,
 					return: (r: any) => {
 						earlyreturn = true;
@@ -379,14 +379,14 @@ export class ScramjetClient {
 		}
 
 		if (handler.apply) {
-			h.apply = function (fn: any, thisArg: any, argArray: any[]) {
+			h.apply = function (fn: any, that: any, args: any[]) {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
 
 				const ctx: ProxyCtx = {
 					fn,
-					this: thisArg,
-					args: argArray,
+					this: that,
+					args,
 					newTarget: null,
 					return: (r: any) => {
 						earlyreturn = true;

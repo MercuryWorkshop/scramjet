@@ -22,12 +22,12 @@ export default function (client: ScramjetClient, _self: typeof window) {
 
 					if (prop in NamedNodeMap.prototype && typeof value === "function") {
 						return new Proxy(value, {
-							apply(target, thisArg, argArray) {
-								if (thisArg === proxy) {
-									return Reflect.apply(target, map, argArray);
+							apply(target, that, args) {
+								if (that === proxy) {
+									return Reflect.apply(target, map, args);
 								}
 
-								return Reflect.apply(target, thisArg, argArray);
+								return Reflect.apply(target, that, args);
 							},
 						});
 					}

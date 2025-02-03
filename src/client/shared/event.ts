@@ -48,8 +48,8 @@ export default function (client: ScramjetClient, self: Self) {
 
 	function wraplistener(listener: (...args: any) => any) {
 		return new Proxy(listener, {
-			apply(target, thisArg, argArray) {
-				const realEvent: Event = argArray[0];
+			apply(target, that, args) {
+				const realEvent: Event = args[0];
 
 				// we only need to handle events dispatched from the browser
 				if (realEvent.isTrusted) {
@@ -62,7 +62,7 @@ export default function (client: ScramjetClient, self: Self) {
 							if (handler._init.call(realEvent) === false) return;
 						}
 
-						argArray[0] = new Proxy(realEvent, {
+						args[0] = new Proxy(realEvent, {
 							get(_target, prop, reciever) {
 								if (prop in handler) {
 									return handler[prop].call(_target);
@@ -78,13 +78,13 @@ export default function (client: ScramjetClient, self: Self) {
 				if (!self.event) {
 					Object.defineProperty(self, "event", {
 						get() {
-							return argArray[0];
+							return args[0];
 						},
 						configurable: true,
 					});
 				}
 
-				const rv = Reflect.apply(target, thisArg, argArray);
+				const rv = Reflect.apply(target, that, args);
 
 				return rv;
 			},

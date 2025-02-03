@@ -9,9 +9,9 @@ export function rewriteWorkers(
 	meta: URLMeta
 ) {
 	let str = "";
-
+	const module = type === "module";
 	const script = (script) => {
-		if (type === "module") {
+		if (module) {
 			str += `import "${$scramjet.config.files[script]}"\n`;
 		} else {
 			str += `importScripts("${$scramjet.config.files[script]}");\n`;
@@ -23,14 +23,12 @@ export function rewriteWorkers(
 	str += `self.$scramjet.config = ${JSON.stringify($scramjet.config)};`;
 	script("client");
 
-	let rewritten = rewriteJs(js, url, meta);
+	let rewritten = rewriteJs(js, url, meta, module);
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
 	}
 
 	str += rewritten;
-
-	// dbg.log("Rewrite", type, str);
 
 	return str;
 }

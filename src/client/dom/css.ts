@@ -39,8 +39,8 @@ export default function (client: ScramjetClient) {
 
 					if (typeof v === "function") {
 						return new Proxy(v, {
-							apply(target, thisArg, argArray) {
-								return Reflect.apply(target, style, argArray);
+							apply(target, that, args) {
+								return Reflect.apply(target, style, args);
 							},
 						});
 					}

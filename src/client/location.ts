@@ -45,7 +45,7 @@ export function createLocationProxy(
 		}
 		if (native.set) {
 			desc.set = new Proxy(native.set, {
-				apply(target, thisArg, args) {
+				apply(target, that, args) {
 					if (prop === "href") {
 						// special case
 						client.url = args[0];
@@ -83,20 +83,20 @@ export function createLocationProxy(
 		});
 	if (self.location.assign)
 		fakeLocation.assign = new Proxy(self.location.assign, {
-			apply(target, thisArg, args) {
+			apply(target, that, args) {
 				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
 			},
 		});
 	if (self.location.reload)
 		fakeLocation.reload = new Proxy(self.location.reload, {
-			apply(target, thisArg, args) {
+			apply(target, that, args) {
 				Reflect.apply(target, self.location, args);
 			},
 		});
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
-			apply(target, thisArg, args) {
+			apply(target, that, args) {
 				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
 			},

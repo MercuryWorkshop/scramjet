@@ -242,6 +242,13 @@ function traverseParsedHtml(
 
 	if (
 		node.name === "script" &&
+		node.attribs.type === "module" &&
+		node.attribs.src
+	)
+		node.attribs.src = node.attribs.src + "?type=module";
+
+	if (
+		node.name === "script" &&
 		/(application|text)\/javascript|module|importmap|undefined/.test(
 			node.attribs.type
 		) &&

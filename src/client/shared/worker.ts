@@ -32,7 +32,7 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 	// sharedworkers can only be constructed from window
 	client.Proxy("SharedWorker", {
 		construct({ args, call }) {
-			args[0] = rewriteUrl(args[0], client.meta) + "?dest=worker";
+			args[0] = rewriteUrl(args[0], client.meta) + "?dest=sharedworker";
 
 			if (args[1] && typeof args[1] === "string")
 				args[1] = `${client.url.origin}@${args[1]}`;
@@ -67,7 +67,8 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 
 	client.Proxy("Worklet.prototype.addModule", {
 		apply(ctx) {
-			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (ctx.args[0])
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta) + "?dest=worklet";
 		},
 	});
 }
