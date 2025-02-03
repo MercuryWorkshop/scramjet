@@ -46,9 +46,9 @@ function rewriteJsWrapper(
 		}
 	} catch (err) {
 		const err1 = err as Error;
-		console.error("failed rewriting js for", source, err1, input);
+		console.warn("failed rewriting js for", source, err1, input);
 		err1.message = `failed rewriting js for "${source}": ${err1.message}`;
-		throw err1;
+		return input;
 	}
 	const after = performance.now();
 	const { js, errors, duration } = out;
