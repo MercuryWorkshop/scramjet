@@ -248,13 +248,18 @@ function traverseParsedHtml(
 		node.children[0] !== undefined
 	) {
 		let js = node.children[0].data;
-		// node.attribs[`scramjet-attr-script-source-src`] = btoa(js);
+		const module = node.attribs.type === "module" ? true : false;
 		node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
 			encoder.encode(js)
 		);
 		const htmlcomment = /<!--[\s\S]*?-->/g;
 		js = js.replace(htmlcomment, "");
-		node.children[0].data = rewriteJs(js, "(inline script element)", meta);
+		node.children[0].data = rewriteJs(
+			js,
+			"(inline script element)",
+			meta,
+			module
+		);
 	}
 
 	if (node.name === "meta" && node.attribs["http-equiv"] !== undefined) {

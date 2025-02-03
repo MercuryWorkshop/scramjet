@@ -22,7 +22,8 @@ const decoder = new TextDecoder();
 function rewriteJsWrapper(
 	input: string | ArrayBuffer,
 	source: string | null,
-	meta: URLMeta
+	meta: URLMeta,
+	module: boolean
 ): string | ArrayBuffer {
 	let out: RewriterOutput;
 	const before = performance.now();
@@ -31,7 +32,7 @@ function rewriteJsWrapper(
 			out = rewrite_js(
 				input,
 				meta.base.href,
-				false,
+				module,
 				source || "(unknown)",
 				$scramjet
 			);
@@ -39,7 +40,7 @@ function rewriteJsWrapper(
 			out = rewrite_js_from_arraybuffer(
 				new Uint8Array(input),
 				meta.base.href,
-				false,
+				module,
 				source || "(unknown)",
 				$scramjet
 			);
@@ -80,7 +81,8 @@ function rewriteJsWrapper(
 export function rewriteJs(
 	js: string | ArrayBuffer,
 	url: string | null,
-	meta: URLMeta
+	meta: URLMeta,
+	module = false
 ) {
 	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
@@ -88,7 +90,7 @@ export function rewriteJs(
 		return rewriteJsNaiive(text);
 	}
 
-	return rewriteJsWrapper(js, url, meta);
+	return rewriteJsWrapper(js, url, meta, module);
 }
 
 // 1. does not work with modules
