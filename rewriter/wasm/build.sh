@@ -71,6 +71,7 @@ wasm-snip rewriter/wasm/out/wasm_bg.wasm -o rewriter/wasm/out/wasm_snipped.wasm 
 	'oxc_parser::jsx::<impl oxc_parser::ParserImpl>::parse_jsx_expression'
 #
 #	these are confirmed to break oxc
+#   'oxc_parser::ts::statement::<impl oxc_parser::ParserImpl>::parse_declaration' \
 #	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_ts_type' \
 #	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_type_arguments_in_expression' \
 #	'oxc_parser::ts::types::<impl oxc_parser::ParserImpl>::parse_ts_type_parameters' \
