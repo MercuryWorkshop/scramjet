@@ -30,7 +30,6 @@ export class ScramjetServiceWorker extends EventTarget {
 			cookies.onsuccess = () => {
 				if (cookies.result) {
 					this.cookieStore.load(cookies.result);
-					dbg.log("Loaded cookies from IDB!");
 				}
 			};
 		};
@@ -50,6 +49,10 @@ export class ScramjetServiceWorker extends EventTarget {
 				const tx = res.transaction("cookies", "readwrite");
 				const store = tx.objectStore("cookies");
 				store.put(JSON.parse(this.cookieStore.dump()), "cookies");
+			}
+
+			if (data.scramjet$type === "loadConfig") {
+				this.config = data.config;
 			}
 		});
 	}
@@ -109,12 +112,20 @@ type CookieMessage = {
 	url: string;
 };
 
+type ConfigMessage = {
+	scramjet$type: "loadConfig";
+	config: ScramjetConfig;
+};
+
 type MessageCommon = {
 	scramjet$type: string;
 	scramjet$token: number;
 };
 
-type MessageTypeC2W = RegisterServiceWorkerMessage | CookieMessage;
+type MessageTypeC2W =
+	| RegisterServiceWorkerMessage
+	| CookieMessage
+	| ConfigMessage;
 type MessageTypeW2C = CookieMessage;
 
 // c2w: client to (service) worker
