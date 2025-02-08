@@ -63,7 +63,7 @@ export class ScramjetController {
 		loadCodecs();
 
 		await this.openIDB();
-		navigator.serviceWorker?.controller.postMessage({
+		navigator.serviceWorker.controller?.postMessage({
 			scramjet$type: "loadConfig",
 			config: $scramjet.config,
 		});
