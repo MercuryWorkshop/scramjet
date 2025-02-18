@@ -222,7 +222,7 @@ where
 		if self.config.capture_errors {
 			if let Some(h) = &it.handler {
 				if let Some(name) = &h.param {
-					if let Some(ident) = name.pattern.get_identifier() {
+					if let Some(ident) = name.pattern.get_identifier_name() {
 						self.jschanges.add(Rewrite::ScramErr {
 							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
 							ident: ident.to_compact_str(),
