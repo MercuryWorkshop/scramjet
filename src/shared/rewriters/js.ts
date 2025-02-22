@@ -9,11 +9,16 @@ import {
 } from "../../../rewriter/wasm/out/wasm.js";
 import { $scramjet, flagEnabled } from "../../scramjet";
 
-initSync({
-	module: new WebAssembly.Module(
-		Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0))
-	),
-});
+if (self.WASM)
+	self.REAL_WASM = Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0));
+
+// only use in sw
+export async function asyncInitRewriter() {
+	const buf = await fetch($scramjet.config.files.wasm).then((r) =>
+		r.arrayBuffer()
+	);
+	self.REAL_WASM = new Uint8Array(buf);
+}
 
 Error.stackTraceLimit = 50;
 
@@ -25,6 +30,10 @@ function rewriteJsWrapper(
 	meta: URLMeta,
 	module: boolean
 ): string | ArrayBuffer {
+	initSync({
+		module: new WebAssembly.Module(self.REAL_WASM),
+	});
+
 	let out: RewriterOutput;
 	const before = performance.now();
 	try {

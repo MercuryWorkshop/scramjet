@@ -49,6 +49,28 @@ export async function handleFetch(
 			requesturl.searchParams.delete("dest");
 		}
 
+		if (requesturl.pathname == this.config.files.wasm) {
+			return fetch(this.config.files.wasm).then(async (x) => {
+				const buf = await x.arrayBuffer();
+				const b64 = btoa(
+					new Uint8Array(buf)
+						.reduce(
+							(data, byte) => (data.push(String.fromCharCode(byte)), data),
+							[]
+						)
+						.join("")
+				);
+
+				let payload = "";
+				payload += `if ("document" in self && document.currentScript) { document.currentScript.remove(); }\n`;
+				payload += `self.WASM = '${b64}';`;
+
+				return new Response(payload, {
+					headers: { "content-type": "text/javascript" },
+				});
+			});
+		}
+
 		if (
 			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
 			requesturl.pathname.startsWith(this.config.prefix + "data:")

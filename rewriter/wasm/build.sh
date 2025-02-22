@@ -104,16 +104,4 @@ fi
 mkdir -p dist/
 
 cp rewriter/wasm/out/optimized.wasm dist/scramjet.wasm.wasm
-{
-
-cat <<EOF
-if ("document" in self && document?.currentScript) {
-	document.currentScript.remove();
-}
-EOF
-echo -n "self.WASM = '"
-base64 -w0 < "rewriter/wasm/out/optimized.wasm"
-echo -n "';"
-
-} > dist/scramjet.wasm.js
 echo "Rewriter Build Complete!"

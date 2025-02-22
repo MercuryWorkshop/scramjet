@@ -3,6 +3,7 @@ import { handleFetch } from "./fetch";
 import type BareClient from "@mercuryworkshop/bare-mux";
 import { ScramjetConfig } from "../types";
 import { $scramjet, loadCodecs } from "../scramjet";
+import { asyncInitRewriter } from "../shared/rewriters/js";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
@@ -69,11 +70,13 @@ export class ScramjetServiceWorker extends EventTarget {
 				const store = tx.objectStore("config");
 				const config = store.get("config");
 
-				config.onsuccess = () => {
+				config.onsuccess = async () => {
 					this.config = config.result;
 					$scramjet.config = config.result;
 
 					loadCodecs();
+
+					await asyncInitRewriter();
 
 					resolve();
 				};
@@ -86,6 +89,8 @@ export class ScramjetServiceWorker extends EventTarget {
 
 	route({ request }: FetchEvent) {
 		if (request.url.startsWith(location.origin + this.config.prefix))
+			return true;
+		else if (request.url.startsWith(location.origin + this.config.files.wasm))
 			return true;
 		else return false;
 	}
