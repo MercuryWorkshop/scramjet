@@ -27,12 +27,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			self.HTMLScriptElement,
 			self.HTMLSourceElement,
 		],
-		href: [
-			self.HTMLAnchorElement,
-			self.HTMLLinkElement,
-			self.SVGUseElement,
-			self.SVGImageElement,
-		],
+		href: [self.HTMLAnchorElement, self.HTMLLinkElement, self.SVGImageElement],
 		data: [self.HTMLObjectElement],
 		action: [self.HTMLFormElement],
 		formaction: [self.HTMLButtonElement, self.HTMLInputElement],
