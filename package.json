@@ -24,6 +24,7 @@
 	"files": [
 		"dist/*.js",
 		"dist/*.js.map",
+		"dist/*.wasm",
 		"lib"
 	],
 	"keywords": [],

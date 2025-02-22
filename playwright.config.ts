@@ -13,11 +13,11 @@ export default defineConfig({
 		? [
 				[
 					"@estruyf/github-actions-reporter",
-					<GitHubActionOptions>{
+					{
 						title: "Test summary",
 						useDetails: true,
 						showError: true,
-					},
+					} as GitHubActionOptions,
 				],
 				["github"],
 			]

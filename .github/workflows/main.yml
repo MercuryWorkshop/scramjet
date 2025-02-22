@@ -58,6 +58,7 @@ jobs:
           path: |
             dist/*.js
             dist/*.js.map
+            dist/*.wasm
   tests:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
@@ -122,6 +123,52 @@ jobs:
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
           artifacts: "mercuryworkshop-scramjet-*.tgz"
           prerelease: true
+
+  publish:
+    name: Publish Scramjet to NPM
+    runs-on: ubuntu-latest
+    needs: [build, tests]
+    if: false
+    permissions: write-all
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: .
+
+      - name: Extract package
+        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+
+      - name: Check the version
+        id: check
+        run: |
+          CURRENT_VERSION=$(jq -r .version package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet version || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; 
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.version_changed == 'true'
+        run: npm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   pages:
     name: Upload to Github Pages
