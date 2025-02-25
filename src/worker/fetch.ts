@@ -30,14 +30,6 @@ export async function handleFetch(
 	request: Request,
 	client: Client | null
 ) {
-	const urlParam = new URLSearchParams(new URL(request.url).search);
-
-	if (urlParam.has("url")) {
-		return Response.redirect(
-			rewriteUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
-		);
-	}
-
 	try {
 		const requesturl = new URL(request.url);
 		let workertype = "";
@@ -122,7 +114,7 @@ export async function handleFetch(
 		if (
 			activeWorker &&
 			activeWorker.connected &&
-			urlParam.get("from") !== "swruntime"
+			requesturl.searchParams.get("from") !== "swruntime"
 		) {
 			// TODO: check scope
 			const r = await activeWorker.fetch(request);
