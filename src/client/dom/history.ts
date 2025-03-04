@@ -10,7 +10,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			ctx.call();
 
 			const ev = new UrlChangeEvent(client.url.href);
-			if (client.frame) client.frame.dispatchEvent(ev);
+			if (!client.isSubframe) client.frame?.dispatchEvent(ev);
 		},
 	});
 
@@ -21,7 +21,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			ctx.call();
 
 			const ev = new UrlChangeEvent(client.url.href);
-			if (client.frame) client.frame.dispatchEvent(ev);
+			if (!client.isSubframe) client.frame?.dispatchEvent(ev);
 		},
 	});
 }

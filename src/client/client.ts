@@ -254,7 +254,16 @@ export class ScramjetClient {
 
 		return sframe;
 	}
+	get isSubframe(): boolean {
+		if (!iswindow) return false;
+		const frame = this.descriptors.get("window.frameElement", this.global);
 
+		if (!frame) return false; // we're top level
+		const sframe = frame[SCRAMJETFRAME];
+		if (!sframe) return true;
+
+		return false;
+	}
 	loadcookies(cookiestr: string) {
 		this.cookieStore.load(cookiestr);
 	}

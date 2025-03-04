@@ -41,7 +41,7 @@ export async function handleFetch(
 			requesturl.searchParams.delete("dest");
 		}
 
-		if (requesturl.pathname == this.config.files.wasm) {
+		if (requesturl.pathname === this.config.files.wasm) {
 			return fetch(this.config.files.wasm).then(async (x) => {
 				const buf = await x.arrayBuffer();
 				const b64 = btoa(
@@ -54,7 +54,8 @@ export async function handleFetch(
 				);
 
 				let payload = "";
-				payload += `if ("document" in self && document.currentScript) { document.currentScript.remove(); }\n`;
+				payload +=
+					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
 				payload += `self.WASM = '${b64}';`;
 
 				return new Response(payload, {
@@ -164,11 +165,11 @@ export async function handleFetch(
 
 		const ev = new ScramjetRequestEvent(
 			url,
+			headers.headers,
 			request.body,
 			request.method,
 			request.destination,
-			client,
-			headers.headers
+			client
 		);
 		this.dispatchEvent(ev);
 
@@ -396,11 +397,11 @@ export class ScramjetHandleResponseEvent extends Event {
 export class ScramjetRequestEvent extends Event {
 	constructor(
 		public url: URL,
+		public requestHeaders: Record<string, string>,
 		public body: BodyType,
 		public method: string,
 		public destination: string,
-		public client: Client,
-		public requestHeaders: Record<string, string>
+		public client: Client
 	) {
 		super("request");
 	}

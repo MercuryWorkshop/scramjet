@@ -207,15 +207,6 @@ function BrowserApp() {
 		if (!e.url) return;
 		this.url = e.url;
 	});
-	frame.frame.addEventListener("load", () => {
-		let url = frame.frame.contentWindow.location.href;
-		if (!url) return;
-		if (url === "about:blank") return;
-
-		this.url = $scramjet.codec.decode(
-			url.substring((location.href + "/scramjet").length)
-		);
-	});
 
 	const handleSubmit = () => {
 		this.url = this.url.trim();

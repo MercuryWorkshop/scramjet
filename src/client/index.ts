@@ -3,7 +3,7 @@
 import { loadCodecs } from "../scramjet";
 import { SCRAMJETCLIENT } from "../symbols";
 import { ScramjetClient } from "./client";
-import { ScramjetContextInit } from "./events";
+import { ScramjetContextEvent, UrlChangeEvent } from "./events";
 import { ScramjetServiceWorkerRuntime } from "./swruntime";
 
 export const iswindow = "window" in self && window instanceof Window;
@@ -30,8 +30,10 @@ if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 		runtime.hook();
 	}
 
-	const ev = new ScramjetContextInit(client.global.window);
-	client.frame?.dispatchEvent(ev);
+	const contextev = new ScramjetContextEvent(client.global.window);
+	client.frame?.dispatchEvent(contextev);
+	const urlchangeev = new UrlChangeEvent(client.url.href);
+	if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 }
 
 Reflect.deleteProperty(self, "WASM");
