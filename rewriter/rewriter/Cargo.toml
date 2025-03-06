@@ -8,8 +8,8 @@ workspace = true
 
 [dependencies]
 oxc = { workspace = true }
-smallvec = "1.13.2"
-thiserror = "2.0.6"
+smallvec = "1.14.0"
+thiserror = "2.0.12"
 
 [features]
 default = ["debug"]

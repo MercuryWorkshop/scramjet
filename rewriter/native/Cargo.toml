@@ -7,7 +7,7 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.97"
 oxc = { workspace = true }
 rewriter = { version = "0.1.0", path = "../rewriter" }
 url = "2.5.4"

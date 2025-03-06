@@ -38,7 +38,9 @@ export class ScramjetServiceWorkerRuntime {
 				postMessage: () => {},
 				addEventListener: () => {},
 				removeEventListener: () => {},
-				dispatchEvent: (_e: Event) => {},
+				dispatchEvent: (_e: Event): boolean => {
+					return false;
+				},
 			},
 			showNotification: async () => {},
 			unregister: async () => true,
