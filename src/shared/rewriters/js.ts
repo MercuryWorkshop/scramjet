@@ -29,7 +29,7 @@ function rewriteJsWasm(
 	source: string | null,
 	meta: URLMeta,
 	module: boolean
-): { js: string | ArrayBuffer; map: Uint8Array | null; tag: string } {
+): { js: string | Uint8Array; map: Uint8Array | null; tag: string } {
 	initSync({
 		module: new WebAssembly.Module(self.REAL_WASM),
 	});

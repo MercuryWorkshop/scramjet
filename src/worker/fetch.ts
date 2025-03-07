@@ -1,16 +1,14 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import { MessageW2C, ScramjetServiceWorker } from ".";
+import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
 import { CookieStore } from "../shared/cookie";
 import {
 	ScramjetHeaders,
 	unrewriteUrl,
-	rewriteUrl,
 	rewriteCss,
 	rewriteHeaders,
 	rewriteHtml,
-	rewriteJs,
 	rewriteWorkers,
 	unrewriteBlob,
 } from "../shared";
@@ -368,9 +366,10 @@ async function rewriteBody(
 				workertype === "module"
 			);
 			if (flagEnabled("sourcemaps", meta.base) && map) {
+				console.log(js);
 				js =
 					`${globalThis.$scramjet.config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");` +
-					js;
+					(js instanceof Uint8Array ? new TextDecoder().decode(js) : js);
 			}
 			return js;
 		case "style":
