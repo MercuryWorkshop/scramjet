@@ -38,6 +38,14 @@ export class ScramjetServiceWorker extends EventTarget {
 		addEventListener("message", async ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
 
+			if ("scramjet$token" in data) {
+				// (ack message)
+				const cb = this.syncPool[data.scramjet$token];
+				delete this.syncPool[data.scramjet$token];
+				cb(data);
+				return;
+			}
+
 			if (data.scramjet$type === "registerServiceWorker") {
 				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
 
@@ -56,6 +64,17 @@ export class ScramjetServiceWorker extends EventTarget {
 				this.config = data.config;
 			}
 		});
+	}
+
+	async dispatch(client: Client, data: MessageW2C): Promise<MessageC2W> {
+		let token = this.synctoken++;
+		let cb: (val: MessageC2W) => void;
+		let promise: Promise<MessageC2W> = new Promise((r) => (cb = r));
+		this.syncPool[token] = cb;
+		data.scramjet$token = token;
+
+		client.postMessage(data);
+		return await promise;
 	}
 
 	async loadConfig() {
@@ -124,7 +143,7 @@ type ConfigMessage = {
 
 type MessageCommon = {
 	scramjet$type: string;
-	scramjet$token: number;
+	scramjet$token?: number;
 };
 
 type MessageTypeC2W =

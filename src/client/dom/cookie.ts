@@ -1,13 +1,22 @@
+import type { MessageC2W, MessageW2C } from "../../worker";
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: typeof window) {
-	client.serviceWorker.addEventListener("message", ({ data }) => {
-		if (!("scramjet$type" in data)) return;
+	client.serviceWorker.addEventListener(
+		"message",
+		({ data }: { data: MessageW2C }) => {
+			if (!("scramjet$type" in data)) return;
 
-		if (data.scramjet$type === "cookie") {
-			client.cookieStore.setCookies([data.cookie], new URL(data.url));
+			if (data.scramjet$type === "cookie") {
+				client.cookieStore.setCookies([data.cookie], new URL(data.url));
+				let msg = {
+					scramjet$token: data.scramjet$token,
+					scramjet$type: "cookie",
+				};
+				client.serviceWorker.controller.postMessage(msg);
+			}
 		}
-	});
+	);
 
 	client.Trap("Document.prototype.cookie", {
 		get() {

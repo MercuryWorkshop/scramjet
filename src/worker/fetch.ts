@@ -237,12 +237,16 @@ async function handleResponse(
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
-		if (client)
-			client.postMessage({
+		if (client) {
+			let promise = swtarget.dispatch(client, {
 				scramjet$type: "cookie",
 				cookie,
 				url: url.href,
-			} as MessageW2C);
+			});
+			if (destination != "document" && destination != "iframe") {
+				await promise;
+			}
+		}
 	}
 
 	await cookieStore.setCookies(
