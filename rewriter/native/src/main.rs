@@ -19,7 +19,7 @@ fn dorewrite<'alloc>(alloc: &'alloc Allocator, data: &str) -> Result<RewriteResu
 			prefix: "/scrammedjet/",
 			base: "https://google.com/glorngle/si.js",
 			urlrewriter: Box::new(move |x: &str, alloc: &'alloc Allocator| {
-				String::from_str_in(encode(url.join(&x).unwrap().as_str()).as_ref(), alloc)
+				String::from_str_in(encode(url.join(x).unwrap().as_str()).as_ref(), alloc)
 			}),
 
 			sourcetag: "glongle1",
@@ -106,12 +106,13 @@ fn main() -> Result<()> {
 	let data = fs::read_to_string(file).context("failed to read file")?;
 	let bench = env::args().nth(2).is_some();
 
-	let alloc = Allocator::default();
+	let mut alloc = Allocator::default();
 
 	if bench {
 		let mut i = 0;
 		loop {
 			let _ = dorewrite(&alloc, &data);
+			alloc.reset();
 			i += 1;
 			if i % 100 == 0 {
 				println!("{i}...");
