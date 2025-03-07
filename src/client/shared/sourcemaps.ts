@@ -1,5 +1,5 @@
-import { $scramjet, flagEnabled } from "../../scramjet";
-import { ScramjetClient } from "../client";
+import { flagEnabled } from "../../scramjet";
+import { ProxyCtx, ScramjetClient } from "../client";
 
 enum RewriteType {
 	Insert = 0,
@@ -27,6 +27,77 @@ function getEnd(rewrite: Rewrite): number {
 		return rewrite.end;
 	}
 	throw "unreachable";
+}
+
+const scramtag_ident = "/*scramtag ";
+
+function doUnrewrite(ctx: ProxyCtx) {
+	let stringified: string = ctx.fn.call(ctx.this);
+
+	// every function rewritten will have a scramtag comment
+	// it will look like this:
+	// function name() /*scramtag [index] [tag] */ { ... }
+	const scramtagstart = stringified.indexOf("/*s");
+
+	if (scramtagstart === -1) return ctx.return(stringified); // it's either a native function or something stolen from scramjet itself
+
+	const firstspace = stringified.indexOf(
+		" ",
+		scramtagstart + scramtag_ident.length
+	);
+	// [index] holds the index of the first character in the scramtag (/)
+	const abstagindex = parseInt(
+		stringified.substring(scramtagstart + scramtag_ident.length, firstspace)
+	);
+
+	// subtracting that from the index of the scramtag gives us the starting index of the function relative to the entire file
+	const absindex = abstagindex - scramtagstart;
+	const endindex = absindex + stringified.length;
+
+	const scramtagend = stringified.indexOf("*/", scramtagstart);
+	const tag = stringified.substring(firstspace + 1, scramtagend);
+
+	const rewrites = sourcemaps[tag];
+
+	if (!rewrites) {
+		console.warn("failed to get rewrites for tag", tag);
+		return ctx.return(stringified);
+	}
+
+	let i = 0;
+	// skip all rewrites in the file before the fn
+	while (i < rewrites.length) {
+		if (rewrites[i].start < absindex) i++;
+		else break;
+	}
+
+	let end = i;
+	while (end < rewrites.length) {
+		if (getEnd(rewrites[end]) < endindex) end++;
+		else break;
+	}
+
+	const fnrewrites = rewrites.slice(i, end);
+
+	let newString = "";
+	let lastpos = absindex;
+
+	for (const rewrite of fnrewrites) {
+		newString += stringified.slice(lastpos, rewrite.start);
+
+		if (rewrite.type === RewriteType.Insert) {
+			lastpos = rewrite.start + rewrite.size;
+		} else if (rewrite.type === RewriteType.Replace) {
+			newString += rewrite.str;
+			lastpos = rewrite.end;
+		} else {
+			throw "unreachable";
+		}
+	}
+
+	newString += stringified.slice(lastpos);
+
+	return ctx.return(newString);
 }
 
 const sourcemaps: Record<string, Rewrite[]> = {};
@@ -84,78 +155,29 @@ export default function (client: ScramjetClient, self: Self) {
 		}
 	);
 
-	const scramtag_ident = "/*scramtag ";
-
 	// when we rewrite javascript it will make function.toString leak internals
 	// this can lead to double rewrites which is bad
 	client.Proxy("Function.prototype.toString", {
 		apply(ctx) {
-			let stringified: string = ctx.fn.call(ctx.this);
+			const before = performance.now();
+			doUnrewrite(ctx);
+			const after = performance.now();
 
-			// every function rewritten will have a scramtag comment
-			// it will look like this:
-			// function name() /*scramtag [index] [tag] */ { ... }
-			const scramtagstart = stringified.indexOf("/*s");
+			const duration = after - before;
 
-			if (scramtagstart === -1) return ctx.return(stringified); // it's either a native function or something stolen from scramjet itself
-
-			const firstspace = stringified.indexOf(
-				" ",
-				scramtagstart + scramtag_ident.length
-			);
-			// [index] holds the index of the first character in the scramtag (/)
-			const abstagindex = parseInt(
-				stringified.substring(scramtagstart + scramtag_ident.length, firstspace)
-			);
-
-			// subtracting that from the index of the scramtag gives us the starting index of the function relative to the entire file
-			const absindex = abstagindex - scramtagstart;
-			const endindex = absindex + stringified.length;
-
-			const scramtagend = stringified.indexOf("*/", scramtagstart);
-			const tag = stringified.substring(firstspace + 1, scramtagend);
-
-			const rewrites = sourcemaps[tag];
-
-			if (!rewrites) {
-				console.warn("failed to get rewrites for tag", tag);
-				return ctx.return(stringified);
-			}
-
-			let i = 0;
-			// skip all rewrites in the file before the fn
-			while (i < rewrites.length) {
-				if (rewrites[i].start < absindex) i++;
-				else break;
-			}
-
-			let end = i;
-			while (end < rewrites.length) {
-				if (getEnd(rewrites[end]) < endindex) end++;
-				else break;
-			}
-
-			const fnrewrites = rewrites.slice(i, end);
-
-			let newString = "";
-			let lastpos = absindex;
-
-			for (const rewrite of fnrewrites) {
-				newString += stringified.slice(lastpos, rewrite.start);
-
-				if (rewrite.type === RewriteType.Insert) {
-					lastpos = rewrite.start + rewrite.size;
-				} else if (rewrite.type === RewriteType.Replace) {
-					newString += rewrite.str;
-					lastpos = rewrite.end;
+			if (flagEnabled("rewriterLogs", new URL(location.href))) {
+				let timespan: string;
+				if (duration < 1) {
+					timespan = "BLAZINGLY FAST";
+				} else if (duration < 500) {
+					timespan = "decent speed";
 				} else {
-					throw "unreachable";
+					timespan = "really slow";
 				}
+				console.log(
+					`js unrewrite for function was ${timespan} (${duration.toFixed(2)}ms)`
+				);
 			}
-
-			newString += stringified.slice(lastpos);
-
-			return ctx.return(newString);
 		},
 	});
 }
