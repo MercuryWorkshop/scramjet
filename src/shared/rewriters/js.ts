@@ -24,12 +24,12 @@ Error.stackTraceLimit = 50;
 
 const decoder = new TextDecoder();
 
-function rewriteJsWrapper(
+function rewriteJsWasm(
 	input: string | ArrayBuffer,
 	source: string | null,
 	meta: URLMeta,
 	module: boolean
-): string | ArrayBuffer {
+): { js: string | ArrayBuffer; map: Uint8Array | null; tag: string } {
 	initSync({
 		module: new WebAssembly.Module(self.REAL_WASM),
 	});
@@ -59,16 +59,18 @@ function rewriteJsWrapper(
 		console.warn("failed rewriting js for", source, err1, input);
 		err1.message = `failed rewriting js for "${source}": ${err1.message}`;
 
-		return input;
+		return { js: input, tag: "", map: null };
 	}
 	const after = performance.now();
-	const { js, map, scramtag, errors, duration } = out;
+	let { js, map, scramtag, errors, duration } = out;
 
 	if ((flagEnabled("sourcemaps", meta.base), !globalThis.clients)) {
 		globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
 			Array.from(map),
 			scramtag
 		);
+
+		map = null;
 	}
 
 	if (flagEnabled("rewriterLogs", meta.base)) {
@@ -92,10 +94,14 @@ function rewriteJsWrapper(
 		);
 	}
 
-	return typeof input === "string" ? decoder.decode(js) : js;
+	return {
+		js: typeof input === "string" ? decoder.decode(js) : js,
+		tag: scramtag,
+		map,
+	};
 }
 
-export function rewriteJs(
+function rewriteJsInner(
 	js: string | ArrayBuffer,
 	url: string | null,
 	meta: URLMeta,
@@ -104,10 +110,28 @@ export function rewriteJs(
 	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
 
-		return rewriteJsNaiive(text);
+		return { js: rewriteJsNaiive(text), tag: "", map: null };
 	}
 
-	return rewriteJsWrapper(js, url, meta, module);
+	return rewriteJsWasm(js, url, meta, module);
+}
+
+export function rewriteJs(
+	js: string | ArrayBuffer,
+	url: string | null,
+	meta: URLMeta,
+	module = false
+) {
+	return rewriteJsInner(js, url, meta, module).js;
+}
+
+export function rewriteJsWithMap(
+	js: string | ArrayBuffer,
+	url: string | null,
+	meta: URLMeta,
+	module = false
+) {
+	return rewriteJsInner(js, url, meta, module);
 }
 
 // 1. does not work with modules

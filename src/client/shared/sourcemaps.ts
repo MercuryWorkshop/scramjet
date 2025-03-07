@@ -31,6 +31,43 @@ function getEnd(rewrite: Rewrite): number {
 
 const scramtag_ident = "/*scramtag ";
 
+function registerRewrites(buf: Array<number>, tag: string) {
+	const sourcemap = Uint8Array.from(buf);
+	const view = new DataView(sourcemap.buffer);
+	const decoder = new TextDecoder("utf-8");
+
+	const rewrites: Rewrite[] = [];
+
+	const rewritelen = view.getUint32(0, true);
+	let cursor = 4;
+	for (let i = 0; i < rewritelen; i++) {
+		const type = view.getUint8(cursor) as RewriteType;
+		cursor += 1;
+
+		if (type == RewriteType.Insert) {
+			const start = view.getUint32(cursor, true);
+			cursor += 4;
+			const size = view.getUint32(cursor, true);
+			cursor += 4;
+
+			rewrites.push({ type, start, size });
+		} else if (type == RewriteType.Replace) {
+			const start = view.getUint32(cursor, true);
+			cursor += 4;
+			const end = view.getUint32(cursor, true);
+			cursor += 4;
+			const len = view.getUint32(cursor, true);
+			cursor += 4;
+
+			const str = decoder.decode(sourcemap.subarray(cursor, cursor + len));
+
+			rewrites.push({ type, start, end, str });
+		}
+	}
+
+	sourcemaps[tag] = rewrites;
+}
+
 function doUnrewrite(ctx: ProxyCtx) {
 	let stringified: string = ctx.fn.call(ctx.this);
 
@@ -112,42 +149,25 @@ export default function (client: ScramjetClient, self: Self) {
 		globalThis.$scramjet.config.globals.pushsourcemapfn,
 		{
 			value: (buf: Array<number>, tag: string) => {
-				const sourcemap = Uint8Array.from(buf);
-				const view = new DataView(sourcemap.buffer);
-				const decoder = new TextDecoder("utf-8");
+				const before = performance.now();
+				registerRewrites(buf, tag);
+				const after = performance.now();
 
-				const rewrites: Rewrite[] = [];
+				const duration = after - before;
 
-				const rewritelen = view.getUint32(0, true);
-				let cursor = 4;
-				for (let i = 0; i < rewritelen; i++) {
-					const type = view.getUint8(cursor) as RewriteType;
-					cursor += 1;
-
-					if (type == RewriteType.Insert) {
-						const start = view.getUint32(cursor, true);
-						cursor += 4;
-						const size = view.getUint32(cursor, true);
-						cursor += 4;
-
-						rewrites.push({ type, start, size });
-					} else if (type == RewriteType.Replace) {
-						const start = view.getUint32(cursor, true);
-						cursor += 4;
-						const end = view.getUint32(cursor, true);
-						cursor += 4;
-						const len = view.getUint32(cursor, true);
-						cursor += 4;
-
-						const str = decoder.decode(
-							sourcemap.subarray(cursor, cursor + len)
-						);
-
-						rewrites.push({ type, start, end, str });
+				if (flagEnabled("rewriterLogs", new URL(location.href))) {
+					let timespan: string;
+					if (duration < 1) {
+						timespan = "BLAZINGLY FAST";
+					} else if (duration < 500) {
+						timespan = "decent speed";
+					} else {
+						timespan = "really slow";
 					}
+					console.log(
+						`js rewrite parsing for scramtag ${tag} was ${timespan} (${duration.toFixed(2)}ms)`
+					);
 				}
-
-				sourcemaps[tag] = rewrites;
 			},
 			enumerable: false,
 			writable: false,

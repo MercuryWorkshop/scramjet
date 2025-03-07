@@ -16,7 +16,8 @@ import {
 } from "../shared";
 
 import type { URLMeta } from "../shared/rewriters/url";
-import { $scramjet } from "../scramjet";
+import { $scramjet, flagEnabled } from "../scramjet";
+import { rewriteJsWithMap } from "../shared/rewriters/js";
 
 function newmeta(url: URL): URLMeta {
 	return {
@@ -360,12 +361,18 @@ async function rewriteBody(
 				return response.body;
 			}
 		case "script":
-			return rewriteJs(
+			let { js, tag, map } = rewriteJsWithMap(
 				await response.arrayBuffer(),
 				response.finalURL,
 				meta,
 				workertype === "module"
 			);
+			if (flagEnabled("sourcemaps", meta.base) && map) {
+				js =
+					`${globalThis.$scramjet.config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");` +
+					js;
+			}
+			return js;
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
