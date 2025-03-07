@@ -1,5 +1,3 @@
-use cfg::Config;
-use changes::{JsChangeResult, JsChanges};
 use oxc::{
 	allocator::Allocator,
 	ast_visit::Visit,
@@ -8,11 +6,14 @@ use oxc::{
 	span::SourceType,
 };
 use thiserror::Error;
-use visitor::Visitor;
 
 pub mod cfg;
 pub mod changes;
 mod visitor;
+
+use cfg::Config;
+use changes::{JsChangeResult, JsChanges};
+use visitor::Visitor;
 
 #[derive(Error, Debug)]
 pub enum RewriterError {
@@ -20,6 +21,8 @@ pub enum RewriterError {
 	OxcPanicked(String),
 	#[error("out of bounds while applying range: {0}..{1})")]
 	Oob(usize, usize),
+	#[error("formatting error: {0}")]
+	Formatting(#[from] std::fmt::Error),
 }
 
 #[derive(Debug)]
@@ -55,10 +58,11 @@ where
 		.parse();
 
 	if ret.panicked {
+		use std::fmt::Write;
+
 		let mut errors = String::new();
 		for error in ret.errors {
-			errors.push_str(&format!("{error}"));
-			errors.push('\n');
+			writeln!(errors, "{error}")?;
 		}
 		return Err(RewriterError::OxcPanicked(errors));
 	}
