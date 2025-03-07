@@ -6,27 +6,28 @@ enum RewriteType {
 	Replace = 1,
 }
 
-type Rewrite =
+type Rewrite = {
+	start: number;
+} & (
 	| {
 			type: RewriteType.Insert;
-			// offset before this rewrite
-			offset: number;
-			// start of insertion
-			start: number;
-			// size of insertion
 			size: number;
 	  }
 	| {
 			type: RewriteType.Replace;
-			// offset before this rewrite
-			offset: number;
-			// start of replacement
-			start: number;
-			// end of replacement
 			end: number;
-			// old string
 			str: string;
-	  };
+	  }
+);
+
+function getEnd(rewrite: Rewrite): number {
+	if (rewrite.type === RewriteType.Insert) {
+		return rewrite.start + rewrite.size;
+	} else if (rewrite.type === RewriteType.Replace) {
+		return rewrite.end;
+	}
+	throw "unreachable";
+}
 
 const sourcemaps: Record<string, Rewrite[]> = {};
 
@@ -35,49 +36,53 @@ export const enabled = (client: ScramjetClient) =>
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
-	Object.defineProperty(self, $scramjet.config.globals.pushsourcemapfn, {
-		value: (buf: Array<number>, tag: string) => {
-			const sourcemap = Uint8Array.from(buf);
-			const view = new DataView(sourcemap.buffer);
-			const decoder = new TextDecoder("utf-8");
+	Object.defineProperty(
+		self,
+		globalThis.$scramjet.config.globals.pushsourcemapfn,
+		{
+			value: (buf: Array<number>, tag: string) => {
+				const sourcemap = Uint8Array.from(buf);
+				const view = new DataView(sourcemap.buffer);
+				const decoder = new TextDecoder("utf-8");
 
-			const rewrites = [];
+				const rewrites: Rewrite[] = [];
 
-			const rewritelen = view.getUint32(0, true);
-			let cursor = 0;
-			for (let i = 0; i < rewritelen; i++) {
-				const type = view.getUint8(cursor) as RewriteType;
-				cursor += 1;
+				const rewritelen = view.getUint32(0, true);
+				let cursor = 4;
+				for (let i = 0; i < rewritelen; i++) {
+					const type = view.getUint8(cursor) as RewriteType;
+					cursor += 1;
 
-				if (type == RewriteType.Insert) {
-					const offset = view.getUint32(cursor, true);
-					cursor += 4;
-					const start = view.getUint32(cursor, true);
-					cursor += 4;
-					const size = view.getUint32(cursor, true);
-					cursor += 4;
+					if (type == RewriteType.Insert) {
+						const start = view.getUint32(cursor, true);
+						cursor += 4;
+						const size = view.getUint32(cursor, true);
+						cursor += 4;
 
-					rewrites.push({ type, offset, start, size });
-				} else if (type == RewriteType.Replace) {
-					const offset = view.getUint32(cursor, true);
-					cursor += 4;
-					const start = view.getUint32(cursor, true);
-					cursor += 4;
-					const end = view.getUint32(cursor, true);
-					cursor += 4;
+						rewrites.push({ type, start, size });
+					} else if (type == RewriteType.Replace) {
+						const start = view.getUint32(cursor, true);
+						cursor += 4;
+						const end = view.getUint32(cursor, true);
+						cursor += 4;
+						const len = view.getUint32(cursor, true);
+						cursor += 4;
 
-					const str = decoder.decode(sourcemap.subarray(start, end));
+						const str = decoder.decode(
+							sourcemap.subarray(cursor, cursor + len)
+						);
 
-					rewrites.push({ type, offset, start, end, str });
+						rewrites.push({ type, start, end, str });
+					}
 				}
-			}
 
-			sourcemaps[tag] = rewrites;
-		},
-		enumerable: false,
-		writable: false,
-		configurable: false,
-	});
+				sourcemaps[tag] = rewrites;
+			},
+			enumerable: false,
+			writable: false,
+			configurable: false,
+		}
+	);
 
 	const scramtag_ident = "/*scramtag ";
 
@@ -86,7 +91,6 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("Function.prototype.toString", {
 		apply(ctx) {
 			let stringified: string = ctx.fn.call(ctx.this);
-			let newString = "";
 
 			// every function rewritten will have a scramtag comment
 			// it will look like this:
@@ -106,39 +110,50 @@ export default function (client: ScramjetClient, self: Self) {
 
 			// subtracting that from the index of the scramtag gives us the starting index of the function relative to the entire file
 			const absindex = abstagindex - scramtagstart;
+			const endindex = absindex + stringified.length;
 
 			const scramtagend = stringified.indexOf("*/", scramtagstart);
 			const tag = stringified.substring(firstspace + 1, scramtagend);
 
-			// delete all scramtags inside the function (and nested ones!!)
-			stringified = stringified.replace(/\/\*scramtag.*?\*\//g, "");
+			const rewrites = sourcemaps[tag];
 
-			const maps = sourcemaps[tag];
-
-			let i = 0;
-			let offset = 0;
-
-			let j = 0;
-			while (j < maps.length) {
-				/* TODO
-				const [str, start, end] = maps[j];
-				if (start < absindex) {
-					j++;
-					continue;
-				}
-				if (start - absindex + offset > stringified.length) break;
-
-				// ooh i should really document this before i forget how it works
-				newString += stringified.slice(i, start - absindex + offset);
-				newString += str;
-				offset += end - start - str.length;
-				i = start - absindex + offset + str.length;
-
-				j++;
-				*/
+			if (!rewrites) {
+				console.warn("failed to get rewrites for tag", tag);
+				return ctx.return(stringified);
 			}
 
-			newString += stringified.slice(i);
+			let i = 0;
+			// skip all rewrites in the file before the fn
+			while (i < rewrites.length) {
+				if (rewrites[i].start < absindex) i++;
+				else break;
+			}
+
+			let end = i;
+			while (end < rewrites.length) {
+				if (getEnd(rewrites[end]) < endindex) end++;
+				else break;
+			}
+
+			const fnrewrites = rewrites.slice(i, end);
+
+			let newString = "";
+			let lastpos = absindex;
+
+			for (const rewrite of fnrewrites) {
+				newString += stringified.slice(lastpos, rewrite.start);
+
+				if (rewrite.type === RewriteType.Insert) {
+					lastpos = rewrite.start + rewrite.size;
+				} else if (rewrite.type === RewriteType.Replace) {
+					newString += rewrite.str;
+					lastpos = rewrite.end;
+				} else {
+					throw "unreachable";
+				}
+			}
+
+			newString += stringified.slice(lastpos);
 
 			return ctx.return(newString);
 		},

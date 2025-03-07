@@ -62,7 +62,14 @@ function rewriteJsWrapper(
 		return input;
 	}
 	const after = performance.now();
-	const { js, errors, duration } = out;
+	const { js, map, scramtag, errors, duration } = out;
+
+	if ((flagEnabled("sourcemaps", meta.base), !globalThis.clients)) {
+		globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
+			Array.from(map),
+			scramtag
+		);
+	}
 
 	if (flagEnabled("rewriterLogs", meta.base)) {
 		for (const error of errors) {

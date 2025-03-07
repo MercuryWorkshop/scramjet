@@ -5,11 +5,11 @@ function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 	const stringifiedFunction = ctx.call().toString();
 
 	const content = rewriteJs(
-		`return ${stringifiedFunction}`,
+		stringifiedFunction,
 		"(function proxy)",
 		client.meta
 	);
-	ctx.return(ctx.fn(content)());
+	ctx.return(ctx.fn(`return ${content}`)());
 }
 
 export default function (client: ScramjetClient, _self: Self) {
