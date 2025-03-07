@@ -1,6 +1,10 @@
 pub mod error;
 
-use std::{sync::Arc, time::Duration};
+use std::{
+	cell::{OnceCell, RefCell},
+	sync::{Arc, OnceLock},
+	time::Duration,
+};
 
 use error::{Result, RewriterError};
 use instant::Instant;
@@ -40,12 +44,13 @@ extern "C" {
 extern "C" {
 	#[wasm_bindgen(typescript_type = "RewriterOutput")]
 	pub type JsRewriterOutput;
-}
 
-#[wasm_bindgen]
-extern "C" {
 	#[wasm_bindgen(js_namespace = console)]
 	fn error(s: &str);
+}
+
+thread_local! {
+	static ALLOC: RefCell<Allocator> = RefCell::new(Allocator::default());
 }
 
 type EncodeFn<'alloc, 'data> = Box<dyn Fn(&str, &'alloc Allocator) -> String<'alloc> + 'data>;
@@ -178,15 +183,21 @@ pub fn rewrite_js(
 	module: bool,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
-	let alloc = Allocator::default();
-	let cfg = get_config(scramjet, url, &alloc)?;
-	let sourcetag = cfg.sourcetag;
+	ALLOC.with(|x| {
+		let mut alloc = x.try_borrow_mut()?;
 
-	let before = Instant::now();
-	let out = rewrite(&alloc, &js, cfg, module, 1024)?;
-	let after = Instant::now();
+		let cfg = get_config(scramjet, url, &alloc)?;
+		let sourcetag = cfg.sourcetag;
 
-	create_rewriter_output(out, script_url, js, sourcetag, after - before)
+		let before = Instant::now();
+		let out = rewrite(&alloc, &js, cfg, module, 1024)?;
+		let after = Instant::now();
+
+		let ret = create_rewriter_output(out, script_url, js, sourcetag, after - before);
+
+		alloc.reset();
+		ret
+	})
 }
 
 #[wasm_bindgen]

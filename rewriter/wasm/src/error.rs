@@ -1,3 +1,5 @@
+use std::cell::BorrowMutError;
+
 use js_sys::Error;
 use rewriter::RewriterError as InnerRewriterError;
 use thiserror::Error;
@@ -13,6 +15,8 @@ pub enum RewriterError {
 	Rewriter(#[from] InnerRewriterError),
 	#[error("reflect set failed: {0}")]
 	ReflectSetFail(String),
+	#[error("Rewriter was already rewriting")]
+	AlreadyRewriting(#[from] BorrowMutError),
 
 	#[error("{0} was not {1}")]
 	Not(String, &'static str),
