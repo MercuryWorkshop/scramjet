@@ -8,6 +8,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.97"
+bytes = "1.10.1"
 oxc = { workspace = true }
 rewriter = { version = "0.1.0", path = "../rewriter" }
 url = "2.5.4"

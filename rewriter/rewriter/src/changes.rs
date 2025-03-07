@@ -416,6 +416,7 @@ impl JsChanges {
 		E: Clone,
 	{
 		let mut offset = 0;
+		let mut added = 0i64;
 		let mut buffer = Vec::with_capacity(js.len() * 2);
 
 		macro_rules! tryget {
@@ -427,10 +428,14 @@ impl JsChanges {
 		macro_rules! eval {
 			($change:expr) => {
 				match $change {
-					Change::Str(x) => buffer.extend_from_slice(x.as_bytes()),
+					Change::Str(x) => {
+						buffer.extend_from_slice(x.as_bytes());
+						x.len()
+					}
 					Change::Number(x) => {
 						let x = format_compact_str!("{}", x);
 						buffer.extend_from_slice(x.as_bytes());
+						x.len()
 					}
 				}
 			};
@@ -439,7 +444,7 @@ impl JsChanges {
 		let mut map = Vec::with_capacity(js.len() * 2);
 		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
 
-		self.inner.sort_unstable();
+		self.inner.sort();
 
 		for change in &self.inner {
 			let span = change.get_span();
@@ -450,37 +455,47 @@ impl JsChanges {
 
 			match change.to_inner(cfg, offset) {
 				JsChangeInner::Insert { loc, str } => {
-					// INSERT op
-					map.push(0);
-					// offset
-					map.extend_from_slice(&(offset as u32).to_le_bytes());
-					// start
-					map.extend_from_slice(&loc.to_le_bytes());
-					// size
-					map.extend_from_slice(&(str.len() as u32).to_le_bytes());
-
+					let mut len = 0u32;
 					let loc = loc as usize;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
-					for str in str {
-						eval!(str);
+					for str in &str {
+						len += eval!(str) as u32;
 					}
 					buffer.extend_from_slice(tryget!(loc..end).as_bytes());
+
+					// INSERT op
+					map.push(0);
+					// pos
+					map.extend_from_slice(
+						&((loc as u32).wrapping_add_signed(added as i32)).to_le_bytes(),
+					);
+					// size
+					map.extend_from_slice(&len.to_le_bytes());
+
+					added += len as i64;
 				}
 				JsChangeInner::Replace { str } => {
+					let mut len = 0u32;
+					for str in &str {
+						len += eval!(str) as u32;
+					}
+
 					// REPLACE op
 					map.push(1);
-					// offset
-					map.extend_from_slice(&(offset as u32).to_le_bytes());
+					// len
+					map.extend_from_slice(&(span.end - span.start).to_le_bytes());
 					// start
-					map.extend_from_slice(&span.start.to_le_bytes());
+					map.extend_from_slice(
+						&(span.start.wrapping_add_signed(added as i32)).to_le_bytes(),
+					);
 					// end
-					map.extend_from_slice(&span.end.to_le_bytes());
+					map.extend_from_slice(
+						&((span.start + len).wrapping_add_signed(added as i32)).to_le_bytes(),
+					);
 					// oldstr
 					map.extend_from_slice(tryget!(start..end).as_bytes());
 
-					for str in str {
-						eval!(str);
-					}
+					added += len as i64 - (span.end - span.start) as i64;
 				}
 			}
 

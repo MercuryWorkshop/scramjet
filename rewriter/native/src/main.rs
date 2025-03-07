@@ -1,6 +1,7 @@
 use std::{env, fs, str::FromStr, sync::Arc};
 
 use anyhow::{Context, Result};
+use bytes::{Buf, Bytes, BytesMut};
 use oxc::diagnostics::NamedSource;
 use rewriter::{cfg::Config, rewrite, RewriteResult};
 use url::Url;
@@ -38,6 +39,64 @@ fn dorewrite(data: &str) -> Result<RewriteResult> {
 	.context("failed to rewrite file")
 }
 
+#[derive(Debug)]
+enum RewriteType {
+	Insert { pos: u32, size: u32 },
+	Replace { start: u32, end: u32, str: Bytes },
+}
+
+fn dounrewrite(res: RewriteResult) -> Vec<u8> {
+	let js = res.js.as_slice();
+	let mut map = Bytes::from(res.sourcemap);
+	let rewrite_cnt = map.get_u32_le();
+	let mut rewrites = Vec::with_capacity(rewrite_cnt as usize);
+
+	for x in 0..rewrite_cnt {
+		let ty = map.get_u8();
+		if ty == 0 {
+			rewrites.push(RewriteType::Insert {
+				pos: map.get_u32_le(),
+				size: map.get_u32_le(),
+			});
+		} else if ty == 1 {
+			let len = map.get_u32_le();
+			rewrites.push(RewriteType::Replace {
+				start: map.get_u32_le(),
+				end: map.get_u32_le(),
+				str: map.split_to(len as usize),
+			});
+		} else {
+			panic!(
+				"{x} {ty} {:X?} {:#?}",
+				map.slice(0..10).as_ref(),
+				&rewrites.last_chunk::<3>()
+			)
+		}
+	}
+
+	let mut out = BytesMut::with_capacity(res.js.len());
+
+	let mut lastpos: u32 = 0;
+
+	for rewrite in rewrites {
+		match rewrite {
+			RewriteType::Insert { pos, size } => {
+				out.extend_from_slice(&js[lastpos as usize..pos as usize]);
+				lastpos = pos + size;
+			}
+			RewriteType::Replace { start, end, str } => {
+				out.extend_from_slice(&js[lastpos as usize..start as usize]);
+				out.extend_from_slice(&str);
+				lastpos = end;
+			}
+		}
+	}
+
+	out.extend_from_slice(&js[lastpos as usize..]);
+
+	out.to_vec()
+}
+
 fn main() -> Result<()> {
 	let file = env::args().nth(1).unwrap_or_else(|| "test.js".to_string());
 	let data = fs::read_to_string(file).context("failed to read file")?;
@@ -49,23 +108,33 @@ fn main() -> Result<()> {
 			let _ = dorewrite(&data);
 			i += 1;
 			if i % 100 == 0 {
-				println!("{}...", i);
+				println!("{i}...");
 			}
 		}
 	} else {
+		println!("orig:\n{data}");
+
 		let res = dorewrite(&data)?;
 
 		let source = Arc::new(
-			NamedSource::new(data, "https://google.com/glorngle/si.js").with_language("javascript"),
+			NamedSource::new(data.clone(), "https://google.com/glorngle/si.js")
+				.with_language("javascript"),
 		);
 		eprintln!("errors:");
-		for err in res.errors {
+		for err in res.errors.clone() {
 			eprintln!("{}", err.with_source_code(source.clone()));
 		}
 
 		println!(
 			"rewritten:\n{}",
-			String::from_utf8(res.js).context("failed to parse rewritten js")?
+			str::from_utf8(&res.js).context("failed to parse rewritten js")?
+		);
+
+		let unrewritten = dounrewrite(res);
+
+		println!(
+			"unrewritten matches orig: {}",
+			data.as_bytes() == unrewritten.as_slice()
 		);
 	}
 
