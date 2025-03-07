@@ -2,7 +2,7 @@ use cfg::Config;
 use changes::{JsChangeResult, JsChanges};
 use oxc::{
 	allocator::Allocator,
-	ast::Visit,
+	ast_visit::Visit,
 	diagnostics::OxcDiagnostic,
 	parser::{ParseOptions, Parser},
 	span::SourceType,
@@ -47,9 +47,10 @@ where
 		.with_standard(true);
 	let ret = Parser::new(&allocator, js, source_type)
 		.with_options(ParseOptions {
-			parse_regular_expression: false, // default
+			parse_regular_expression: false,
+			allow_v8_intrinsics: true,
 			allow_return_outside_function: true,
-			preserve_parens: true, // default
+			preserve_parens: true,
 		})
 		.parse();
 

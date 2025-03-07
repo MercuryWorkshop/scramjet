@@ -1,15 +1,12 @@
 use oxc::{
-	ast::{
-		ast::{
-			AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
-			ExportAllDeclaration, ExportNamedDeclaration, Expression, ForInStatement,
-			ForOfStatement, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression,
-			MemberExpression, MetaProperty, NewExpression, ObjectExpression, ObjectPropertyKind,
-			ReturnStatement, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
-		},
-		visit::walk,
-		Visit,
+	ast::ast::{
+		AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
+		ExportAllDeclaration, ExportNamedDeclaration, Expression, ForInStatement, ForOfStatement,
+		FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression,
+		MetaProperty, NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement,
+		ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
 	},
+	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
 };
 
