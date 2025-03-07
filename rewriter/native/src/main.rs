@@ -2,39 +2,43 @@ use std::{env, fs, str::FromStr, sync::Arc};
 
 use anyhow::{Context, Result};
 use bytes::{Buf, Bytes, BytesMut};
-use oxc::diagnostics::NamedSource;
+use oxc::{
+	allocator::{Allocator, String},
+	diagnostics::NamedSource,
+};
 use rewriter::{cfg::Config, rewrite, RewriteResult};
 use url::Url;
 use urlencoding::encode;
 
-fn dorewrite(data: &str) -> Result<RewriteResult> {
+fn dorewrite<'alloc>(alloc: &'alloc Allocator, data: &str) -> Result<RewriteResult<'alloc>> {
 	let url = Url::from_str("https://google.com/glorngle/si.js").context("failed to make url")?;
 	rewrite(
+		alloc,
 		data,
-		true,
-		1024,
 		Config {
-			prefix: "/scrammedjet/".to_string(),
-			base: url.to_string(),
-			urlrewriter: Box::new(move |x: String| {
-				encode(url.join(&x).unwrap().as_str()).to_string()
+			prefix: "/scrammedjet/",
+			base: "https://google.com/glorngle/si.js",
+			urlrewriter: Box::new(move |x: &str, alloc: &'alloc Allocator| {
+				String::from_str_in(encode(url.join(&x).unwrap().as_str()).as_ref(), alloc)
 			}),
 
-			sourcetag: "glongle1".to_string(),
+			sourcetag: "glongle1",
 
-			wrapfn: "$wrap".to_string(),
-			wrapthisfn: "$gwrap".to_string(),
-			importfn: "$import".to_string(),
-			rewritefn: "$rewrite".to_string(),
-			metafn: "$meta".to_string(),
-			setrealmfn: "$setrealm".to_string(),
-			pushsourcemapfn: "$pushsourcemap".to_string(),
+			wrapfn: "$wrap",
+			wrapthisfn: "$gwrap",
+			importfn: "$import",
+			rewritefn: "$rewrite",
+			metafn: "$meta",
+			setrealmfn: "$setrealm",
+			pushsourcemapfn: "$pushsourcemap",
 
 			capture_errors: true,
 			do_sourcemaps: true,
 			scramitize: false,
 			strict_rewrites: true,
 		},
+		true,
+		1024,
 	)
 	.context("failed to rewrite file")
 }
@@ -47,7 +51,7 @@ enum RewriteType {
 
 fn dounrewrite(res: RewriteResult) -> Vec<u8> {
 	let js = res.js.as_slice();
-	let mut map = Bytes::from(res.sourcemap);
+	let mut map = Bytes::from(res.sourcemap.to_vec());
 	let rewrite_cnt = map.get_u32_le();
 	let mut rewrites = Vec::with_capacity(rewrite_cnt as usize);
 
@@ -102,10 +106,12 @@ fn main() -> Result<()> {
 	let data = fs::read_to_string(file).context("failed to read file")?;
 	let bench = env::args().nth(2).is_some();
 
+	let alloc = Allocator::default();
+
 	if bench {
 		let mut i = 0;
 		loop {
-			let _ = dorewrite(&data);
+			let _ = dorewrite(&alloc, &data);
 			i += 1;
 			if i % 100 == 0 {
 				println!("{i}...");
@@ -114,7 +120,7 @@ fn main() -> Result<()> {
 	} else {
 		println!("orig:\n{data}");
 
-		let res = dorewrite(&data)?;
+		let res = dorewrite(&alloc, &data)?;
 
 		let source = Arc::new(
 			NamedSource::new(data.clone(), "https://google.com/glorngle/si.js")
@@ -151,13 +157,16 @@ mod test {
 		property::{Attribute, PropertyDescriptorBuilder},
 		Context, NativeFunction, Source,
 	};
+	use oxc::allocator::Allocator;
 
 	use crate::dorewrite;
 
 	#[test]
 	fn google() {
+		let alloc = Allocator::default();
+
 		let source_text = include_str!("../sample/google.js");
-		dorewrite(source_text).unwrap();
+		dorewrite(&alloc, source_text).unwrap();
 	}
 
 	#[test]
@@ -240,10 +249,13 @@ function check(val) {
 				))
 				.unwrap();
 
-			let rewritten = dorewrite(&content).unwrap();
+			let alloc = Allocator::default();
+			let rewritten = dorewrite(&alloc, &content).unwrap();
 			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
 
-			context.eval(Source::from_bytes(&rewritten.js)).unwrap();
+			context
+				.eval(Source::from_bytes(rewritten.js.as_slice()))
+				.unwrap();
 			println!("PASS");
 		}
 	}

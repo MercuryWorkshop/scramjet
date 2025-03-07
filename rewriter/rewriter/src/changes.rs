@@ -1,15 +1,16 @@
 use std::cmp::Ordering;
 
 use oxc::{
+	allocator::{Allocator, String, Vec},
 	ast::ast::AssignmentOperator,
-	span::{format_compact_str, CompactStr, Span},
+	span::{format_compact_str, Atom, Span},
 };
 use smallvec::{smallvec, SmallVec};
 
 use crate::{cfg::Config, RewriterError};
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) enum Rewrite {
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Rewrite<'data> {
 	/// `(cfg.wrapfn(ident))` | `cfg.wrapfn(ident)`
 	WrapFn {
 		span: Span,
@@ -37,7 +38,7 @@ pub(crate) enum Rewrite {
 	/// `$scramerr(name)`
 	ScramErr {
 		span: Span,
-		ident: CompactStr,
+		ident: Atom<'data>,
 	},
 	/// `$scramitize(span)`
 	Scramitize {
@@ -51,7 +52,7 @@ pub(crate) enum Rewrite {
 	},
 	/// `((t)=>$scramjet$tryset(name,"op",t)||(name op t))(rhsspan)`
 	Assignment {
-		name: CompactStr,
+		name: Atom<'data>,
 		entirespan: Span,
 		rhsspan: Span,
 		op: AssignmentOperator,
@@ -59,7 +60,7 @@ pub(crate) enum Rewrite {
 	/// `ident,` -> `ident: cfg.wrapfn(ident),`
 	ShorthandObj {
 		span: Span,
-		name: CompactStr,
+		name: Atom<'data>,
 	},
 	SourceTag {
 		span: Span,
@@ -68,15 +69,15 @@ pub(crate) enum Rewrite {
 	// don't use for anything static, only use for stuff like rewriteurl
 	Replace {
 		span: Span,
-		text: String,
+		text: String<'data>,
 	},
 	Delete {
 		span: Span,
 	},
 }
 
-impl Rewrite {
-	fn into_inner(self) -> SmallVec<[JsChange; 4]> {
+impl<'data> Rewrite<'data> {
+	fn into_inner(self) -> SmallVec<[JsChange<'data>; 4]> {
 		match self {
 			Self::WrapFn { wrapped, span } => {
 				let start = Span::new(span.start, span.start);
@@ -180,14 +181,14 @@ impl<'a> From<&'a str> for Change<'a> {
 	}
 }
 
-impl<'a> From<&'a CompactStr> for Change<'a> {
-	fn from(value: &'a CompactStr) -> Self {
+impl<'a> From<&'a String<'_>> for Change<'a> {
+	fn from(value: &'a String<'_>) -> Self {
 		Self::Str(value.as_str())
 	}
 }
 
-impl<'a> From<&'a String> for Change<'a> {
-	fn from(value: &'a String) -> Self {
+impl<'a> From<&'a Atom<'_>> for Change<'a> {
+	fn from(value: &'a Atom<'_>) -> Self {
 		Self::Str(value.as_str())
 	}
 }
@@ -217,8 +218,8 @@ enum JsChangeInner<'a> {
 	Replace { str: Changes<'a> },
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-enum JsChange {
+#[derive(Debug, PartialEq, Eq)]
+enum JsChange<'data> {
 	/// insert `${cfg.wrapfn}(`
 	WrapFn { span: Span, extra: bool },
 	/// insert `${cfg.setrealmfn}({}).`
@@ -226,13 +227,13 @@ enum JsChange {
 	/// insert `${cfg.wrapthis}(`
 	WrapThisFn { span: Span },
 	/// insert `$scramerr(ident);`
-	ScramErrFn { span: Span, ident: CompactStr },
+	ScramErrFn { span: Span, ident: Atom<'data> },
 	/// insert `$scramitize(`
 	ScramitizeFn { span: Span },
 	/// insert `eval(${cfg.rewritefn}(`
 	EvalRewriteFn { span: Span },
 	/// insert `: ${cfg.wrapfn}(ident)`
-	ShorthandObj { span: Span, ident: CompactStr },
+	ShorthandObj { span: Span, ident: Atom<'data> },
 	/// insert scramtag
 	SourceTag { span: Span },
 
@@ -243,7 +244,7 @@ enum JsChange {
 	/// replace span with `((t)=>$scramjet$tryset(${name},"${op}",t)||(${name}${op}t))(`
 	AssignmentLeft {
 		span: Span,
-		name: CompactStr,
+		name: Atom<'data>,
 		op: AssignmentOperator,
 	},
 
@@ -255,12 +256,12 @@ enum JsChange {
 	DoubleClosingParen { span: Span },
 
 	/// replace span with text
-	Replace { span: Span, text: String },
+	Replace { span: Span, text: String<'data> },
 	/// replace span with ""
 	Delete { span: Span },
 }
 
-impl JsChange {
+impl JsChange<'_> {
 	fn get_span(&self) -> &Span {
 		match self {
 			Self::WrapFn { span, .. }
@@ -282,32 +283,35 @@ impl JsChange {
 		}
 	}
 
-	fn to_inner<'a, E>(&'a self, cfg: &'a Config<E>, offset: usize) -> JsChangeInner<'a>
+	fn to_inner<'alloc, 'change, E>(
+		&'change self,
+		cfg: &'change Config<'alloc, E>,
+		offset: usize,
+	) -> JsChangeInner<'change>
 	where
-		E: Fn(String) -> String,
-		E: Clone,
+		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 	{
 		match self {
 			Self::WrapFn { span, extra } => {
 				if *extra {
 					JsChangeInner::Insert {
 						loc: span.start,
-						str: changes!["(", &cfg.wrapfn, "("],
+						str: changes!["(", cfg.wrapfn, "("],
 					}
 				} else {
 					JsChangeInner::Insert {
 						loc: span.start,
-						str: changes![&cfg.wrapfn, "("],
+						str: changes![cfg.wrapfn, "("],
 					}
 				}
 			}
 			Self::SetRealmFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![&cfg.setrealmfn, "({})."],
+				str: changes![cfg.setrealmfn, "({})."],
 			},
 			Self::WrapThisFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![&cfg.wrapthisfn, "("],
+				str: changes![cfg.wrapthisfn, "("],
 			},
 			Self::ScramErrFn { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
@@ -318,11 +322,11 @@ impl JsChange {
 				str: changes![" $scramitize("],
 			},
 			Self::EvalRewriteFn { .. } => JsChangeInner::Replace {
-				str: changes!["eval(", &cfg.rewritefn, "("],
+				str: changes!["eval(", cfg.rewritefn, "("],
 			},
 			Self::ShorthandObj { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![":", &cfg.wrapfn, "(", ident, ")"],
+				str: changes![":", cfg.wrapfn, "(", ident, ")"],
 			},
 			Self::SourceTag { span } => JsChangeInner::Insert {
 				loc: span.start,
@@ -330,15 +334,15 @@ impl JsChange {
 					"/*scramtag ",
 					span.start as usize + offset,
 					" ",
-					&cfg.sourcetag,
+					cfg.sourcetag,
 					"*/"
 				],
 			},
 			Self::ImportFn { .. } => JsChangeInner::Replace {
-				str: changes![&cfg.importfn, "(\"", &cfg.base, "\","],
+				str: changes![cfg.importfn, "(\"", cfg.base, "\","],
 			},
 			Self::MetaFn { .. } => JsChangeInner::Replace {
-				str: changes![&cfg.metafn, "(\"", &cfg.base],
+				str: changes![cfg.metafn, "(\"", cfg.base],
 			},
 			Self::AssignmentLeft { name, op, .. } => JsChangeInner::Replace {
 				str: changes![
@@ -369,13 +373,13 @@ impl JsChange {
 	}
 }
 
-impl PartialOrd for JsChange {
+impl PartialOrd for JsChange<'_> {
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
-impl Ord for JsChange {
+impl Ord for JsChange<'_> {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
 		match self.get_span().start.cmp(&other.get_span().start) {
 			Ordering::Equal => match (self, other) {
@@ -388,36 +392,41 @@ impl Ord for JsChange {
 	}
 }
 
-pub(crate) struct JsChangeResult {
-	pub js: Vec<u8>,
-	pub sourcemap: Vec<u8>,
+pub(crate) struct JsChangeResult<'alloc> {
+	pub js: Vec<'alloc, u8>,
+	pub sourcemap: Vec<'alloc, u8>,
 }
 
-pub(crate) struct JsChanges {
-	inner: Vec<JsChange>,
+pub(crate) struct JsChanges<'alloc: 'data, 'data> {
+	alloc: &'alloc Allocator,
+	inner: Vec<'alloc, JsChange<'data>>,
 }
 
-impl JsChanges {
-	pub fn new(capacity: usize) -> Self {
+impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
+	pub fn new(alloc: &'alloc Allocator, capacity: usize) -> Self {
 		Self {
-			inner: Vec::with_capacity(capacity),
+			inner: Vec::with_capacity_in(capacity, alloc),
+			alloc,
 		}
 	}
 
-	pub fn add(&mut self, rewrite: Rewrite) {
+	pub fn add(&mut self, rewrite: Rewrite<'data>) {
 		for change in rewrite.into_inner() {
 			self.inner.push(change);
 		}
 	}
 
-	pub fn perform<E>(&mut self, js: &str, cfg: &Config<E>) -> Result<JsChangeResult, RewriterError>
+	pub fn perform<E>(
+		&mut self,
+		js: &str,
+		cfg: &Config<'alloc, E>,
+	) -> Result<JsChangeResult<'alloc>, RewriterError>
 	where
-		E: Fn(String) -> String,
-		E: Clone,
+		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 	{
 		let mut offset = 0;
 		let mut added = 0i64;
-		let mut buffer = Vec::with_capacity(js.len() * 2);
+		let mut buffer = Vec::with_capacity_in(js.len() * 2, self.alloc);
 
 		macro_rules! tryget {
 			($range:expr) => {
@@ -441,7 +450,7 @@ impl JsChanges {
 			};
 		}
 
-		let mut map = Vec::with_capacity(js.len() * 2);
+		let mut map = Vec::with_capacity_in(js.len() * 2, self.alloc);
 		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
 
 		self.inner.sort();

@@ -4,8 +4,11 @@ use std::{sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
 use instant::Instant;
-use js_sys::{Function, Object, Reflect};
-use oxc::diagnostics::NamedSource;
+use js_sys::{Function, Object, Reflect, Uint8Array};
+use oxc::{
+	allocator::{Allocator, String},
+	diagnostics::NamedSource,
+};
 use rewriter::{cfg::Config, rewrite, RewriteResult};
 use wasm_bindgen::prelude::*;
 use web_sys::Url;
@@ -30,7 +33,7 @@ export function scramtag() {
 }
 "#)]
 extern "C" {
-	pub fn scramtag() -> String;
+	pub fn scramtag() -> std::string::String;
 }
 
 #[wasm_bindgen]
@@ -45,31 +48,40 @@ extern "C" {
 	fn error(s: &str);
 }
 
-fn create_encode_function(
+type EncodeFn<'alloc, 'data> = Box<dyn Fn(&str, &'alloc Allocator) -> String<'alloc> + 'data>;
+
+fn create_encode_function<'alloc, 'data>(
 	encode: JsValue,
-	base: String,
-) -> Result<impl Fn(String) -> String + Clone> {
+	base: &'data str,
+	_alloc: &'alloc Allocator,
+) -> Result<EncodeFn<'alloc, 'data>> {
 	let encode = encode.dyn_into::<Function>()?;
 
-	Ok(move |str: String| {
-		let url = Url::new_with_base(&str, &base).unwrap().to_string();
-		encode
-			.call1(&JsValue::NULL, &url.into())
-			.unwrap()
-			.as_string()
-			.unwrap()
-			.to_string()
-	})
+	let func = move |url: &str, alloc: &'alloc Allocator| {
+		let url = Url::new_with_base(url, base).unwrap().to_string();
+		oxc::allocator::String::from_str_in(
+			encode
+				.call1(&JsValue::NULL, &url.into())
+				.unwrap()
+				.as_string()
+				.unwrap()
+				.as_str(),
+			alloc,
+		)
+	};
+
+	Ok(Box::new(func))
 }
 
 fn get_obj(obj: &JsValue, k: &str) -> Result<JsValue> {
 	Ok(Reflect::get(obj, &k.into())?)
 }
 
-fn get_str(obj: &JsValue, k: &str) -> Result<String> {
+fn get_str<'alloc>(obj: &JsValue, k: &str, alloc: &'alloc Allocator) -> Result<&'alloc str> {
 	Reflect::get(obj, &k.into())?
 		.as_string()
 		.ok_or_else(|| RewriterError::not_str(k))
+		.map(|x| String::from_str_in(&x, alloc).into_bump_str())
 }
 
 fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
@@ -90,30 +102,34 @@ fn get_flag(scramjet: &Object, url: &str, flag: &str) -> Result<bool> {
 		.ok_or_else(|| RewriterError::not_bool("scramjet.flagEnabled return value"))
 }
 
-fn get_config(scramjet: &Object, url: String) -> Result<Config<impl Fn(String) -> String + Clone>> {
+fn get_config<'alloc, 'data>(
+	scramjet: &Object,
+	url: &'data str,
+	alloc: &'alloc Allocator,
+) -> Result<Config<'alloc, EncodeFn<'alloc, 'data>>> {
 	let codec = &get_obj(scramjet, "codec")?;
 	let config = &get_obj(scramjet, "config")?;
 	let globals = &get_obj(config, "globals")?;
 
 	Ok(Config {
-		prefix: get_str(config, "prefix")?,
-		base: url.clone(),
-		sourcetag: scramtag(),
+		do_sourcemaps: get_flag(scramjet, url, "sourcemaps")?,
+		capture_errors: get_flag(scramjet, url, "captureErrors")?,
+		scramitize: get_flag(scramjet, url, "scramitize")?,
+		strict_rewrites: get_flag(scramjet, url, "strictRewrites")?,
 
-		wrapfn: get_str(globals, "wrapfn")?,
-		wrapthisfn: get_str(globals, "wrapthisfn")?,
-		importfn: get_str(globals, "importfn")?,
-		rewritefn: get_str(globals, "rewritefn")?,
-		metafn: get_str(globals, "metafn")?,
-		setrealmfn: get_str(globals, "setrealmfn")?,
-		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
+		urlrewriter: create_encode_function(get_obj(codec, "encode")?, url, alloc)?,
 
-		do_sourcemaps: get_flag(scramjet, &url, "sourcemaps")?,
-		capture_errors: get_flag(scramjet, &url, "captureErrors")?,
-		scramitize: get_flag(scramjet, &url, "scramitize")?,
-		strict_rewrites: get_flag(scramjet, &url, "strictRewrites")?,
+		prefix: get_str(config, "prefix", alloc)?,
+		base: String::from_str_in(url, alloc).into_bump_str(),
+		sourcetag: String::from_str_in(&scramtag(), alloc).into_bump_str(),
 
-		urlrewriter: create_encode_function(get_obj(codec, "encode")?, url)?,
+		wrapfn: get_str(globals, "wrapfn", alloc)?,
+		wrapthisfn: get_str(globals, "wrapthisfn", alloc)?,
+		importfn: get_str(globals, "importfn", alloc)?,
+		rewritefn: get_str(globals, "rewritefn", alloc)?,
+		metafn: get_str(globals, "metafn", alloc)?,
+		setrealmfn: get_str(globals, "setrealmfn", alloc)?,
+		pushsourcemapfn: get_str(globals, "pushsourcemapfn", alloc)?,
 	})
 }
 
@@ -124,8 +140,9 @@ fn duration_to_millis_f64(duration: Duration) -> f64 {
 
 fn create_rewriter_output(
 	out: RewriteResult,
-	url: String,
-	src: String,
+	url: std::string::String,
+	src: std::string::String,
+	sourcetag: &str,
 	duration: Duration,
 ) -> Result<JsRewriterOutput> {
 	let src = Arc::new(NamedSource::new(url, src).with_language("javascript"));
@@ -137,9 +154,13 @@ fn create_rewriter_output(
 		.collect();
 
 	let obj = Object::new();
-	set_obj(&obj, "js", &out.js.into())?;
-	set_obj(&obj, "map", &out.sourcemap.into())?;
-	set_obj(&obj, "scramtag", &out.sourcetag.into())?;
+	set_obj(&obj, "js", &Uint8Array::from(out.js.as_slice()).into())?;
+	set_obj(
+		&obj,
+		"map",
+		&Uint8Array::from(out.sourcemap.as_slice()).into(),
+	)?;
+	set_obj(&obj, "scramtag", &sourcetag.into())?;
 	#[cfg(feature = "debug")]
 	set_obj(&obj, "errors", &errs.into())?;
 	#[cfg(not(feature = "debug"))]
@@ -151,33 +172,33 @@ fn create_rewriter_output(
 
 #[wasm_bindgen]
 pub fn rewrite_js(
-	js: String,
-	url: String,
+	js: std::string::String,
+	url: &str,
+	script_url: std::string::String,
 	module: bool,
-	script_url: String,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
+	let alloc = Allocator::default();
+	let cfg = get_config(scramjet, url, &alloc)?;
+	let sourcetag = cfg.sourcetag;
+
 	let before = Instant::now();
-	let out = rewrite(&js, module, 1024, get_config(scramjet, url)?)?;
+	let out = rewrite(&alloc, &js, cfg, module, 1024)?;
 	let after = Instant::now();
 
-	create_rewriter_output(out, script_url, js, after - before)
+	create_rewriter_output(out, script_url, js, sourcetag, after - before)
 }
 
 #[wasm_bindgen]
 pub fn rewrite_js_from_arraybuffer(
 	js: Vec<u8>,
-	url: String,
+	url: &str,
+	script_url: std::string::String,
 	module: bool,
-	script_url: String,
 	scramjet: &Object,
 ) -> Result<JsRewriterOutput> {
-	// we know that this is a valid utf-8 string
-	let js = unsafe { String::from_utf8_unchecked(js) };
+	// we know the js is a valid utf-8 string
+	let js = unsafe { std::string::String::from_utf8_unchecked(js) };
 
-	let before = Instant::now();
-	let out = rewrite(&js, module, 1024, get_config(scramjet, url)?)?;
-	let after = Instant::now();
-
-	create_rewriter_output(out, script_url, js, after - before)
+	rewrite_js(js, url, script_url, module, scramjet)
 }

@@ -1,4 +1,5 @@
 use oxc::{
+	allocator::{Allocator, String},
 	ast::ast::{
 		AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
 		ExportAllDeclaration, ExportNamedDeclaration, Expression, ForInStatement, ForOfStatement,
@@ -31,24 +32,23 @@ const UNSAFE_GLOBALS: &[&str] = &[
 	"frames",
 ];
 
-pub struct Visitor<E>
+pub struct Visitor<'alloc, 'data, E>
 where
-	E: Fn(String) -> String,
-	E: Clone,
+	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 {
-	pub jschanges: JsChanges,
-	pub config: Config<E>,
+	pub jschanges: JsChanges<'alloc, 'data>,
+	pub config: Config<'alloc, E>,
+	pub alloc: &'alloc Allocator,
 }
 
-impl<E> Visitor<E>
+impl<'alloc, 'data, E> Visitor<'alloc, 'data, E>
 where
-	E: Fn(String) -> String,
-	E: Clone,
+	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 {
-	fn rewrite_url(&mut self, url: String) -> String {
-		let urlencoded = (self.config.urlrewriter)(url);
-
-		format!("\"{}{}\"", self.config.prefix, urlencoded)
+	fn rewrite_url(&mut self, url: Atom<'data>) -> oxc::allocator::String<'alloc> {
+		let mut urlencoded = (self.config.urlrewriter)(&url, self.alloc);
+		urlencoded.insert_str(0, self.config.prefix);
+		urlencoded
 	}
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
@@ -82,10 +82,9 @@ where
 	}
 }
 
-impl<'a, E> Visit<'a> for Visitor<E>
+impl<'alloc, 'data, E> Visit<'data> for Visitor<'alloc, 'data, E>
 where
-	E: Fn(String) -> String,
-	E: Clone,
+	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
 		// if self.config.capture_errors {
@@ -108,12 +107,12 @@ where
 	}
 
 	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
-	fn visit_new_expression(&mut self, it: &NewExpression) {
+	fn visit_new_expression(&mut self, it: &NewExpression<'data>) {
 		self.walk_member_expression(&it.callee);
 		walk::walk_arguments(self, &it.arguments);
 	}
 
-	fn visit_member_expression(&mut self, it: &MemberExpression) {
+	fn visit_member_expression(&mut self, it: &MemberExpression<'data>) {
 		// TODO
 		// you could break this with ["postMessage"] etc
 		// however this code only exists because of recaptcha whatever
@@ -155,7 +154,7 @@ where
 
 	// we can't overwrite window.eval in the normal way because that would make everything an
 	// indirect eval, which could break things. we handle that edge case here
-	fn visit_call_expression(&mut self, it: &CallExpression<'a>) {
+	fn visit_call_expression(&mut self, it: &CallExpression<'data>) {
 		if let Expression::Identifier(s) = &it.callee {
 			// if it's optional that actually makes it an indirect eval which is handled separately
 			if s.name == "eval" && !it.optional {
@@ -176,34 +175,31 @@ where
 		walk::walk_call_expression(self, it);
 	}
 
-	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'a>) {
-		let name = it.source.value.to_string();
-		let text = self.rewrite_url(name);
+	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
+		let text = self.rewrite_url(it.source.value);
 		self.jschanges.add(Rewrite::Replace {
 			span: it.source.span,
 			text,
 		});
 		walk::walk_import_declaration(self, it);
 	}
-	fn visit_import_expression(&mut self, it: &ImportExpression<'a>) {
+	fn visit_import_expression(&mut self, it: &ImportExpression<'data>) {
 		self.jschanges.add(Rewrite::ImportFn {
 			span: Span::new(it.span.start, it.span.start + 7),
 		});
 		walk::walk_import_expression(self, it);
 	}
 
-	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
-		let name = it.source.value.to_string();
-		let text = self.rewrite_url(name);
+	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'data>) {
+		let text = self.rewrite_url(it.source.value);
 		self.jschanges.add(Rewrite::Replace {
 			span: it.source.span,
 			text,
 		});
 	}
-	fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'a>) {
+	fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'data>) {
 		if let Some(source) = &it.source {
-			let name = source.value.to_string();
-			let text = self.rewrite_url(name);
+			let text = self.rewrite_url(source.value);
 			self.jschanges.add(Rewrite::Replace {
 				span: source.span,
 				text,
@@ -213,7 +209,7 @@ where
 	}
 
 	#[cfg(feature = "debug")]
-	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'a>) {
+	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'data>) {
 		// for debugging we need to know what the error was
 
 		if self.config.capture_errors {
@@ -222,7 +218,7 @@ where
 					if let Some(ident) = name.pattern.get_identifier_name() {
 						self.jschanges.add(Rewrite::ScramErr {
 							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
-							ident: ident.to_compact_str(),
+							ident,
 						});
 					}
 				}
@@ -231,14 +227,14 @@ where
 		walk::walk_try_statement(self, it);
 	}
 
-	fn visit_object_expression(&mut self, it: &ObjectExpression<'a>) {
+	fn visit_object_expression(&mut self, it: &ObjectExpression<'data>) {
 		for prop in &it.properties {
 			if let ObjectPropertyKind::ObjectProperty(p) = prop {
 				if let Expression::Identifier(s) = &p.value {
 					if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
 						self.jschanges.add(Rewrite::ShorthandObj {
 							span: s.span,
-							name: s.name.to_compact_str(),
+							name: s.name,
 						});
 						return;
 					}
@@ -249,7 +245,7 @@ where
 		walk::walk_object_expression(self, it);
 	}
 
-	fn visit_function_body(&mut self, it: &FunctionBody<'a>) {
+	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
 		if self.config.do_sourcemaps {
 			self.jschanges.add(Rewrite::SourceTag {
@@ -259,7 +255,7 @@ where
 		walk::walk_function_body(self, it);
 	}
 
-	fn visit_return_statement(&mut self, it: &ReturnStatement<'a>) {
+	fn visit_return_statement(&mut self, it: &ReturnStatement<'data>) {
 		// if let Some(arg) = &it.argument {
 		// 	self.jschanges.insert(JsChange::GenericChange {
 		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
@@ -273,7 +269,7 @@ where
 		walk::walk_return_statement(self, it);
 	}
 
-	fn visit_unary_expression(&mut self, it: &UnaryExpression<'a>) {
+	fn visit_unary_expression(&mut self, it: &UnaryExpression<'data>) {
 		if matches!(it.operator, UnaryOperator::Typeof) {
 			// don't walk to identifier rewrites since it won't matter
 			return;
@@ -282,29 +278,29 @@ where
 	}
 
 	// we don't want to rewrite the identifiers here because of a very specific edge case
-	fn visit_for_in_statement(&mut self, it: &ForInStatement<'a>) {
+	fn visit_for_in_statement(&mut self, it: &ForInStatement<'data>) {
 		walk::walk_statement(self, &it.body);
 	}
-	fn visit_for_of_statement(&mut self, it: &ForOfStatement<'a>) {
+	fn visit_for_of_statement(&mut self, it: &ForOfStatement<'data>) {
 		walk::walk_statement(self, &it.body);
 	}
 
-	fn visit_update_expression(&mut self, _it: &UpdateExpression<'a>) {
+	fn visit_update_expression(&mut self, _it: &UpdateExpression<'data>) {
 		// then no, don't walk it, we don't care
 	}
 
-	fn visit_meta_property(&mut self, it: &MetaProperty<'a>) {
+	fn visit_meta_property(&mut self, it: &MetaProperty<'data>) {
 		if it.meta.name == "import" {
 			self.jschanges.add(Rewrite::MetaFn { span: it.span });
 		}
 	}
 
-	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'a>) {
+	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				if ["location"].contains(&s.name.to_string().as_str()) {
 					self.jschanges.add(Rewrite::Assignment {
-						name: s.name.to_compact_str(),
+						name: s.name,
 						entirespan: it.span,
 						rhsspan: it.right.span(),
 						op: it.operator,

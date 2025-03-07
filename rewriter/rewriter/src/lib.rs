@@ -1,5 +1,5 @@
 use oxc::{
-	allocator::Allocator,
+	allocator::{Allocator, String, Vec},
 	ast_visit::Visit,
 	diagnostics::OxcDiagnostic,
 	parser::{ParseOptions, Parser},
@@ -18,7 +18,7 @@ use visitor::Visitor;
 #[derive(Error, Debug)]
 pub enum RewriterError {
 	#[error("oxc panicked in parser: {0}")]
-	OxcPanicked(String),
+	OxcPanicked(std::string::String),
 	#[error("out of bounds while applying range: {0}..{1})")]
 	Oob(usize, usize),
 	#[error("formatting error: {0}")]
@@ -26,29 +26,27 @@ pub enum RewriterError {
 }
 
 #[derive(Debug)]
-pub struct RewriteResult {
-	pub js: Vec<u8>,
-	pub sourcemap: Vec<u8>,
-	pub sourcetag: String,
-	pub errors: Vec<OxcDiagnostic>,
+pub struct RewriteResult<'alloc> {
+	pub js: Vec<'alloc, u8>,
+	pub sourcemap: Vec<'alloc, u8>,
+	pub errors: std::vec::Vec<OxcDiagnostic>,
 }
 
-pub fn rewrite<E>(
-	js: &str,
+pub fn rewrite<'alloc, 'data, E>(
+	alloc: &'alloc Allocator,
+	js: &'data str,
+	config: Config<'alloc, E>,
 	module: bool,
 	capacity: usize,
-	config: Config<E>,
-) -> Result<RewriteResult, RewriterError>
+) -> Result<RewriteResult<'alloc>, RewriterError>
 where
-	E: Fn(String) -> String,
-	E: Clone,
+	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 {
-	let allocator = Allocator::default();
 	let source_type = SourceType::unambiguous()
 		.with_javascript(true)
 		.with_module(module)
 		.with_standard(true);
-	let ret = Parser::new(&allocator, js, source_type)
+	let ret = Parser::new(alloc, js, source_type)
 		.with_options(ParseOptions {
 			parse_regular_expression: false,
 			allow_v8_intrinsics: true,
@@ -60,7 +58,7 @@ where
 	if ret.panicked {
 		use std::fmt::Write;
 
-		let mut errors = String::new();
+		let mut errors = std::string::String::new();
 		for error in ret.errors {
 			writeln!(errors, "{error}")?;
 		}
@@ -68,13 +66,15 @@ where
 	}
 
 	let mut visitor = Visitor {
-		jschanges: JsChanges::new(capacity),
+		jschanges: JsChanges::new(alloc, capacity),
 		config,
+		alloc,
 	};
 	visitor.visit_program(&ret.program);
 	let Visitor {
 		mut jschanges,
 		config,
+		alloc: _,
 	} = visitor;
 
 	let JsChangeResult { js, sourcemap } = jschanges.perform(js, &config)?;
@@ -82,7 +82,6 @@ where
 	Ok(RewriteResult {
 		js,
 		sourcemap,
-		sourcetag: config.sourcetag,
 		errors: ret.errors,
 	})
 }
