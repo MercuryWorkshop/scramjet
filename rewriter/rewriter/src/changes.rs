@@ -172,7 +172,7 @@ impl<'data> Rewrite<'data> {
 
 enum Change<'a> {
 	Str(&'a str),
-	Number(usize),
+	U32(u32),
 }
 
 impl<'a> From<&'a str> for Change<'a> {
@@ -199,9 +199,9 @@ impl<'a> From<&'a AssignmentOperator> for Change<'a> {
 	}
 }
 
-impl From<usize> for Change<'static> {
-	fn from(value: usize) -> Self {
-		Self::Number(value)
+impl From<u32> for Change<'static> {
+	fn from(value: u32) -> Self {
+		Self::U32(value)
 	}
 }
 
@@ -286,7 +286,7 @@ impl JsChange<'_> {
 	fn to_inner<'alloc, 'change, E>(
 		&'change self,
 		cfg: &'change Config<'alloc, E>,
-		offset: usize,
+		offset: u32,
 	) -> JsChangeInner<'change>
 	where
 		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
@@ -332,7 +332,7 @@ impl JsChange<'_> {
 				loc: span.start,
 				str: changes![
 					"/*scramtag ",
-					span.start as usize + offset,
+					span.start + offset,
 					" ",
 					cfg.sourcetag,
 					"*/"
@@ -424,14 +424,16 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 	where
 		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 	{
+		// using wrapping adds for perf, 4gb large files is really an edge case
+
 		let mut offset = 0;
-		let mut added = 0i64;
+		let mut added = 0i32;
 		let mut buffer = Vec::with_capacity_in(js.len() * 2, self.alloc);
 
 		macro_rules! tryget {
-			($range:expr) => {
-				js.get($range)
-					.ok_or_else(|| RewriterError::Oob(($range).start, ($range).end))?
+			($start:ident..$end:ident) => {
+				js.get($start as usize..$end as usize)
+					.ok_or_else(|| RewriterError::Oob($start, $end))?
 			};
 		}
 		macro_rules! eval {
@@ -441,7 +443,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 						buffer.extend_from_slice(x.as_bytes());
 						x.len()
 					}
-					Change::Number(x) => {
+					Change::U32(x) => {
 						let x = format_compact_str!("{}", x);
 						buffer.extend_from_slice(x.as_bytes());
 						x.len()
@@ -457,15 +459,14 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 
 		for change in &self.inner {
 			let span = change.get_span();
-			let start = span.start as usize;
-			let end = span.end as usize;
+			let start = span.start;
+			let end = span.end;
 
 			buffer.extend_from_slice(tryget!(offset..start).as_bytes());
 
 			match change.to_inner(cfg, offset) {
 				JsChangeInner::Insert { loc, str } => {
 					let mut len = 0u32;
-					let loc = loc as usize;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
 					for str in &str {
 						len += eval!(str) as u32;
@@ -475,13 +476,11 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 					// INSERT op
 					map.push(0);
 					// pos
-					map.extend_from_slice(
-						&((loc as u32).wrapping_add_signed(added as i32)).to_le_bytes(),
-					);
+					map.extend_from_slice(&loc.wrapping_add_signed(added).to_le_bytes());
 					// size
 					map.extend_from_slice(&len.to_le_bytes());
 
-					added += len as i64;
+					added = added.wrapping_add_unsigned(len);
 				}
 				JsChangeInner::Replace { str } => {
 					let mut len = 0u32;
@@ -494,24 +493,24 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 					// len
 					map.extend_from_slice(&(span.end - span.start).to_le_bytes());
 					// start
-					map.extend_from_slice(
-						&(span.start.wrapping_add_signed(added as i32)).to_le_bytes(),
-					);
+					map.extend_from_slice(&(span.start.wrapping_add_signed(added)).to_le_bytes());
 					// end
 					map.extend_from_slice(
-						&((span.start + len).wrapping_add_signed(added as i32)).to_le_bytes(),
+						&((span.start + len).wrapping_add_signed(added)).to_le_bytes(),
 					);
 					// oldstr
 					map.extend_from_slice(tryget!(start..end).as_bytes());
 
-					added += len as i64 - (span.end - span.start) as i64;
+					let len = i32::try_from(len).map_err(|_| RewriterError::AddedTooLarge)?;
+					let diff = len.wrapping_sub_unsigned(span.end - span.start);
+					added = added.wrapping_add(diff);
 				}
 			}
 
 			offset = end;
 		}
 
-		let js_len = js.len();
+		let js_len = js.len() as u32;
 		buffer.extend_from_slice(tryget!(offset..js_len).as_bytes());
 
 		Ok(JsChangeResult {
