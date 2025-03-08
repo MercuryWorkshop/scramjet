@@ -178,7 +178,7 @@ where
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
 		let text = self.rewrite_url(it.source.value);
 		self.jschanges.add(Rewrite::Replace {
-			span: it.source.span,
+			span: it.source.span.shrink(1),
 			text,
 		});
 		walk::walk_import_declaration(self, it);
@@ -193,7 +193,7 @@ where
 	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'data>) {
 		let text = self.rewrite_url(it.source.value);
 		self.jschanges.add(Rewrite::Replace {
-			span: it.source.span,
+			span: it.source.span.shrink(1),
 			text,
 		});
 	}
@@ -201,7 +201,7 @@ where
 		if let Some(source) = &it.source {
 			let text = self.rewrite_url(source.value);
 			self.jschanges.add(Rewrite::Replace {
-				span: source.span,
+				span: source.span.shrink(1),
 				text,
 			});
 		}

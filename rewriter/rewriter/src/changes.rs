@@ -342,7 +342,7 @@ impl JsChange<'_> {
 				str: changes![cfg.importfn, "(\"", cfg.base, "\","],
 			},
 			Self::MetaFn { .. } => JsChangeInner::Replace {
-				str: changes![cfg.metafn, "(\"", cfg.base],
+				str: changes![cfg.metafn, "(\"", cfg.base, "\")"],
 			},
 			Self::AssignmentLeft { name, op, .. } => JsChangeInner::Replace {
 				str: changes![

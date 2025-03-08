@@ -86,7 +86,7 @@ fastify.listen({
 	port: PORT,
 	host: "0.0.0.0",
 });
-console.log(`Listening on port ${PORT}`);
+console.log(`Listening on http://localhost:${PORT}/`);
 if (!process.env.CI) {
 	try {
 		writeFileSync(
