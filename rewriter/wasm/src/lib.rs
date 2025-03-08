@@ -1,10 +1,6 @@
 pub mod error;
 
-use std::{
-	cell::{OnceCell, RefCell},
-	sync::{Arc, OnceLock},
-	time::Duration,
-};
+use std::{cell::RefCell, sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
 use instant::Instant;
