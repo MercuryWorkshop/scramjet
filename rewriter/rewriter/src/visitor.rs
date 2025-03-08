@@ -2,10 +2,10 @@ use oxc::{
 	allocator::{Allocator, String},
 	ast::ast::{
 		AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
-		ExportAllDeclaration, ExportNamedDeclaration, Expression, ForInStatement, ForOfStatement,
-		FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression,
-		MetaProperty, NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement,
-		ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
+		ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
+		IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty,
+		NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement, ThisExpression,
+		UnaryExpression, UnaryOperator, UpdateExpression,
 	},
 	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
@@ -61,7 +61,7 @@ where
 	}
 
 	fn walk_member_expression(&mut self, it: &Expression) -> bool {
-		if match it {
+		match it {
 			Expression::Identifier(s) => {
 				self.rewrite_ident(&s.name, s.span);
 				true
@@ -69,12 +69,7 @@ where
 			Expression::StaticMemberExpression(s) => self.walk_member_expression(&s.object),
 			Expression::ComputedMemberExpression(s) => self.walk_member_expression(&s.object),
 			_ => false,
-		} {
-			return true;
 		}
-
-		// don't walk further here it causes issues with constructors
-		false
 	}
 
 	fn scramitize(&mut self, span: Span) {
@@ -106,7 +101,6 @@ where
 		// }
 	}
 
-	// we need to rewrite `new Something` to `new (wrapfn(Something))` instead of `new wrapfn(Something)`, that's why there's weird extra code here
 	fn visit_new_expression(&mut self, it: &NewExpression<'data>) {
 		self.walk_member_expression(&it.callee);
 		walk::walk_arguments(self, &it.arguments);
@@ -159,7 +153,7 @@ where
 			// if it's optional that actually makes it an indirect eval which is handled separately
 			if s.name == "eval" && !it.optional {
 				self.jschanges.add(Rewrite::Eval {
-					span: Span::new(it.span.start, it.span.end),
+					span: it.span,
 					inner: Span::new(s.span.end + 1, it.span.end),
 				});
 
@@ -275,14 +269,6 @@ where
 			return;
 		}
 		walk::walk_unary_expression(self, it);
-	}
-
-	// we don't want to rewrite the identifiers here because of a very specific edge case
-	fn visit_for_in_statement(&mut self, it: &ForInStatement<'data>) {
-		walk::walk_statement(self, &it.body);
-	}
-	fn visit_for_of_statement(&mut self, it: &ForOfStatement<'data>) {
-		walk::walk_statement(self, &it.body);
 	}
 
 	fn visit_update_expression(&mut self, _it: &UpdateExpression<'data>) {
