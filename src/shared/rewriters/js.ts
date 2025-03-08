@@ -25,7 +25,7 @@ Error.stackTraceLimit = 50;
 const decoder = new TextDecoder();
 
 function rewriteJsWasm(
-	input: string | ArrayBuffer,
+	input: string | Uint8Array,
 	source: string | null,
 	meta: URLMeta,
 	module: boolean
@@ -41,16 +41,16 @@ function rewriteJsWasm(
 			out = rewrite_js(
 				input,
 				meta.base.href,
-				module,
 				source || "(unknown)",
+				module,
 				$scramjet
 			);
 		} else {
 			out = rewrite_js_from_arraybuffer(
-				new Uint8Array(input),
+				input,
 				meta.base.href,
-				module,
 				source || "(unknown)",
+				module,
 				$scramjet
 			);
 		}

@@ -366,7 +366,6 @@ async function rewriteBody(
 				workertype === "module"
 			);
 			if (flagEnabled("sourcemaps", meta.base) && map) {
-				console.log(js);
 				js =
 					`${globalThis.$scramjet.config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");` +
 					(js instanceof Uint8Array ? new TextDecoder().decode(js) : js);
