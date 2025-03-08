@@ -3,7 +3,7 @@ import { rewriteJs } from "./js";
 import { URLMeta } from "./url";
 
 export function rewriteWorkers(
-	js: string | ArrayBuffer,
+	js: string | Uint8Array,
 	type: string,
 	url: string,
 	meta: URLMeta

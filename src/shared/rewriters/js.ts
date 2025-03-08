@@ -102,7 +102,7 @@ function rewriteJsWasm(
 }
 
 function rewriteJsInner(
-	js: string | ArrayBuffer,
+	js: string | Uint8Array,
 	url: string | null,
 	meta: URLMeta,
 	module = false
@@ -117,7 +117,7 @@ function rewriteJsInner(
 }
 
 export function rewriteJs(
-	js: string | ArrayBuffer,
+	js: string | Uint8Array,
 	url: string | null,
 	meta: URLMeta,
 	module = false
@@ -126,7 +126,7 @@ export function rewriteJs(
 }
 
 export function rewriteJsWithMap(
-	js: string | ArrayBuffer,
+	js: string | Uint8Array,
 	url: string | null,
 	meta: URLMeta,
 	module = false

@@ -360,7 +360,7 @@ async function rewriteBody(
 			}
 		case "script":
 			let { js, tag, map } = rewriteJsWithMap(
-				await response.arrayBuffer(),
+				new Uint8Array(await response.arrayBuffer()),
 				response.finalURL,
 				meta,
 				workertype === "module"
@@ -376,7 +376,7 @@ async function rewriteBody(
 		case "sharedworker":
 		case "worker":
 			return rewriteWorkers(
-				await response.arrayBuffer(),
+				new Uint8Array(await response.arrayBuffer()),
 				workertype,
 				response.finalURL,
 				meta

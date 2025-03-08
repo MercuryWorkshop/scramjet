@@ -40,6 +40,7 @@ export default function (client: ScramjetClient, self: Self) {
 			// sync xhr to service worker is not supported
 			// there's a nice way of polyfilling this though, we can spin on an atomic using sharedarraybuffer. this will maintain the sync behavior
 
+			// @ts-expect-error ts dum
 			const sab = new SharedArrayBuffer(1024, { maxByteLength: 2147483647 });
 			const view = new DataView(sab);
 

@@ -26,6 +26,7 @@ export class ScramjetServiceWorkerRuntime {
 	}
 
 	hook() {
+		// @ts-expect-error TODO
 		this.client.global.registration = {
 			// TODO IMPLEMENT SCOPES
 			scope: this.client.url.href,
