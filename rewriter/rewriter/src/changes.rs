@@ -426,8 +426,8 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 	{
 		// using wrapping adds for perf, 4gb large files is really an edge case
 
-		let mut offset = 0;
-		let mut added = 0i32;
+		let mut cursor = 0;
+		let mut offset = 0i32;
 		let mut buffer = Vec::with_capacity_in(js.len() * 2, self.alloc);
 
 		macro_rules! tryget {
@@ -452,7 +452,9 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 			};
 		}
 
-		let mut map = Vec::with_capacity_in(js.len() * 2, self.alloc);
+		// insert has a 9 byte size, replace has a 13 byte minimum and usually it's like 5 bytes
+		// for the old str added on so use 16 as a really rough estimate
+		let mut map = Vec::with_capacity_in(self.inner.len() * 16, self.alloc);
 		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
 
 		self.inner.sort();
@@ -462,9 +464,9 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 			let start = span.start;
 			let end = span.end;
 
-			buffer.extend_from_slice(tryget!(offset..start).as_bytes());
+			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
 
-			match change.to_inner(cfg, offset) {
+			match change.to_inner(cfg, cursor) {
 				JsChangeInner::Insert { loc, str } => {
 					let mut len = 0u32;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
@@ -476,11 +478,11 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 					// INSERT op
 					map.push(0);
 					// pos
-					map.extend_from_slice(&loc.wrapping_add_signed(added).to_le_bytes());
+					map.extend_from_slice(&loc.wrapping_add_signed(offset).to_le_bytes());
 					// size
 					map.extend_from_slice(&len.to_le_bytes());
 
-					added = added.wrapping_add_unsigned(len);
+					offset = offset.wrapping_add_unsigned(len);
 				}
 				JsChangeInner::Replace { str } => {
 					let mut len = 0u32;
@@ -493,25 +495,25 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 					// len
 					map.extend_from_slice(&(span.end - span.start).to_le_bytes());
 					// start
-					map.extend_from_slice(&(span.start.wrapping_add_signed(added)).to_le_bytes());
+					map.extend_from_slice(&(span.start.wrapping_add_signed(offset)).to_le_bytes());
 					// end
 					map.extend_from_slice(
-						&((span.start + len).wrapping_add_signed(added)).to_le_bytes(),
+						&((span.start + len).wrapping_add_signed(offset)).to_le_bytes(),
 					);
 					// oldstr
 					map.extend_from_slice(tryget!(start..end).as_bytes());
 
 					let len = i32::try_from(len).map_err(|_| RewriterError::AddedTooLarge)?;
 					let diff = len.wrapping_sub_unsigned(span.end - span.start);
-					added = added.wrapping_add(diff);
+					offset = offset.wrapping_add(diff);
 				}
 			}
 
-			offset = end;
+			cursor = end;
 		}
 
 		let js_len = js.len() as u32;
-		buffer.extend_from_slice(tryget!(offset..js_len).as_bytes());
+		buffer.extend_from_slice(tryget!(cursor..js_len).as_bytes());
 
 		Ok(JsChangeResult {
 			js: buffer,

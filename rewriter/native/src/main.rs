@@ -49,7 +49,7 @@ enum RewriteType {
 	Replace { start: u32, end: u32, str: Bytes },
 }
 
-fn dounrewrite(res: RewriteResult) -> Vec<u8> {
+fn dounrewrite(res: &RewriteResult) -> Vec<u8> {
 	let js = res.js.as_slice();
 	let mut map = Bytes::from(res.sourcemap.to_vec());
 	let rewrite_cnt = map.get_u32_le();
@@ -80,23 +80,23 @@ fn dounrewrite(res: RewriteResult) -> Vec<u8> {
 
 	let mut out = BytesMut::with_capacity(res.js.len());
 
-	let mut lastpos: u32 = 0;
+	let mut cursor: u32 = 0;
 
 	for rewrite in rewrites {
 		match rewrite {
 			RewriteType::Insert { pos, size } => {
-				out.extend_from_slice(&js[lastpos as usize..pos as usize]);
-				lastpos = pos + size;
+				out.extend_from_slice(&js[cursor as usize..pos as usize]);
+				cursor = pos + size;
 			}
 			RewriteType::Replace { start, end, str } => {
-				out.extend_from_slice(&js[lastpos as usize..start as usize]);
+				out.extend_from_slice(&js[cursor as usize..start as usize]);
 				out.extend_from_slice(&str);
-				lastpos = end;
+				cursor = end;
 			}
 		}
 	}
 
-	out.extend_from_slice(&js[lastpos as usize..]);
+	out.extend_from_slice(&js[cursor as usize..]);
 
 	out.to_vec()
 }
@@ -137,7 +137,7 @@ fn main() -> Result<()> {
 			str::from_utf8(&res.js).context("failed to parse rewritten js")?
 		);
 
-		let unrewritten = dounrewrite(res);
+		let unrewritten = dounrewrite(&res);
 
 		println!(
 			"unrewritten matches orig: {}",
