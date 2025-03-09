@@ -17,6 +17,7 @@ import type { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
+import { SourceMaps } from "./shared/sourcemaps";
 
 type NativeStore = {
 	store: Record<string, any>;
@@ -77,6 +78,7 @@ export class ScramjetClient {
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
+	sourcemaps: SourceMaps;
 	wrapfn: (i: any, ...args: any) => any;
 
 	cookieStore = new CookieStore();
@@ -102,17 +104,6 @@ export class ScramjetClient {
 			throw new Error();
 		}
 
-		this.serviceWorker = this.global.navigator.serviceWorker;
-
-		if (iswindow) {
-			this.documentProxy = createDocumentProxy(this, global);
-
-			global.document[SCRAMJETCLIENT] = this;
-		}
-
-		this.locationProxy = createLocationProxy(this, global);
-		this.globalProxy = createGlobalProxy(this, global);
-		this.wrapfn = createWrapFn(this, global);
 		if (iswindow) {
 			this.bare = new BareClient();
 		} else {
@@ -130,6 +121,19 @@ export class ScramjetClient {
 				})
 			);
 		}
+
+		this.serviceWorker = this.global.navigator.serviceWorker;
+
+		if (iswindow) {
+			this.documentProxy = createDocumentProxy(this, global);
+
+			global.document[SCRAMJETCLIENT] = this;
+		}
+
+		this.locationProxy = createLocationProxy(this, global);
+		this.globalProxy = createGlobalProxy(this, global);
+		this.wrapfn = createWrapFn(this, global);
+		this.sourcemaps = {};
 		this.natives = {
 			store: new Proxy(
 				{},

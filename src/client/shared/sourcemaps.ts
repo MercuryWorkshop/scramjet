@@ -1,4 +1,5 @@
 import { flagEnabled } from "../../scramjet";
+import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "../../symbols";
 import { ProxyCtx, ScramjetClient } from "../client";
 
 enum RewriteType {
@@ -20,6 +21,8 @@ type Rewrite = {
 	  }
 );
 
+export type SourceMaps = Record<string, Rewrite[]>;
+
 function getEnd(rewrite: Rewrite): number {
 	if (rewrite.type === RewriteType.Insert) {
 		return rewrite.start + rewrite.size;
@@ -30,6 +33,30 @@ function getEnd(rewrite: Rewrite): number {
 }
 
 const scramtag_ident = "/*scramtag ";
+
+// some sites like to steal funcs from frames and then unrewrite them
+function searchRewrites(tag: string): Rewrite[] | undefined {
+	function searchFrame(globalThis: Self) {
+		const SCRAMJETCLIENT = globalThis.Symbol.for(SCRAMJETCLIENTNAME);
+		if (globalThis[SCRAMJETCLIENT].sourcemaps[tag])
+			return globalThis[SCRAMJETCLIENT].sourcemaps[tag];
+
+		// no enhanced for :frowning2:
+		for (let i = 0; i < globalThis.frames.length; i++) {
+			const rewrites = searchFrame(globalThis.frames[i].self);
+			if (rewrites) return rewrites;
+		}
+	}
+
+	let globalThis = self;
+	let rewrites = searchFrame(globalThis);
+	if (rewrites) return rewrites;
+	while (globalThis.parent && globalThis.parent !== globalThis.window) {
+		globalThis = globalThis.parent.self;
+		let rewrites = searchFrame(globalThis);
+		if (rewrites) return rewrites;
+	}
+}
 
 function registerRewrites(buf: Array<number>, tag: string) {
 	const sourcemap = Uint8Array.from(buf);
@@ -65,7 +92,7 @@ function registerRewrites(buf: Array<number>, tag: string) {
 		}
 	}
 
-	sourcemaps[tag] = rewrites;
+	self[SCRAMJETCLIENT].sourcemaps[tag] = rewrites;
 }
 
 function doUnrewrite(ctx: ProxyCtx) {
@@ -94,7 +121,7 @@ function doUnrewrite(ctx: ProxyCtx) {
 	const scramtagend = stringified.indexOf("*/", scramtagstart);
 	const tag = stringified.substring(firstspace + 1, scramtagend);
 
-	const rewrites = sourcemaps[tag];
+	const rewrites = searchRewrites(tag);
 
 	if (!rewrites) {
 		console.warn("failed to get rewrites for tag", tag);
@@ -136,8 +163,6 @@ function doUnrewrite(ctx: ProxyCtx) {
 
 	return ctx.return(newString);
 }
-
-const sourcemaps: Record<string, Rewrite[]> = {};
 
 export const enabled = (client: ScramjetClient) =>
 	flagEnabled("sourcemaps", client.url);
