@@ -56,7 +56,7 @@ function rewriteJsWasm(
 		}
 	} catch (err) {
 		const err1 = err as Error;
-		console.warn("failed rewriting js for", source, err1, input);
+		console.warn("failed rewriting js for", source, err1.message, input);
 
 		return { js: input, tag: "", map: null };
 	}
