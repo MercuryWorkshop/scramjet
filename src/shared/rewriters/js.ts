@@ -100,6 +100,26 @@ function rewriteJsWasm(
 	};
 }
 
+// 1. does not work with modules
+// 2. cannot proxy import()
+// 3. disables "use strict" optimizations
+// 4. i think the global state can get clobbered somehow
+//
+// if you can ensure all the preconditions are met this is faster than full rewrites
+function rewriteJsNaiive(js: string | ArrayBuffer) {
+	if (typeof js !== "string") {
+		js = new TextDecoder().decode(js);
+	}
+
+	return `
+		with (${$scramjet.config.globals.wrapfn}(globalThis)) {
+
+			${js}
+
+		}
+	`;
+}
+
 function rewriteJsInner(
 	js: string | Uint8Array,
 	url: string | null,
@@ -131,24 +151,4 @@ export function rewriteJsWithMap(
 	module = false
 ) {
 	return rewriteJsInner(js, url, meta, module);
-}
-
-// 1. does not work with modules
-// 2. cannot proxy import()
-// 3. disables "use strict" optimizations
-// 4. i think the global state can get clobbered somehow
-//
-// if you can ensure all the preconditions are met this is faster than full rewrites
-export function rewriteJsNaiive(js: string | ArrayBuffer) {
-	if (typeof js !== "string") {
-		js = new TextDecoder().decode(js);
-	}
-
-	return `
-		with (${$scramjet.config.globals.wrapfn}(globalThis)) {
-
-			${js}
-
-		}
-	`;
 }

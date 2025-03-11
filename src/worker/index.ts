@@ -43,6 +43,7 @@ export class ScramjetServiceWorker extends EventTarget {
 				const cb = this.syncPool[data.scramjet$token];
 				delete this.syncPool[data.scramjet$token];
 				cb(data);
+
 				return;
 			}
 
@@ -67,13 +68,14 @@ export class ScramjetServiceWorker extends EventTarget {
 	}
 
 	async dispatch(client: Client, data: MessageW2C): Promise<MessageC2W> {
-		let token = this.synctoken++;
+		const token = this.synctoken++;
 		let cb: (val: MessageC2W) => void;
-		let promise: Promise<MessageC2W> = new Promise((r) => (cb = r));
+		const promise: Promise<MessageC2W> = new Promise((r) => (cb = r));
 		this.syncPool[token] = cb;
 		data.scramjet$token = token;
 
 		client.postMessage(data);
+
 		return await promise;
 	}
 

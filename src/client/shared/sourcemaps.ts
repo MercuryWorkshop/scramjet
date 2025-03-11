@@ -125,6 +125,7 @@ function doUnrewrite(ctx: ProxyCtx) {
 
 	if (!rewrites) {
 		console.warn("failed to get rewrites for tag", tag);
+
 		return ctx.return(stringified);
 	}
 

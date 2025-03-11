@@ -237,12 +237,12 @@ async function handleResponse(
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
 		if (client) {
-			let promise = swtarget.dispatch(client, {
+			const promise = swtarget.dispatch(client, {
 				scramjet$type: "cookie",
 				cookie,
 				url: url.href,
 			});
-			if (destination != "document" && destination != "iframe") {
+			if (destination !== "document" && destination !== "iframe") {
 				await promise;
 			}
 		}
@@ -358,7 +358,7 @@ async function rewriteBody(
 			} else {
 				return response.body;
 			}
-		case "script":
+		case "script": {
 			let { js, tag, map } = rewriteJsWithMap(
 				new Uint8Array(await response.arrayBuffer()),
 				response.finalURL,
@@ -370,7 +370,9 @@ async function rewriteBody(
 					`${globalThis.$scramjet.config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");` +
 					(js instanceof Uint8Array ? new TextDecoder().decode(js) : js);
 			}
-			return js;
+
+			return js as unknown as ArrayBuffer;
+		}
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
