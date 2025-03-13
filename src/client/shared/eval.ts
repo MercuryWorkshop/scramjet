@@ -17,11 +17,20 @@ export default function (client: ScramjetClient, self: Self) {
 	});
 }
 
-export function indirectEval(this: ScramjetClient, js: any) {
+export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 	// > If the argument of eval() is not a string, eval() returns the argument unchanged
 	if (typeof js !== "string") return js;
 
-	const indirection = this.global.eval;
+	let indirection: Function;
+	if (strict) {
+		console.log("STRICT");
+		indirection = new Function(`
+			"use strict";
+			return eval;
+		`);
+	} else {
+		indirection = this.global.eval;
+	}
 
 	return indirection(
 		rewriteJs(js, "(indirect eval proxy)", this.meta) as string

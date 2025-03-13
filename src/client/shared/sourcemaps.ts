@@ -38,7 +38,11 @@ const scramtag_ident = "/*scramtag ";
 function searchRewrites(tag: string): Rewrite[] | undefined {
 	function searchFrame(globalThis: Self) {
 		const SCRAMJETCLIENT = globalThis.Symbol.for(SCRAMJETCLIENTNAME);
-		if (globalThis[SCRAMJETCLIENT].sourcemaps[tag])
+		if (
+			globalThis[SCRAMJETCLIENT] &&
+			globalThis[SCRAMJETCLIENT].sourcemaps &&
+			globalThis[SCRAMJETCLIENT].sourcemaps[tag]
+		)
 			return globalThis[SCRAMJETCLIENT].sourcemaps[tag];
 
 		// no enhanced for :frowning2:

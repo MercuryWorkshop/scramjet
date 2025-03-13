@@ -9,9 +9,12 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::{cfg::Config, RewriterError};
 
+// const STRICTCHECKER: &str = "(function(a){arguments[0]=false;return a})(true)";
+const STRICTCHECKER: &str = "(function(){return !this;})()";
+
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Rewrite<'data> {
-	/// `(cfg.wrapfn(ident))` | `cfg.wrapfn(ident)`
+	/// `(cfg.wrapfn(ident,strictchecker))` | `cfg.wrapfn(ident,strictchecker)`
 	WrapFn {
 		span: Span,
 		wrapped: bool,
@@ -79,29 +82,17 @@ pub(crate) enum Rewrite<'data> {
 impl<'data> Rewrite<'data> {
 	fn into_inner(self) -> SmallVec<[JsChange<'data>; 4]> {
 		match self {
-			Self::WrapFn { wrapped, span } => {
+			Self::WrapFn {
+				wrapped: extra,
+				span,
+			} => {
 				let start = Span::new(span.start, span.start);
 				let end = Span::new(span.end, span.end);
-				if wrapped {
-					smallvec![
-						JsChange::WrapFn {
-							span: start,
-							extra: true
-						},
-						JsChange::DoubleClosingParen { span: end }
-					]
-				} else {
-					smallvec![
-						JsChange::WrapFn {
-							span: start,
-							extra: false
-						},
-						JsChange::ClosingParen {
-							span: end,
-							semi: false,
-						}
-					]
-				}
+
+				smallvec![
+					JsChange::WrapFnLeft { span: start, extra },
+					JsChange::WrapFnRight { span: end, extra }
+				]
 			}
 			Self::SetRealmFn { span } => smallvec![JsChange::SetRealmFn { span }],
 			Self::WrapThisFn { span } => smallvec![
@@ -221,7 +212,9 @@ enum JsChangeInner<'a> {
 #[derive(Debug, PartialEq, Eq)]
 enum JsChange<'data> {
 	/// insert `${cfg.wrapfn}(`
-	WrapFn { span: Span, extra: bool },
+	WrapFnLeft { span: Span, extra: bool },
+	/// insert `,strictchecker)`
+	WrapFnRight { span: Span, extra: bool },
 	/// insert `${cfg.setrealmfn}({}).`
 	SetRealmFn { span: Span },
 	/// insert `${cfg.wrapthis}(`
@@ -252,8 +245,6 @@ enum JsChange<'data> {
 	ReplaceClosingParen { span: Span },
 	/// insert `)`
 	ClosingParen { span: Span, semi: bool },
-	/// insert `))`
-	DoubleClosingParen { span: Span },
 
 	/// replace span with text
 	Replace { span: Span, text: String<'data> },
@@ -264,7 +255,8 @@ enum JsChange<'data> {
 impl JsChange<'_> {
 	fn get_span(&self) -> &Span {
 		match self {
-			Self::WrapFn { span, .. }
+			Self::WrapFnLeft { span, .. }
+			| Self::WrapFnRight { span, .. }
 			| Self::SetRealmFn { span }
 			| Self::WrapThisFn { span }
 			| Self::ScramErrFn { span, .. }
@@ -277,7 +269,6 @@ impl JsChange<'_> {
 			| Self::AssignmentLeft { span, .. }
 			| Self::ReplaceClosingParen { span }
 			| Self::ClosingParen { span, .. }
-			| Self::DoubleClosingParen { span }
 			| Self::Replace { span, .. }
 			| Self::Delete { span } => span,
 		}
@@ -292,7 +283,7 @@ impl JsChange<'_> {
 		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 	{
 		match self {
-			Self::WrapFn { span, extra } => {
+			Self::WrapFnLeft { span, extra } => {
 				if *extra {
 					JsChangeInner::Insert {
 						loc: span.start,
@@ -302,6 +293,19 @@ impl JsChange<'_> {
 					JsChangeInner::Insert {
 						loc: span.start,
 						str: changes![cfg.wrapfn, "("],
+					}
+				}
+			}
+			Self::WrapFnRight { span, extra } => {
+				if *extra {
+					JsChangeInner::Insert {
+						loc: span.start,
+						str: changes![",", STRICTCHECKER, "))"],
+					}
+				} else {
+					JsChangeInner::Insert {
+						loc: span.start,
+						str: changes![",", STRICTCHECKER, ")"],
 					}
 				}
 			}
@@ -330,13 +334,7 @@ impl JsChange<'_> {
 			},
 			Self::SourceTag { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![
-					"/*scramtag ",
-					span.start + offset,
-					" ",
-					cfg.sourcetag,
-					"*/"
-				],
+				str: changes!["/*scramtag ", span.start + offset, " ", cfg.sourcetag, "*/"],
 			},
 			Self::ImportFn { .. } => JsChangeInner::Replace {
 				str: changes![cfg.importfn, "(\"", cfg.base, "\","],
@@ -360,10 +358,6 @@ impl JsChange<'_> {
 			Self::ClosingParen { span, semi } => JsChangeInner::Insert {
 				loc: span.start,
 				str: if *semi { changes![");"] } else { changes![")"] },
-			},
-			Self::DoubleClosingParen { span } => JsChangeInner::Insert {
-				loc: span.start,
-				str: changes!["))"],
 			},
 			Self::Replace { text, .. } => JsChangeInner::Replace {
 				str: changes![text],

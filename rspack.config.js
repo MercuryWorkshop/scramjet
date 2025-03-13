@@ -48,6 +48,7 @@ export default defineConfig({
 		],
 		parser: {
 			javascript: {
+				overrideStrict: "non-strict",
 				dynamicImportMode: "eager",
 			},
 		},

@@ -63,7 +63,7 @@ function rewriteJsWasm(
 	const after = performance.now();
 	let { js, map, scramtag, errors, duration } = out;
 
-	if ((flagEnabled("sourcemaps", meta.base), !globalThis.clients)) {
+	if (flagEnabled("sourcemaps", meta.base) && !globalThis.clients) {
 		globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
 			Array.from(map),
 			scramtag

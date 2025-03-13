@@ -52,8 +52,10 @@ export function createGlobalProxy(
 
 			if (prop === "$scramjet") return undefined;
 
-			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop))
-				return client.wrapfn(value);
+			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop)) {
+				// TODO strict mode detect
+				return client.wrapfn(value, true);
+			}
 
 			return value;
 		},
