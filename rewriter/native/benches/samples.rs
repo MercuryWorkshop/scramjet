@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
-use rewriter::{cfg::Config, rewrite};
+use js::{cfg::Config, rewrite};
 use url::Url;
 use urlencoding::encode;
 

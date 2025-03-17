@@ -6,7 +6,7 @@ use oxc::{
 	allocator::{Allocator, String},
 	diagnostics::NamedSource,
 };
-use rewriter::{cfg::Config, rewrite, RewriteResult};
+use js::{cfg::Config, rewrite, RewriteResult};
 use url::Url;
 use urlencoding::encode;
 

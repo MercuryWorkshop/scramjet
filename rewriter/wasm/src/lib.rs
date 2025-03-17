@@ -9,7 +9,7 @@ use oxc::{
 	allocator::{Allocator, String},
 	diagnostics::NamedSource,
 };
-use rewriter::{cfg::Config, rewrite, RewriteResult};
+use js::{cfg::Config, rewrite, RewriteResult};
 use wasm_bindgen::prelude::*;
 use web_sys::Url;
 

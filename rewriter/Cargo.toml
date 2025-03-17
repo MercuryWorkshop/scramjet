@@ -1,5 +1,5 @@
 [workspace]
-members = ["native", "rewriter", "wasm"]
+members = ["native", "js", "wasm"]
 resolver = "2"
 
 [profile.release]

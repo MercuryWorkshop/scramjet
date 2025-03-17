@@ -716,6 +716,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
+name = "js"
+version = "0.1.0"
+dependencies = [
+ "oxc",
+ "smallvec",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "js-sys"
 version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -776,8 +785,8 @@ dependencies = [
  "boa_engine",
  "bytes",
  "criterion",
+ "js",
  "oxc",
- "rewriter",
  "url",
  "urlencoding",
 ]
@@ -1333,15 +1342,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rewriter"
-version = "0.1.0"
-dependencies = [
- "oxc",
- "smallvec",
- "thiserror 2.0.12",
-]
-
-[[package]]
 name = "ropey"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1706,9 +1706,9 @@ name = "wasm"
 version = "0.1.0"
 dependencies = [
  "instant",
+ "js",
  "js-sys",
  "oxc",
- "rewriter",
  "thiserror 2.0.12",
  "wasm-bindgen",
  "web-sys",

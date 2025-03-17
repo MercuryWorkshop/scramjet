@@ -1,7 +1,7 @@
 use std::cell::BorrowMutError;
 
 use js_sys::Error;
-use rewriter::RewriterError as InnerRewriterError;
+use js::RewriterError as JsRewriterError;
 use thiserror::Error;
 use wasm_bindgen::{JsError, JsValue};
 
@@ -11,8 +11,8 @@ pub enum RewriterError {
 	Js(String),
 	#[error("str fromutf8 error: {0}")]
 	Str(#[from] std::str::Utf8Error),
-	#[error("Rewriter: {0}")]
-	Rewriter(#[from] InnerRewriterError),
+	#[error("JS Rewriter: {0}")]
+	JsRewriter(#[from] JsRewriterError),
 	#[error("reflect set failed: {0}")]
 	ReflectSetFail(String),
 	#[error("Rewriter was already rewriting")]
