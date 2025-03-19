@@ -50,7 +50,6 @@ where
 		.with_standard(true);
 	let ret = Parser::new(alloc, js, source_type)
 		.with_options(ParseOptions {
-			parse_regular_expression: false,
 			allow_v8_intrinsics: true,
 			allow_return_outside_function: true,
 			preserve_parens: true,
@@ -72,7 +71,11 @@ where
 		config,
 		alloc,
 	};
-	visitor.visit_program(&ret.program);
+
+	#[allow(clippy::all)]
+	let program = unsafe { std::mem::transmute(ret.program) };
+
+	visitor.visit_program(&program);
 	let Visitor {
 		mut jschanges,
 		config,
