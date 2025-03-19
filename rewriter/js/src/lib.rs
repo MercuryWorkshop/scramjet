@@ -52,7 +52,7 @@ where
 		.with_options(ParseOptions {
 			allow_v8_intrinsics: true,
 			allow_return_outside_function: true,
-			preserve_parens: true,
+			..Default::default()
 		})
 		.parse();
 
