@@ -35,7 +35,7 @@ export class ScramjetController {
 				captureErrors: true,
 				cleanErrors: false,
 				scramitize: false,
-				sourcemaps: false,
+				sourcemaps: true,
 			},
 			siteFlags: {},
 			codec: {
@@ -120,6 +120,7 @@ export class ScramjetController {
 		}
 		const tx = this.db.transaction("config", "readwrite");
 		const store = tx.objectStore("config");
+		console.log(store.getAll());
 		const req = store.put($scramjet.config, "config");
 
 		return new Promise((resolve, reject) => {

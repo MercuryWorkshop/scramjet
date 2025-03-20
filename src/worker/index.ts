@@ -117,6 +117,8 @@ export class ScramjetServiceWorker extends EventTarget {
 	}
 
 	async fetch({ request, clientId }: FetchEvent) {
+		if (!this.config) await this.loadConfig();
+
 		const client = await self.clients.get(clientId);
 
 		return handleFetch.call(this, request, client);
