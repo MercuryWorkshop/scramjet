@@ -1,12 +1,17 @@
-use std::{env, fs, str::FromStr, sync::Arc};
+use std::{
+	env, fs,
+	str::FromStr,
+	sync::Arc,
+	time::{Duration, Instant},
+};
 
 use anyhow::{Context, Result};
 use bytes::{Buf, Bytes, BytesMut};
+use js::{cfg::Config, rewrite, RewriteResult};
 use oxc::{
 	allocator::{Allocator, String},
 	diagnostics::NamedSource,
 };
-use js::{cfg::Config, rewrite, RewriteResult};
 use url::Url;
 use urlencoding::encode;
 
@@ -18,9 +23,9 @@ fn dorewrite<'alloc>(alloc: &'alloc Allocator, data: &str) -> Result<RewriteResu
 		Config {
 			prefix: "/scrammedjet/",
 			base: "https://google.com/glorngle/si.js",
-			urlrewriter: Box::new(move |x: &str, alloc: &'alloc Allocator| {
+			urlrewriter: move |x: &str, alloc: &'alloc Allocator| {
 				String::from_str_in(encode(url.join(x).unwrap().as_str()).as_ref(), alloc)
-			}),
+			},
 
 			sourcetag: "glongle1",
 
@@ -104,20 +109,31 @@ fn dounrewrite(res: &RewriteResult) -> Vec<u8> {
 fn main() -> Result<()> {
 	let file = env::args().nth(1).unwrap_or_else(|| "test.js".to_string());
 	let data = fs::read_to_string(file).context("failed to read file")?;
-	let bench = env::args().nth(2).is_some();
+	let bench = env::args().nth(2).map(|x| usize::from_str(&x));
 
 	let mut alloc = Allocator::default();
 
-	if bench {
-		let mut i = 0;
-		loop {
+	if let Some(cnt) = bench.transpose().context("invalid bench size")? {
+		let mut duration = Duration::from_secs(0);
+
+		let cnt = cnt * 100;
+
+		for x in 1..=cnt {
+			let before = Instant::now();
 			let _ = dorewrite(&alloc, &data);
+			let after = Instant::now();
+
+			duration += after - before;
+
 			alloc.reset();
-			i += 1;
-			if i % 100 == 0 {
-				println!("{i}...");
+			if x % 100 == 0 {
+				println!("{x}...");
 			}
 		}
+
+		println!("iterations: {cnt}");
+		println!("total time: {duration:?}");
+		println!("avg time: {:?}", duration / cnt as u32);
 	} else {
 		println!("orig:\n{data}");
 

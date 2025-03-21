@@ -14,8 +14,8 @@ if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
 fi
 
 if ! [ "${RELEASE:-0}" = "1" ]; then
-	: "${WASMOPTFLAGS:=-g}"
-	: "${FEATURES:=debug}"
+	WASMOPTFLAGS="${WASMOPTFLAGS:-} -g"
+	FEATURES="debug,${FEATURES:-}"
 else
 	: "${WASMOPTFLAGS:=}"
 	: "${FEATURES:=}"

@@ -7,7 +7,7 @@ use oxc::{
 };
 use smallvec::{smallvec, SmallVec};
 
-use crate::{cfg::Config, RewriterError};
+use crate::{cfg::Config, changeset::ChangeSet, RewriterError};
 
 // const STRICTCHECKER: &str = "(function(a){arguments[0]=false;return a})(true)";
 const STRICTCHECKER: &str = "(function(){return !this;})()";
@@ -161,52 +161,10 @@ impl<'data> Rewrite<'data> {
 	}
 }
 
-enum Change<'a> {
-	Str(&'a str),
-	U32(u32),
-}
-
-impl<'a> From<&'a str> for Change<'a> {
-	fn from(value: &'a str) -> Self {
-		Self::Str(value)
-	}
-}
-
-impl<'a> From<&'a String<'_>> for Change<'a> {
-	fn from(value: &'a String<'_>) -> Self {
-		Self::Str(value.as_str())
-	}
-}
-
-impl<'a> From<&'a Atom<'_>> for Change<'a> {
-	fn from(value: &'a Atom<'_>) -> Self {
-		Self::Str(value.as_str())
-	}
-}
-
-impl<'a> From<&'a AssignmentOperator> for Change<'a> {
-	fn from(value: &'a AssignmentOperator) -> Self {
-		Self::Str(value.as_str())
-	}
-}
-
-impl From<u32> for Change<'static> {
-	fn from(value: u32) -> Self {
-		Self::U32(value)
-	}
-}
-
 macro_rules! changes {
 	[$($change:expr),+] => {
 		smallvec![$(Change::from($change)),+]
     };
-}
-
-type Changes<'a> = SmallVec<[Change<'a>; 8]>;
-
-enum JsChangeInner<'a> {
-	Insert { loc: u32, str: Changes<'a> },
-	Replace { str: Changes<'a> },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -386,6 +344,48 @@ impl Ord for JsChange<'_> {
 	}
 }
 
+enum Change<'a> {
+	Str(&'a str),
+	U32(u32),
+}
+
+impl<'a> From<&'a str> for Change<'a> {
+	fn from(value: &'a str) -> Self {
+		Self::Str(value)
+	}
+}
+
+impl<'a> From<&'a String<'_>> for Change<'a> {
+	fn from(value: &'a String<'_>) -> Self {
+		Self::Str(value.as_str())
+	}
+}
+
+impl<'a> From<&'a Atom<'_>> for Change<'a> {
+	fn from(value: &'a Atom<'_>) -> Self {
+		Self::Str(value.as_str())
+	}
+}
+
+impl<'a> From<&'a AssignmentOperator> for Change<'a> {
+	fn from(value: &'a AssignmentOperator) -> Self {
+		Self::Str(value.as_str())
+	}
+}
+
+impl From<u32> for Change<'static> {
+	fn from(value: u32) -> Self {
+		Self::U32(value)
+	}
+}
+
+type Changes<'a> = SmallVec<[Change<'a>; 8]>;
+
+enum JsChangeInner<'a> {
+	Insert { loc: u32, str: Changes<'a> },
+	Replace { str: Changes<'a> },
+}
+
 pub(crate) struct JsChangeResult<'alloc> {
 	pub js: Vec<'alloc, u8>,
 	pub sourcemap: Vec<'alloc, u8>,
@@ -393,20 +393,20 @@ pub(crate) struct JsChangeResult<'alloc> {
 
 pub(crate) struct JsChanges<'alloc: 'data, 'data> {
 	alloc: &'alloc Allocator,
-	inner: Vec<'alloc, JsChange<'data>>,
+	inner: ChangeSet<'alloc, JsChange<'data>>,
 }
 
 impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 	pub fn new(alloc: &'alloc Allocator, capacity: usize) -> Self {
 		Self {
-			inner: Vec::with_capacity_in(capacity, alloc),
+			inner: ChangeSet::new(alloc, capacity),
 			alloc,
 		}
 	}
 
 	pub fn add(&mut self, rewrite: Rewrite<'data>) {
 		for change in rewrite.into_inner() {
-			self.inner.push(change);
+			self.inner.add(change);
 		}
 	}
 
@@ -418,8 +418,6 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 	where
 		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
 	{
-		// using wrapping adds for perf, 4gb large files is really an edge case
-
 		let mut cursor = 0;
 		let mut offset = 0i32;
 		let mut buffer = Vec::with_capacity_in(js.len() * 2, self.alloc);
@@ -453,7 +451,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 
 		self.inner.sort();
 
-		for change in &self.inner {
+		for change in self.inner.iter() {
 			let span = change.get_span();
 			let start = span.start;
 			let end = span.end;

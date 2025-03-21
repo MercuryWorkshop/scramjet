@@ -8,8 +8,9 @@ use oxc::{
 use thiserror::Error;
 
 pub mod cfg;
-pub mod changes;
+mod changes;
 mod visitor;
+mod changeset;
 
 use cfg::Config;
 use changes::{JsChangeResult, JsChanges};
