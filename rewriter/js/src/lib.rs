@@ -73,10 +73,7 @@ where
 		alloc,
 	};
 
-	#[allow(clippy::all)]
-	let program = unsafe { std::mem::transmute(ret.program) };
-
-	visitor.visit_program(&program);
+	visitor.visit_program(&ret.program);
 	let Visitor {
 		mut jschanges,
 		config,

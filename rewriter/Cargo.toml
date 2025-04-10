@@ -10,7 +10,7 @@ codegen-units = 1
 panic = "abort"
 
 [workspace.dependencies]
-oxc = { version = "0.61.1", features = ["ast_visit"] }
+oxc = { version = "0.58.1", features = ["ast_visit"] }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
