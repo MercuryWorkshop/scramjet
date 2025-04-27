@@ -47,14 +47,14 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 		const realUrl = tryCanParseURL(url, base);
 		if (!realUrl) return url;
 		const encodedHash = $scramjet.codec.encode(realUrl.hash.slice(1));
+		const realHash = encodedHash ? "#" + encodedHash : "";
 		realUrl.hash = "";
 
 		return (
 			location.origin +
 			$scramjet.config.prefix +
 			$scramjet.codec.encode(realUrl.href) +
-			"#" +
-			encodedHash
+			realHash
 		);
 	}
 }
@@ -80,10 +80,11 @@ export function unrewriteUrl(url: string | URL) {
 		const realUrl = tryCanParseURL(url);
 		if (!realUrl) return url;
 		const decodedHash = $scramjet.codec.decode(realUrl.hash.slice(1));
+		const realHash = decodedHash ? "#" + decodedHash : "";
 		realUrl.hash = "";
 
 		return $scramjet.codec.decode(
-			realUrl.href.slice(prefixed.length) + "#" + decodedHash
+			realUrl.href.slice(prefixed.length) + realHash
 		);
 	}
 }
