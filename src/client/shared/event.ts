@@ -46,8 +46,8 @@ export default function (client: ScramjetClient, self: Self) {
 			},
 		},
 		hashchange: {
-			oldUrl() {
-				return unrewriteUrl(this.oldUrl);
+			oldURL() {
+				return unrewriteUrl(this.oldURL);
 			},
 			newURL() {
 				return unrewriteUrl(this.newURL);
