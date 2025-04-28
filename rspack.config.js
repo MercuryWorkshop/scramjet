@@ -29,14 +29,12 @@ export default defineConfig({
 				loader: "builtin:swc-loader",
 				exclude: ["/node_modules/"],
 				options: {
-					asdasdasds: new Error(),
 					jsc: {
 						parser: {
 							syntax: "typescript",
 						},
 						target: "es2022",
 					},
-					strictMode: false,
 					module: {
 						type: "es6",
 						strict: false,

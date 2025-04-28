@@ -1,4 +1,5 @@
 import { iswindow } from "..";
+import { unrewriteUrl } from "../../shared";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
@@ -42,6 +43,14 @@ export default function (client: ScramjetClient, self: Self) {
 					return this.data.$scramjet$data;
 
 				return this.data;
+			},
+		},
+		hashchange: {
+			oldUrl() {
+				return unrewriteUrl(this.oldUrl);
+			},
+			newURL() {
+				return unrewriteUrl(this.newURL);
 			},
 		},
 	};
