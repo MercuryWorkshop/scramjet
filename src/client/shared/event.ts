@@ -72,9 +72,9 @@ export default function (client: ScramjetClient, self: Self) {
 						}
 
 						args[0] = new Proxy(realEvent, {
-							get(_target, prop, reciever) {
+							get(target, prop, reciever) {
 								if (prop in handler) {
-									return handler[prop].call(_target);
+									return handler[prop].call(target);
 								}
 
 								return Reflect.get(target, prop, reciever);
