@@ -231,7 +231,8 @@ function BrowserApp() {
         <button on:click=${() => frame.forward()}>-&gt;</button>
         <button on:click=${() => frame.reload()}>&#x21bb;</button>
 
-        <input class="bar" bind:value=${use(this.url)} on:input=${(e) => {
+        <input class="bar" autocomplete="off" autocapitalize="off" autocorrect="off" 
+        bind:value=${use(this.url)} on:input=${(e) => {
 					this.url = e.target.value;
 				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
 
