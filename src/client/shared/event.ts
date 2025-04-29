@@ -73,11 +73,24 @@ export default function (client: ScramjetClient, self: Self) {
 
 						args[0] = new Proxy(realEvent, {
 							get(target, prop, reciever) {
+								const value = Reflect.get(target, prop);
 								if (prop in handler) {
 									return handler[prop].call(target);
 								}
 
-								return Reflect.get(target, prop, reciever);
+								if (prop in Event.prototype && typeof value === "function") {
+									return new Proxy(value, {
+										apply(target, that, args) {
+											if (that === reciever) {
+												return Reflect.apply(target, realEvent, args);
+											}
+
+											return Reflect.apply(target, that, args);
+										},
+									});
+								}
+
+								return value;
 							},
 							getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 						});
