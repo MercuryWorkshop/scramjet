@@ -25,6 +25,26 @@ export default function (client: ScramjetClient) {
 			return unrewriteCss(ctx.get());
 		},
 	});
+	client.Proxy("CSSStyleSheet.prototype.insertRule", {
+		apply(ctx) {
+			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+		},
+	});
+	client.Trap("CSSRule.prototype.cssText", {
+		set(ctx, value: string) {
+			ctx.set(rewriteCss(value, client.meta));
+		},
+		get(ctx) {
+			return unrewriteCss(ctx.get());
+		},
+	});
+
+	client.Proxy(["CSSStyleValue.parse", "CSSStyleValue.parseAll"], {
+		apply(ctx) {
+			if (!ctx.args[1]) return;
+			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
+		},
+	});
 
 	client.Trap("HTMLElement.prototype.style", {
 		get(ctx) {

@@ -1,8 +1,13 @@
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { nativeGetOwnPropertyDescriptor } from "../natives";
-import { unrewriteUrl, htmlRules, unrewriteHtml } from "../../shared";
-import { rewriteCss, rewriteHtml, rewriteJs } from "../../shared";
+import {
+	unrewriteUrl,
+	rewriteUrl,
+	htmlRules,
+	unrewriteHtml,
+} from "../../shared";
+import { unrewriteCss, rewriteCss, rewriteHtml, rewriteJs } from "../../shared";
 
 const encoder = new TextEncoder();
 function bytesToBase64(bytes: Uint8Array) {
@@ -328,6 +333,48 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("Audio", {
+		construct(ctx) {
+			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+		},
+	});
+
+	client.Proxy("Text.prototype.appendData", {
+		apply(ctx) {
+			if (ctx.this?.parentElement.tagName === "STYLE") {
+				ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+			}
+		},
+	});
+
+	client.Proxy("Text.prototype.insertData", {
+		apply(ctx) {
+			if (ctx.this?.parentElement.tagName === "STYLE") {
+				ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
+			}
+		},
+	});
+
+	client.Proxy("Text.prototype.insertData", {
+		apply(ctx) {
+			if (ctx.this?.parentElement.tagName === "STYLE") {
+				ctx.args[2] = rewriteCss(ctx.args[2], client.meta);
+			}
+		},
+	});
+
+	client.Trap(["Text.prototype.data", "Text.prototype.wholeText"], {
+		get(ctx) {
+			if (ctx.this?.parentElement.tagName === "STYLE") {
+				return unrewriteCss(ctx.get() as string);
+			}
+		},
+		set(ctx, v) {
+			if (ctx.this?.parentElement.tagName === "STYLE") {
+				ctx.set(rewriteCss(v as string, client.meta));
+			}
+		},
+	});
 	client.Trap(
 		[
 			"HTMLIFrameElement.prototype.contentWindow",
@@ -454,7 +501,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 			},
 		}
 	);
-
 	client.Proxy("Node.prototype.getRootNode", {
 		apply(ctx) {
 			const n = ctx.call() as Node;

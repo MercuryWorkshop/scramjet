@@ -53,6 +53,17 @@ export default function (client: ScramjetClient, self: Self) {
 				return unrewriteUrl(this.newURL);
 			},
 		},
+		storage: {
+			_init() {
+				return this.key.startsWith(client.url.host + "@");
+			},
+			key() {
+				return this.key.substring(this.key.indexOf("@") + 1);
+			},
+			url() {
+				return unrewriteUrl(this.url);
+			},
+		},
 	};
 
 	function wraplistener(listener: (...args: any) => any) {
