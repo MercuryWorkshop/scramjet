@@ -332,13 +332,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 				} catch {}
 		},
 	});
-
 	client.Proxy("Audio", {
 		construct(ctx) {
-			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
+			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 		},
 	});
-
 	client.Proxy("Text.prototype.appendData", {
 		apply(ctx) {
 			if (ctx.this?.parentElement.tagName === "STYLE") {
