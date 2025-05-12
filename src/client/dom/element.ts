@@ -246,7 +246,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("Element.prototype.innerHTML", {
+	client.Trap(["Element.prototype.innerHTML", "Node.prototype.textContent"], {
 		set(ctx, value: string) {
 			let newval;
 			if (ctx.this instanceof self.HTMLScriptElement) {
@@ -339,7 +339,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 	client.Proxy("Text.prototype.appendData", {
 		apply(ctx) {
-			if (ctx.this?.parentElement.tagName === "STYLE") {
+			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
 			}
 		},
@@ -347,7 +347,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Proxy("Text.prototype.insertData", {
 		apply(ctx) {
-			if (ctx.this?.parentElement.tagName === "STYLE") {
+			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
 			}
 		},
@@ -355,7 +355,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Proxy("Text.prototype.insertData", {
 		apply(ctx) {
-			if (ctx.this?.parentElement.tagName === "STYLE") {
+			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[2] = rewriteCss(ctx.args[2], client.meta);
 			}
 		},
@@ -363,16 +363,19 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap(["Text.prototype.data", "Text.prototype.wholeText"], {
 		get(ctx) {
-			if (ctx.this?.parentElement.tagName === "STYLE") {
+			if (ctx.this.parentElement?.tagName === "STYLE") {
 				return unrewriteCss(ctx.get() as string);
 			}
 		},
 		set(ctx, v) {
-			if (ctx.this?.parentElement.tagName === "STYLE") {
-				ctx.set(rewriteCss(v as string, client.meta));
+			if (ctx.this.parentElement?.tagName === "STYLE") {
+				return ctx.set(rewriteCss(v as string, client.meta));
 			}
+
+			return ctx.set(v);
 		},
 	});
+
 	client.Trap(
 		[
 			"HTMLIFrameElement.prototype.contentWindow",
@@ -435,6 +438,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			apply(ctx) {
 				const doc = ctx.call();
 				if (doc) {
+					// we trap the contentDocument, this is really the scramjet version
 					return ctx.return(ctx.this.contentDocument);
 				}
 			},

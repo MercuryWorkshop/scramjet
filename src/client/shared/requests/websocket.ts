@@ -262,11 +262,16 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				}),
 				readable: new ReadableStream({
 					start(controller) {
-						barews.addEventListener("message", (ev: MessageEvent) => {
-							const payload = ev.data;
+						barews.addEventListener("message", async (ev: MessageEvent) => {
+							let payload = ev.data;
 							if (typeof payload === "string") {
 								// DO NOTHING
 							} else if ("byteLength" in payload) {
+								// arraybuffer, set the realms prototype so its recognized
+								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+							} else if ("arrayBuffer" in payload) {
+								// blob, convert to arraybuffer
+								payload = await payload.arrayBuffer();
 								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
 							}
 							controller.enqueue(payload);
