@@ -189,6 +189,7 @@ export const htmlRules: {
 	{
 		fn: (value: string) => {
 			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+			else return value;
 		},
 		target: ["a", "base"],
 	},
