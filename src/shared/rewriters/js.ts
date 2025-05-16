@@ -30,6 +30,8 @@ function rewriteJsWasm(
 	meta: URLMeta,
 	module: boolean
 ): { js: string | Uint8Array; map: Uint8Array | null; tag: string } {
+	if (!(self.REAL_WASM && self.REAL_WASM instanceof Uint8Array))
+		throw new Error("rewriter wasm not found (was it fetched correctly?)");
 	initSync({
 		module: new WebAssembly.Module(self.REAL_WASM),
 	});
