@@ -64,7 +64,9 @@ export function rewriteHtml(
 		);
 	}
 
-	return render(handler.root);
+	return render(handler.root, {
+		encodeEntities: "utf8",
+	});
 }
 
 // type ParseState = {
@@ -104,7 +106,9 @@ export function unrewriteHtml(html: string) {
 
 	traverse(handler.root);
 
-	return render(handler.root);
+	return render(handler.root, {
+		encodeEntities: "utf8",
+	});
 }
 
 export const htmlRules: {
