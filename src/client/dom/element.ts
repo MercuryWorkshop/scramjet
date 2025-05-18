@@ -361,7 +361,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap(["Text.prototype.data", "Text.prototype.wholeText"], {
+	client.Trap("Text.prototype.wholeText", {
 		get(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				return unrewriteCss(ctx.get() as string);
