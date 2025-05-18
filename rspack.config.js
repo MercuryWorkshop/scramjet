@@ -8,10 +8,7 @@ import { execSync } from "node:child_process";
 import { join } from "path";
 import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-// getting typescript to shut up
-const packagemeta = JSON.parse(
-	(await readFile("package.json")) as unknown as string
-);
+const packagemeta = JSON.parse(await readFile("package.json"));
 
 export default defineConfig({
 	mode: "development",

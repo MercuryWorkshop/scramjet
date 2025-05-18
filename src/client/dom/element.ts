@@ -366,6 +366,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				return unrewriteCss(ctx.get() as string);
 			}
+
+			return ctx.get();
 		},
 		set(ctx, v) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
