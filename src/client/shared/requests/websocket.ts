@@ -248,14 +248,16 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				barews.close(1000, "");
 			});
 			let openResolver, closeResolver;
+			let openRejector;
 			const state: FakeWebSocketStreamState = {
 				extensions: "",
 				protocol: "",
 				url: ctx.args[0],
 				barews,
 
-				opened: new Promise((resolve) => {
+				opened: new Promise((resolve, reject) => {
 					openResolver = resolve;
+					openRejector = reject;
 				}),
 				closed: new Promise((resolve) => {
 					closeResolver = resolve;
@@ -294,6 +296,10 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			});
 			barews.addEventListener("close", (ev: CloseEvent) => {
 				closeResolver({ code: ev.code, reason: ev.reason });
+			});
+
+			barews.addEventListener("error", (ev: Event) => {
+				openRejector(ev);
 			});
 
 			socketstreammap.set(fakeWebSocket, state);

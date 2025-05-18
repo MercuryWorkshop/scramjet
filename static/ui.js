@@ -247,7 +247,13 @@ function BrowserApp() {
     `;
 }
 window.addEventListener("load", async () => {
-	document.body.appendChild(h(BrowserApp));
+	const root = document.getElementById("app");
+	try {
+		root.replaceWith(h(BrowserApp));
+	} catch (e) {
+		root.replaceWith(document.createTextNode("" + e));
+		throw e;
+	}
 	function b64(buffer) {
 		let binary = "";
 		const bytes = new Uint8Array(buffer);

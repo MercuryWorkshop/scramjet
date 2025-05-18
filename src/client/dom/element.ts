@@ -353,7 +353,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Text.prototype.insertData", {
+	client.Proxy("Text.prototype.replaceData", {
 		apply(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[2] = rewriteCss(ctx.args[2], client.meta);

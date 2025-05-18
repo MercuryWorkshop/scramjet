@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Scramjet</title>
+		<title>Scramjet (Playground)</title>
 		<link rel="icon" href="favicon.webp" />
 		<link rel="prefetch" href="/scram/scramjet.worker.js" />
 		<link rel="prefetch" href="/scram/scramjet.shared.js" />
@@ -50,13 +50,14 @@
 				}
 			}
 		</style>
+		<script src="https://cdn.jsdelivr.net/npm/dreamland"></script>
+		<script src="/baremux/index.js"></script>
+		<script src="/scram/scramjet.controller.js"></script>
+		<script src="config.js"></script>
 	</head>
 
 	<body>
-		<script src="https://cdn.jsdelivr.net/npm/dreamland"></script>
-		<script src="/baremux/index.js" defer></script>
-		<script src="/scram/scramjet.controller.js"></script>
-		<script src="config.js"></script>
-		<script src="playground.js" defer></script>
+		<div id="app"></div>
+		<script src="playground.js"></script>
 	</body>
 </html>

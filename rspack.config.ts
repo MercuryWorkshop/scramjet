@@ -1,13 +1,17 @@
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
+import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
 
 import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
 import { join } from "path";
 import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const packagemeta = JSON.parse(await readFile("package.json"));
+// getting typescript to shut up
+const packagemeta = JSON.parse(
+	(await readFile("package.json")) as unknown as string
+);
 
 export default defineConfig({
 	mode: "development",
@@ -58,6 +62,7 @@ export default defineConfig({
 		iife: true,
 	},
 	plugins: [
+		new TsCheckerRspackPlugin(),
 		new rspack.ProvidePlugin({
 			dbg: [join(__dirname, "src/log.ts"), "default"],
 		}),
@@ -67,14 +72,14 @@ export default defineConfig({
 		new rspack.DefinePlugin({
 			COMMITHASH: (() => {
 				try {
-					let hash = JSON.stringify(
+					const hash = JSON.stringify(
 						execSync("git rev-parse --short HEAD", {
 							encoding: "utf-8",
 						}).replace(/\r?\n|\r/g, "")
 					);
 
 					return hash;
-				} catch (e) {
+				} catch {
 					return "unknown";
 				}
 			})(),

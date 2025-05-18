@@ -26,7 +26,7 @@ export class ScramjetServiceWorkerRuntime {
 	}
 
 	hook() {
-		// @ts-expect-error TODO
+		// @ts-ignore
 		this.client.global.registration = {
 			// TODO IMPLEMENT SCOPES
 			scope: this.client.url.href,
@@ -45,6 +45,7 @@ export class ScramjetServiceWorkerRuntime {
 			},
 			showNotification: async () => {},
 			unregister: async () => true,
+			//@ts-ignore
 			update: async () => {},
 			installing: null,
 			waiting: null,

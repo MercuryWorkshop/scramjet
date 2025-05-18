@@ -237,5 +237,11 @@ iframe {
 }
 
 window.addEventListener("load", async () => {
-	document.body.appendChild(h(PlaygroundApp));
+	const root = document.getElementById("app");
+	try {
+		root.replaceWith(h(PlaygroundApp));
+	} catch (e) {
+		root.replaceWith(document.createTextNode("" + e));
+		throw e;
+	}
 });

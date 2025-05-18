@@ -4,7 +4,7 @@ import { createServer } from "http";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
-import rspackConfig from "./rspack.config.js";
+import rspackConfig from "./rspack.config.ts";
 import { rspack } from "@rspack/core";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
