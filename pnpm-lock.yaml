@@ -49,8 +49,8 @@ importers:
         specifier: ^2.1.27
         version: 2.1.27
       '@mercuryworkshop/libcurl-transport':
-        specifier: ^1.4.0
-        version: 1.4.0
+        specifier: ^1.5.0
+        version: 1.5.0
       '@mercuryworkshop/wisp-js':
         specifier: ^0.3.3
         version: 0.3.3
@@ -298,8 +298,8 @@ packages:
   '@mercuryworkshop/epoxy-transport@2.1.27':
     resolution: {integrity: sha512-jvlJbNbqokU2YRfNYUCqSX+m4/T5Jx659Zn0/AgV2ZfB0S67FK7z9ZMstuxrZHog2AmBdOFaYUjLnI6cAboiaw==}
 
-  '@mercuryworkshop/libcurl-transport@1.4.0':
-    resolution: {integrity: sha512-Mm3cnaty3bRneKARCHtoiAEJ5vl2nI0QQzhu+L6wiKQAT9hvORYWS7BIJnB/U3EKNG/JSzPQF8D0fEN83aY/Mg==}
+  '@mercuryworkshop/libcurl-transport@1.5.0':
+    resolution: {integrity: sha512-FV3fFjJYoojmkolMESmZnWosz/tQ9AbVQurt6gcJX69BTvAXzjWf6ganpaeSvilQXVK59PDWyYT3gE0aShd12A==}
 
   '@mercuryworkshop/wisp-js@0.3.3':
     resolution: {integrity: sha512-egc9jbBmNqPXGOkvOOG142SLaBL3jBkz0IGnhYYWOnmg5FeC6KfGSRU5xlk+dKYecE3tuH03bFNi3/vBAOoJKA==}
@@ -2644,7 +2644,7 @@ snapshots:
     dependencies:
       '@mercuryworkshop/epoxy-tls': 2.1.16-1
 
-  '@mercuryworkshop/libcurl-transport@1.4.0':
+  '@mercuryworkshop/libcurl-transport@1.5.0':
     dependencies:
       libcurl.js: 0.7.1
 
