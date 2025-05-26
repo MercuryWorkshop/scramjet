@@ -66,6 +66,7 @@ export function rewriteHtml(
 
 	return render(handler.root, {
 		encodeEntities: "utf8",
+		decodeEntities: false
 	});
 }
 
@@ -107,7 +108,7 @@ export function unrewriteHtml(html: string) {
 	traverse(handler.root);
 
 	return render(handler.root, {
-		encodeEntities: "utf8",
+		decodeEntities: false
 	});
 }
 
