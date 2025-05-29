@@ -2,4 +2,4 @@ ignoredBuiltDependencies:
   - bufferutil
 
 packages:
-  - './'
+  - "./"
