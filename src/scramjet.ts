@@ -17,13 +17,11 @@ export const $scramjet = self.$scramjet;
 const nativeFunction = Function;
 export function loadCodecs() {
 	$scramjet.codec.encode = nativeFunction(
-		"url",
-		$scramjet.config.codec.encode
-	) as any;
+		`return ${$scramjet.config.codec.encode}`
+	)() as any;
 	$scramjet.codec.decode = nativeFunction(
-		"url",
-		$scramjet.config.codec.decode
-	) as any;
+		`return ${$scramjet.config.codec.decode}`
+	)() as any;
 }
 
 export function flagEnabled(flag: keyof ScramjetFlags, url: URL): boolean {

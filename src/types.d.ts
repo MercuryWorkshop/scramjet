@@ -62,6 +62,12 @@ interface ScramjetConfig {
 	};
 }
 
+interface ScramjetInitConfig extends ScramjetConfig {
+	codec: {
+		encode: (url: string) => string;
+		decode: (url: string) => string;
+	};
+}
 declare global {
 	interface Window {
 		$scramjet: {
