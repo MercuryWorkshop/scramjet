@@ -24,6 +24,8 @@ Error.stackTraceLimit = 50;
 
 const decoder = new TextDecoder();
 
+let MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
+
 function rewriteJsWasm(
 	input: string | Uint8Array,
 	source: string | null,
@@ -32,6 +34,13 @@ function rewriteJsWasm(
 ): { js: string | Uint8Array; map: Uint8Array | null; tag: string } {
 	if (!(self.REAL_WASM && self.REAL_WASM instanceof Uint8Array))
 		throw new Error("rewriter wasm not found (was it fetched correctly?)");
+
+	if (![...self.REAL_WASM.slice(0, 4)].every((x, i) => x === MAGIC[i]))
+		throw new Error(
+			"rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: " +
+				decoder.decode(self.REAL_WASM)
+		);
+
 	initSync({
 		module: new WebAssembly.Module(self.REAL_WASM),
 	});
