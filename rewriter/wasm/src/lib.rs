@@ -4,12 +4,12 @@ use std::{cell::RefCell, sync::Arc, time::Duration};
 
 use error::{Result, RewriterError};
 use instant::Instant;
+use js::{cfg::Config, rewrite, RewriteResult};
 use js_sys::{Function, Object, Reflect, Uint8Array};
 use oxc::{
-	allocator::{Allocator, String},
+	allocator::{Allocator, StringBuilder},
 	diagnostics::NamedSource,
 };
-use js::{cfg::Config, rewrite, RewriteResult};
 use wasm_bindgen::prelude::*;
 use web_sys::Url;
 
@@ -49,7 +49,7 @@ thread_local! {
 	static ALLOC: RefCell<Allocator> = RefCell::new(Allocator::default());
 }
 
-type EncodeFn<'alloc, 'data> = Box<dyn Fn(&str, &'alloc Allocator) -> String<'alloc> + 'data>;
+type EncodeFn<'alloc, 'data> = Box<dyn for<'a, 'b> Fn(&'a str, &'b mut StringBuilder<'alloc>) + 'data>;
 
 fn create_encode_function<'alloc, 'data>(
 	encode: JsValue,
@@ -58,17 +58,16 @@ fn create_encode_function<'alloc, 'data>(
 ) -> Result<EncodeFn<'alloc, 'data>> {
 	let encode = encode.dyn_into::<Function>()?;
 
-	let func = move |url: &str, alloc: &'alloc Allocator| {
+	let func = move |url: &str, builder: &mut StringBuilder<'alloc>| {
 		let url = Url::new_with_base(url, base).unwrap().to_string();
-		oxc::allocator::String::from_str_in(
+		builder.push_str(
 			encode
 				.call1(&JsValue::NULL, &url.into())
 				.unwrap()
 				.as_string()
 				.unwrap()
 				.as_str(),
-			alloc,
-		)
+		);
 	};
 
 	Ok(Box::new(func))
@@ -82,7 +81,7 @@ fn get_str<'alloc>(obj: &JsValue, k: &str, alloc: &'alloc Allocator) -> Result<&
 	Reflect::get(obj, &k.into())?
 		.as_string()
 		.ok_or_else(|| RewriterError::not_str(k))
-		.map(|x| String::from_str_in(&x, alloc).into_bump_str())
+		.map(|x| StringBuilder::from_str_in(&x, alloc).into_str())
 }
 
 fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
@@ -121,8 +120,8 @@ fn get_config<'alloc, 'data>(
 		urlrewriter: create_encode_function(get_obj(codec, "encode")?, url, alloc)?,
 
 		prefix: get_str(config, "prefix", alloc)?,
-		base: String::from_str_in(url, alloc).into_bump_str(),
-		sourcetag: String::from_str_in(&scramtag(), alloc).into_bump_str(),
+		base: StringBuilder::from_str_in(url, alloc).into_str(),
+		sourcetag: StringBuilder::from_str_in(&scramtag(), alloc).into_str(),
 
 		wrapfn: get_str(globals, "wrapfn", alloc)?,
 		wrapthisfn: get_str(globals, "wrapthisfn", alloc)?,

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use oxc::{
-	allocator::{Allocator, String, Vec},
+	allocator::{Allocator, StringBuilder, Vec},
 	ast::ast::AssignmentOperator,
 	span::{format_compact_str, Atom, Span},
 };
@@ -13,7 +13,7 @@ use crate::{cfg::Config, changeset::ChangeSet, RewriterError};
 const STRICTCHECKER: &str = "(function(){return !this;})()";
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Rewrite<'data> {
+pub(crate) enum Rewrite<'alloc, 'data> {
 	/// `(cfg.wrapfn(ident,strictchecker))` | `cfg.wrapfn(ident,strictchecker)`
 	WrapFn {
 		span: Span,
@@ -72,15 +72,15 @@ pub(crate) enum Rewrite<'data> {
 	// don't use for anything static, only use for stuff like rewriteurl
 	Replace {
 		span: Span,
-		text: String<'data>,
+		text: &'alloc str,
 	},
 	Delete {
 		span: Span,
 	},
 }
 
-impl<'data> Rewrite<'data> {
-	fn into_inner(self) -> SmallVec<[JsChange<'data>; 4]> {
+impl<'alloc, 'data> Rewrite<'alloc, 'data> {
+	fn into_inner(self) -> SmallVec<[JsChange<'alloc, 'data>; 4]> {
 		match self {
 			Self::WrapFn {
 				wrapped: extra,
@@ -168,7 +168,7 @@ macro_rules! changes {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum JsChange<'data> {
+enum JsChange<'alloc, 'data> {
 	/// insert `${cfg.wrapfn}(`
 	WrapFnLeft { span: Span, extra: bool },
 	/// insert `,strictchecker)`
@@ -205,12 +205,12 @@ enum JsChange<'data> {
 	ClosingParen { span: Span, semi: bool },
 
 	/// replace span with text
-	Replace { span: Span, text: String<'data> },
+	Replace { span: Span, text: &'alloc str },
 	/// replace span with ""
 	Delete { span: Span },
 }
 
-impl JsChange<'_> {
+impl JsChange<'_, '_> {
 	fn get_span(&self) -> &Span {
 		match self {
 			Self::WrapFnLeft { span, .. }
@@ -232,13 +232,13 @@ impl JsChange<'_> {
 		}
 	}
 
-	fn to_inner<'alloc, 'change, E>(
+	fn to_inner<'alloc: 'change, 'change, E>(
 		&'change self,
 		cfg: &'change Config<'alloc, E>,
 		offset: u32,
 	) -> JsChangeInner<'change>
 	where
-		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+		E: Fn(&str, &mut StringBuilder<'alloc>),
 	{
 		match self {
 			Self::WrapFnLeft { span, extra } => {
@@ -325,13 +325,13 @@ impl JsChange<'_> {
 	}
 }
 
-impl PartialOrd for JsChange<'_> {
+impl PartialOrd for JsChange<'_, '_> {
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
-impl Ord for JsChange<'_> {
+impl Ord for JsChange<'_, '_> {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
 		match self.get_span().start.cmp(&other.get_span().start) {
 			Ordering::Equal => match (self, other) {
@@ -355,9 +355,9 @@ impl<'a> From<&'a str> for Change<'a> {
 	}
 }
 
-impl<'a> From<&'a String<'_>> for Change<'a> {
-	fn from(value: &'a String<'_>) -> Self {
-		Self::Str(value.as_str())
+impl<'a> From<&&'a str> for Change<'a> {
+	fn from(value: &&'a str) -> Self {
+		Self::Str(*value)
 	}
 }
 
@@ -393,7 +393,7 @@ pub(crate) struct JsChangeResult<'alloc> {
 
 pub(crate) struct JsChanges<'alloc: 'data, 'data> {
 	alloc: &'alloc Allocator,
-	inner: ChangeSet<'alloc, JsChange<'data>>,
+	inner: ChangeSet<'alloc, JsChange<'alloc, 'data>>,
 }
 
 impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
@@ -404,7 +404,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		}
 	}
 
-	pub fn add(&mut self, rewrite: Rewrite<'data>) {
+	pub fn add(&mut self, rewrite: Rewrite<'alloc, 'data>) {
 		for change in rewrite.into_inner() {
 			self.inner.add(change);
 		}
@@ -416,7 +416,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		cfg: &Config<'alloc, E>,
 	) -> Result<JsChangeResult<'alloc>, RewriterError>
 	where
-		E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+		E: Fn(&str, &mut StringBuilder<'alloc>),
 	{
 		let mut cursor = 0;
 		let mut offset = 0i32;

@@ -1,8 +1,8 @@
-use oxc::allocator::{Allocator, String};
+use oxc::allocator::StringBuilder;
 
 pub struct Config<'alloc, E>
 where
-	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+	E: Fn(&str, &mut StringBuilder<'alloc>),
 {
 	pub prefix: &'alloc str,
 	pub sourcetag: &'alloc str,

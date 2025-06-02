@@ -1,5 +1,6 @@
 use oxc::{
-	allocator::{Allocator, String, Vec},
+	allocator::{Allocator, StringBuilder, Vec},
+	ast::ast::Program,
 	ast_visit::Visit,
 	diagnostics::OxcDiagnostic,
 	parser::{ParseOptions, Parser},
@@ -9,8 +10,8 @@ use thiserror::Error;
 
 pub mod cfg;
 mod changes;
-mod visitor;
 mod changeset;
+mod visitor;
 
 use cfg::Config;
 use changes::{JsChangeResult, JsChanges};
@@ -19,7 +20,7 @@ use visitor::Visitor;
 #[derive(Error, Debug)]
 pub enum RewriterError {
 	#[error("oxc panicked in parser: {0}")]
-	OxcPanicked(std::string::String),
+	OxcPanicked(String),
 	#[error("out of bounds while applying range: {0}..{1})")]
 	Oob(u32, u32),
 	#[error("too much code added while applying changes")]
@@ -43,7 +44,7 @@ pub fn rewrite<'alloc, 'data, E>(
 	capacity: usize,
 ) -> Result<RewriteResult<'alloc>, RewriterError>
 where
-	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+	E: Fn(&str, &mut StringBuilder<'alloc>),
 {
 	let source_type = SourceType::unambiguous()
 		.with_javascript(true)
@@ -60,7 +61,7 @@ where
 	if ret.panicked {
 		use std::fmt::Write;
 
-		let mut errors = std::string::String::new();
+		let mut errors = String::new();
 		for error in ret.errors {
 			writeln!(errors, "{error}")?;
 		}
@@ -73,7 +74,9 @@ where
 		alloc,
 	};
 
-	visitor.visit_program(&ret.program);
+	// TODO fix the lifetime issue
+	visitor.visit_program(&unsafe { std::mem::transmute::<Program<'_>, Program<'_>>(ret.program) });
+
 	let Visitor {
 		mut jschanges,
 		config,

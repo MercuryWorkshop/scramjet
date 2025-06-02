@@ -1,5 +1,5 @@
 use std::{
-	env, fs,
+env, fs,
 	str::FromStr,
 	sync::Arc,
 	time::{Duration, Instant},
@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use bytes::{Buf, Bytes, BytesMut};
 use js::{cfg::Config, rewrite, RewriteResult};
 use oxc::{
-	allocator::{Allocator, String},
+	allocator::{Allocator, StringBuilder},
 	diagnostics::NamedSource,
 };
 use url::Url;
@@ -23,8 +23,8 @@ fn dorewrite<'alloc>(alloc: &'alloc Allocator, data: &str) -> Result<RewriteResu
 		Config {
 			prefix: "/scrammedjet/",
 			base: "https://google.com/glorngle/si.js",
-			urlrewriter: move |x: &str, alloc: &'alloc Allocator| {
-				String::from_str_in(encode(url.join(x).unwrap().as_str()).as_ref(), alloc)
+			urlrewriter: move |x: &str, builder: &mut StringBuilder<'alloc>| {
+				builder.push_str(encode(url.join(x).unwrap().as_str()).as_ref());
 			},
 
 			sourcetag: "glongle1",

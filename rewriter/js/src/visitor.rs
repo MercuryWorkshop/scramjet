@@ -1,5 +1,5 @@
 use oxc::{
-	allocator::{Allocator, String},
+	allocator::{Allocator, StringBuilder},
 	ast::ast::{
 		AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
 		ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
@@ -34,7 +34,7 @@ const UNSAFE_GLOBALS: &[&str] = &[
 
 pub struct Visitor<'alloc, 'data, E>
 where
-	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+	E: Fn(&str, &mut StringBuilder<'alloc>),
 {
 	pub jschanges: JsChanges<'alloc, 'data>,
 	pub config: Config<'alloc, E>,
@@ -43,12 +43,12 @@ where
 
 impl<'alloc, 'data, E> Visitor<'alloc, 'data, E>
 where
-	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+	E: Fn(&str, &mut StringBuilder<'alloc>),
 {
-	fn rewrite_url(&mut self, url: Atom<'data>) -> oxc::allocator::String<'alloc> {
-		let mut urlencoded = (self.config.urlrewriter)(&url, self.alloc);
-		urlencoded.insert_str(0, self.config.prefix);
-		urlencoded
+	fn rewrite_url(&mut self, url: Atom<'data>) -> &'alloc str {
+		let mut builder = StringBuilder::from_str_in(self.config.prefix, self.alloc);
+		(self.config.urlrewriter)(&url, &mut builder);
+		builder.into_str()
 	}
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
@@ -79,7 +79,7 @@ where
 
 impl<'alloc, 'data, E> Visit<'data> for Visitor<'alloc, 'data, E>
 where
-	E: Fn(&str, &'alloc Allocator) -> String<'alloc>,
+	E: Fn(&str, &mut StringBuilder<'alloc>),
 {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
 		// if self.config.capture_errors {
