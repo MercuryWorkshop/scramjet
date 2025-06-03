@@ -87,99 +87,59 @@ impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
 		}
 	}
 
-	fn into_inner(
-		self,
-		cfg: &'data Config,
-		flags: &'data Flags,
-		offset: u32,
-	) -> Transform<'data> {
+	fn into_inner(self, cfg: &'data Config, flags: &'data Flags, offset: u32) -> Transform<'data> {
 		match self {
-			Self::WrapFnLeft { span, extra } => {
-				if extra {
-					Transform::Insert {
-						loc: span.start,
-						str: changes!["(", &cfg.wrapfn, "("],
-					}
-				} else {
-					Transform::Insert {
-						loc: span.start,
-						str: changes![&cfg.wrapfn, "("],
-					}
-				}
+			Self::WrapFnLeft { extra, .. } => Transform::insert(if extra {
+				changes!["(", &cfg.wrapfn, "("]
+			} else {
+				changes![&cfg.wrapfn, "("]
+			}),
+			Self::WrapFnRight { extra, .. } => Transform::insert(if extra {
+				changes![",", STRICTCHECKER, "))"]
+			} else {
+				changes![",", STRICTCHECKER, ")"]
+			}),
+			Self::SetRealmFn { .. } => Transform::insert(changes![&cfg.setrealmfn, "({})."]),
+			Self::WrapThisFn { .. } => Transform::insert(changes![&cfg.wrapthisfn, "("]),
+			Self::ScramErrFn { ident, .. } => {
+				Transform::insert(changes!["$scramerr(", ident, ");"])
 			}
-			Self::WrapFnRight { span, extra } => {
-				if extra {
-					Transform::Insert {
-						loc: span.start,
-						str: changes![",", STRICTCHECKER, "))"],
-					}
-				} else {
-					Transform::Insert {
-						loc: span.start,
-						str: changes![",", STRICTCHECKER, ")"],
-					}
-				}
+			Self::ScramitizeFn { .. } => Transform::insert(changes![" $scramitize("]),
+			Self::EvalRewriteFn { .. } => {
+				Transform::replace(changes!["eval(", &cfg.rewritefn, "("])
 			}
-			Self::SetRealmFn { span } => Transform::Insert {
-				loc: span.start,
-				str: changes![&cfg.setrealmfn, "({})."],
-			},
-			Self::WrapThisFn { span } => Transform::Insert {
-				loc: span.start,
-				str: changes![&cfg.wrapthisfn, "("],
-			},
-			Self::ScramErrFn { span, ident } => Transform::Insert {
-				loc: span.start,
-				str: changes!["$scramerr(", ident, ");"],
-			},
-			Self::ScramitizeFn { span } => Transform::Insert {
-				loc: span.start,
-				str: changes![" $scramitize("],
-			},
-			Self::EvalRewriteFn { .. } => Transform::Replace {
-				str: changes!["eval(", &cfg.rewritefn, "("],
-			},
-			Self::ShorthandObj { span, ident } => Transform::Insert {
-				loc: span.start,
-				str: changes![":", &cfg.wrapfn, "(", ident, ")"],
-			},
-			Self::SourceTag { span } => Transform::Insert {
-				loc: span.start,
-				str: changes![
-					"/*scramtag ",
-					span.start + offset,
-					" ",
-					&flags.sourcetag,
-					"*/"
-				],
-			},
-			Self::ImportFn { .. } => Transform::Replace {
-				str: changes![&cfg.importfn, "(\"", &flags.base, "\","],
-			},
-			Self::MetaFn { .. } => Transform::Replace {
-				str: changes![&cfg.metafn, "(\"", &flags.base, "\")"],
-			},
-			Self::AssignmentLeft { name, op, .. } => Transform::Replace {
-				str: changes![
-					"((t)=>$scramjet$tryset(",
-					name,
-					",\"",
-					op,
-					"\",t)||(",
-					name,
-					op,
-					"t))("
-				],
-			},
-			Self::ReplaceClosingParen { .. } => Transform::Replace { str: changes![")"] },
-			Self::ClosingParen { span, semi } => Transform::Insert {
-				loc: span.start,
-				str: if semi { changes![");"] } else { changes![")"] },
-			},
-			Self::Replace { text, .. } => Transform::Replace {
-				str: changes![text],
-			},
-			Self::Delete { .. } => Transform::Replace { str: changes![""] },
+			Self::ShorthandObj { ident, .. } => {
+				Transform::insert(changes![":", &cfg.wrapfn, "(", ident, ")"])
+			}
+			Self::SourceTag { span } => Transform::insert(changes![
+				"/*scramtag ",
+				span.start + offset,
+				" ",
+				&flags.sourcetag,
+				"*/"
+			]),
+			Self::ImportFn { .. } => {
+				Transform::replace(changes![&cfg.importfn, "(\"", &flags.base, "\","])
+			}
+			Self::MetaFn { .. } => {
+				Transform::replace(changes![&cfg.metafn, "(\"", &flags.base, "\")"])
+			}
+			Self::AssignmentLeft { name, op, .. } => Transform::replace(changes![
+				"((t)=>$scramjet$tryset(",
+				name,
+				",\"",
+				op,
+				"\",t)||(",
+				name,
+				op,
+				"t))("
+			]),
+			Self::ReplaceClosingParen { .. } => Transform::replace(changes![")"]),
+			Self::ClosingParen { semi, .. } => {
+				Transform::replace(if semi { changes![");"] } else { changes![")"] })
+			}
+			Self::Replace { text, .. } => Transform::replace(changes![text]),
+			Self::Delete { .. } => Transform::replace(SmallVec::new()),
 		}
 	}
 }
@@ -206,6 +166,22 @@ impl Ord for JsChange<'_, '_> {
 enum Change<'a> {
 	Str(&'a str),
 	U32(u32),
+}
+
+impl Change<'_> {
+	fn eval(&self, itoa: &mut itoa::Buffer, buffer: &mut Vec<'_, u8>) -> usize {
+		match self {
+			Change::Str(x) => {
+				buffer.extend_from_slice(x.as_bytes());
+				x.len()
+			}
+			Change::U32(x) => {
+				let x = itoa.format(*x);
+				buffer.extend_from_slice(x.as_bytes());
+				x.len()
+			}
+		}
+	}
 }
 
 impl<'a> From<&'a str> for Change<'a> {
@@ -246,9 +222,40 @@ impl From<u32> for Change<'static> {
 
 type Changes<'a> = SmallVec<[Change<'a>; 8]>;
 
-enum Transform<'a> {
-	Insert { loc: u32, str: Changes<'a> },
-	Replace { str: Changes<'a> },
+enum TransformType {
+	Insert,
+	Replace,
+}
+
+struct Transform<'a> {
+	pub ty: TransformType,
+	pub change: Changes<'a>,
+}
+
+impl<'a> Transform<'a> {
+	pub fn insert(change: Changes<'a>) -> Self {
+		Self {
+			ty: TransformType::Insert,
+			change,
+		}
+	}
+
+	pub fn replace(change: Changes<'a>) -> Self {
+		Self {
+			ty: TransformType::Replace,
+			change,
+		}
+	}
+
+	pub fn apply(&self, itoa: &mut itoa::Buffer, buffer: &mut Vec<'_, u8>) -> u32 {
+		let mut len = 0;
+
+		for str in &self.change {
+			len += str.eval(itoa, buffer) as u32;
+		}
+
+		len
+	}
 }
 
 pub(crate) struct JsChangeResult<'alloc> {
@@ -317,25 +324,10 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 					.ok_or_else(|| RewriterError::Oob($start, $end))?
 			};
 		}
-		macro_rules! eval {
-			($change:expr) => {
-				match $change {
-					Change::Str(x) => {
-						buffer.extend_from_slice(x.as_bytes());
-						x.len()
-					}
-					Change::U32(x) => {
-						let x = itoa.format(x);
-						buffer.extend_from_slice(x.as_bytes());
-						x.len()
-					}
-				}
-			};
-		}
 
 		// insert has a 9 byte size, replace has a 13 byte minimum and usually it's like 5 bytes
 		// for the old str added on so use 16 as a really rough estimate
-		let mut map = Vec::with_capacity_in(self.inner.len() * 16, alloc);
+		let mut map = Vec::with_capacity_in((self.inner.len() * 16) + 4, alloc);
 		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
 
 		self.inner.sort();
@@ -345,40 +337,27 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 
 			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
 
-			match change.into_inner(cfg, flags, cursor) {
-				Transform::Insert { loc, str } => {
-					let mut len = 0u32;
-					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
-					for str in str {
-						len += eval!(str) as u32;
-					}
-					buffer.extend_from_slice(tryget!(loc..end).as_bytes());
+			let transform = change.into_inner(cfg, flags, cursor);
+			let len = transform.apply(&mut itoa, &mut buffer);
+			// pos
+			map.extend_from_slice(&start.wrapping_add_signed(offset).to_le_bytes());
+			// size
+			map.extend_from_slice(&len.to_le_bytes());
+
+			match transform.ty {
+				TransformType::Insert => {
+					buffer.extend_from_slice(tryget!(start..end).as_bytes());
 
 					// INSERT op
 					map.push(0);
-					// pos
-					map.extend_from_slice(&loc.wrapping_add_signed(offset).to_le_bytes());
-					// size
-					map.extend_from_slice(&len.to_le_bytes());
 
 					offset = offset.wrapping_add_unsigned(len);
 				}
-				Transform::Replace { str } => {
-					let mut len = 0u32;
-					for str in str {
-						len += eval!(str) as u32;
-					}
-
+				TransformType::Replace => {
 					// REPLACE op
 					map.push(1);
 					// len
 					map.extend_from_slice(&(end - start).to_le_bytes());
-					// start
-					map.extend_from_slice(&(start.wrapping_add_signed(offset)).to_le_bytes());
-					// end
-					map.extend_from_slice(
-						&((start + len).wrapping_add_signed(offset)).to_le_bytes(),
-					);
 					// oldstr
 					map.extend_from_slice(tryget!(start..end).as_bytes());
 

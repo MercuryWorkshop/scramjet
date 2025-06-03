@@ -87,17 +87,17 @@ fn dounrewrite(res: &RewriteResult) -> Vec<u8> {
 	let mut rewrites = Vec::with_capacity(rewrite_cnt as usize);
 
 	for x in 0..rewrite_cnt {
+		let pos = map.get_u32_le();
+		let size = map.get_u32_le();
+
 		let ty = map.get_u8();
 		if ty == 0 {
-			rewrites.push(RewriteType::Insert {
-				pos: map.get_u32_le(),
-				size: map.get_u32_le(),
-			});
+			rewrites.push(RewriteType::Insert { pos, size });
 		} else if ty == 1 {
 			let len = map.get_u32_le();
 			rewrites.push(RewriteType::Replace {
-				start: map.get_u32_le(),
-				end: map.get_u32_le(),
+				start: pos,
+				end: pos + size,
 				str: map.split_to(len as usize),
 			});
 		} else {

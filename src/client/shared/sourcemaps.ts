@@ -72,27 +72,27 @@ function registerRewrites(buf: Array<number>, tag: string) {
 	const rewritelen = view.getUint32(0, true);
 	let cursor = 4;
 	for (let i = 0; i < rewritelen; i++) {
+		const start = view.getUint32(cursor, true);
+		cursor += 4;
+		const size = view.getUint32(cursor, true);
+		cursor += 4;
+
 		const type = view.getUint8(cursor) as RewriteType;
 		cursor += 1;
 
 		if (type == RewriteType.Insert) {
-			const start = view.getUint32(cursor, true);
-			cursor += 4;
-			const size = view.getUint32(cursor, true);
-			cursor += 4;
-
 			rewrites.push({ type, start, size });
 		} else if (type == RewriteType.Replace) {
-			const start = view.getUint32(cursor, true);
-			cursor += 4;
-			const end = view.getUint32(cursor, true);
-			cursor += 4;
-			const len = view.getUint32(cursor, true);
+			const end = start + size;
+
+			const oldLen = view.getUint32(cursor, true);
 			cursor += 4;
 
-			const str = decoder.decode(sourcemap.subarray(cursor, cursor + len));
+			const oldStr = decoder.decode(
+				sourcemap.subarray(cursor, cursor + oldLen)
+			);
 
-			rewrites.push({ type, start, end, str });
+			rewrites.push({ type, start, end, str: oldStr });
 		}
 	}
 
