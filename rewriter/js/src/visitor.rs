@@ -81,7 +81,7 @@ where
 	}
 }
 
-impl<'alloc, 'data, E> Visit<'data> for Visitor<'alloc, 'data, E>
+impl<'data, E> Visit<'data> for Visitor<'_, 'data, E>
 where
 	E: UrlRewriter,
 {
