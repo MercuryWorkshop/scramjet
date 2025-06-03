@@ -425,7 +425,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 
 	pub fn set_alloc(&mut self, alloc: &'alloc Allocator) -> Result<(), RewriterError> {
 		if self.alloc.is_some() {
-			Err(RewriterError::NotRewriting)
+			Err(RewriterError::AlreadyRewriting)
 		} else {
 			self.alloc.replace(alloc);
 			Ok(())
