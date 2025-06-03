@@ -1,19 +1,22 @@
 use std::cmp::Ordering;
 
 use oxc::{
-	allocator::{Allocator, StringBuilder, Vec},
+	allocator::{Allocator, Vec},
 	ast::ast::AssignmentOperator,
 	span::{format_compact_str, Atom, Span},
 };
 use smallvec::{smallvec, SmallVec};
 
-use crate::{cfg::Config, changeset::ChangeSet, RewriterError};
+use crate::{
+	cfg::{Config, UrlRewriter},
+	RewriterError,
+};
 
 // const STRICTCHECKER: &str = "(function(a){arguments[0]=false;return a})(true)";
 const STRICTCHECKER: &str = "(function(){return !this;})()";
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Rewrite<'alloc, 'data> {
+pub(crate) enum Rewrite<'alloc: 'data, 'data> {
 	/// `(cfg.wrapfn(ident,strictchecker))` | `cfg.wrapfn(ident,strictchecker)`
 	WrapFn {
 		span: Span,
@@ -79,7 +82,7 @@ pub(crate) enum Rewrite<'alloc, 'data> {
 	},
 }
 
-impl<'alloc, 'data> Rewrite<'alloc, 'data> {
+impl<'alloc: 'data, 'data> Rewrite<'alloc, 'data> {
 	fn into_inner(self) -> SmallVec<[JsChange<'alloc, 'data>; 4]> {
 		match self {
 			Self::WrapFn {
@@ -168,7 +171,7 @@ macro_rules! changes {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum JsChange<'alloc, 'data> {
+enum JsChange<'alloc: 'data, 'data> {
 	/// insert `${cfg.wrapfn}(`
 	WrapFnLeft { span: Span, extra: bool },
 	/// insert `,strictchecker)`
@@ -210,7 +213,7 @@ enum JsChange<'alloc, 'data> {
 	Delete { span: Span },
 }
 
-impl JsChange<'_, '_> {
+impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
 	fn get_span(&self) -> &Span {
 		match self {
 			Self::WrapFnLeft { span, .. }
@@ -232,30 +235,26 @@ impl JsChange<'_, '_> {
 		}
 	}
 
-	fn to_inner<'alloc: 'change, 'change, E>(
-		&'change self,
-		cfg: &'change Config<'alloc, E>,
-		offset: u32,
-	) -> JsChangeInner<'change>
+	fn into_inner<E>(self, cfg: &'data Config<E>, offset: u32) -> JsChangeInner<'data>
 	where
-		E: Fn(&str, &mut StringBuilder<'alloc>),
+		E: UrlRewriter,
 	{
 		match self {
 			Self::WrapFnLeft { span, extra } => {
-				if *extra {
+				if extra {
 					JsChangeInner::Insert {
 						loc: span.start,
-						str: changes!["(", cfg.wrapfn, "("],
+						str: changes!["(", &cfg.wrapfn, "("],
 					}
 				} else {
 					JsChangeInner::Insert {
 						loc: span.start,
-						str: changes![cfg.wrapfn, "("],
+						str: changes![&cfg.wrapfn, "("],
 					}
 				}
 			}
 			Self::WrapFnRight { span, extra } => {
-				if *extra {
+				if extra {
 					JsChangeInner::Insert {
 						loc: span.start,
 						str: changes![",", STRICTCHECKER, "))"],
@@ -269,11 +268,11 @@ impl JsChange<'_, '_> {
 			}
 			Self::SetRealmFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![cfg.setrealmfn, "({})."],
+				str: changes![&cfg.setrealmfn, "({})."],
 			},
 			Self::WrapThisFn { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![cfg.wrapthisfn, "("],
+				str: changes![&cfg.wrapthisfn, "("],
 			},
 			Self::ScramErrFn { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
@@ -284,21 +283,27 @@ impl JsChange<'_, '_> {
 				str: changes![" $scramitize("],
 			},
 			Self::EvalRewriteFn { .. } => JsChangeInner::Replace {
-				str: changes!["eval(", cfg.rewritefn, "("],
+				str: changes!["eval(", &cfg.rewritefn, "("],
 			},
 			Self::ShorthandObj { span, ident } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes![":", cfg.wrapfn, "(", ident, ")"],
+				str: changes![":", &cfg.wrapfn, "(", ident, ")"],
 			},
 			Self::SourceTag { span } => JsChangeInner::Insert {
 				loc: span.start,
-				str: changes!["/*scramtag ", span.start + offset, " ", cfg.sourcetag, "*/"],
+				str: changes![
+					"/*scramtag ",
+					span.start + offset,
+					" ",
+					&cfg.sourcetag,
+					"*/"
+				],
 			},
 			Self::ImportFn { .. } => JsChangeInner::Replace {
-				str: changes![cfg.importfn, "(\"", cfg.base, "\","],
+				str: changes![&cfg.importfn, "(\"", &cfg.base, "\","],
 			},
 			Self::MetaFn { .. } => JsChangeInner::Replace {
-				str: changes![cfg.metafn, "(\"", cfg.base, "\")"],
+				str: changes![&cfg.metafn, "(\"", &cfg.base, "\")"],
 			},
 			Self::AssignmentLeft { name, op, .. } => JsChangeInner::Replace {
 				str: changes![
@@ -315,7 +320,7 @@ impl JsChange<'_, '_> {
 			Self::ReplaceClosingParen { .. } => JsChangeInner::Replace { str: changes![")"] },
 			Self::ClosingParen { span, semi } => JsChangeInner::Insert {
 				loc: span.start,
-				str: if *semi { changes![");"] } else { changes![")"] },
+				str: if semi { changes![");"] } else { changes![")"] },
 			},
 			Self::Replace { text, .. } => JsChangeInner::Replace {
 				str: changes![text],
@@ -355,20 +360,20 @@ impl<'a> From<&'a str> for Change<'a> {
 	}
 }
 
-impl<'a> From<&&'a str> for Change<'a> {
-	fn from(value: &&'a str) -> Self {
-		Self::Str(*value)
+impl<'a> From<&'a String> for Change<'a> {
+	fn from(value: &'a String) -> Self {
+		Self::Str(value)
 	}
 }
 
-impl<'a> From<&'a Atom<'_>> for Change<'a> {
-	fn from(value: &'a Atom<'_>) -> Self {
+impl<'a> From<Atom<'a>> for Change<'a> {
+	fn from(value: Atom<'a>) -> Self {
 		Self::Str(value.as_str())
 	}
 }
 
-impl<'a> From<&'a AssignmentOperator> for Change<'a> {
-	fn from(value: &'a AssignmentOperator) -> Self {
+impl From<AssignmentOperator> for Change<'static> {
+	fn from(value: AssignmentOperator) -> Self {
 		Self::Str(value.as_str())
 	}
 }
@@ -392,35 +397,59 @@ pub(crate) struct JsChangeResult<'alloc> {
 }
 
 pub(crate) struct JsChanges<'alloc: 'data, 'data> {
-	alloc: &'alloc Allocator,
-	inner: ChangeSet<'alloc, JsChange<'alloc, 'data>>,
+	alloc: Option<&'alloc Allocator>,
+	inner: std::vec::Vec<JsChange<'alloc, 'data>>,
 }
 
 impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
-	pub fn new(alloc: &'alloc Allocator, capacity: usize) -> Self {
+	pub fn new() -> Self {
 		Self {
-			inner: ChangeSet::new(alloc, capacity),
-			alloc,
+			inner: std::vec::Vec::new(),
+			alloc: None,
 		}
 	}
 
 	pub fn add(&mut self, rewrite: Rewrite<'alloc, 'data>) {
 		for change in rewrite.into_inner() {
-			self.inner.add(change);
+			self.inner.push(change);
 		}
+	}
+
+	pub fn set_alloc(&mut self, alloc: &'alloc Allocator) -> Result<(), RewriterError> {
+		self.alloc
+			.replace(alloc)
+			.ok_or(RewriterError::AlreadyRewriting)
+			.map(|_| ())
+	}
+
+	pub fn take_alloc(&mut self) -> Result<(), RewriterError> {
+		self.alloc
+			.take()
+			.ok_or(RewriterError::NotRewriting)
+			.map(|_| ())
+	}
+
+	pub fn get_alloc(&self) -> Result<&'alloc Allocator, RewriterError> {
+		self.alloc.ok_or(RewriterError::NotRewriting)
+	}
+
+	pub fn empty(&self) -> bool {
+		self.inner.is_empty()
 	}
 
 	pub fn perform<E>(
 		&mut self,
-		js: &str,
-		cfg: &Config<'alloc, E>,
+		js: &'data str,
+		cfg: &'data Config<E>,
 	) -> Result<JsChangeResult<'alloc>, RewriterError>
 	where
-		E: Fn(&str, &mut StringBuilder<'alloc>),
+		E: UrlRewriter,
 	{
+		let alloc = self.get_alloc()?;
+
 		let mut cursor = 0;
 		let mut offset = 0i32;
-		let mut buffer = Vec::with_capacity_in(js.len() * 2, self.alloc);
+		let mut buffer = Vec::with_capacity_in(js.len() * 2, alloc);
 
 		macro_rules! tryget {
 			($start:ident..$end:ident) => {
@@ -446,19 +475,17 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 
 		// insert has a 9 byte size, replace has a 13 byte minimum and usually it's like 5 bytes
 		// for the old str added on so use 16 as a really rough estimate
-		let mut map = Vec::with_capacity_in(self.inner.len() * 16, self.alloc);
+		let mut map = Vec::with_capacity_in(self.inner.len() * 16, alloc);
 		map.extend_from_slice(&(self.inner.len() as u32).to_le_bytes());
 
 		self.inner.sort();
 
-		for change in self.inner.iter() {
-			let span = change.get_span();
-			let start = span.start;
-			let end = span.end;
+		for change in self.inner.drain(..) {
+			let Span { start, end, .. } = *change.get_span();
 
 			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
 
-			match change.to_inner(cfg, cursor) {
+			match change.into_inner(cfg, cursor) {
 				JsChangeInner::Insert { loc, str } => {
 					let mut len = 0u32;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
@@ -485,18 +512,18 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 					// REPLACE op
 					map.push(1);
 					// len
-					map.extend_from_slice(&(span.end - span.start).to_le_bytes());
+					map.extend_from_slice(&(end - start).to_le_bytes());
 					// start
-					map.extend_from_slice(&(span.start.wrapping_add_signed(offset)).to_le_bytes());
+					map.extend_from_slice(&(start.wrapping_add_signed(offset)).to_le_bytes());
 					// end
 					map.extend_from_slice(
-						&((span.start + len).wrapping_add_signed(offset)).to_le_bytes(),
+						&((start + len).wrapping_add_signed(offset)).to_le_bytes(),
 					);
 					// oldstr
 					map.extend_from_slice(tryget!(start..end).as_bytes());
 
 					let len = i32::try_from(len).map_err(|_| RewriterError::AddedTooLarge)?;
-					let diff = len.wrapping_sub_unsigned(span.end - span.start);
+					let diff = len.wrapping_sub_unsigned(end - start);
 					offset = offset.wrapping_add(diff);
 				}
 			}

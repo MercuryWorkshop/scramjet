@@ -1,23 +1,27 @@
 use oxc::allocator::StringBuilder;
 
-pub struct Config<'alloc, E>
-where
-	E: Fn(&str, &mut StringBuilder<'alloc>),
-{
-	pub prefix: &'alloc str,
-	pub sourcetag: &'alloc str,
-	pub base: &'alloc str,
+pub trait UrlRewriter {
+	fn rewrite<'alloc>(&self, url: &str, builder: &mut StringBuilder<'alloc>);
+}
 
-	pub wrapfn: &'alloc str,
-	pub wrapthisfn: &'alloc str,
-	pub importfn: &'alloc str,
-	pub rewritefn: &'alloc str,
-	pub setrealmfn: &'alloc str,
-	pub metafn: &'alloc str,
-	pub pushsourcemapfn: &'alloc str,
+pub struct Config<E: UrlRewriter> {
+	pub prefix: String,
+	pub sourcetag: String,
+	pub base: String,
 
-	/// URL REWRITER IS RESPONSIBLE FOR ADDING BASE
+	pub wrapfn: String,
+	pub wrapthisfn: String,
+	pub importfn: String,
+	pub rewritefn: String,
+	pub setrealmfn: String,
+	pub metafn: String,
+	pub pushsourcemapfn: String,
+
 	pub urlrewriter: E,
+}
+
+pub struct Flags {
+	pub is_module: bool,
 
 	pub capture_errors: bool,
 	pub scramitize: bool,

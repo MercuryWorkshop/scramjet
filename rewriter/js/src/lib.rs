@@ -1,6 +1,7 @@
+use std::cell::RefCell;
+
 use oxc::{
-	allocator::{Allocator, StringBuilder, Vec},
-	ast::ast::Program,
+	allocator::{Allocator, Vec},
 	ast_visit::Visit,
 	diagnostics::OxcDiagnostic,
 	parser::{ParseOptions, Parser},
@@ -10,11 +11,10 @@ use thiserror::Error;
 
 pub mod cfg;
 mod changes;
-mod changeset;
 mod visitor;
 
-use cfg::Config;
-use changes::{JsChangeResult, JsChanges};
+use cfg::{Config, Flags, UrlRewriter};
+use changes::JsChanges;
 use visitor::Visitor;
 
 #[derive(Error, Debug)]
@@ -27,6 +27,12 @@ pub enum RewriterError {
 	AddedTooLarge,
 	#[error("formatting error: {0}")]
 	Formatting(#[from] std::fmt::Error),
+	#[error("Already rewriting")]
+	AlreadyRewriting,
+	#[error("Not rewriting")]
+	NotRewriting,
+	#[error("JsChanges left over")]
+	Leftover,
 }
 
 #[derive(Debug)]
@@ -36,58 +42,120 @@ pub struct RewriteResult<'alloc> {
 	pub errors: std::vec::Vec<OxcDiagnostic>,
 }
 
-pub fn rewrite<'alloc, 'data, E>(
-	alloc: &'alloc Allocator,
-	js: &'data str,
-	config: Config<'alloc, E>,
-	module: bool,
-	capacity: usize,
-) -> Result<RewriteResult<'alloc>, RewriterError>
-where
-	E: Fn(&str, &mut StringBuilder<'alloc>),
-{
-	let source_type = SourceType::unambiguous()
-		.with_javascript(true)
-		.with_module(module)
-		.with_standard(true);
-	let ret = Parser::new(alloc, js, source_type)
-		.with_options(ParseOptions {
-			allow_v8_intrinsics: true,
-			allow_return_outside_function: true,
-			..Default::default()
-		})
-		.parse();
+pub struct Rewriter<E: UrlRewriter> {
+	cfg: Config<E>,
 
-	if ret.panicked {
-		use std::fmt::Write;
+	jschanges: RefCell<Option<JsChanges<'static, 'static>>>,
+}
 
-		let mut errors = String::new();
-		for error in ret.errors {
-			writeln!(errors, "{error}")?;
-		}
-		return Err(RewriterError::OxcPanicked(errors));
+impl<E: UrlRewriter> Rewriter<E> {
+	fn take_jschanges<'alloc: 'data, 'data>(
+		&'data self,
+		alloc: &'alloc Allocator,
+	) -> Result<JsChanges<'alloc, 'data>, RewriterError> {
+		let mut slot = self
+			.jschanges
+			.try_borrow_mut()
+			.map_err(|_| RewriterError::AlreadyRewriting)?;
+
+		slot.take()
+			.ok_or(RewriterError::AlreadyRewriting)
+			.and_then(|x| {
+				let mut x = unsafe {
+					std::mem::transmute::<JsChanges<'static, 'static>, JsChanges<'alloc, 'data>>(x)
+				};
+				x.set_alloc(alloc)?;
+				Ok(x)
+			})
 	}
 
-	let mut visitor = Visitor {
-		jschanges: JsChanges::new(alloc, capacity),
-		config,
-		alloc,
-	};
+	fn put_jschanges<'alloc: 'data, 'data>(
+		&'data self,
+		mut changes: JsChanges<'alloc, 'data>,
+	) -> Result<(), RewriterError> {
+		if !changes.empty() {
+			return Err(RewriterError::Leftover);
+		}
 
-	// TODO fix the lifetime issue
-	visitor.visit_program(&unsafe { std::mem::transmute::<Program<'_>, Program<'_>>(ret.program) });
+		let mut slot = self
+			.jschanges
+			.try_borrow_mut()
+			.map_err(|_| RewriterError::AlreadyRewriting)?;
 
-	let Visitor {
-		mut jschanges,
-		config,
-		alloc: _,
-	} = visitor;
+		if slot.is_some() {
+			Err(RewriterError::NotRewriting)
+		} else {
+			changes.take_alloc()?;
 
-	let JsChangeResult { js, sourcemap } = jschanges.perform(js, &config)?;
+			let changes = unsafe {
+				std::mem::transmute::<JsChanges<'alloc, 'data>, JsChanges<'static, 'static>>(
+					changes,
+				)
+			};
 
-	Ok(RewriteResult {
-		js,
-		sourcemap,
-		errors: ret.errors,
-	})
+			slot.replace(changes);
+
+			Ok(())
+		}
+	}
+
+	pub fn new(cfg: Config<E>) -> Self {
+		Self {
+			cfg,
+			jschanges: RefCell::new(Some(JsChanges::new())),
+		}
+	}
+
+	pub fn rewrite<'alloc: 'data, 'data>(
+		&'data self,
+		alloc: &'alloc Allocator,
+		js: &'data str,
+		flags: Flags,
+	) -> Result<RewriteResult<'alloc>, RewriterError> {
+		let source_type = SourceType::unambiguous()
+			.with_javascript(true)
+			.with_module(flags.is_module)
+			.with_standard(true);
+		let parsed = Parser::new(alloc, js, source_type)
+			.with_options(ParseOptions {
+				allow_v8_intrinsics: true,
+				allow_return_outside_function: true,
+				..Default::default()
+			})
+			.parse();
+
+		if parsed.panicked {
+			use std::fmt::Write;
+
+			let mut errors = String::new();
+			for error in parsed.errors {
+				writeln!(errors, "{error}")?;
+			}
+			return Err(RewriterError::OxcPanicked(errors));
+		}
+
+		let jschanges = self.take_jschanges(alloc)?;
+
+		let mut visitor = Visitor {
+			jschanges,
+			config: &self.cfg,
+			flags,
+			alloc,
+		};
+		visitor.visit_program(&parsed.program);
+		let mut jschanges = visitor.jschanges;
+
+		let changed = jschanges.perform(js, &self.cfg)?;
+
+		self.put_jschanges(jschanges)?;
+
+		let js: Vec<'alloc, u8> = changed.js;
+		let sourcemap: Vec<'alloc, u8> = changed.sourcemap;
+
+		Ok(RewriteResult {
+			js,
+			sourcemap,
+			errors: parsed.errors,
+		})
+	}
 }
