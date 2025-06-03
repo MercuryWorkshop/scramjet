@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use oxc::{
 	allocator::{Allocator, Vec},
 	ast::ast::AssignmentOperator,
-	span::{format_compact_str, Atom, Span},
+	span::{Atom, Span},
 };
 use smallvec::{smallvec, SmallVec};
 
@@ -453,6 +453,8 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		cfg: &'data Config,
 		flags: &'data Flags,
 	) -> Result<JsChangeResult<'alloc>, RewriterError> {
+		let mut itoa = itoa::Buffer::new();
+
 		let alloc = self.get_alloc()?;
 
 		let mut cursor = 0;
@@ -473,7 +475,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 						x.len()
 					}
 					Change::U32(x) => {
-						let x = format_compact_str!("{}", x);
+						let x = itoa.format(x);
 						buffer.extend_from_slice(x.as_bytes());
 						x.len()
 					}
@@ -497,7 +499,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 				JsChangeInner::Insert { loc, str } => {
 					let mut len = 0u32;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());
-					for str in &str {
+					for str in str {
 						len += eval!(str) as u32;
 					}
 					buffer.extend_from_slice(tryget!(loc..end).as_bytes());
@@ -513,7 +515,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 				}
 				JsChangeInner::Replace { str } => {
 					let mut len = 0u32;
-					for str in &str {
+					for str in str {
 						len += eval!(str) as u32;
 					}
 
