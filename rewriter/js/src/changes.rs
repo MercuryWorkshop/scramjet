@@ -23,108 +23,89 @@ macro_rules! changes {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum JsChange<'alloc: 'data, 'data> {
+pub enum JsChangeType<'alloc: 'data, 'data> {
 	/// insert `${cfg.wrapfn}(`
-	WrapFnLeft { span: Span, extra: bool },
+	WrapFnLeft { wrap: bool },
 	/// insert `,strictchecker)`
-	WrapFnRight { span: Span, extra: bool },
+	WrapFnRight { wrap: bool },
 	/// insert `${cfg.setrealmfn}({}).`
-	SetRealmFn { span: Span },
+	SetRealmFn,
 	/// insert `${cfg.wrapthis}(`
-	WrapThisFn { span: Span },
+	WrapThisFn,
 	/// insert `$scramerr(ident);`
-	ScramErrFn { span: Span, ident: Atom<'data> },
+	ScramErrFn { ident: Atom<'data> },
 	/// insert `$scramitize(`
-	ScramitizeFn { span: Span },
+	ScramitizeFn,
 	/// insert `eval(${cfg.rewritefn}(`
-	EvalRewriteFn { span: Span },
+	EvalRewriteFn,
 	/// insert `: ${cfg.wrapfn}(ident)`
-	ShorthandObj { span: Span, ident: Atom<'data> },
+	ShorthandObj { ident: Atom<'data> },
 	/// insert scramtag
-	SourceTag { span: Span },
+	SourceTag,
 
 	/// replace span with `${cfg.importfn}`
-	ImportFn { span: Span },
+	ImportFn,
 	/// replace span with `${cfg.metafn}("${cfg.base}")`
-	MetaFn { span: Span },
+	MetaFn,
 	/// replace span with `((t)=>$scramjet$tryset(${name},"${op}",t)||(${name}${op}t))(`
 	AssignmentLeft {
-		span: Span,
 		name: Atom<'data>,
 		op: AssignmentOperator,
 	},
 
 	/// replace span with `)`
-	ReplaceClosingParen { span: Span },
+	ReplaceClosingParen,
 	/// insert `)`
-	ClosingParen { span: Span, semi: bool },
+	ClosingParen { semi: bool },
 
 	/// replace span with text
-	Replace { span: Span, text: &'alloc str },
+	Replace { text: &'alloc str },
 	/// replace span with ""
-	Delete { span: Span },
+	Delete,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct JsChange<'alloc: 'data, 'data> {
+	pub span: Span,
+	pub ty: JsChangeType<'alloc, 'data>,
 }
 
 impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
-	fn get_span(&self) -> &Span {
-		match self {
-			Self::WrapFnLeft { span, .. }
-			| Self::WrapFnRight { span, .. }
-			| Self::SetRealmFn { span }
-			| Self::WrapThisFn { span }
-			| Self::ScramErrFn { span, .. }
-			| Self::ScramitizeFn { span }
-			| Self::EvalRewriteFn { span }
-			| Self::ShorthandObj { span, .. }
-			| Self::SourceTag { span, .. }
-			| Self::ImportFn { span }
-			| Self::MetaFn { span }
-			| Self::AssignmentLeft { span, .. }
-			| Self::ReplaceClosingParen { span }
-			| Self::ClosingParen { span, .. }
-			| Self::Replace { span, .. }
-			| Self::Delete { span } => span,
-		}
+	pub fn new(span: Span, ty: JsChangeType<'alloc, 'data>) -> Self {
+		Self { span, ty }
 	}
 
 	fn into_inner(self, cfg: &'data Config, flags: &'data Flags, offset: u32) -> Transform<'data> {
-		match self {
-			Self::WrapFnLeft { extra, .. } => Transform::insert(if extra {
+		use JsChangeType as Ty;
+		match self.ty {
+			Ty::WrapFnLeft { wrap: extra } => Transform::insert(if extra {
 				changes!["(", &cfg.wrapfn, "("]
 			} else {
 				changes![&cfg.wrapfn, "("]
 			}),
-			Self::WrapFnRight { extra, .. } => Transform::insert(if extra {
+			Ty::WrapFnRight { wrap: extra } => Transform::insert(if extra {
 				changes![",", STRICTCHECKER, "))"]
 			} else {
 				changes![",", STRICTCHECKER, ")"]
 			}),
-			Self::SetRealmFn { .. } => Transform::insert(changes![&cfg.setrealmfn, "({})."]),
-			Self::WrapThisFn { .. } => Transform::insert(changes![&cfg.wrapthisfn, "("]),
-			Self::ScramErrFn { ident, .. } => {
-				Transform::insert(changes!["$scramerr(", ident, ");"])
-			}
-			Self::ScramitizeFn { .. } => Transform::insert(changes![" $scramitize("]),
-			Self::EvalRewriteFn { .. } => {
-				Transform::replace(changes!["eval(", &cfg.rewritefn, "("])
-			}
-			Self::ShorthandObj { ident, .. } => {
+			Ty::SetRealmFn => Transform::insert(changes![&cfg.setrealmfn, "({})."]),
+			Ty::WrapThisFn => Transform::insert(changes![&cfg.wrapthisfn, "("]),
+			Ty::ScramErrFn { ident } => Transform::insert(changes!["$scramerr(", ident, ");"]),
+			Ty::ScramitizeFn => Transform::insert(changes![" $scramitize("]),
+			Ty::EvalRewriteFn => Transform::replace(changes!["eval(", &cfg.rewritefn, "("]),
+			Ty::ShorthandObj { ident } => {
 				Transform::insert(changes![":", &cfg.wrapfn, "(", ident, ")"])
 			}
-			Self::SourceTag { span } => Transform::insert(changes![
+			Ty::SourceTag => Transform::insert(changes![
 				"/*scramtag ",
-				span.start + offset,
+				self.span.start + offset,
 				" ",
 				&flags.sourcetag,
 				"*/"
 			]),
-			Self::ImportFn { .. } => {
-				Transform::replace(changes![&cfg.importfn, "(\"", &flags.base, "\","])
-			}
-			Self::MetaFn { .. } => {
-				Transform::replace(changes![&cfg.metafn, "(\"", &flags.base, "\")"])
-			}
-			Self::AssignmentLeft { name, op, .. } => Transform::replace(changes![
+			Ty::ImportFn => Transform::replace(changes![&cfg.importfn, "(\"", &flags.base, "\","]),
+			Ty::MetaFn => Transform::replace(changes![&cfg.metafn, "(\"", &flags.base, "\")"]),
+			Ty::AssignmentLeft { name, op } => Transform::replace(changes![
 				"((t)=>$scramjet$tryset(",
 				name,
 				",\"",
@@ -134,12 +115,12 @@ impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
 				op,
 				"t))("
 			]),
-			Self::ReplaceClosingParen { .. } => Transform::replace(changes![")"]),
-			Self::ClosingParen { semi, .. } => {
+			Ty::ReplaceClosingParen => Transform::replace(changes![")"]),
+			Ty::ClosingParen { semi } => {
 				Transform::replace(if semi { changes![");"] } else { changes![")"] })
 			}
-			Self::Replace { text, .. } => Transform::replace(changes![text]),
-			Self::Delete { .. } => Transform::replace(SmallVec::new()),
+			Ty::Replace { text } => Transform::replace(changes![text]),
+			Ty::Delete => Transform::replace(SmallVec::new()),
 		}
 	}
 }
@@ -152,10 +133,12 @@ impl PartialOrd for JsChange<'_, '_> {
 
 impl Ord for JsChange<'_, '_> {
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-		match self.get_span().start.cmp(&other.get_span().start) {
-			Ordering::Equal => match (self, other) {
-				(Self::ScramErrFn { .. }, _) => Ordering::Less,
-				(_, Self::ScramErrFn { .. }) => Ordering::Greater,
+		use JsChangeType as Ty;
+
+		match self.span.start.cmp(&other.span.start) {
+			Ordering::Equal => match (&self.ty, &other.ty) {
+				(Ty::ScramErrFn { .. }, _) => Ordering::Less,
+				(_, Ty::ScramErrFn { .. }) => Ordering::Greater,
 				_ => Ordering::Equal,
 			},
 			x => x,
@@ -333,7 +316,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		self.inner.sort();
 
 		for change in self.inner.drain(..) {
-			let Span { start, end, .. } = *change.get_span();
+			let Span { start, end, .. } = change.span;
 
 			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
 
