@@ -10,6 +10,7 @@ use oxc::{
 use thiserror::Error;
 
 pub mod cfg;
+mod rewrite;
 mod changes;
 mod visitor;
 

@@ -22,7 +22,7 @@ else
 fi
 
 (
-	export RUSTFLAGS='-C target-feature=+atomics,+bulk-memory,+simd128 -Zlocation-detail=none -Zfmt-debug=none'
+	export RUSTFLAGS='-Zlocation-detail=none -Zfmt-debug=none'
 	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
 		export RUSTFLAGS="${RUSTFLAGS} -C opt-level=z"
 	fi
@@ -89,7 +89,7 @@ if [ "${RELEASE:-0}" = "1" ]; then
 		G="--generate-global-effects"
 		# shellcheck disable=SC2086
 		time wasm-opt $WASMOPTFLAGS \
-			rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm --enable-threads --enable-bulk-memory --enable-simd \
+			rewriter/wasm/out/wasm_snipped.wasm -o rewriter/wasm/out/optimized.wasm \
 			--converge -tnh --vacuum \
 			$G -O4 $G --flatten $G --rereloop $G -O4 $G -O4 $G -O4 \
 			$G -Oz $G --flatten $G --rereloop $G -Oz $G -Oz $G -Oz \

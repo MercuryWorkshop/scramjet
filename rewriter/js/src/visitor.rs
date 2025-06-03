@@ -13,7 +13,8 @@ use oxc::{
 
 use crate::{
 	cfg::{Config, Flags, UrlRewriter},
-	changes::{JsChanges, Rewrite},
+	changes::JsChanges,
+	rewrite::Rewrite,
 };
 
 // js MUST not be able to get a reference to any of these because sbx
