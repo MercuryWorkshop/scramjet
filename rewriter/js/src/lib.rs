@@ -39,11 +39,14 @@ pub enum RewriterError {
 pub struct RewriteResult<'alloc> {
 	pub js: Vec<'alloc, u8>,
 	pub sourcemap: Vec<'alloc, u8>,
+
 	pub errors: std::vec::Vec<OxcDiagnostic>,
+	pub flags: Flags,
 }
 
 pub struct Rewriter<E: UrlRewriter> {
-	cfg: Config<E>,
+	cfg: Config,
+	url_rewriter: E,
 
 	jschanges: RefCell<Option<JsChanges<'static, 'static>>>,
 }
@@ -99,9 +102,10 @@ impl<E: UrlRewriter> Rewriter<E> {
 		}
 	}
 
-	pub fn new(cfg: Config<E>) -> Self {
+	pub fn new(cfg: Config, url_rewriter: E) -> Self {
 		Self {
 			cfg,
+			url_rewriter,
 			jschanges: RefCell::new(Some(JsChanges::new())),
 		}
 	}
@@ -137,15 +141,17 @@ impl<E: UrlRewriter> Rewriter<E> {
 		let jschanges = self.take_jschanges(alloc)?;
 
 		let mut visitor = Visitor {
-			jschanges,
-			config: &self.cfg,
-			flags,
 			alloc,
+			jschanges,
+
+			config: &self.cfg,
+			rewriter: &self.url_rewriter,
+			flags,
 		};
 		visitor.visit_program(&parsed.program);
 		let mut jschanges = visitor.jschanges;
 
-		let changed = jschanges.perform(js, &self.cfg)?;
+		let changed = jschanges.perform(js, &self.cfg, &visitor.flags)?;
 
 		self.put_jschanges(jschanges)?;
 
@@ -156,6 +162,7 @@ impl<E: UrlRewriter> Rewriter<E> {
 			js,
 			sourcemap,
 			errors: parsed.errors,
+			flags: visitor.flags,
 		})
 	}
 }

@@ -1,13 +1,11 @@
 use oxc::allocator::StringBuilder;
 
 pub trait UrlRewriter {
-	fn rewrite<'alloc>(&self, url: &str, builder: &mut StringBuilder<'alloc>);
+	fn rewrite(&self, cfg: &Config, flags: &Flags, url: &str, builder: &mut StringBuilder);
 }
 
-pub struct Config<E: UrlRewriter> {
+pub struct Config {
 	pub prefix: String,
-	pub sourcetag: String,
-	pub base: String,
 
 	pub wrapfn: String,
 	pub wrapthisfn: String,
@@ -16,13 +14,14 @@ pub struct Config<E: UrlRewriter> {
 	pub setrealmfn: String,
 	pub metafn: String,
 	pub pushsourcemapfn: String,
-
-	pub urlrewriter: E,
 }
 
+#[derive(Debug)]
 pub struct Flags {
-	pub is_module: bool,
+	pub base: String,
+	pub sourcetag: String,
 
+	pub is_module: bool,
 	pub capture_errors: bool,
 	pub scramitize: bool,
 	pub do_sourcemaps: bool,

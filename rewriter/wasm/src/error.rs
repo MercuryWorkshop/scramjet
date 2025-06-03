@@ -1,7 +1,7 @@
 use std::cell::BorrowMutError;
 
-use js_sys::Error;
 use js::RewriterError as JsRewriterError;
+use js_sys::Error;
 use thiserror::Error;
 use wasm_bindgen::{JsError, JsValue};
 
@@ -19,7 +19,7 @@ pub enum RewriterError {
 	AlreadyRewriting(#[from] BorrowMutError),
 
 	#[error("{0} was not {1}")]
-	Not(String, &'static str),
+	Not(&'static str, &'static str),
 }
 
 impl From<JsValue> for RewriterError {
@@ -35,16 +35,16 @@ impl From<RewriterError> for JsValue {
 }
 
 impl RewriterError {
-	pub fn not_str(x: &str) -> Self {
-		Self::Not(x.to_string(), "string")
+	pub fn not_str(x: &'static str) -> Self {
+		Self::Not(x, "string")
 	}
 
-	pub fn not_fn(x: &str) -> Self {
-		Self::Not(x.to_string(), "function")
+	pub fn not_fn(x: &'static str) -> Self {
+		Self::Not(x, "function")
 	}
 
-	pub fn not_bool(x: &str) -> Self {
-		Self::Not(x.to_string(), "bool")
+	pub fn not_bool(x: &'static str) -> Self {
+		Self::Not(x, "bool")
 	}
 }
 

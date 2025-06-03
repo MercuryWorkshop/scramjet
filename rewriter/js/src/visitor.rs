@@ -36,10 +36,12 @@ pub struct Visitor<'alloc, 'data, E>
 where
 	E: UrlRewriter,
 {
-	pub jschanges: JsChanges<'alloc, 'data>,
-	pub config: &'data Config<E>,
-	pub flags: Flags,
 	pub alloc: &'alloc Allocator,
+	pub jschanges: JsChanges<'alloc, 'data>,
+
+	pub config: &'data Config,
+	pub rewriter: &'data E,
+	pub flags: Flags,
 }
 
 impl<'alloc, 'data, E> Visitor<'alloc, 'data, E>
@@ -48,7 +50,8 @@ where
 {
 	fn rewrite_url(&mut self, url: Atom<'data>) -> &'alloc str {
 		let mut builder = StringBuilder::from_str_in(&self.config.prefix, self.alloc);
-		self.config.urlrewriter.rewrite(&url, &mut builder);
+		self.rewriter
+			.rewrite(self.config, &self.flags, &url, &mut builder);
 		builder.into_str()
 	}
 
@@ -80,7 +83,7 @@ where
 
 impl<'alloc, 'data, E> Visit<'data> for Visitor<'alloc, 'data, E>
 where
-	E: UrlRewriter
+	E: UrlRewriter,
 {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
 		// if self.config.capture_errors {

@@ -8,7 +8,7 @@ use oxc::{
 use smallvec::{smallvec, SmallVec};
 
 use crate::{
-	cfg::{Config, UrlRewriter},
+	cfg::{Config, Flags},
 	RewriterError,
 };
 
@@ -235,10 +235,12 @@ impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
 		}
 	}
 
-	fn into_inner<E>(self, cfg: &'data Config<E>, offset: u32) -> JsChangeInner<'data>
-	where
-		E: UrlRewriter,
-	{
+	fn into_inner(
+		self,
+		cfg: &'data Config,
+		flags: &'data Flags,
+		offset: u32,
+	) -> JsChangeInner<'data> {
 		match self {
 			Self::WrapFnLeft { span, extra } => {
 				if extra {
@@ -295,15 +297,15 @@ impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
 					"/*scramtag ",
 					span.start + offset,
 					" ",
-					&cfg.sourcetag,
+					&flags.sourcetag,
 					"*/"
 				],
 			},
 			Self::ImportFn { .. } => JsChangeInner::Replace {
-				str: changes![&cfg.importfn, "(\"", &cfg.base, "\","],
+				str: changes![&cfg.importfn, "(\"", &flags.base, "\","],
 			},
 			Self::MetaFn { .. } => JsChangeInner::Replace {
-				str: changes![&cfg.metafn, "(\"", &cfg.base, "\")"],
+				str: changes![&cfg.metafn, "(\"", &flags.base, "\")"],
 			},
 			Self::AssignmentLeft { name, op, .. } => JsChangeInner::Replace {
 				str: changes![
@@ -357,6 +359,12 @@ enum Change<'a> {
 impl<'a> From<&'a str> for Change<'a> {
 	fn from(value: &'a str) -> Self {
 		Self::Str(value)
+	}
+}
+
+impl<'a> From<&&'a str> for Change<'a> {
+	fn from(value: &&'a str) -> Self {
+		Self::Str(*value)
 	}
 }
 
@@ -437,14 +445,12 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		self.inner.is_empty()
 	}
 
-	pub fn perform<E>(
+	pub fn perform(
 		&mut self,
 		js: &'data str,
-		cfg: &'data Config<E>,
-	) -> Result<JsChangeResult<'alloc>, RewriterError>
-	where
-		E: UrlRewriter,
-	{
+		cfg: &'data Config,
+		flags: &'data Flags,
+	) -> Result<JsChangeResult<'alloc>, RewriterError> {
 		let alloc = self.get_alloc()?;
 
 		let mut cursor = 0;
@@ -485,7 +491,7 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 
 			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
 
-			match change.into_inner(cfg, cursor) {
+			match change.into_inner(cfg, flags, cursor) {
 				JsChangeInner::Insert { loc, str } => {
 					let mut len = 0u32;
 					buffer.extend_from_slice(tryget!(start..loc).as_bytes());

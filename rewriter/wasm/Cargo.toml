@@ -10,7 +10,6 @@ workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-instant = { version = "0.1.13", features = ["wasm-bindgen"] }
 js-sys = "0.3.77"
 oxc = { workspace = true }
 js = { version = "0.1.0", path = "../js", default-features = false }
