@@ -3,7 +3,7 @@ import { handleFetch } from "./fetch";
 import type BareClient from "@mercuryworkshop/bare-mux";
 import { ScramjetConfig } from "../types";
 import { $scramjet, loadCodecs } from "../scramjet";
-import { asyncInitRewriter } from "../shared/rewriters/js";
+import { asyncSetWasm } from "../shared/rewriters/wasm";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
@@ -97,7 +97,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 					loadCodecs();
 
-					await asyncInitRewriter();
+					await asyncSetWasm();
 
 					resolve();
 				};

@@ -1,30 +1,11 @@
 import { URLMeta } from "./url";
 
-// i am a cat. i like to be petted. i like to be fed. i like to be
-import {
-	initSync,
-	rewrite_js,
-	rewrite_js_from_arraybuffer,
-	RewriterOutput,
-} from "../../../rewriter/wasm/out/wasm.js";
 import { $scramjet, flagEnabled } from "../../scramjet";
-
-if (self.WASM)
-	self.REAL_WASM = Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0));
-
-// only use in sw
-export async function asyncInitRewriter() {
-	const buf = await fetch($scramjet.config.files.wasm).then((r) =>
-		r.arrayBuffer()
-	);
-	self.REAL_WASM = new Uint8Array(buf);
-}
+import { getRewriter, RewriterOutput } from "./wasm";
 
 Error.stackTraceLimit = 50;
 
 const decoder = new TextDecoder();
-
-let MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
 
 function rewriteJsWasm(
 	input: string | Uint8Array,
@@ -32,37 +13,24 @@ function rewriteJsWasm(
 	meta: URLMeta,
 	module: boolean
 ): { js: string | Uint8Array; map: Uint8Array | null; tag: string } {
-	if (!(self.REAL_WASM && self.REAL_WASM instanceof Uint8Array))
-		throw new Error("rewriter wasm not found (was it fetched correctly?)");
-
-	if (![...self.REAL_WASM.slice(0, 4)].every((x, i) => x === MAGIC[i]))
-		throw new Error(
-			"rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: " +
-				decoder.decode(self.REAL_WASM)
-		);
-
-	initSync({
-		module: new WebAssembly.Module(self.REAL_WASM),
-	});
+	let rewriter = getRewriter();
 
 	let out: RewriterOutput;
 	const before = performance.now();
 	try {
 		if (typeof input === "string") {
-			out = rewrite_js(
+			out = rewriter.rewrite_js(
 				input,
 				meta.base.href,
 				source || "(unknown)",
-				module,
-				$scramjet
+				module
 			);
 		} else {
-			out = rewrite_js_from_arraybuffer(
+			out = rewriter.rewrite_js_bytes(
 				input,
 				meta.base.href,
 				source || "(unknown)",
-				module,
-				$scramjet
+				module
 			);
 		}
 	} catch (err) {
@@ -72,7 +40,8 @@ function rewriteJsWasm(
 		return { js: input, tag: "", map: null };
 	}
 	const after = performance.now();
-	let { js, map, scramtag, errors, duration } = out;
+	let { js, map, scramtag, errors } = out;
+	let duration = after - before;
 
 	if (flagEnabled("sourcemaps", meta.base) && !globalThis.clients) {
 		globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
@@ -91,16 +60,15 @@ function rewriteJsWasm(
 
 	if (flagEnabled("rewriterLogs", meta.base)) {
 		let timespan: string;
-		if (duration < 1n) {
+		if (duration < 1) {
 			timespan = "BLAZINGLY FAST";
-		} else if (duration < 500n) {
+		} else if (duration < 500) {
 			timespan = "decent speed";
 		} else {
 			timespan = "really slow";
 		}
-		const overhead = (after - before - Number(duration)).toFixed(2);
 		console.log(
-			`oxc rewrite for "${source || "(unknown)"}" was ${timespan} (${duration}ms; ${overhead}ms overhead)`
+			`oxc rewrite for "${source || "(unknown)"}" was ${timespan} (${duration}ms)`
 		);
 	}
 

@@ -17,7 +17,7 @@ use web_sys::Url;
 
 #[wasm_bindgen(typescript_custom_section)]
 const REWRITER_OUTPUT: &'static str = r#"
-type RewriterOutput = { 
+export type RewriterOutput = { 
 	js: Uint8Array,
 	map: Uint8Array,
 	scramtag: string,
