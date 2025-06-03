@@ -50,8 +50,8 @@ pub(crate) enum Rewrite<'alloc: 'data, 'data> {
 	/// `((t)=>$scramjet$tryset(name,"op",t)||(name op t))(rhsspan)`
 	Assignment {
 		name: Atom<'data>,
-		entirespan: Span,
-		rhsspan: Span,
+		span: Span,
+		rhs: Span,
 		op: AssignmentOperator,
 	},
 	/// `ident,` -> `ident: cfg.wrapfn(ident),`
@@ -73,6 +73,21 @@ pub(crate) enum Rewrite<'alloc: 'data, 'data> {
 	},
 }
 
+macro_rules! span {
+	($span:ident start) => {
+		Span::new($span.start, $span.start)
+	};
+	($span:ident end) => {
+		Span::new($span.end, $span.end)
+	};
+	($span1:ident $span2:ident start) => {
+		Span::new($span1.start, $span2.start)
+	};
+	($span1:ident $span2:ident end) => {
+		Span::new($span1.end, $span2.end)
+	};
+}
+
 impl<'alloc: 'data, 'data> Rewrite<'alloc, 'data> {
 	pub fn into_inner(self) -> SmallVec<[JsChange<'alloc, 'data>; 2]> {
 		use JsChangeType as Ty;
@@ -80,63 +95,43 @@ impl<'alloc: 'data, 'data> Rewrite<'alloc, 'data> {
 			Self::WrapFn {
 				wrapped: wrap,
 				span,
-			} => {
-				let start = Span::new(span.start, span.start);
-				let end = Span::new(span.end, span.end);
-
-				smallvec![
-					JsChange::new(start, Ty::WrapFnLeft { wrap }),
-					JsChange::new(end, Ty::WrapFnRight { wrap }),
-				]
-			}
+			} => smallvec![
+				JsChange::new(span!(span start), Ty::WrapFnLeft { wrap }),
+				JsChange::new(span!(span end), Ty::WrapFnRight { wrap }),
+			],
 			Self::SetRealmFn { span } => smallvec![JsChange::new(span, Ty::SetRealmFn)],
 			Self::WrapThisFn { span } => smallvec![
-				JsChange::new(Span::new(span.start, span.start), Ty::WrapThisFn),
-				JsChange::new(
-					Span::new(span.end, span.end),
-					Ty::ClosingParen { semi: false }
-				),
+				JsChange::new(span!(span start), Ty::WrapThisFn),
+				JsChange::new(span!(span end), Ty::ClosingParen { semi: false }),
 			],
 			Self::ImportFn { span } => smallvec![JsChange::new(span, Ty::ImportFn)],
 			Self::MetaFn { span } => smallvec![JsChange::new(span, Ty::MetaFn)],
 
 			Self::ScramErr { span, ident } => {
-				smallvec![JsChange::new(
-					Span::new(span.start, span.start),
-					Ty::ScramErrFn { ident }
-				)]
+				smallvec![JsChange::new(span!(span end), Ty::ScramErrFn { ident })]
 			}
 			Self::Scramitize { span } => {
 				smallvec![
-					JsChange::new(Span::new(span.start, span.start), Ty::ScramitizeFn),
-					JsChange::new(
-						Span::new(span.end, span.end),
-						Ty::ClosingParen { semi: false }
-					)
+					JsChange::new(span!(span start), Ty::ScramitizeFn),
+					JsChange::new(span!(span end), Ty::ClosingParen { semi: false })
 				]
 			}
 
 			Self::Eval { inner, span } => smallvec![
-				JsChange::new(Span::new(span.start, inner.start), Ty::EvalRewriteFn,),
-				JsChange::new(Span::new(inner.end, span.end), Ty::ReplaceClosingParen,)
+				JsChange::new(span!(span inner start), Ty::EvalRewriteFn),
+				JsChange::new(span!(inner span end), Ty::ReplaceClosingParen)
 			],
 			Self::Assignment {
 				name,
-				rhsspan,
+				rhs,
 				op,
-				entirespan,
+				span,
 			} => smallvec![
-				JsChange::new(
-					Span::new(entirespan.start, rhsspan.start),
-					Ty::AssignmentLeft { name, op }
-				),
-				JsChange::new(
-					Span::new(rhsspan.end, entirespan.end),
-					Ty::ReplaceClosingParen,
-				)
+				JsChange::new(span!(span rhs start), Ty::AssignmentLeft { name, op }),
+				JsChange::new(span!(rhs span end), Ty::ReplaceClosingParen)
 			],
 			Self::ShorthandObj { name, span } => smallvec![JsChange::new(
-				Span::new(span.end, span.end),
+				span!(span end),
 				Ty::ShorthandObj { ident: name }
 			)],
 			Self::SourceTag { span } => smallvec![JsChange::new(span, Ty::SourceTag)],

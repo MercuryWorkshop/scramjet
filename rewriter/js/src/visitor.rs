@@ -292,8 +292,8 @@ where
 				if ["location"].contains(&s.name.to_string().as_str()) {
 					self.jschanges.add(Rewrite::Assignment {
 						name: s.name,
-						entirespan: it.span,
-						rhsspan: it.right.span(),
+						span: it.span,
+						rhs: it.right.span(),
 						op: it.operator,
 					});
 
