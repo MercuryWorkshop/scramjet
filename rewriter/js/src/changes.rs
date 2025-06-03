@@ -78,12 +78,12 @@ impl<'alloc: 'data, 'data> JsChange<'alloc, 'data> {
 	fn into_inner(self, cfg: &'data Config, flags: &'data Flags, offset: u32) -> Transform<'data> {
 		use JsChangeType as Ty;
 		match self.ty {
-			Ty::WrapFnLeft { wrap: extra } => Transform::insert(if extra {
+			Ty::WrapFnLeft { wrap } => Transform::insert(if wrap {
 				changes!["(", &cfg.wrapfn, "("]
 			} else {
 				changes![&cfg.wrapfn, "("]
 			}),
-			Ty::WrapFnRight { wrap: extra } => Transform::insert(if extra {
+			Ty::WrapFnRight { wrap } => Transform::insert(if wrap {
 				changes![",", STRICTCHECKER, "))"]
 			} else {
 				changes![",", STRICTCHECKER, ")"]

@@ -1,17 +1,12 @@
 pub mod error;
 
-use std::sync::Arc;
-
 use error::{Result, RewriterError};
 use js::{
 	cfg::{Config, Flags, UrlRewriter},
 	RewriteResult, Rewriter as JsRewriter,
 };
 use js_sys::{Function, Object, Reflect, Uint8Array};
-use oxc::{
-	allocator::{Allocator, StringBuilder},
-	diagnostics::NamedSource,
-};
+use oxc::allocator::{Allocator, StringBuilder};
 use wasm_bindgen::prelude::*;
 use web_sys::Url;
 
@@ -25,8 +20,8 @@ export type RewriterOutput = {
 };
 "#;
 
-#[wasm_bindgen(inline_js = r#"
 // slightly modified https://github.com/ungap/random-uuid/blob/main/index.js
+#[wasm_bindgen(inline_js = r#"
 export function scramtag() {
     return (""+1e10).replace(/[018]/g,
       c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
@@ -191,14 +186,6 @@ fn create_rewriter_output(
 	url: String,
 	src: String,
 ) -> Result<JsRewriterOutput> {
-	let src = Arc::new(NamedSource::new(url, src).with_language("javascript"));
-	#[cfg(feature = "debug")]
-	let errs: Vec<_> = out
-		.errors
-		.into_iter()
-		.map(|x| format!("{}", x.with_source_code(src.clone())))
-		.collect();
-
 	let obj = Object::new();
 	set_obj(&obj, "js", &Uint8Array::from(out.js.as_slice()).into())?;
 	set_obj(
@@ -207,10 +194,24 @@ fn create_rewriter_output(
 		&Uint8Array::from(out.sourcemap.as_slice()).into(),
 	)?;
 	set_obj(&obj, "scramtag", &out.flags.sourcetag.into())?;
+
 	#[cfg(feature = "debug")]
-	set_obj(&obj, "errors", &errs.into())?;
+	{
+		let src = std::sync::Arc::new(
+			oxc::diagnostics::NamedSource::new(url, src).with_language("javascript"),
+		);
+		let errs: Vec<_> = out
+			.errors
+			.into_iter()
+			.map(|x| format!("{}", x.with_source_code(src.clone())))
+			.collect();
+		set_obj(&obj, "errors", &errs.into())?;
+	}
 	#[cfg(not(feature = "debug"))]
-	set_obj(&obj, "errors", &js_sys::Array::new())?;
+	{
+		let _ = (url, src);
+		set_obj(&obj, "errors", &js_sys::Array::new())?;
+	}
 
 	Ok(JsRewriterOutput::from(JsValue::from(obj)))
 }
