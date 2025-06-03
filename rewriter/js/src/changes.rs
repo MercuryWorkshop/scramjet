@@ -364,7 +364,7 @@ impl<'a> From<&'a str> for Change<'a> {
 
 impl<'a> From<&&'a str> for Change<'a> {
 	fn from(value: &&'a str) -> Self {
-		Self::Str(*value)
+		Self::Str(value)
 	}
 }
 
@@ -424,10 +424,12 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 	}
 
 	pub fn set_alloc(&mut self, alloc: &'alloc Allocator) -> Result<(), RewriterError> {
-		self.alloc
-			.replace(alloc)
-			.ok_or(RewriterError::AlreadyRewriting)
-			.map(|_| ())
+		if self.alloc.is_some() {
+			Err(RewriterError::NotRewriting)
+		} else {
+			self.alloc.replace(alloc);
+			Ok(())
+		}
 	}
 
 	pub fn take_alloc(&mut self) -> Result<(), RewriterError> {

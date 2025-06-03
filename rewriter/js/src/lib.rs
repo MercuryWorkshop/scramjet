@@ -46,7 +46,7 @@ pub struct RewriteResult<'alloc> {
 
 pub struct Rewriter<E: UrlRewriter> {
 	cfg: Config,
-	url_rewriter: E,
+	url: E,
 
 	jschanges: RefCell<Option<JsChanges<'static, 'static>>>,
 }
@@ -105,7 +105,7 @@ impl<E: UrlRewriter> Rewriter<E> {
 	pub fn new(cfg: Config, url_rewriter: E) -> Self {
 		Self {
 			cfg,
-			url_rewriter,
+			url: url_rewriter,
 			jschanges: RefCell::new(Some(JsChanges::new())),
 		}
 	}
@@ -145,7 +145,7 @@ impl<E: UrlRewriter> Rewriter<E> {
 			jschanges,
 
 			config: &self.cfg,
-			rewriter: &self.url_rewriter,
+			rewriter: &self.url,
 			flags,
 		};
 		visitor.visit_program(&parsed.program);

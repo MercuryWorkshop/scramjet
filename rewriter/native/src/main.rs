@@ -1,5 +1,5 @@
 use std::{
-env, fs,
+	env, fs,
 	str::FromStr,
 	sync::Arc,
 	time::{Duration, Instant},
@@ -7,7 +7,10 @@ env, fs,
 
 use anyhow::{Context, Result};
 use bytes::{Buf, Bytes, BytesMut};
-use js::{cfg::Config, rewrite, RewriteResult};
+use js::{
+	cfg::{Config, Flags, UrlRewriter},
+	RewriteResult, Rewriter,
+};
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	diagnostics::NamedSource,
@@ -15,37 +18,60 @@ use oxc::{
 use url::Url;
 use urlencoding::encode;
 
-fn dorewrite<'alloc>(alloc: &'alloc Allocator, data: &str) -> Result<RewriteResult<'alloc>> {
-	let url = Url::from_str("https://google.com/glorngle/si.js").context("failed to make url")?;
-	rewrite(
-		alloc,
-		data,
+struct NativeUrlRewriter(Url);
+
+impl NativeUrlRewriter {
+	pub fn new() -> Result<Self> {
+		Ok(Self(
+			Url::from_str("https://google.com/glorngle/si.js").context("failed to make url")?,
+		))
+	}
+}
+
+impl UrlRewriter for NativeUrlRewriter {
+	fn rewrite(&self, _cfg: &Config, _flags: &Flags, url: &str, builder: &mut StringBuilder) {
+		builder.push_str(encode(self.0.join(url).unwrap().as_str()).as_ref());
+	}
+}
+
+fn makerewriter() -> Result<Rewriter<NativeUrlRewriter>> {
+	Ok(Rewriter::new(
 		Config {
-			prefix: "/scrammedjet/",
-			base: "https://google.com/glorngle/si.js",
-			urlrewriter: move |x: &str, builder: &mut StringBuilder<'alloc>| {
-				builder.push_str(encode(url.join(x).unwrap().as_str()).as_ref());
-			},
-
-			sourcetag: "glongle1",
-
-			wrapfn: "$wrap",
-			wrapthisfn: "$gwrap",
-			importfn: "$import",
-			rewritefn: "$rewrite",
-			metafn: "$meta",
-			setrealmfn: "$setrealm",
-			pushsourcemapfn: "$pushsourcemap",
-
-			capture_errors: true,
-			do_sourcemaps: true,
-			scramitize: false,
-			strict_rewrites: true,
+			prefix: "/scrammedjet/".to_string(),
+			wrapfn: "$wrap".to_string(),
+			wrapthisfn: "$gwrap".to_string(),
+			importfn: "$import".to_string(),
+			rewritefn: "$rewrite".to_string(),
+			metafn: "$meta".to_string(),
+			setrealmfn: "$setrealm".to_string(),
+			pushsourcemapfn: "$pushsourcemap".to_string(),
 		},
-		true,
-		1024,
-	)
-	.context("failed to rewrite file")
+		NativeUrlRewriter::new()?,
+	))
+}
+
+fn dorewrite<'alloc>(
+	alloc: &'alloc Allocator,
+	rewriter: &Rewriter<NativeUrlRewriter>,
+	data: &str,
+) -> Result<RewriteResult<'alloc>> {
+	rewriter
+		.rewrite(
+			alloc,
+			data,
+			Flags {
+				base: "https://google.com/glorngle/si.js".to_string(),
+				sourcetag: "glongle1".to_string(),
+
+				is_module: true,
+
+				capture_errors: true,
+				do_sourcemaps: true,
+				scramitize: false,
+				strict_rewrites: true,
+			},
+		)
+		.context("failed to rewrite file")
 }
 
 #[derive(Debug)]
@@ -112,6 +138,7 @@ fn main() -> Result<()> {
 	let bench = env::args().nth(2).map(|x| usize::from_str(&x));
 
 	let mut alloc = Allocator::default();
+	let rewriter = makerewriter()?;
 
 	if let Some(cnt) = bench.transpose().context("invalid bench size")? {
 		let mut duration = Duration::from_secs(0);
@@ -120,7 +147,7 @@ fn main() -> Result<()> {
 
 		for x in 1..=cnt {
 			let before = Instant::now();
-			let _ = dorewrite(&alloc, &data);
+			let _ = dorewrite(&alloc, &rewriter, &data);
 			let after = Instant::now();
 
 			duration += after - before;
@@ -137,7 +164,7 @@ fn main() -> Result<()> {
 	} else {
 		println!("orig:\n{data}");
 
-		let res = dorewrite(&alloc, &data)?;
+		let res = dorewrite(&alloc, &rewriter, &data)?;
 
 		let source = Arc::new(
 			NamedSource::new(data.clone(), "https://google.com/glorngle/si.js")
@@ -176,14 +203,14 @@ mod test {
 	};
 	use oxc::allocator::Allocator;
 
-	use crate::dorewrite;
+	use crate::{dorewrite, makerewriter};
 
 	#[test]
 	fn google() {
 		let alloc = Allocator::default();
 
 		let source_text = include_str!("../sample/google.js");
-		dorewrite(&alloc, source_text).unwrap();
+		dorewrite(&alloc, &makerewriter().unwrap(), source_text).unwrap();
 	}
 
 	#[test]
@@ -267,7 +294,8 @@ function check(val) {
 				.unwrap();
 
 			let alloc = Allocator::default();
-			let rewritten = dorewrite(&alloc, &content).unwrap();
+			let rewriter = makerewriter().unwrap();
+			let rewritten = dorewrite(&alloc, &rewriter, &content).unwrap();
 			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
 
 			context
