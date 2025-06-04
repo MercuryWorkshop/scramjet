@@ -605,10 +605,10 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 name = "js"
 version = "0.1.0"
 dependencies = [
- "itoa",
  "oxc",
  "smallvec",
  "thiserror",
+ "transform",
 ]
 
 [[package]]
@@ -1396,6 +1396,16 @@ dependencies = [
  "indexmap",
  "toml_datetime",
  "winnow",
+]
+
+[[package]]
+name = "transform"
+version = "0.1.0"
+dependencies = [
+ "itoa",
+ "oxc",
+ "smallvec",
+ "thiserror",
 ]
 
 [[package]]

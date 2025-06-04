@@ -20,14 +20,12 @@ use visitor::Visitor;
 
 #[derive(Error, Debug)]
 pub enum RewriterError {
-	#[error("oxc panicked in parser: {0}")]
-	OxcPanicked(String),
-	#[error("out of bounds while applying range: {0}..{1})")]
-	Oob(u32, u32),
-	#[error("too much code added while applying changes")]
-	AddedTooLarge,
+	#[error("transformer error: {0}")]
+	Transformer(#[from] transform::TransformError),
 	#[error("formatting error: {0}")]
 	Formatting(#[from] std::fmt::Error),
+	#[error("oxc panicked in parser: {0}")]
+	OxcPanicked(String),
 	#[error("Already rewriting")]
 	AlreadyRewriting,
 	#[error("Not rewriting")]

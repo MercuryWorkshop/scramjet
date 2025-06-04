@@ -1,0 +1,13 @@
+[package]
+name = "transform"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+oxc = { workspace = true }
+itoa = "1.0.15"
+smallvec = "1.14.0"
+thiserror = "2.0.12"

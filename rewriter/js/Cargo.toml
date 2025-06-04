@@ -7,10 +7,10 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-itoa = "1.0.15"
 oxc = { workspace = true }
-smallvec = "1.14.0"
+smallvec = "1.15.0"
 thiserror = "2.0.12"
+transform = { version = "0.1.0", path = "../transform" }
 
 [features]
 default = ["debug"]
