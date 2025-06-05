@@ -20,6 +20,13 @@ use crate::{
 // const STRICTCHECKER: &str = "(function(a){arguments[0]=false;return a})(true)";
 const STRICTCHECKER: &str = "(function(){return !this;})()";
 
+macro_rules! change {
+    ($span:expr, $($ty:tt)*) => {
+		$crate::changes::JsChange::new($span, $crate::changes::JsChangeType::$($ty)*)
+    };
+}
+pub(crate) use change;
+
 macro_rules! changes {
 	[$($change:expr),+] => {
 		smallvec![$(Change::from($change)),+]

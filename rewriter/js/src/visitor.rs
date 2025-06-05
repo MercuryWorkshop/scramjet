@@ -7,14 +7,14 @@ use oxc::{
 		NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement, ThisExpression,
 		UnaryExpression, UnaryOperator, UpdateExpression,
 	},
-	ast_visit::{walk, Visit},
+	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
 };
 
 use crate::{
 	cfg::{Config, Flags, UrlRewriter},
 	changes::JsChanges,
-	rewrite::Rewrite,
+	rewrite::rewrite,
 };
 
 // js MUST not be able to get a reference to any of these because sbx
@@ -58,10 +58,7 @@ where
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
 		if UNSAFE_GLOBALS.contains(&name.as_str()) {
-			self.jschanges.add(Rewrite::WrapFn {
-				span,
-				wrapped: true,
-			});
+			self.jschanges.add(rewrite!(span, WrapFn { wrapped: true }));
 		}
 	}
 
@@ -78,7 +75,7 @@ where
 	}
 
 	fn scramitize(&mut self, span: Span) {
-		self.jschanges.add(Rewrite::Scramitize { span });
+		self.jschanges.add(rewrite!(span, Scramitize));
 	}
 }
 
@@ -98,10 +95,8 @@ where
 		// } else {
 		//
 		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
-			self.jschanges.add(Rewrite::WrapFn {
-				span: it.span,
-				wrapped: false,
-			});
+			self.jschanges
+				.add(rewrite!(it.span, WrapFn { wrapped: false }));
 		}
 		// }
 	}
@@ -118,19 +113,18 @@ where
 		// and it would slow down js execution a lot
 		if let MemberExpression::StaticMemberExpression(s) = it {
 			if s.property.name == "postMessage" {
-				self.jschanges.add(Rewrite::SetRealmFn {
-					span: s.property.span,
-				});
+				self.jschanges.add(rewrite!(s.property.span, SetRealmFn));
 
 				walk::walk_expression(self, &s.object);
 				return; // unwise to walk the rest of the tree
 			}
 
-			if !self.flags.strict_rewrites && !UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
-				if let Expression::Identifier(_) | Expression::ThisExpression(_) = &s.object {
-					// cull tree - this should be safe
-					return;
-				}
+			if !self.flags.strict_rewrites
+				&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
+				&& let Expression::Identifier(_) | Expression::ThisExpression(_) = &s.object
+			{
+				// cull tree - this should be safe
+				return;
 			}
 
 			if self.flags.scramitize
@@ -143,12 +137,12 @@ where
 		walk::walk_member_expression(self, it);
 	}
 	fn visit_this_expression(&mut self, it: &ThisExpression) {
-		self.jschanges.add(Rewrite::WrapThisFn { span: it.span });
+		self.jschanges.add(rewrite!(it.span, WrapThisFn));
 	}
 
 	fn visit_debugger_statement(&mut self, it: &DebuggerStatement) {
 		// delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
-		self.jschanges.add(Rewrite::Delete { span: it.span });
+		self.jschanges.add(rewrite!(it.span, Delete));
 	}
 
 	// we can't overwrite window.eval in the normal way because that would make everything an
@@ -157,10 +151,12 @@ where
 		if let Expression::Identifier(s) = &it.callee {
 			// if it's optional that actually makes it an indirect eval which is handled separately
 			if s.name == "eval" && !it.optional {
-				self.jschanges.add(Rewrite::Eval {
-					span: it.span,
-					inner: Span::new(s.span.end + 1, it.span.end),
-				});
+				self.jschanges.add(rewrite!(
+					it.span,
+					Eval {
+						inner: Span::new(s.span.end + 1, it.span.end),
+					}
+				));
 
 				// then we walk the arguments, but not the callee, since we want it to resolve to
 				// the real eval
@@ -176,33 +172,28 @@ where
 
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
 		let text = self.rewrite_url(it.source.value);
-		self.jschanges.add(Rewrite::Replace {
-			span: it.source.span.shrink(1),
-			text,
-		});
+		self.jschanges
+			.add(rewrite!(it.source.span.shrink(1), Replace { text }));
 		walk::walk_import_declaration(self, it);
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'data>) {
-		self.jschanges.add(Rewrite::ImportFn {
-			span: Span::new(it.span.start, it.span.start + 7),
-		});
+		self.jschanges.add(rewrite!(
+			Span::new(it.span.start, it.span.start + 7),
+			ImportFn
+		));
 		walk::walk_import_expression(self, it);
 	}
 
 	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'data>) {
 		let text = self.rewrite_url(it.source.value);
-		self.jschanges.add(Rewrite::Replace {
-			span: it.source.span.shrink(1),
-			text,
-		});
+		self.jschanges
+			.add(rewrite!(it.source.span.shrink(1), Replace { text }));
 	}
 	fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'data>) {
 		if let Some(source) = &it.source {
 			let text = self.rewrite_url(source.value);
-			self.jschanges.add(Rewrite::Replace {
-				span: source.span.shrink(1),
-				text,
-			});
+			self.jschanges
+				.add(rewrite!(source.span.shrink(1), Replace { text }));
 		}
 		// do not walk further, we don't want to rewrite the identifiers
 	}
@@ -211,33 +202,29 @@ where
 	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'data>) {
 		// for debugging we need to know what the error was
 
-		if self.flags.capture_errors {
-			if let Some(h) = &it.handler {
-				if let Some(name) = &h.param {
-					if let Some(ident) = name.pattern.get_identifier_name() {
-						self.jschanges.add(Rewrite::ScramErr {
-							span: Span::new(h.body.span.start + 1, h.body.span.start + 1),
-							ident,
-						});
-					}
-				}
-			}
+		if self.flags.capture_errors
+			&& let Some(h) = &it.handler
+			&& let Some(name) = &h.param
+			&& let Some(ident) = name.pattern.get_identifier_name()
+		{
+			let start = h.body.span.start + 1;
+			self.jschanges
+				.add(rewrite!(Span::new(start, start), ScramErr { ident }));
 		}
+
 		walk::walk_try_statement(self, it);
 	}
 
 	fn visit_object_expression(&mut self, it: &ObjectExpression<'data>) {
 		for prop in &it.properties {
-			if let ObjectPropertyKind::ObjectProperty(p) = prop {
-				if let Expression::Identifier(s) = &p.value {
-					if UNSAFE_GLOBALS.contains(&s.name.to_string().as_str()) && p.shorthand {
-						self.jschanges.add(Rewrite::ShorthandObj {
-							span: s.span,
-							name: s.name,
-						});
-						return;
-					}
-				}
+			if let ObjectPropertyKind::ObjectProperty(p) = prop
+				&& let Expression::Identifier(s) = &p.value
+				&& UNSAFE_GLOBALS.contains(&s.name.to_string().as_str())
+				&& p.shorthand
+			{
+				self.jschanges
+					.add(rewrite!(s.span, ShorthandObj { name: s.name }));
+				return;
 			}
 		}
 
@@ -247,9 +234,8 @@ where
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
 		if self.flags.do_sourcemaps {
-			self.jschanges.add(Rewrite::SourceTag {
-				span: Span::new(it.span.start, it.span.start),
-			});
+			self.jschanges
+				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 		}
 		walk::walk_function_body(self, it);
 	}
@@ -282,7 +268,7 @@ where
 
 	fn visit_meta_property(&mut self, it: &MetaProperty<'data>) {
 		if it.meta.name == "import" {
-			self.jschanges.add(Rewrite::MetaFn { span: it.span });
+			self.jschanges.add(rewrite!(it.span, MetaFn));
 		}
 	}
 
@@ -290,12 +276,14 @@ where
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				if ["location"].contains(&s.name.to_string().as_str()) {
-					self.jschanges.add(Rewrite::Assignment {
-						name: s.name,
-						span: it.span,
-						rhs: it.right.span(),
-						op: it.operator,
-					});
+					self.jschanges.add(rewrite!(
+						it.span,
+						Assignment {
+							name: s.name,
+							rhs: it.right.span(),
+							op: it.operator,
+						}
+					));
 
 					// avoid walking rest of tree, i would need to figure out nested rewrites
 					// somehow
