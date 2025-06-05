@@ -58,7 +58,7 @@ where
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
 		if UNSAFE_GLOBALS.contains(&name.as_str()) {
-			self.jschanges.add(rewrite!(span, WrapFn { wrapped: true }));
+			self.jschanges.add(rewrite!(span, WrapFn { wrap: true }));
 		}
 	}
 
@@ -96,7 +96,7 @@ where
 		//
 		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
 			self.jschanges
-				.add(rewrite!(it.span, WrapFn { wrapped: false }));
+				.add(rewrite!(it.span, WrapFn { wrap: false }));
 		}
 		// }
 	}
