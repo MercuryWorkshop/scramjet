@@ -95,7 +95,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 		match self {
 			Self::WrapFn { wrap } => smallvec![
 				change!(span!(start), WrapFnLeft { wrap }),
-				change!(span!(start), WrapFnRight { wrap }),
+				change!(span!(end), WrapFnRight { wrap }),
 			],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::WrapThisFn => smallvec![
