@@ -2,14 +2,12 @@
 mod test {
 	use std::fs;
 
+	use crate::rewriter::NativeRewriter;
 	use boa_engine::{
 		Context, NativeFunction, Source, js_str, js_string,
 		object::ObjectInitializer,
 		property::{Attribute, PropertyDescriptorBuilder},
 	};
-	use oxc::allocator::Allocator;
-
-	use crate::{dorewrite, makerewriter};
 
 	fn create_context() -> Context {
 		let mut context = Context::default();
@@ -77,18 +75,17 @@ function check(val) {
 
 	#[test]
 	fn google() {
-		let alloc = Allocator::default();
-
 		let source_text = include_str!("../sample/google.js");
-		dorewrite(&alloc, &makerewriter().unwrap(), source_text).unwrap();
+
+		let rewriter = NativeRewriter::new().unwrap();
+		rewriter.rewrite(source_text).unwrap();
 	}
 
 	#[test]
 	fn rewrite_tests() {
 		let files = fs::read_dir("./tests").unwrap();
 
-		let alloc = Allocator::default();
-		let rewriter = makerewriter().unwrap();
+		let mut rewriter = NativeRewriter::new().unwrap();
 
 		for file in files.map(|x| x.unwrap()) {
 			if !file.path().extension().unwrap().eq_ignore_ascii_case("js") {
@@ -97,14 +94,17 @@ function check(val) {
 
 			let content = fs::read_to_string(file.path()).unwrap();
 
-			let rewritten = dorewrite(&alloc, &rewriter, &content).unwrap();
+			let rewritten = rewriter.rewrite(&content).unwrap();
 			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
 
 			let mut ctx = create_context();
 
 			ctx.eval(Source::from_bytes(rewritten.js.as_slice()))
 				.unwrap();
+
 			println!("PASS");
+
+			rewriter.reset();
 		}
 	}
 }
