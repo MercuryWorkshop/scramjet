@@ -12,6 +12,27 @@ pub struct RewriteRule<'alloc> {
 	pub func: RewriteRuleCallback,
 }
 
+#[macro_export]
+macro_rules! attrmap {
+    ($alloc:ident, {
+		$($attr:literal: [$($el:literal),*]),*
+	}) => {
+		{
+			let mut map = oxc::allocator::HashMap::<'_, &'_ str, oxc::allocator::Vec<'_, &'_ str>>::new_in(&$alloc);
+			$(
+				{
+					let mut vec = oxc::allocator::Vec::new_in(&$alloc);
+					$(
+						vec.push($el);
+					)*
+					map.insert($attr, vec);
+				}
+			)*
+			map
+		}
+    };
+}
+
 pub struct LolHtmlElementHandler {
 	attr: String,
 	func: RewriteRuleCallback,
@@ -21,8 +42,6 @@ impl LolHtmlElementHandler {
 		let attr = self.attr.clone();
 		let func = self.func.clone();
 		Box::new(move |el| {
-			let _ = el;
-
 			let value = el
 				.get_attribute(&attr)
 				.ok_or(RewriterError::RewriteAttributeGone)?;
@@ -49,13 +68,13 @@ impl<'alloc> RewriteRule<'alloc> {
 			.map(move |(attr, els)| {
 				let mut selector = StringBuilder::new_in(alloc);
 
-				let len = els.len();
+				let len = els.len() - 1;
 				for (i, el) in els.into_iter().enumerate() {
 					selector.push_str(el);
 					selector.push('[');
 					selector.push_str(attr);
 					selector.push(']');
-					if i < len - 1 {
+					if i < len {
 						selector.push(',');
 					}
 				}

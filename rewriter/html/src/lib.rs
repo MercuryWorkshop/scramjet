@@ -9,11 +9,11 @@ pub mod rule;
 
 #[derive(Debug, Error)]
 pub enum RewriterError {
-	#[error("lol html fail: {0}")]
+	#[error("lol html: {0}")]
 	LolHtml(#[from] lol_html::errors::RewritingError),
-	#[error("selector failed to parse: {0}")]
+	#[error("selector parsing: {0}")]
 	Selector(#[from] lol_html::errors::SelectorError),
-	#[error("attribute name invalid: {0}")]
+	#[error("attribute name parsing: {0}")]
 	AttributeName(#[from] lol_html::errors::AttributeNameError),
 
 	#[error("failed to get attribute in rewrite rule")]
@@ -71,9 +71,7 @@ impl Rewriter {
 		let mut vec = Vec::with_capacity_in(html.len(), alloc);
 
 		let mut rewriter = HtmlRewriter::new(settings, OxcOutputSink(&mut vec));
-
 		rewriter.write(html.as_bytes())?;
-
 		rewriter.end()?;
 
 		Ok(vec)

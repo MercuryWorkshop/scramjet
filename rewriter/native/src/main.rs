@@ -9,7 +9,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use html::{Rewriter, rule::RewriteRule};
+use html::{Rewriter, attrmap, rule::RewriteRule};
 use oxc::{allocator::Allocator, diagnostics::NamedSource};
 use rewriter::NativeRewriter;
 
@@ -148,16 +148,13 @@ fn main() -> Result<()> {
 			let data = fs::read_to_string(file).context("failed to read file")?;
 
 			let mut alloc = Allocator::new();
-			let mut rules = Vec::new();
-			let mut attrs = oxc::allocator::HashMap::new_in(&alloc);
-			let mut els = oxc::allocator::Vec::new_in(&alloc);
-			els.push("a");
-			els.push("link");
-			attrs.insert("href", els);
-			rules.push(RewriteRule {
-				attrs,
+
+			let rules = vec![RewriteRule {
+				attrs: attrmap!(alloc, {
+					"href": ["a", "link"]
+				}),
 				func: Arc::new(|x| Some(x.to_string() + " :3")),
-			});
+			}];
 
 			let rewriter = Rewriter::new(&alloc, rules)?;
 
