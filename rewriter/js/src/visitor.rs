@@ -4,8 +4,8 @@ use oxc::{
 		AssignmentExpression, AssignmentTarget, CallExpression, DebuggerStatement,
 		ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
 		IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty,
-		NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement, ThisExpression,
-		UnaryExpression, UnaryOperator, UpdateExpression,
+		NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement, StringLiteral,
+		ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
 	},
 	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
@@ -45,15 +45,18 @@ where
 	pub flags: Flags,
 }
 
-impl<'alloc, 'data, E> Visitor<'alloc, 'data, E>
+impl<'data, E> Visitor<'_, 'data, E>
 where
 	E: UrlRewriter,
 {
-	fn rewrite_url(&mut self, url: Atom<'data>) -> &'alloc str {
+	fn rewrite_url(&mut self, url: &StringLiteral<'data>) {
 		let mut builder = StringBuilder::from_str_in(&self.config.prefix, self.alloc);
 		self.rewriter
-			.rewrite(self.config, &self.flags, &url, &mut builder);
-		builder.into_str()
+			.rewrite(self.config, &self.flags, &url.value, &mut builder);
+		let text = builder.into_str();
+
+		self.jschanges
+			.add(rewrite!(url.span.shrink(1), Replace { text }));
 	}
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
@@ -171,9 +174,7 @@ where
 	}
 
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
-		let text = self.rewrite_url(it.source.value);
-		self.jschanges
-			.add(rewrite!(it.source.span.shrink(1), Replace { text }));
+		self.rewrite_url(&it.source);
 		walk::walk_import_declaration(self, it);
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'data>) {
@@ -185,15 +186,11 @@ where
 	}
 
 	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'data>) {
-		let text = self.rewrite_url(it.source.value);
-		self.jschanges
-			.add(rewrite!(it.source.span.shrink(1), Replace { text }));
+		self.rewrite_url(&it.source);
 	}
 	fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'data>) {
 		if let Some(source) = &it.source {
-			let text = self.rewrite_url(source.value);
-			self.jschanges
-				.add(rewrite!(source.span.shrink(1), Replace { text }));
+			self.rewrite_url(source);
 		}
 		// do not walk further, we don't want to rewrite the identifiers
 	}

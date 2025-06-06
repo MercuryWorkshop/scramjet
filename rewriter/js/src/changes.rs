@@ -8,7 +8,7 @@ use oxc::{
 use smallvec::{SmallVec, smallvec};
 use transform::{
 	TransformResult, Transformer,
-	transform::{Change, Transform, TransformLL},
+	transform::{Transform, TransformLL},
 };
 
 use crate::{
@@ -30,7 +30,7 @@ pub(crate) use change;
 macro_rules! changes {
 	[] => { SmallVec::new() };
 	[$($change:expr),+] => {
-		smallvec![$(Change::from($change)),+]
+		smallvec![$(transform::transform::TransformElement::from($change)),+]
     };
 }
 
