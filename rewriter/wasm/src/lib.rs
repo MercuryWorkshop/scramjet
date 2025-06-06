@@ -1,9 +1,11 @@
 pub mod error;
 
+use std::error::Error;
+
 use error::{Result, RewriterError};
 use js::{
-	cfg::{Config, Flags, UrlRewriter},
 	RewriteResult, Rewriter as JsRewriter,
+	cfg::{Config, Flags, UrlRewriter},
 };
 use js_sys::{Function, Object, Reflect, Uint8Array};
 use oxc::allocator::{Allocator, StringBuilder};
@@ -112,16 +114,27 @@ fn get_flags(scramjet: &Object, base: String, is_module: bool) -> Result<Flags> 
 struct WasmUrlRewriter(Function);
 
 impl UrlRewriter for WasmUrlRewriter {
-	fn rewrite(&self, _cfg: &Config, flags: &Flags, url: &str, builder: &mut StringBuilder) {
-		let url = Url::new_with_base(url, &flags.base).unwrap().to_string();
+	fn rewrite(
+		&self,
+		_cfg: &Config,
+		flags: &Flags,
+		url: &str,
+		builder: &mut StringBuilder,
+	) -> std::result::Result<(), Box<dyn Error + Sync + Send>> {
+		let url = Url::new_with_base(url, &flags.base)
+			.map_err(RewriterError::from)?
+			.to_string();
+
 		builder.push_str(
 			self.0
 				.call1(&JsValue::NULL, &url.into())
-				.unwrap()
+				.map_err(RewriterError::from)?
 				.as_string()
-				.unwrap()
+				.ok_or_else(|| RewriterError::not_str("url rewriter output"))?
 				.as_str(),
 		);
+
+		Ok(())
 	}
 }
 
@@ -158,7 +171,13 @@ impl Rewriter {
 	) -> Result<JsRewriterOutput> {
 		let flags = get_flags(&self.scramjet, base, module)?;
 
-		let out = self.js.rewrite(&self.alloc, &js, flags)?;
+		let out = match self.js.rewrite(&self.alloc, &js, flags) {
+			Ok(x) => x,
+			Err(x) => {
+				self.alloc.reset();
+				Err(x)?
+			}
+		};
 
 		let ret = create_rewriter_output(out, url, js);
 

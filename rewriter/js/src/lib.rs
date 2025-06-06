@@ -10,8 +10,8 @@ use oxc::{
 use thiserror::Error;
 
 pub mod cfg;
-mod rewrite;
 mod changes;
+mod rewrite;
 mod visitor;
 
 use cfg::{Config, Flags, UrlRewriter};
@@ -22,8 +22,11 @@ use visitor::Visitor;
 pub enum RewriterError {
 	#[error("transformer error: {0}")]
 	Transformer(#[from] transform::TransformError),
+	#[error("url rewriter error: {0}")]
+	Url(Box<dyn std::error::Error + Sync + Send>),
 	#[error("formatting error: {0}")]
 	Formatting(#[from] std::fmt::Error),
+
 	#[error("oxc panicked in parser: {0}")]
 	OxcPanicked(String),
 	#[error("Already rewriting")]
@@ -142,12 +145,16 @@ impl<E: UrlRewriter> Rewriter<E> {
 		let mut visitor = Visitor {
 			alloc,
 			jschanges,
+			error: None,
 
 			config: &self.cfg,
 			rewriter: &self.url,
 			flags,
 		};
 		visitor.visit_program(&parsed.program);
+		if let Some(error) = visitor.error {
+			return Err(RewriterError::Url(error));
+		}
 		let mut jschanges = visitor.jschanges;
 
 		let changed = jschanges.perform(js, &self.cfg, &visitor.flags)?;

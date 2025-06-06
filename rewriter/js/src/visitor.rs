@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
@@ -39,6 +41,7 @@ where
 {
 	pub alloc: &'alloc Allocator,
 	pub jschanges: JsChanges<'alloc, 'data>,
+	pub error: Option<Box<dyn Error + Sync + Send>>,
 
 	pub config: &'data Config,
 	pub rewriter: &'data E,
@@ -51,8 +54,15 @@ where
 {
 	fn rewrite_url(&mut self, url: &StringLiteral<'data>) {
 		let mut builder = StringBuilder::from_str_in(&self.config.prefix, self.alloc);
-		self.rewriter
-			.rewrite(self.config, &self.flags, &url.value, &mut builder);
+		if self.error.is_some() {
+			builder.push_str("__URL_REWRITER_ALREADY_ERRORED__");
+		} else if let Err(err) =
+			self.rewriter
+				.rewrite(self.config, &self.flags, &url.value, &mut builder)
+		{
+			self.error.replace(err);
+			builder.push_str("__URL_REWRITER_ERROR__");
+		}
 		let text = builder.into_str();
 
 		self.jschanges

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{error::Error, str::FromStr};
 
 use anyhow::{Context, Result};
 use bytes::Buf;
@@ -15,9 +15,17 @@ use crate::RewriterOptions;
 struct NativeUrlRewriter;
 
 impl UrlRewriter for NativeUrlRewriter {
-	fn rewrite(&self, _cfg: &Config, flags: &Flags, url: &str, builder: &mut StringBuilder) {
-		let base = Url::from_str(&flags.base).unwrap();
-		builder.push_str(encode(base.join(url).unwrap().as_str()).as_ref());
+	fn rewrite(
+		&self,
+		_cfg: &Config,
+		flags: &Flags,
+		url: &str,
+		builder: &mut StringBuilder,
+	) -> Result<(), Box<dyn Error + Sync + Send>> {
+		let base = Url::from_str(&flags.base)?;
+		builder.push_str(encode(base.join(url)?.as_str()).as_ref());
+
+		Ok(())
 	}
 }
 

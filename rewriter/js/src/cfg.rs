@@ -1,7 +1,15 @@
+use std::error::Error;
+
 use oxc::allocator::StringBuilder;
 
 pub trait UrlRewriter {
-	fn rewrite(&self, cfg: &Config, flags: &Flags, url: &str, builder: &mut StringBuilder);
+	fn rewrite(
+		&self,
+		cfg: &Config,
+		flags: &Flags,
+		url: &str,
+		builder: &mut StringBuilder,
+	) -> Result<(), Box<dyn Error + Sync + Send>>;
 }
 
 pub struct Config {
