@@ -1,5 +1,7 @@
 use std::{
-	env, fs,
+	env,
+	ffi::OsString,
+	fs,
 	path::PathBuf,
 	sync::Arc,
 	time::{Duration, Instant},
@@ -14,29 +16,78 @@ mod rewriter;
 mod test_runner;
 
 #[derive(Parser)]
+pub struct RewriterOptions {
+	#[clap(long, default_value = "/scrammedjet/")]
+	prefix: String,
+	#[clap(long, default_value = "$wrap")]
+	wrapfn: String,
+	#[clap(long, default_value = "$gwrap")]
+	wrapthisfn: String,
+	#[clap(long, default_value = "$import")]
+	importfn: String,
+	#[clap(long, default_value = "$rewrite")]
+	rewritefn: String,
+	#[clap(long, default_value = "$meta")]
+	metafn: String,
+	#[clap(long, default_value = "$setrealm")]
+	setrealmfn: String,
+	#[clap(long, default_value = "$pushsourcemap")]
+	pushsourcemapfn: String,
+
+	#[clap(long, default_value = "https://google.com/glorngle/si.js")]
+	base: String,
+	#[clap(long, default_value = "glongle1")]
+	sourcetag: String,
+
+	#[clap(long, default_value_t = false)]
+	is_module: bool,
+	#[clap(long, default_value_t = false)]
+	capture_errors: bool,
+	#[clap(long, default_value_t = false)]
+	do_sourcemaps: bool,
+	#[clap(long, default_value_t = false)]
+	scramitize: bool,
+	#[clap(long, default_value_t = false)]
+	strict_rewrites: bool,
+}
+
+impl Default for RewriterOptions {
+	fn default() -> Self {
+		Self::parse_from(std::iter::empty::<OsString>())
+	}
+}
+
+#[derive(Parser)]
 #[command(version = clap::crate_version!())]
 pub enum Cli {
 	/// Rewrite a file
-	Rewrite { file: PathBuf },
+	Rewrite {
+		file: PathBuf,
+		#[clap(flatten)]
+		config: RewriterOptions,
+	},
 	/// Rewrite a file multiple times for flamegraphing
-	Bench { file: PathBuf, iterations: u32 },
+	Bench {
+		file: PathBuf,
+		iterations: u32,
+		#[clap(flatten)]
+		config: RewriterOptions,
+	},
 }
 
 fn main() -> Result<()> {
 	let args = Cli::parse();
 
-	let mut rewriter = NativeRewriter::new().context("failed to make rewriter")?;
-
 	match args {
-		Cli::Rewrite { file } => {
+		Cli::Rewrite { file, config } => {
+			let mut rewriter = NativeRewriter::new(&config);
+
 			let data = fs::read_to_string(file).context("failed to read file")?;
 
-			let res = rewriter.rewrite(&data)?;
+			let res = rewriter.rewrite(&data, &config)?;
 
-			let source = Arc::new(
-				NamedSource::new(data.clone(), "https://google.com/glorngle/si.js")
-					.with_language("javascript"),
-			);
+			let source =
+				Arc::new(NamedSource::new(data.clone(), config.base).with_language("javascript"));
 
 			println!(
 				"rewritten:\n{}",
@@ -57,7 +108,13 @@ fn main() -> Result<()> {
 				data.as_bytes() == unrewritten.as_slice()
 			);
 		}
-		Cli::Bench { file, iterations } => {
+		Cli::Bench {
+			file,
+			iterations,
+			config,
+		} => {
+			let mut rewriter = NativeRewriter::new(&config);
+
 			let data = fs::read_to_string(file).context("failed to read file")?;
 			let mut duration = Duration::from_secs(0);
 
@@ -65,7 +122,9 @@ fn main() -> Result<()> {
 
 			for x in 1..=cnt {
 				let before = Instant::now();
-				rewriter.rewrite(&data).context("failed to rewrite")?;
+				rewriter
+					.rewrite(&data, &config)
+					.context("failed to rewrite")?;
 				let after = Instant::now();
 
 				rewriter.reset();

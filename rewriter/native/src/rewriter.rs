@@ -10,19 +10,14 @@ use oxc::allocator::{Allocator, StringBuilder};
 use url::Url;
 use urlencoding::encode;
 
-struct NativeUrlRewriter(Url);
+use crate::RewriterOptions;
 
-impl NativeUrlRewriter {
-	pub fn new() -> Result<Self> {
-		Ok(Self(
-			Url::from_str("https://google.com/glorngle/si.js").context("failed to make url")?,
-		))
-	}
-}
+struct NativeUrlRewriter;
 
 impl UrlRewriter for NativeUrlRewriter {
-	fn rewrite(&self, _cfg: &Config, _flags: &Flags, url: &str, builder: &mut StringBuilder) {
-		builder.push_str(encode(self.0.join(url).unwrap().as_str()).as_ref());
+	fn rewrite(&self, _cfg: &Config, flags: &Flags, url: &str, builder: &mut StringBuilder) {
+		let base = Url::from_str(&flags.base).unwrap();
+		builder.push_str(encode(base.join(url).unwrap().as_str()).as_ref());
 	}
 }
 
@@ -38,42 +33,52 @@ pub struct NativeRewriter {
 }
 
 impl NativeRewriter {
-	pub fn new() -> Result<Self> {
-		let rewriter = Rewriter::new(
-			Config {
-				prefix: "/scrammedjet/".to_string(),
-				wrapfn: "$wrap".to_string(),
-				wrapthisfn: "$gwrap".to_string(),
-				importfn: "$import".to_string(),
-				rewritefn: "$rewrite".to_string(),
-				metafn: "$meta".to_string(),
-				setrealmfn: "$setrealm".to_string(),
-				pushsourcemapfn: "$pushsourcemap".to_string(),
-			},
-			NativeUrlRewriter::new()?,
-		);
-
-		Ok(Self {
-			alloc: Allocator::new(),
-			rewriter,
-		})
+	#[allow(dead_code)]
+	pub fn default() -> Self {
+		Self::new(&RewriterOptions::default())
 	}
 
-	pub fn rewrite(&self, data: &str) -> Result<RewriteResult<'_>> {
+	pub fn new(cfg: &RewriterOptions) -> Self {
+		let rewriter = Rewriter::new(
+			Config {
+				prefix: cfg.prefix.clone(),
+				wrapfn: cfg.wrapfn.clone(),
+				wrapthisfn: cfg.wrapthisfn.clone(),
+				importfn: cfg.importfn.clone(),
+				rewritefn: cfg.rewritefn.clone(),
+				metafn: cfg.metafn.clone(),
+				setrealmfn: cfg.setrealmfn.clone(),
+				pushsourcemapfn: cfg.pushsourcemapfn.clone(),
+			},
+			NativeUrlRewriter,
+		);
+
+		Self {
+			alloc: Allocator::new(),
+			rewriter,
+		}
+	}
+
+	#[allow(dead_code)]
+	pub fn rewrite_default(&self, data: &str) -> Result<RewriteResult<'_>> {
+		self.rewrite(data, &RewriterOptions::default())
+	}
+
+	pub fn rewrite(&self, data: &str, cfg: &RewriterOptions) -> Result<RewriteResult<'_>> {
 		self.rewriter
 			.rewrite(
 				&self.alloc,
 				data,
 				Flags {
-					base: "https://google.com/glorngle/si.js".to_string(),
-					sourcetag: "glongle1".to_string(),
+					base: cfg.base.clone(),
+					sourcetag: cfg.sourcetag.clone(),
 
-					is_module: true,
+					is_module: cfg.is_module,
 
-					capture_errors: true,
-					do_sourcemaps: true,
-					scramitize: false,
-					strict_rewrites: true,
+					capture_errors: cfg.capture_errors,
+					do_sourcemaps: cfg.do_sourcemaps,
+					scramitize: cfg.scramitize,
+					strict_rewrites: cfg.strict_rewrites,
 				},
 			)
 			.context("failed to rewrite file")

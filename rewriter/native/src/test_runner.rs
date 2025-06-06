@@ -77,15 +77,15 @@ function check(val) {
 	fn google() {
 		let source_text = include_str!("../sample/google.js");
 
-		let rewriter = NativeRewriter::new().unwrap();
-		rewriter.rewrite(source_text).unwrap();
+		let rewriter = NativeRewriter::default();
+		rewriter.rewrite_default(source_text).unwrap();
 	}
 
 	#[test]
 	fn rewrite_tests() {
 		let files = fs::read_dir("./tests").unwrap();
 
-		let mut rewriter = NativeRewriter::new().unwrap();
+		let mut rewriter = NativeRewriter::default();
 
 		for file in files.map(|x| x.unwrap()) {
 			if !file.path().extension().unwrap().eq_ignore_ascii_case("js") {
@@ -94,7 +94,7 @@ function check(val) {
 
 			let content = fs::read_to_string(file.path()).unwrap();
 
-			let rewritten = rewriter.rewrite(&content).unwrap();
+			let rewritten = rewriter.rewrite_default(&content).unwrap();
 			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
 
 			let mut ctx = create_context();
