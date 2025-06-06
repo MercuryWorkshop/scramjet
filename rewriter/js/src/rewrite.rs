@@ -100,22 +100,46 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::WrapThisFn => smallvec![
 				change!(span!(start), WrapThisFn),
-				change!(span!(end), ClosingParen { semi: false }),
+				change!(
+					span!(end),
+					ClosingParen {
+						semi: false,
+						replace: false
+					}
+				),
 			],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
 			Self::ScramErr { ident } => smallvec![change!(span!(end), ScramErrFn { ident })],
 			Self::Scramitize => smallvec![
 				change!(span!(start), ScramitizeFn),
-				change!(span!(end), ClosingParen { semi: false })
+				change!(
+					span!(end),
+					ClosingParen {
+						semi: false,
+						replace: false
+					}
+				)
 			],
 			Self::Eval { inner } => smallvec![
 				change!(span!(span inner start), EvalRewriteFn),
-				change!(span!(inner span end), ReplaceClosingParen)
+				change!(
+					span!(inner span end),
+					ClosingParen {
+						semi: false,
+						replace: true
+					}
+				)
 			],
 			Self::Assignment { name, rhs, op } => smallvec![
 				change!(span!(span rhs start), AssignmentLeft { name, op }),
-				change!(span!(rhs span end), ReplaceClosingParen)
+				change!(
+					span!(rhs span end),
+					ClosingParen {
+						semi: false,
+						replace: true
+					}
+				)
 			],
 			Self::ShorthandObj { name } => {
 				smallvec![change!(span!(end), ShorthandObj { ident: name })]

@@ -5,20 +5,20 @@ use oxc::{
 	ast::ast::AssignmentOperator,
 	span::{Atom, Span},
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use transform::{
-	transform::{Change, Transform, TransformLL},
 	TransformResult, Transformer,
+	transform::{Change, Transform, TransformLL},
 };
 
 use crate::{
+	RewriterError,
 	cfg::{Config, Flags},
 	rewrite::Rewrite,
-	RewriterError,
 };
 
 // const STRICTCHECKER: &str = "(function(a){arguments[0]=false;return a})(true)";
-const STRICTCHECKER: &str = "(function(){return !this;})()";
+const STRICTCHECKER: &str = "(function(){return!this;})()";
 
 macro_rules! change {
     ($span:expr, $($ty:tt)*) => {
@@ -28,6 +28,7 @@ macro_rules! change {
 pub(crate) use change;
 
 macro_rules! changes {
+	[] => { SmallVec::new() };
 	[$($change:expr),+] => {
 		smallvec![$(Change::from($change)),+]
     };
@@ -64,10 +65,8 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		op: AssignmentOperator,
 	},
 
-	/// replace span with `)`
-	ReplaceClosingParen,
 	/// insert `)`
-	ClosingParen { semi: bool },
+	ClosingParen { semi: bool, replace: bool },
 
 	/// replace span with text
 	Replace { text: &'alloc str },
@@ -96,37 +95,34 @@ impl<'alloc: 'data, 'data> Transform for JsChange<'alloc, 'data> {
 
 	fn into_low_level(self, (cfg, flags): &Self::ToLowLevelData, cursor: u32) -> TransformLL<'_> {
 		use JsChangeType as Ty;
+		use TransformLL as LL;
 		match self.ty {
-			Ty::WrapFnLeft { wrap } => TransformLL::insert(if wrap {
+			Ty::WrapFnLeft { wrap } => LL::insert(if wrap {
 				changes!["(", &cfg.wrapfn, "("]
 			} else {
 				changes![&cfg.wrapfn, "("]
 			}),
-			Ty::WrapFnRight { wrap } => TransformLL::insert(if wrap {
+			Ty::WrapFnRight { wrap } => LL::insert(if wrap {
 				changes![",", STRICTCHECKER, "))"]
 			} else {
 				changes![",", STRICTCHECKER, ")"]
 			}),
-			Ty::SetRealmFn => TransformLL::insert(changes![&cfg.setrealmfn, "({})."]),
-			Ty::WrapThisFn => TransformLL::insert(changes![&cfg.wrapthisfn, "("]),
-			Ty::ScramErrFn { ident } => TransformLL::insert(changes!["$scramerr(", ident, ");"]),
-			Ty::ScramitizeFn => TransformLL::insert(changes![" $scramitize("]),
-			Ty::EvalRewriteFn => TransformLL::replace(changes!["eval(", &cfg.rewritefn, "("]),
-			Ty::ShorthandObj { ident } => {
-				TransformLL::insert(changes![":", &cfg.wrapfn, "(", ident, ")"])
-			}
-			Ty::SourceTag => TransformLL::insert(changes![
+			Ty::SetRealmFn => LL::insert(changes![&cfg.setrealmfn, "({})."]),
+			Ty::WrapThisFn => LL::insert(changes![&cfg.wrapthisfn, "("]),
+			Ty::ScramErrFn { ident } => LL::insert(changes!["$scramerr(", ident, ");"]),
+			Ty::ScramitizeFn => LL::insert(changes![" $scramitize("]),
+			Ty::EvalRewriteFn => LL::replace(changes!["eval(", &cfg.rewritefn, "("]),
+			Ty::ShorthandObj { ident } => LL::insert(changes![":", &cfg.wrapfn, "(", ident, ")"]),
+			Ty::SourceTag => LL::insert(changes![
 				"/*scramtag ",
 				self.span.start + cursor,
 				" ",
 				&flags.sourcetag,
 				"*/"
 			]),
-			Ty::ImportFn => {
-				TransformLL::replace(changes![&cfg.importfn, "(\"", &flags.base, "\","])
-			}
-			Ty::MetaFn => TransformLL::replace(changes![&cfg.metafn, "(\"", &flags.base, "\")"]),
-			Ty::AssignmentLeft { name, op } => TransformLL::replace(changes![
+			Ty::ImportFn => LL::replace(changes![&cfg.importfn, "(\"", &flags.base, "\","]),
+			Ty::MetaFn => LL::replace(changes![&cfg.metafn, "(\"", &flags.base, "\")"]),
+			Ty::AssignmentLeft { name, op } => LL::replace(changes![
 				"((t)=>$scramjet$tryset(",
 				name,
 				",\"",
@@ -136,12 +132,17 @@ impl<'alloc: 'data, 'data> Transform for JsChange<'alloc, 'data> {
 				op,
 				"t))("
 			]),
-			Ty::ReplaceClosingParen => TransformLL::replace(changes![")"]),
-			Ty::ClosingParen { semi } => {
-				TransformLL::replace(if semi { changes![");"] } else { changes![")"] })
+			Ty::ClosingParen { semi, replace } => {
+				let vec = if semi { changes![");"] } else { changes![")"] };
+
+				if replace {
+					LL::replace(vec)
+				} else {
+					LL::insert(vec)
+				}
 			}
-			Ty::Replace { text } => TransformLL::replace(changes![text]),
-			Ty::Delete => TransformLL::replace(SmallVec::new()),
+			Ty::Replace { text } => LL::replace(changes![text]),
+			Ty::Delete => LL::replace(changes![]),
 		}
 	}
 }
