@@ -1,0 +1,12 @@
+[package]
+name = "html"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lol_html = "2.4.0"
+oxc = { workspace = true }
+thiserror = "2.0.12"
+
+[lints]
+workspace = true
