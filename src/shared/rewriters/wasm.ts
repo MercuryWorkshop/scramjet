@@ -2,7 +2,7 @@
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { RewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
 
-export type { RewriterOutput };
+export type { RewriterOutput, Rewriter };
 
 import { $scramjet } from "../../scramjet";
 
@@ -19,7 +19,6 @@ export async function asyncSetWasm() {
 
 const decoder = new TextDecoder();
 let MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
-let rewriter: Rewriter | null = null;
 
 function initWasm() {
 	if (!(self.REAL_WASM && self.REAL_WASM instanceof Uint8Array))
@@ -39,6 +38,7 @@ function initWasm() {
 export function getRewriter(): Rewriter {
 	initWasm();
 
-	if (!rewriter) rewriter = new Rewriter($scramjet);
-	return rewriter;
+	if (!$scramjet.shared.rewriter)
+		$scramjet.shared.rewriter = new Rewriter($scramjet);
+	return $scramjet.shared.rewriter;
 }

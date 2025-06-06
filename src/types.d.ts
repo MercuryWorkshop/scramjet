@@ -22,6 +22,7 @@ import { CookieStore } from "./shared/cookie";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "./symbols";
 import { ScramjetClient } from "./client/client";
 import { ScramjetFrame } from "./controller/frame";
+import { Rewriter } from "./shared/rewriters/wasm";
 
 type ScramjetFlags = {
 	serviceworkers: boolean;
@@ -96,6 +97,7 @@ declare global {
 					parseDomain: typeof parseDomain;
 				};
 				CookieStore: typeof CookieStore;
+				rewriter?: Rewriter | undefined | null;
 			};
 			config: ScramjetConfig;
 			codec: {
