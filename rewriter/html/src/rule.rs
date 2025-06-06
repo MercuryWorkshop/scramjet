@@ -8,7 +8,7 @@ use crate::RewriterError;
 pub type RewriteRuleCallback = Arc<dyn Fn(&str) -> Option<String>>;
 
 pub struct RewriteRule<'alloc> {
-	pub attrs: HashMap<'alloc, String, Vec<'alloc, &'alloc str>>,
+	pub attrs: HashMap<'alloc, &'alloc str, Vec<'alloc, &'alloc str>>,
 	pub func: RewriteRuleCallback,
 }
 
@@ -48,11 +48,12 @@ impl<'alloc> RewriteRule<'alloc> {
 			.filter(|(_, els)| !els.is_empty())
 			.map(move |(attr, els)| {
 				let mut selector = StringBuilder::new_in(alloc);
+
 				let len = els.len();
 				for (i, el) in els.into_iter().enumerate() {
 					selector.push_str(el);
 					selector.push('[');
-					selector.push_str(&attr);
+					selector.push_str(attr);
 					selector.push(']');
 					if i < len - 1 {
 						selector.push(',');
@@ -64,7 +65,7 @@ impl<'alloc> RewriteRule<'alloc> {
 				Ok((
 					selector,
 					LolHtmlElementHandler {
-						attr: attr.clone(),
+						attr: attr.to_string(),
 						func,
 					},
 				))

@@ -35,7 +35,7 @@ pub struct Rewriter {
 impl Rewriter {
 	pub fn new<'alloc>(
 		alloc: &'alloc Allocator,
-		rules: Vec<'alloc, RewriteRule<'alloc>>,
+		rules: std::vec::Vec<RewriteRule<'alloc>>,
 	) -> Result<Self, RewriterError> {
 		Ok(Self {
 			rules: rules
@@ -71,7 +71,9 @@ impl Rewriter {
 		let mut vec = Vec::with_capacity_in(html.len(), alloc);
 
 		let mut rewriter = HtmlRewriter::new(settings, OxcOutputSink(&mut vec));
+
 		rewriter.write(html.as_bytes())?;
+
 		rewriter.end()?;
 
 		Ok(vec)

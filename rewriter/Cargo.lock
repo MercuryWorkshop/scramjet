@@ -892,6 +892,7 @@ dependencies = [
  "boa_engine",
  "bytes",
  "clap",
+ "html",
  "js",
  "oxc",
  "url",

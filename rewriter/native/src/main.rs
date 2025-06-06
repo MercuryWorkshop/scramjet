@@ -9,7 +9,8 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use oxc::diagnostics::NamedSource;
+use html::{Rewriter, rule::RewriteRule};
+use oxc::{allocator::Allocator, diagnostics::NamedSource};
 use rewriter::NativeRewriter;
 
 mod rewriter;
@@ -72,6 +73,9 @@ pub enum Cli {
 		iterations: u32,
 		#[clap(flatten)]
 		config: RewriterOptions,
+	},
+	Html {
+		file: PathBuf,
 	},
 }
 
@@ -139,6 +143,29 @@ fn main() -> Result<()> {
 			println!("iterations: {cnt}");
 			println!("total time: {duration:?}");
 			println!("avg time: {:?}", duration / cnt);
+		}
+		Cli::Html { file } => {
+			let data = fs::read_to_string(file).context("failed to read file")?;
+
+			let mut alloc = Allocator::new();
+			let mut rules = Vec::new();
+			let mut attrs = oxc::allocator::HashMap::new_in(&alloc);
+			let mut els = oxc::allocator::Vec::new_in(&alloc);
+			els.push("a");
+			els.push("link");
+			attrs.insert("href", els);
+			rules.push(RewriteRule {
+				attrs,
+				func: Arc::new(|x| Some(x.to_string() + " :3")),
+			});
+
+			let rewriter = Rewriter::new(&alloc, rules)?;
+
+			let ret = rewriter.rewrite(&alloc, &data)?;
+
+			println!("rewritten {:?}", str::from_utf8(&ret)?);
+
+			alloc.reset();
 		}
 	}
 
