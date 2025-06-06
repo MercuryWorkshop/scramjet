@@ -8,8 +8,8 @@ use std::{
 use anyhow::{Context, Result};
 use bytes::{Buf, Bytes, BytesMut};
 use js::{
-	cfg::{Config, Flags, UrlRewriter},
 	RewriteResult, Rewriter,
+	cfg::{Config, Flags, UrlRewriter},
 };
 use oxc::{
 	allocator::{Allocator, StringBuilder},
@@ -17,6 +17,8 @@ use oxc::{
 };
 use url::Url;
 use urlencoding::encode;
+
+mod test_runner;
 
 struct NativeUrlRewriter(Url);
 
@@ -189,119 +191,4 @@ fn main() -> Result<()> {
 	}
 
 	Ok(())
-}
-
-#[cfg(test)]
-mod test {
-	use std::fs;
-
-	use boa_engine::{
-		js_str, js_string,
-		object::ObjectInitializer,
-		property::{Attribute, PropertyDescriptorBuilder},
-		Context, NativeFunction, Source,
-	};
-	use oxc::allocator::Allocator;
-
-	use crate::{dorewrite, makerewriter};
-
-	#[test]
-	fn google() {
-		let alloc = Allocator::default();
-
-		let source_text = include_str!("../sample/google.js");
-		dorewrite(&alloc, &makerewriter().unwrap(), source_text).unwrap();
-	}
-
-	#[test]
-	fn test() {
-		let files = fs::read_dir("./tests").unwrap();
-
-		for file in files {
-			if !file
-				.as_ref()
-				.unwrap()
-				.file_name()
-				.to_str()
-				.unwrap()
-				.ends_with(".js")
-			{
-				continue;
-			}
-
-			let content = fs::read_to_string(file.unwrap().path()).unwrap();
-
-			let mut context = Context::default();
-
-			let window = ObjectInitializer::new(&mut context).build();
-			context
-				.register_global_property(js_str!("window"), window, Attribute::READONLY)
-				.unwrap();
-			context
-				.global_object()
-				.define_property_or_throw(
-					js_str!("location"),
-					PropertyDescriptorBuilder::new()
-						.get(
-							NativeFunction::from_copy_closure(|_, _, _| {
-								Ok(js_str!("location").into())
-							})
-							.to_js_function(context.realm()),
-						)
-						.set(
-							NativeFunction::from_copy_closure(|_, _, _| {
-								panic!("fail: window.location got set")
-							})
-							.to_js_function(context.realm()),
-						)
-						.build(),
-					&mut context,
-				)
-				.unwrap();
-
-			context
-				.register_global_callable(
-					js_string!("fail"),
-					0,
-					NativeFunction::from_copy_closure(|_, _, _| {
-						panic!("fail");
-					}),
-				)
-				.unwrap();
-
-			let result = context
-				.eval(Source::from_bytes(
-					br#"
-function $wrap(val) {
-	if (val === window || val === "location" || val === globalThis) return "";
-
-    return val;
-}
-
-const $gwrap = $wrap;
-
-function $scramitize(val) { return val }
-
-function assert(val) {
-	if (!val) fail();
-}
-
-function check(val) {
-    if (val === window || val === "location") fail();
-}
-			    "#,
-				))
-				.unwrap();
-
-			let alloc = Allocator::default();
-			let rewriter = makerewriter().unwrap();
-			let rewritten = dorewrite(&alloc, &rewriter, &content).unwrap();
-			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
-
-			context
-				.eval(Source::from_bytes(rewritten.js.as_slice()))
-				.unwrap();
-			println!("PASS");
-		}
-	}
 }
