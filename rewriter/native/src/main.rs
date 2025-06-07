@@ -156,16 +156,16 @@ fn main() -> Result<()> {
 				attrs: attrmap!({
 					"href": ["a", "link"]
 				}),
-				func: Box::new(|alloc, x| {
+				func: Box::new(|alloc, x, ()| {
 					let mut build = StringBuilder::from_str_in(x, alloc);
 					build.push_str(" :3");
-					Some(build.into_str())
+					Ok(Some(build.into_str()))
 				}),
 			}];
 
 			let rewriter = Rewriter::new(rules)?;
 
-			let ret = rewriter.rewrite(&alloc, &data)?.source;
+			let ret = rewriter.rewrite(&alloc, &data, &())?;
 
 			println!("{}", str::from_utf8(&ret)?);
 
