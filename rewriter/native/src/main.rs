@@ -150,17 +150,15 @@ fn main() -> Result<()> {
 			let mut alloc = Allocator::new();
 
 			let rules = vec![RewriteRule {
-				attrs: attrmap!(alloc, {
+				attrs: attrmap!({
 					"href": ["a", "link"]
 				}),
-				func: Arc::new(|x| Some(x.to_string() + " :3")),
+				func: Box::new(|x| Some(x.to_string() + " :3")),
 			}];
 
-			let rewriter = Rewriter::new(&alloc, rules)?;
+			let rewriter = Rewriter::new(rules)?;
 
-			let ret = rewriter.rewrite(&alloc, &data)?;
-
-			println!("rewritten {:?}", str::from_utf8(&ret)?);
+			rewriter.rewrite(&alloc, &data)?;
 
 			alloc.reset();
 		}

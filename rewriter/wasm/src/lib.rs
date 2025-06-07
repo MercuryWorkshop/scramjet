@@ -105,7 +105,7 @@ impl Rewriter {
 	// to test wasm size
 	#[wasm_bindgen]
 	pub fn rewrite_html_test(&mut self) -> Result<()> {
-		let rewriter = HtmlRewriter::new(&self.alloc, vec![])?;
+		let rewriter = HtmlRewriter::new(vec![])?;
 
 		rewriter.rewrite(&self.alloc, "")?;
 

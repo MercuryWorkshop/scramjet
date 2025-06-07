@@ -1,79 +1,44 @@
-use std::borrow::Cow;
+use std::num::TryFromIntError;
 
-use lol_html::{ElementContentHandlers, HtmlRewriter, OutputSink, Settings};
-use oxc::allocator::{Allocator, Vec};
-use rule::{LolHtmlRewriteRule, RewriteRule};
+use oxc::allocator::Allocator;
+use rule::RewriteRule;
 use thiserror::Error;
+use tl::ParserOptions;
+use visitor::Visitor;
 
 pub mod rule;
+mod visitor;
 
 #[derive(Debug, Error)]
 pub enum RewriterError {
-	#[error("lol html: {0}")]
-	LolHtml(#[from] lol_html::errors::RewritingError),
-	#[error("selector parsing: {0}")]
-	Selector(#[from] lol_html::errors::SelectorError),
-	#[error("attribute name parsing: {0}")]
-	AttributeName(#[from] lol_html::errors::AttributeNameError),
+	#[error("tl: {0}")]
+	Tl(#[from] tl::ParseError),
 
-	#[error("failed to get attribute in rewrite rule")]
-	RewriteAttributeGone,
-}
-
-struct OxcOutputSink<'alloc, 'r>(&'r mut Vec<'alloc, u8>);
-
-impl OutputSink for OxcOutputSink<'_, '_> {
-	fn handle_chunk(&mut self, chunk: &[u8]) {
-		self.0.extend_from_slice_copy(chunk);
-	}
+	#[error("Not utf8")]
+	NotUtf8,
+	#[error("usize too big")]
+	ConversionFailed(#[from] TryFromIntError),
 }
 
 pub struct Rewriter {
-	rules: std::vec::Vec<LolHtmlRewriteRule>,
+	rules: Vec<RewriteRule>,
 }
 
 impl Rewriter {
-	pub fn new<'alloc>(
-		alloc: &'alloc Allocator,
-		rules: std::vec::Vec<RewriteRule<'alloc>>,
-	) -> Result<Self, RewriterError> {
-		Ok(Self {
-			rules: rules
-				.into_iter()
-				.flat_map(|x| x.into_lol_html(alloc))
-				.collect::<Result<_, _>>()?,
-		})
+	pub fn new(rules: Vec<RewriteRule>) -> Result<Self, RewriterError> {
+		Ok(Self { rules })
 	}
 
 	pub fn rewrite<'alloc: 'data, 'data>(
 		&'data self,
 		alloc: &'alloc Allocator,
 		html: &'data str,
-	) -> Result<Vec<'alloc, u8>, RewriterError> {
-		let settings = Settings {
-			element_content_handlers: self
-				.rules
-				.iter()
-				.map(|(selector, func)| {
-					(
-						Cow::Borrowed(selector),
-						ElementContentHandlers {
-							element: Some(func.create()),
-							comments: None,
-							text: None,
-						},
-					)
-				})
-				.collect(),
-			..Settings::new()
-		};
+	) -> Result<(), RewriterError> {
+		let tree = tl::parse(html, ParserOptions::default())?;
 
-		let mut vec = Vec::with_capacity_in(html.len(), alloc);
+		let visitor = Visitor::new(html, &self.rules, tree);
+		visitor.visit()?;
 
-		let mut rewriter = HtmlRewriter::new(settings, OxcOutputSink(&mut vec));
-		rewriter.write(html.as_bytes())?;
-		rewriter.end()?;
-
-		Ok(vec)
+		Ok(())
 	}
 }
