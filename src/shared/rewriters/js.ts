@@ -13,70 +13,74 @@ function rewriteJsWasm(
 	meta: URLMeta,
 	module: boolean
 ): { js: string | Uint8Array; map: Uint8Array | null; tag: string } {
-	let rewriter = getRewriter();
+	let [rewriter, ret] = getRewriter(meta);
 
-	let out: RewriterOutput;
-	const before = performance.now();
 	try {
-		if (typeof input === "string") {
-			out = rewriter.rewrite_js(
-				input,
-				meta.base.href,
-				source || "(unknown)",
-				module
+		let out: RewriterOutput;
+		const before = performance.now();
+		try {
+			if (typeof input === "string") {
+				out = rewriter.rewrite_js(
+					input,
+					meta.base.href,
+					source || "(unknown)",
+					module
+				);
+			} else {
+				out = rewriter.rewrite_js_bytes(
+					input,
+					meta.base.href,
+					source || "(unknown)",
+					module
+				);
+			}
+		} catch (err) {
+			const err1 = err as Error;
+			console.warn("failed rewriting js for", source, err1.message, input);
+
+			return { js: input, tag: "", map: null };
+		}
+		const after = performance.now();
+		let { js, map, scramtag, errors } = out;
+		let duration = after - before;
+
+		if (flagEnabled("sourcemaps", meta.base) && !globalThis.clients) {
+			globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
+				Array.from(map),
+				scramtag
 			);
-		} else {
-			out = rewriter.rewrite_js_bytes(
-				input,
-				meta.base.href,
-				source || "(unknown)",
-				module
+
+			map = null;
+		}
+
+		if (flagEnabled("rewriterLogs", meta.base)) {
+			for (const error of errors) {
+				console.error("oxc parse error", error);
+			}
+		}
+
+		if (flagEnabled("rewriterLogs", meta.base)) {
+			let timespan: string;
+			if (duration < 1) {
+				timespan = "BLAZINGLY FAST";
+			} else if (duration < 500) {
+				timespan = "decent speed";
+			} else {
+				timespan = "really slow";
+			}
+			console.log(
+				`oxc rewrite for "${source || "(unknown)"}" was ${timespan} (${duration}ms)`
 			);
 		}
-	} catch (err) {
-		const err1 = err as Error;
-		console.warn("failed rewriting js for", source, err1.message, input);
 
-		return { js: input, tag: "", map: null };
+		return {
+			js: typeof input === "string" ? decoder.decode(js) : js,
+			tag: scramtag,
+			map,
+		};
+	} finally {
+		ret();
 	}
-	const after = performance.now();
-	let { js, map, scramtag, errors } = out;
-	let duration = after - before;
-
-	if (flagEnabled("sourcemaps", meta.base) && !globalThis.clients) {
-		globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
-			Array.from(map),
-			scramtag
-		);
-
-		map = null;
-	}
-
-	if (flagEnabled("rewriterLogs", meta.base)) {
-		for (const error of errors) {
-			console.error("oxc parse error", error);
-		}
-	}
-
-	if (flagEnabled("rewriterLogs", meta.base)) {
-		let timespan: string;
-		if (duration < 1) {
-			timespan = "BLAZINGLY FAST";
-		} else if (duration < 500) {
-			timespan = "decent speed";
-		} else {
-			timespan = "really slow";
-		}
-		console.log(
-			`oxc rewrite for "${source || "(unknown)"}" was ${timespan} (${duration}ms)`
-		);
-	}
-
-	return {
-		js: typeof input === "string" ? decoder.decode(js) : js,
-		tag: scramtag,
-		map,
-	};
 }
 
 // 1. does not work with modules

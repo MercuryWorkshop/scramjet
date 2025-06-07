@@ -97,7 +97,7 @@ declare global {
 					parseDomain: typeof parseDomain;
 				};
 				CookieStore: typeof CookieStore;
-				rewriter?: Rewriter | undefined | null;
+				rewriter?: { rewriter: Rewriter; inUse: boolean }[];
 			};
 			config: ScramjetConfig;
 			codec: {
