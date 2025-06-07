@@ -1,7 +1,7 @@
 import { URLMeta } from "./url";
 
 import { $scramjet, flagEnabled } from "../../scramjet";
-import { getRewriter, RewriterOutput } from "./wasm";
+import { getRewriter, JsRewriterOutput } from "./wasm";
 
 Error.stackTraceLimit = 50;
 
@@ -16,7 +16,7 @@ function rewriteJsWasm(
 	let [rewriter, ret] = getRewriter(meta);
 
 	try {
-		let out: RewriterOutput;
+		let out: JsRewriterOutput;
 		const before = performance.now();
 		try {
 			if (typeof input === "string") {
