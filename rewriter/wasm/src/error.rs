@@ -43,6 +43,10 @@ impl RewriterError {
 		Self::Not(x, "string")
 	}
 
+	pub fn not_arr(x: &'static str) -> Self {
+		Self::Not(x, "array")
+	}
+
 	pub fn not_fn(x: &'static str) -> Self {
 		Self::Not(x, "function")
 	}

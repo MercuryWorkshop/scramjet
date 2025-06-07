@@ -7,9 +7,10 @@ import { rewriteJs } from "./js";
 import { CookieStore } from "../cookie";
 import { unrewriteBlob } from "../../shared/rewriters/url";
 import { $scramjet } from "../../scramjet";
+import { getRewriter } from "./wasm";
 
 const encoder = new TextEncoder();
-export function rewriteHtml(
+function rewriteHtmlInner(
 	html: string,
 	cookieStore: CookieStore,
 	meta: URLMeta,
@@ -68,6 +69,39 @@ export function rewriteHtml(
 		encodeEntities: "utf8",
 		decodeEntities: false,
 	});
+}
+
+function rewriteHtmlWasm(
+	html: string,
+	cookieStore: CookieStore,
+	meta: URLMeta,
+	fromTop: boolean = false
+) {
+	const [rewriter, ret] = getRewriter(meta);
+
+	try {
+		const before = performance.now();
+		const rewritten = rewriter.rewrite_html(html, meta, cookieStore);
+		const after = performance.now();
+
+		console.log(`wasm html rewrite took ${after - before}ms`);
+	} finally {
+		ret();
+	}
+}
+
+export function rewriteHtml(
+	html: string,
+	cookieStore: CookieStore,
+	meta: URLMeta,
+	fromTop: boolean = false
+) {
+	const before = performance.now();
+	let ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
+	const after = performance.now();
+	console.log(`js html rewrite took ${after - before}ms`);
+	rewriteHtmlWasm(html, cookieStore, meta, fromTop);
+	return ret;
 }
 
 // type ParseState = {

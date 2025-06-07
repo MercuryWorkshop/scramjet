@@ -1,11 +1,10 @@
-use std::{cell::RefCell, num::TryFromIntError};
+use std::{cell::RefCell, error::Error, num::TryFromIntError};
 
 use changes::HtmlChanges;
 use oxc::allocator::Allocator;
 use rule::RewriteRule;
 use thiserror::Error;
 use tl::ParserOptions;
-use transform::TransformResult;
 use visitor::Visitor;
 
 mod changes;
@@ -19,6 +18,9 @@ pub enum RewriterError {
 	#[error("transformer: {0}")]
 	Transformer(#[from] transform::TransformError),
 
+	#[error("rewrite function: {0}")]
+	Rewrite(Box<dyn Error + Sync + Send>),
+
 	#[error("Not utf8")]
 	NotUtf8,
 	#[error("usize too big")]
@@ -31,14 +33,14 @@ pub enum RewriterError {
 	Leftover,
 }
 
-pub struct Rewriter {
-	rules: Vec<RewriteRule>,
+pub struct Rewriter<T> {
+	rules: Vec<RewriteRule<T>>,
 
 	changes: RefCell<Option<HtmlChanges<'static, 'static>>>,
 }
 
-impl Rewriter {
-	pub fn new(rules: Vec<RewriteRule>) -> Result<Self, RewriterError> {
+impl<T> Rewriter<T> {
+	pub fn new(rules: Vec<RewriteRule<T>>) -> Result<Self, RewriterError> {
 		Ok(Self {
 			rules,
 			changes: RefCell::new(Some(HtmlChanges::new())),
@@ -101,7 +103,8 @@ impl Rewriter {
 		&'data self,
 		alloc: &'alloc Allocator,
 		html: &'data str,
-	) -> Result<TransformResult<'alloc>, RewriterError> {
+		data: &T
+	) -> Result<oxc::allocator::Vec<'alloc, u8>, RewriterError> {
 		let tree = tl::parse(html, ParserOptions::default())?;
 
 		let mut changes = self.take_changes(alloc)?;
@@ -109,6 +112,7 @@ impl Rewriter {
 		let visitor = Visitor {
 			alloc,
 			rules: &self.rules,
+			rule_data: data,
 
 			data: html,
 			tree,
@@ -119,6 +123,6 @@ impl Rewriter {
 
 		self.put_changes(changes)?;
 
-		Ok(res)
+		Ok(res.source)
 	}
 }

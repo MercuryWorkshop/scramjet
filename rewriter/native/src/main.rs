@@ -165,7 +165,7 @@ fn main() -> Result<()> {
 
 			let rewriter = Rewriter::new(rules)?;
 
-			let ret = rewriter.rewrite(&alloc, &data)?.js;
+			let ret = rewriter.rewrite(&alloc, &data)?.source;
 
 			println!("{}", str::from_utf8(&ret)?);
 

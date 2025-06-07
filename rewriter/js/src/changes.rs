@@ -210,6 +210,6 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 		cfg: &'data Config,
 		flags: &'data Flags,
 	) -> Result<TransformResult<'alloc>, RewriterError> {
-		Ok(self.inner.perform(js, &(cfg, flags))?)
+		Ok(self.inner.perform(js, &(cfg, flags), true)?)
 	}
 }

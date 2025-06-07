@@ -36,7 +36,7 @@ function initWasm() {
 	});
 }
 
-export function getRewriter(meta?: URLMeta): [Rewriter, () => void] {
+export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 	initWasm();
 	if (!$scramjet.shared.rewriter) $scramjet.shared.rewriter = [];
 

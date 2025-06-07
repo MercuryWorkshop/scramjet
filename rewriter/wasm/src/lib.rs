@@ -1,19 +1,22 @@
 pub mod error;
 
 use error::{Result, RewriterError};
-use html::Rewriter as HtmlRewriter;
+use htmlr::{HtmlRewriter, HtmlRewriterOutput, create_html, create_html_output};
 use js_sys::{Function, Object, Reflect};
 use jsr::{JsRewriter, JsRewriterOutput, create_js, create_js_output, get_js_flags};
 use oxc::allocator::Allocator;
 use wasm_bindgen::prelude::*;
 use web_sys::Url;
 
+mod htmlr;
 mod jsr;
 
 #[wasm_bindgen]
 extern "C" {
-	#[wasm_bindgen(js_namespace = console)]
-	fn error(s: &str);
+	#[wasm_bindgen(js_namespace = console, js_name = error)]
+	fn console_error(s: &str);
+	#[wasm_bindgen(js_namespace = console, js_name = error)]
+	fn console_error2(s: &JsValue);
 }
 
 fn get_obj(obj: &JsValue, k: &'static str) -> Result<JsValue> {
@@ -50,6 +53,7 @@ pub struct Rewriter {
 
 	scramjet: Object,
 	js: JsRewriter,
+	html: HtmlRewriter,
 }
 
 #[wasm_bindgen]
@@ -60,6 +64,7 @@ impl Rewriter {
 			alloc: Allocator::default(),
 
 			js: create_js(&scramjet)?,
+			html: create_html(&scramjet)?,
 			scramjet,
 		})
 	}
@@ -102,17 +107,19 @@ impl Rewriter {
 		self.rewrite_js(js, base, url, module)
 	}
 
-	/*
-	// to test wasm size
 	#[wasm_bindgen]
-	pub fn rewrite_html_test(&mut self) -> Result<()> {
-		let rewriter = HtmlRewriter::new(vec![])?;
+	pub fn rewrite_html(&mut self, html: String, meta: Object, cookie: Object) -> Result<HtmlRewriterOutput> {
+		let out = match self.html.rewrite(&self.alloc, &html, &(meta, cookie)) {
+			Ok(x) => x,
+			Err(x) => {
+				self.alloc.reset();
+				Err(x)?
+			}
+		};
 
-		rewriter.rewrite(&self.alloc, "")?;
+		let ret = create_html_output(out);
 
 		self.alloc.reset();
-
-		Ok(())
+		ret
 	}
-	*/
 }

@@ -7,15 +7,16 @@ use crate::{
 	rule::{RewriteRule, RewriteRuleCallback},
 };
 
-pub struct Visitor<'alloc, 'data> {
+pub struct Visitor<'alloc, 'data, T> {
 	pub alloc: &'alloc Allocator,
-	pub rules: &'data [RewriteRule],
+	pub rules: &'data [RewriteRule<T>],
+	pub rule_data: &'data T,
 
 	pub data: &'data str,
 	pub tree: VDom<'data>,
 }
 
-impl<'alloc, 'data> Visitor<'alloc, 'data> {
+impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 	fn calculate_bounds(&self, raw: &Bytes<'data>) -> Result<Span, RewriterError> {
 		let input = self.data.as_ptr();
 		let start = raw.as_ptr();
@@ -25,10 +26,14 @@ impl<'alloc, 'data> Visitor<'alloc, 'data> {
 		Ok(Span::new(offset.try_into()?, end.try_into()?))
 	}
 
-	fn check_rules(&self, name: &str, attr: &str) -> Option<&RewriteRuleCallback> {
+	fn check_rules(&self, name: &str, attr: &str) -> Option<&RewriteRuleCallback<T>> {
 		self.rules
 			.iter()
-			.find(|x| x.attrs.get(attr).is_some_and(|x| x.contains(name)))
+			.find(|x| {
+				x.attrs
+					.get(attr)
+					.is_some_and(|x| x.as_ref().is_none_or(|x| x.contains(name)))
+			})
 			.map(|x| &x.func)
 	}
 
@@ -47,7 +52,8 @@ impl<'alloc, 'data> Visitor<'alloc, 'data> {
 						&& let Some(v) = v
 					{
 						let value = v.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
-						let change = (cb)(self.alloc, value);
+						let change = (cb)(self.alloc, value, self.rule_data)
+							.map_err(RewriterError::Rewrite)?;
 
 						let val = self.calculate_bounds(v)?;
 

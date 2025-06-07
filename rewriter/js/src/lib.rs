@@ -161,8 +161,8 @@ impl<E: UrlRewriter> Rewriter<E> {
 
 		self.put_changes(jschanges)?;
 
-		let js: Vec<'alloc, u8> = changed.js;
-		let sourcemap: Vec<'alloc, u8> = changed.sourcemap;
+		let js: Vec<'alloc, u8> = changed.source;
+		let sourcemap: Vec<'alloc, u8> = changed.map;
 
 		Ok(RewriteResult {
 			js,

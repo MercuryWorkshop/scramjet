@@ -119,6 +119,6 @@ impl<'alloc: 'data, 'data> HtmlChanges<'alloc, 'data> {
 
 	#[inline]
 	pub fn perform(&mut self, html: &'data str) -> Result<TransformResult<'alloc>, RewriterError> {
-		Ok(self.inner.perform(html, &html)?)
+		Ok(self.inner.perform(html, &html, false)?)
 	}
 }
