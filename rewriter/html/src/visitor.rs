@@ -1,30 +1,28 @@
-use std::ops::Range;
-
-use tl::{Bytes, Node, NodeHandle, VDom};
+use oxc::{allocator::Allocator, span::Span};
+use tl::{Bytes, Node, VDom};
 
 use crate::{
-	RewriterError,
+	HtmlChanges, RewriterError,
+	changes::HtmlRewrite,
 	rule::{RewriteRule, RewriteRuleCallback},
 };
 
-pub struct Visitor<'data> {
-	data: &'data str,
-	rules: &'data [RewriteRule],
-	vdom: VDom<'data>,
+pub struct Visitor<'alloc, 'data> {
+	pub alloc: &'alloc Allocator,
+	pub rules: &'data [RewriteRule],
+
+	pub data: &'data str,
+	pub tree: VDom<'data>,
 }
 
-impl<'data> Visitor<'data> {
-	pub fn new(data: &'data str, rules: &'data [RewriteRule], vdom: VDom<'data>) -> Self {
-		Self { data, rules, vdom }
-	}
-
-	fn calculate_bounds(&self, raw: &Bytes<'data>) -> Result<Range<u32>, RewriterError> {
+impl<'alloc, 'data> Visitor<'alloc, 'data> {
+	fn calculate_bounds(&self, raw: &Bytes<'data>) -> Result<Span, RewriterError> {
 		let input = self.data.as_ptr();
 		let start = raw.as_ptr();
 		let offset = start as usize - input as usize;
 		let end = offset + raw.as_bytes().len();
 
-		Ok(offset.try_into()?..end.try_into()?)
+		Ok(Span::new(offset.try_into()?, end.try_into()?))
 	}
 
 	fn check_rules(&self, name: &str, attr: &str) -> Option<&RewriteRuleCallback> {
@@ -34,7 +32,11 @@ impl<'data> Visitor<'data> {
 			.map(|x| &x.func)
 	}
 
-	fn visit_node(&self, node: &Node<'data>) -> Result<(), RewriterError> {
+	fn visit_node(
+		&self,
+		node: &Node<'data>,
+		changes: &mut HtmlChanges<'alloc, 'data>,
+	) -> Result<(), RewriterError> {
 		match node {
 			Node::Tag(tag) => {
 				for (k, v) in tag.attributes().unstable_raw().iter() {
@@ -45,10 +47,15 @@ impl<'data> Visitor<'data> {
 						&& let Some(v) = v
 					{
 						let value = v.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
-						let change = (cb)(value);
+						let change = (cb)(self.alloc, value);
+
+						let val = self.calculate_bounds(v)?;
+
 						if let Some(change) = change {
-							println!("need to change {:?} {:?}", change, self.calculate_bounds(v));
-							// TODO
+							changes.add(HtmlRewrite::replace_attr(val, change));
+						} else {
+							let key = self.calculate_bounds(k)?;
+							changes.add(HtmlRewrite::remove_attr(self.data, key, val));
 						}
 					}
 				}
@@ -58,9 +65,9 @@ impl<'data> Visitor<'data> {
 		}
 	}
 
-	pub fn visit(&self) -> Result<(), RewriterError> {
-		for node in self.vdom.nodes() {
-			self.visit_node(node)?;
+	pub fn visit(&self, changes: &mut HtmlChanges<'alloc, 'data>) -> Result<(), RewriterError> {
+		for node in self.tree.nodes() {
+			self.visit_node(node, changes)?;
 		}
 		Ok(())
 	}

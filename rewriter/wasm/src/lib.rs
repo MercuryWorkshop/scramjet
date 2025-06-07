@@ -102,6 +102,7 @@ impl Rewriter {
 		self.rewrite_js(js, base, url, module)
 	}
 
+	/*
 	// to test wasm size
 	#[wasm_bindgen]
 	pub fn rewrite_html_test(&mut self) -> Result<()> {
@@ -113,4 +114,5 @@ impl Rewriter {
 
 		Ok(())
 	}
+	*/
 }

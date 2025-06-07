@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-pub type RewriteRuleCallback = Box<dyn Fn(&str) -> Option<String>>;
+use oxc::allocator::Allocator;
+
+pub type RewriteRuleCallback =
+	Box<dyn for<'alloc, 'data> Fn(&'alloc Allocator, &'data str) -> Option<&'alloc str>>;
 
 pub struct RewriteRule {
 	pub attrs: HashMap<String, HashSet<String>>,

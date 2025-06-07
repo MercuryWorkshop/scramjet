@@ -1,5 +1,11 @@
-use oxc::{allocator::Vec, ast::ast::AssignmentOperator, span::{Atom, Span}};
+use oxc::{
+	allocator::Vec,
+	ast::ast::AssignmentOperator,
+	span::{Atom, Span},
+};
 use smallvec::SmallVec;
+
+pub use smallvec as vecimpl;
 
 pub enum TransformElement<'a> {
 	Str(&'a str),
@@ -65,11 +71,11 @@ pub enum TransformType {
 	Replace,
 }
 
-pub trait Transform: Ord {
-	type ToLowLevelData;
+pub trait Transform<'a>: Ord {
+	type ToLowLevelData: 'a;
 
 	fn span(&self) -> Span;
-	fn into_low_level(self, data: &Self::ToLowLevelData, cursor: u32) -> TransformLL;
+	fn into_low_level(self, data: &Self::ToLowLevelData, cursor: u32) -> TransformLL<'a>;
 }
 
 pub struct TransformLL<'a> {
@@ -101,4 +107,12 @@ impl<'a> TransformLL<'a> {
 
 		len
 	}
+}
+
+#[macro_export]
+macro_rules! transforms {
+	[] => { $crate::transform::vecimpl::SmallVec::new() };
+	[$($change:expr),+] => {
+		$crate::transform::vecimpl::smallvec![$(transform::transform::TransformElement::from($change)),+]
+    };
 }

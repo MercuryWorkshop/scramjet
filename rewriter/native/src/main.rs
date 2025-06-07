@@ -10,7 +10,10 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use html::{Rewriter, attrmap, rule::RewriteRule};
-use oxc::{allocator::Allocator, diagnostics::NamedSource};
+use oxc::{
+	allocator::{Allocator, StringBuilder},
+	diagnostics::NamedSource,
+};
 use rewriter::NativeRewriter;
 
 mod rewriter;
@@ -153,12 +156,18 @@ fn main() -> Result<()> {
 				attrs: attrmap!({
 					"href": ["a", "link"]
 				}),
-				func: Box::new(|x| Some(x.to_string() + " :3")),
+				func: Box::new(|alloc, x| {
+					let mut build = StringBuilder::from_str_in(x, alloc);
+					build.push_str(" :3");
+					Some(build.into_str())
+				}),
 			}];
 
 			let rewriter = Rewriter::new(rules)?;
 
-			rewriter.rewrite(&alloc, &data)?;
+			let ret = rewriter.rewrite(&alloc, &data)?.js;
+
+			println!("{}", str::from_utf8(&ret)?);
 
 			alloc.reset();
 		}

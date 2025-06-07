@@ -1,11 +1,14 @@
-use std::num::TryFromIntError;
+use std::{cell::RefCell, num::TryFromIntError};
 
+use changes::HtmlChanges;
 use oxc::allocator::Allocator;
 use rule::RewriteRule;
 use thiserror::Error;
 use tl::ParserOptions;
+use transform::TransformResult;
 use visitor::Visitor;
 
+mod changes;
 pub mod rule;
 mod visitor;
 
@@ -13,32 +16,109 @@ mod visitor;
 pub enum RewriterError {
 	#[error("tl: {0}")]
 	Tl(#[from] tl::ParseError),
+	#[error("transformer: {0}")]
+	Transformer(#[from] transform::TransformError),
 
 	#[error("Not utf8")]
 	NotUtf8,
 	#[error("usize too big")]
 	ConversionFailed(#[from] TryFromIntError),
+	#[error("Already rewriting")]
+	AlreadyRewriting,
+	#[error("Not rewriting")]
+	NotRewriting,
+	#[error("Changes left over")]
+	Leftover,
 }
 
 pub struct Rewriter {
 	rules: Vec<RewriteRule>,
+
+	changes: RefCell<Option<HtmlChanges<'static, 'static>>>,
 }
 
 impl Rewriter {
 	pub fn new(rules: Vec<RewriteRule>) -> Result<Self, RewriterError> {
-		Ok(Self { rules })
+		Ok(Self {
+			rules,
+			changes: RefCell::new(Some(HtmlChanges::new())),
+		})
+	}
+
+	fn take_changes<'alloc: 'data, 'data>(
+		&'data self,
+		alloc: &'alloc Allocator,
+	) -> Result<HtmlChanges<'alloc, 'data>, RewriterError> {
+		let mut slot = self
+			.changes
+			.try_borrow_mut()
+			.map_err(|_| RewriterError::AlreadyRewriting)?;
+
+		slot.take()
+			.ok_or(RewriterError::AlreadyRewriting)
+			.and_then(|x| {
+				let mut x = unsafe {
+					std::mem::transmute::<HtmlChanges<'static, 'static>, HtmlChanges<'alloc, 'data>>(
+						x,
+					)
+				};
+				x.set_alloc(alloc)?;
+				Ok(x)
+			})
+	}
+
+	fn put_changes<'alloc: 'data, 'data>(
+		&'data self,
+		mut changes: HtmlChanges<'alloc, 'data>,
+	) -> Result<(), RewriterError> {
+		if !changes.empty() {
+			return Err(RewriterError::Leftover);
+		}
+
+		let mut slot = self
+			.changes
+			.try_borrow_mut()
+			.map_err(|_| RewriterError::AlreadyRewriting)?;
+
+		if slot.is_some() {
+			Err(RewriterError::NotRewriting)
+		} else {
+			changes.take_alloc()?;
+
+			let changes = unsafe {
+				std::mem::transmute::<HtmlChanges<'alloc, 'data>, HtmlChanges<'static, 'static>>(
+					changes,
+				)
+			};
+
+			slot.replace(changes);
+
+			Ok(())
+		}
 	}
 
 	pub fn rewrite<'alloc: 'data, 'data>(
 		&'data self,
 		alloc: &'alloc Allocator,
 		html: &'data str,
-	) -> Result<(), RewriterError> {
+	) -> Result<TransformResult<'alloc>, RewriterError> {
 		let tree = tl::parse(html, ParserOptions::default())?;
 
-		let visitor = Visitor::new(html, &self.rules, tree);
-		visitor.visit()?;
+		let mut changes = self.take_changes(alloc)?;
 
-		Ok(())
+		let visitor = Visitor {
+			alloc,
+			rules: &self.rules,
+
+			data: html,
+			tree,
+		};
+		visitor.visit(&mut changes)?;
+
+		let res = changes.perform(html)?;
+
+		self.put_changes(changes)?;
+
+		Ok(res)
 	}
 }

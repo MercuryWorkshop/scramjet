@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use oxc::{
 	allocator::{Allocator, Vec},
 	span::Span,
@@ -24,20 +26,22 @@ pub struct TransformResult<'alloc> {
 	pub sourcemap: Vec<'alloc, u8>,
 }
 
-pub struct Transformer<'alloc, T: Transform> {
+pub struct Transformer<'alloc, 'data, T: Transform<'data>> {
+	phantom: PhantomData<&'data str>,
 	alloc: Option<&'alloc Allocator>,
 	inner: std::vec::Vec<T>,
 }
 
-impl<T: Transform> Default for Transformer<'_, T> {
+impl<'data, T: Transform<'data>> Default for Transformer<'_, 'data, T> {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-impl<'alloc, T: Transform> Transformer<'alloc, T> {
+impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 	pub fn new() -> Self {
 		Self {
+			phantom: PhantomData,
 			inner: std::vec::Vec::new(),
 			alloc: None,
 		}
@@ -73,7 +77,7 @@ impl<'alloc, T: Transform> Transformer<'alloc, T> {
 
 	pub fn perform(
 		&mut self,
-		js: &str,
+		js: &'data str,
 		data: &T::ToLowLevelData,
 	) -> Result<TransformResult<'alloc>, TransformError> {
 		let mut itoa = itoa::Buffer::new();
