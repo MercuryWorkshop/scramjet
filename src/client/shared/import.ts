@@ -8,7 +8,9 @@ export default function (client: ScramjetClient, self: Self) {
 	self[config.globals.importfn] = function (base: string, url: string) {
 		const resolved = new URL(url, base).href;
 
-		return Function(`return import("${rewriteUrl(resolved, client.meta)}")`)();
+		return Function(
+			`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
+		)();
 	};
 
 	self[config.globals.metafn] = function (base: string) {
