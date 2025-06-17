@@ -127,7 +127,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
-			unproxy(ctx, client);
+			unproxy(ctx);
 			if (typeof ctx.args[1] !== "function") return;
 
 			const origlistener = ctx.args[1];
@@ -148,7 +148,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.removeEventListener", {
 		apply(ctx) {
-			unproxy(ctx, client);
+			unproxy(ctx);
 			if (typeof ctx.args[1] !== "function") return;
 
 			const arr = client.eventcallbacks.get(ctx.this);
@@ -168,7 +168,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.dispatchEvent", {
 		apply(ctx) {
-			unproxy(ctx, client);
+			unproxy(ctx);
 		},
 	});
 
