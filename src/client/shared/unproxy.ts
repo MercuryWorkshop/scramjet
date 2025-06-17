@@ -91,8 +91,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 export function unproxy(ctx: ProxyCtx) {
 	// use window instead of self as window corresponds to the scramjet global
-	const self = window;
-	const client = window[SCRAMJETCLIENT];
+	const self = globalThis;
+	const client = globalThis[SCRAMJETCLIENT];
 	if (ctx.this === client.globalProxy) ctx.this = self;
 	if (ctx.this === client.documentProxy) ctx.this = self.document;
 
