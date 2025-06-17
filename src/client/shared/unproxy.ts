@@ -1,4 +1,5 @@
 import { iswindow } from "..";
+import { SCRAMJETCLIENT } from "../../symbols";
 import { ProxyCtx, ScramjetClient } from "../client";
 
 // we don't want to end up overriding a property on window that's derived from a prototype until we've proxied the prototype
@@ -15,7 +16,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (typeof target[prop] === "function") {
 					client.RawProxy(target, prop, {
 						apply(ctx) {
-							unproxy(ctx, client);
+							unproxy(ctx);
 						},
 					});
 				}
@@ -37,7 +38,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (typeof target[prop] === "function") {
 					client.RawProxy(target, prop, {
 						apply(ctx) {
-							unproxy(ctx, client);
+							unproxy(ctx);
 						},
 					});
 				}
@@ -54,7 +55,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	// this is probably not how stuff should be done but you cant run defineProperty on the window proxy so...
 	client.Proxy("Object.defineProperty", {
 		apply(ctx) {
-			unproxy(ctx, client);
+			unproxy(ctx);
 		},
 	});
 
@@ -66,17 +67,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (desc.get) {
 				client.RawProxy(desc, "get", {
-					apply(getCtx) {
+					apply(ctx) {
 						// value of this in the getter needs to be corrected
-						unproxy(getCtx, client);
+						unproxy(ctx);
 					},
 				});
 			}
 
 			if (desc.set) {
 				client.RawProxy(desc, "set", {
-					apply(setCtx) {
-						unproxy(setCtx, client);
+					apply(ctx) {
+						unproxy(ctx);
 					},
 				});
 			}
@@ -88,8 +89,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 }
 
-export function unproxy(ctx: ProxyCtx, client: ScramjetClient) {
-	const self = client.global;
+export function unproxy(ctx: ProxyCtx) {
+	// use window instead of self as window corresponds to the scramjet global
+	const self = window;
+	const client = window[SCRAMJETCLIENT];
 	if (ctx.this === client.globalProxy) ctx.this = self;
 	if (ctx.this === client.documentProxy) ctx.this = self.document;
 

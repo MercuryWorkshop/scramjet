@@ -86,6 +86,9 @@ export function createLocationProxy(
 			apply(target, that, args) {
 				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
+
+				const urlchangeev = new UrlChangeEvent(client.url.href);
+				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 			},
 		});
 	if (self.location.reload)
@@ -99,6 +102,9 @@ export function createLocationProxy(
 			apply(target, that, args) {
 				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
+
+				const urlchangeev = new UrlChangeEvent(client.url.href);
+				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 			},
 		});
 
