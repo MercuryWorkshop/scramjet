@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use oxc::{allocator::Allocator, span::Span};
 use transform::{
 	TransformResult, Transformer,
@@ -10,22 +8,33 @@ use transform::{
 use crate::RewriterError;
 
 #[derive(PartialEq, Eq)]
-enum HtmlRewriteType<'alloc> {
-	ReplaceAttr { new: &'alloc str },
-	RemoveAttr,
+enum HtmlRewriteType<'alloc: 'data, 'data> {
+	AddScramAttr {
+		key: &'data str,
+		val: Option<&'data str>,
+	},
+	ReplaceAttr {
+		new: &'alloc str,
+	},
+	RemoveText,
 }
 
 #[derive(PartialEq, Eq)]
 pub struct HtmlRewrite<'alloc: 'data, 'data> {
-	phantom: PhantomData<&'data str>,
 	span: Span,
-	ty: HtmlRewriteType<'alloc>,
+	ty: HtmlRewriteType<'alloc, 'data>,
 }
 
 impl<'alloc: 'data, 'data> HtmlRewrite<'alloc, 'data> {
+	pub fn add_scram_attr(after: Span, key: &'data str, val: Option<&'data str>) -> Self {
+		Self {
+			span: Span::new(after.end, after.end),
+			ty: HtmlRewriteType::AddScramAttr { key, val },
+		}
+	}
+
 	pub fn replace_attr(val: Span, new: &'alloc str) -> Self {
 		Self {
-			phantom: PhantomData,
 			span: val,
 			ty: HtmlRewriteType::ReplaceAttr { new },
 		}
@@ -39,9 +48,14 @@ impl<'alloc: 'data, 'data> HtmlRewrite<'alloc, 'data> {
 		};
 
 		Self {
-			phantom: PhantomData,
 			span: Span::new(key.start, end),
-			ty: HtmlRewriteType::RemoveAttr,
+			ty: HtmlRewriteType::RemoveText,
+		}
+	}
+	pub fn remove_node(node: Span) -> Self {
+		Self {
+			span: node,
+			ty: HtmlRewriteType::RemoveText,
 		}
 	}
 
@@ -61,6 +75,13 @@ impl<'alloc: 'data, 'data> Transform<'data> for HtmlRewrite<'alloc, 'data> {
 	fn into_low_level(self, data: &Self::ToLowLevelData, _offset: i32) -> TransformLL<'data> {
 		let data = *data;
 		match self.ty {
+			HtmlRewriteType::AddScramAttr { key, val } => {
+				if let Some(val) = val {
+					TransformLL::insert(transforms![" scramjet-attr-", key, "=\"", val, "\""])
+				} else {
+					TransformLL::insert(transforms![" scramjet-attr-", key])
+				}
+			}
 			HtmlRewriteType::ReplaceAttr { new } => {
 				TransformLL::replace(if Self::attr_is_quoted(data, self.span) {
 					transforms![new]
@@ -68,7 +89,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for HtmlRewrite<'alloc, 'data> {
 					transforms!["\"", new, "\""]
 				})
 			}
-			HtmlRewriteType::RemoveAttr => TransformLL::replace(transforms![]),
+			HtmlRewriteType::RemoveText => TransformLL::replace(transforms![]),
 		}
 	}
 }
