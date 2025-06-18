@@ -4,14 +4,14 @@ import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, _self: typeof globalThis) {
 	client.Proxy("Worker", {
-		construct({ args, call }) {
-			args[0] = rewriteUrl(args[0], client.meta) + "?dest=worker";
+		construct(ctx) {
+			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta) + "?dest=worker";
 
-			if (args[1] && args[1].type === "module") {
-				args[0] += "&type=module";
+			if (ctx.args[1] && ctx.args[1].type === "module") {
+				ctx.args[0] += "&type=module";
 			}
 
-			const worker = call();
+			const worker = ctx.call();
 			const conn = new BareMuxConnection();
 
 			(async () => {
@@ -31,23 +31,23 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 
 	// sharedworkers can only be constructed from window
 	client.Proxy("SharedWorker", {
-		construct({ args, call }) {
-			args[0] = rewriteUrl(args[0], client.meta) + "?dest=sharedworker";
+		construct(ctx) {
+			ctx.args[0] = rewriteUrl(ctx.args[0], client.meta) + "?dest=sharedworker";
 
-			if (args[1] && typeof args[1] === "string")
-				args[1] = `${client.url.origin}@${args[1]}`;
+			if (ctx.args[1] && typeof ctx.args[1] === "string")
+				ctx.args[1] = `${client.url.origin}@${ctx.args[1]}`;
 
-			if (args[1] && typeof args[1] === "object") {
-				if (args[1].type === "module") {
-					args[0] += "&type=module";
+			if (ctx.args[1] && typeof ctx.args[1] === "object") {
+				if (ctx.args[1].type === "module") {
+					ctx.args[0] += "&type=module";
 				}
 
-				if (args[1].name) {
-					args[1].name = `${client.url.origin}@${args[1].name}`;
+				if (ctx.args[1].name) {
+					ctx.args[1].name = `${client.url.origin}@${ctx.args[1].name}`;
 				}
 			}
 
-			const worker = call();
+			const worker = ctx.call();
 			const conn = new BareMuxConnection();
 
 			(async () => {

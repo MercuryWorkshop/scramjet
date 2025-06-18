@@ -21,13 +21,13 @@ export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 	// > If the argument of eval() is not a string, eval() returns the argument unchanged
 	if (typeof js !== "string") return js;
 
-	let indirection: Function;
+	let indirection: typeof eval;
 	if (strict) {
 		console.log("STRICT");
 		indirection = new Function(`
 			"use strict";
 			return eval;
-		`);
+		`) as typeof eval;
 	} else {
 		indirection = this.global.eval;
 	}
