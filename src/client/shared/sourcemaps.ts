@@ -32,8 +32,6 @@ function getEnd(rewrite: Rewrite): number {
 	throw "unreachable";
 }
 
-const scramtag_ident = "/*scramtag ";
-
 // some sites like to steal funcs from frames and then unrewrite them
 function searchRewrites(tag: string): Rewrite[] | undefined {
 	function searchFrame(globalThis: Self) {
@@ -99,66 +97,78 @@ function registerRewrites(buf: Array<number>, tag: string) {
 	self[SCRAMJETCLIENT].sourcemaps[tag] = rewrites;
 }
 
+const SCRAMTAG = "/*scramtag ";
+
+function extractTag(fn: string): [string, number, number] | null {
+	// every function rewritten will have a scramtag comment
+	// it will look like this:
+	// function name()[possible whitespace]/*scramtag [index] [tag]*/[possible whitespace]{ ... }
+
+	let start = fn.indexOf(SCRAMTAG);
+	// no scramtag, probably native function or stolen from scramjet
+	if (start === -1) return null;
+
+	const end = fn.indexOf("*/", start);
+	if (end === -1) {
+		console.log(fn, start, end);
+		throw new Error("unreachable");
+	}
+
+	let tag = fn.substring(start + 2, end).split(" ");
+
+	if (
+		tag.length !== 3 ||
+		tag[0] !== "scramtag" ||
+		!Number.isSafeInteger(+tag[1])
+	) {
+		console.log(fn, start, end, tag);
+		throw new Error("invalid tag");
+	}
+
+	return [tag[2], start, +tag[1]];
+}
+
 function doUnrewrite(ctx: ProxyCtx) {
 	let stringified: string = ctx.fn.call(ctx.this);
 
-	// every function rewritten will have a scramtag comment
-	// it will look like this:
-	// function name() /*scramtag [index] [tag] */ { ... }
-	const scramtagstart = stringified.indexOf("/*s");
+	let extracted = extractTag(stringified);
+	if (!extracted) return ctx.return(stringified);
+	let [tag, tagOffset, tagStart] = extracted;
 
-	if (scramtagstart === -1) return ctx.return(stringified); // it's either a native function or something stolen from scramjet itself
-
-	const firstspace = stringified.indexOf(
-		" ",
-		scramtagstart + scramtag_ident.length
-	);
-	// [index] holds the index of the first character in the scramtag (/)
-	const abstagindex = parseInt(
-		stringified.substring(scramtagstart + scramtag_ident.length, firstspace)
-	);
-
-	// subtracting that from the index of the scramtag gives us the starting index of the function relative to the entire file
-	const absindex = abstagindex - scramtagstart;
-	const endindex = absindex + stringified.length;
-
-	const scramtagend = stringified.indexOf("*/", scramtagstart);
-	const tag = stringified.substring(firstspace + 1, scramtagend);
-
+	let fnStart = tagStart - tagOffset;
+	let fnEnd = fnStart + stringified.length;
 	const rewrites = searchRewrites(tag);
 
 	if (!rewrites) {
 		console.warn("failed to get rewrites for tag", tag);
-
 		return ctx.return(stringified);
 	}
 
 	let i = 0;
 	// skip all rewrites in the file before the fn
 	while (i < rewrites.length) {
-		if (rewrites[i].start < absindex) i++;
+		if (rewrites[i].start < fnStart) i++;
 		else break;
 	}
 
 	let end = i;
 	while (end < rewrites.length) {
-		if (getEnd(rewrites[end]) < endindex) end++;
+		if (getEnd(rewrites[end]) < fnEnd) end++;
 		else break;
 	}
-
 	const fnrewrites = rewrites.slice(i, end);
 
 	let newString = "";
-	let lastpos = absindex;
+	let lastpos = 0;
 
 	for (const rewrite of fnrewrites) {
-		newString += stringified.slice(lastpos, rewrite.start);
+		newString += stringified.slice(lastpos, rewrite.start - fnStart);
 
 		if (rewrite.type === RewriteType.Insert) {
-			lastpos = rewrite.start + rewrite.size;
+			lastpos = rewrite.start + rewrite.size - fnStart;
 		} else if (rewrite.type === RewriteType.Replace) {
 			newString += rewrite.str;
-			lastpos = rewrite.end;
+			lastpos = rewrite.end - fnStart;
 		} else {
 			throw "unreachable";
 		}

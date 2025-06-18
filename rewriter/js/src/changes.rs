@@ -89,7 +89,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 	fn into_low_level(
 		self,
 		(cfg, flags): &Self::ToLowLevelData,
-		cursor: u32,
+		offset: i32,
 	) -> TransformLL<'data> {
 		use JsChangeType as Ty;
 		use TransformLL as LL;
@@ -114,7 +114,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			}
 			Ty::SourceTag => LL::insert(transforms![
 				"/*scramtag ",
-				self.span.start + cursor,
+				self.span.start.wrapping_add_signed(offset),
 				" ",
 				&flags.sourcetag,
 				"*/"

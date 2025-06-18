@@ -113,7 +113,7 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 
 			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
 
-			let transform = change.into_low_level(data, cursor);
+			let transform = change.into_low_level(data, offset);
 			let len = transform.apply(&mut itoa, &mut buffer);
 			if build_map {
 				// pos

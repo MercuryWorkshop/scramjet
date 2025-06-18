@@ -75,7 +75,7 @@ pub trait Transform<'a>: Ord {
 	type ToLowLevelData: 'a;
 
 	fn span(&self) -> Span;
-	fn into_low_level(self, data: &Self::ToLowLevelData, cursor: u32) -> TransformLL<'a>;
+	fn into_low_level(self, data: &Self::ToLowLevelData, offset: i32) -> TransformLL<'a>;
 }
 
 pub struct TransformLL<'a> {

@@ -58,7 +58,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for HtmlRewrite<'alloc, 'data> {
 		self.span
 	}
 
-	fn into_low_level(self, data: &Self::ToLowLevelData, _cursor: u32) -> TransformLL<'data> {
+	fn into_low_level(self, data: &Self::ToLowLevelData, _offset: i32) -> TransformLL<'data> {
 		let data = *data;
 		match self.ty {
 			HtmlRewriteType::ReplaceAttr { new } => {
