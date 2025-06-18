@@ -35,7 +35,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 	]) {
 		for (const prop in target) {
 			try {
-				if (typeof target[prop] === "function") {
+				const value = target[prop];
+				if (typeof value === "function") {
 					client.RawProxy(target, prop, {
 						apply(ctx) {
 							unproxy(ctx);
