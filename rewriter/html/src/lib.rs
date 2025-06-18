@@ -5,7 +5,7 @@ use oxc::allocator::Allocator;
 use rule::RewriteRule;
 use thiserror::Error;
 use tl::ParserOptions;
-use visitor::RewriteVisitor;
+use visitor::Visitor;
 
 mod changes;
 pub mod rule;
@@ -109,7 +109,7 @@ impl<T> Rewriter<T> {
 
 		let mut changes = self.take_changes(alloc)?;
 
-		let visitor = RewriteVisitor {
+		let visitor = Visitor {
 			alloc,
 			rules: &self.rules,
 			rule_data: data,

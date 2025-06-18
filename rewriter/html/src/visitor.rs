@@ -2,7 +2,7 @@ use oxc::{
 	allocator::{Allocator, StringBuilder},
 	span::Span,
 };
-use tl::{Bytes, HTMLTag, Node, VDom};
+use tl::{Bytes, HTMLTag, Node, NodeHandle, VDom};
 
 use crate::{
 	HtmlChanges, RewriterError,
@@ -113,7 +113,7 @@ const EVENT_ATTRIBUTES: [&str; 100] = [
 	"onscrollsnapchanging",
 ];
 
-pub struct RewriteVisitor<'alloc, 'data, T> {
+pub struct Visitor<'alloc, 'data, T> {
 	pub alloc: &'alloc Allocator,
 	pub rules: &'data [RewriteRule<T>],
 	pub rule_data: &'data T,
@@ -122,11 +122,11 @@ pub struct RewriteVisitor<'alloc, 'data, T> {
 	pub tree: VDom<'data>,
 }
 
-pub struct RewriteVisitorState<'data> {
+pub struct VisitorState<'data> {
 	pub base: Option<&'data str>,
 }
 
-impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
+impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 	fn boundaries(&self, tag: &HTMLTag<'data>) -> Result<Span, RewriterError> {
 		let (start, end) = tag.boundaries(self.tree.parser());
 		let end = end + 1;
@@ -142,6 +142,11 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 		Ok(Span::new(offset.try_into()?, end.try_into()?))
 	}
 
+	#[expect(dead_code)]
+	fn get(&self, handle: NodeHandle) -> &Node<'data> {
+		unsafe { handle.get(self.tree.parser()).unwrap_unchecked() }
+	}
+
 	fn check_rules(&self, name: &str, attr: &str) -> Option<&RewriteRuleCallback<T>> {
 		self.rules
 			.iter()
@@ -154,9 +159,23 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 			.map(|x| &x.func)
 	}
 
+	fn match_script_type(ty: Option<&Bytes<'data>>) -> Result<bool, RewriterError> {
+		Ok(match ty {
+			Some(x) => {
+				let x = x.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
+				match (x.split_once('/'), x) {
+					(Some(("application" | "text", "javascript")), _)
+					| (None, "module" | "importmap") => true,
+					(Some(_) | None, _) => false,
+				}
+			}
+			None => true,
+		})
+	}
+
 	fn visit_node(
 		&self,
-		state: &mut RewriteVisitorState<'data>,
+		state: &mut VisitorState<'data>,
 		node: &'data Node<'data>,
 		changes: &mut HtmlChanges<'alloc, 'data>,
 	) -> Result<(), RewriterError> {
@@ -191,7 +210,6 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 						}
 					}
 
-					// TODO hashset
 					if EVENT_ATTRIBUTES.contains(&attr) {
 						let bounds = self.calculate_bounds(v.as_ref().unwrap_or(k))?;
 						changes.add(HtmlRewrite::add_scram_attr(
@@ -202,7 +220,7 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 								.transpose()?,
 						));
 
-						// TODO rewrite the attr
+						// TODO needs js interop
 					}
 				}
 
@@ -222,6 +240,14 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 					));
 				}
 
+				if name == "script"
+					&& let Some(ty) = tag.attributes().get("type")
+					&& Self::match_script_type(ty)?
+					&& let Some(child) = tag.children().top().get(0)
+				{
+					// TODO needs js interop
+				}
+
 				if name == "meta"
 					&& let Some(Some(eqiv)) = tag.attributes().get("http-equiv")
 				{
@@ -233,8 +259,9 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 
 					if val == "content-security-policy" {
 						changes.add(HtmlRewrite::remove_node(self.boundaries(tag)?));
-					} else if val == "refresh" {
-						// TODO
+					} else if val == "refresh" && let Some(Some(content)) = tag.attributes().get("content") {
+						let val = content.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
+						// TODO figure out split that doesn't allocate
 					}
 				}
 
@@ -248,7 +275,7 @@ impl<'alloc, 'data, T> RewriteVisitor<'alloc, 'data, T> {
 		&'data self,
 		changes: &mut HtmlChanges<'alloc, 'data>,
 	) -> Result<(), RewriterError> {
-		let mut state = RewriteVisitorState { base: None };
+		let mut state = VisitorState { base: None };
 		for node in self.tree.nodes() {
 			self.visit_node(&mut state, node, changes)?;
 		}
