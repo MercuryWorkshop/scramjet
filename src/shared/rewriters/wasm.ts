@@ -49,7 +49,7 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 			console.log(`creating new rewriter, ${len} rewriters made already`);
 
 		let rewriter = new Rewriter($scramjet);
-		obj = { rewriter, inUse: true };
+		obj = { rewriter, inUse: false };
 		$scramjet.shared.rewriter.push(obj);
 	} else {
 		if (flagEnabled("rewriterLogs", meta.base))
@@ -59,5 +59,6 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 
 		obj = $scramjet.shared.rewriter[index];
 	}
+	obj.inUse = true;
 	return [obj.rewriter, () => (obj.inUse = false)];
 }

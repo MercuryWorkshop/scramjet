@@ -159,20 +159,6 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 			.map(|x| &x.func)
 	}
 
-	fn match_script_type(ty: Option<&Bytes<'data>>) -> Result<bool, RewriterError> {
-		Ok(match ty {
-			Some(x) => {
-				let x = x.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
-				match (x.split_once('/'), x) {
-					(Some(("application" | "text", "javascript")), _)
-					| (None, "module" | "importmap") => true,
-					(Some(_) | None, _) => false,
-				}
-			}
-			None => true,
-		})
-	}
-
 	fn visit_node(
 		&self,
 		state: &mut VisitorState<'data>,
@@ -242,8 +228,17 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 
 				if name == "script"
 					&& let Some(ty) = tag.attributes().get("type")
-					&& Self::match_script_type(ty)?
-					&& let Some(child) = tag.children().top().get(0)
+					&& ty
+						.map(|x| x.try_as_utf8_str().ok_or(RewriterError::NotUtf8))
+						.transpose()?
+						.is_none_or(|x| {
+							matches!(
+								x,
+								"application/javascript"
+									| "text/javascript" | "module"
+									| "importmap",
+							)
+						}) && let Some(child) = tag.children().top().get(0)
 				{
 					// TODO needs js interop
 				}
@@ -259,7 +254,9 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 
 					if val == "content-security-policy" {
 						changes.add(HtmlRewrite::remove_node(self.boundaries(tag)?));
-					} else if val == "refresh" && let Some(Some(content)) = tag.attributes().get("content") {
+					} else if val == "refresh"
+						&& let Some(Some(content)) = tag.attributes().get("content")
+					{
 						let val = content.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
 						// TODO figure out split that doesn't allocate
 					}
