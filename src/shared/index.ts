@@ -30,6 +30,7 @@ $scramjet.shared = {
 		unrewriteBlob,
 	},
 	rewrite: {
+		rewriteUrl,
 		rewriteCss,
 		unrewriteCss,
 		rewriteHtml,

@@ -9,13 +9,9 @@ use crate::RewriterError;
 
 #[derive(PartialEq, Eq)]
 enum HtmlRewriteType<'alloc: 'data, 'data> {
-	AddScramAttr {
-		key: &'data str,
-		val: Option<&'data str>,
-	},
-	ReplaceAttr {
-		new: &'alloc str,
-	},
+	AddScramAttr { key: &'data str, val: &'data str },
+	ReplaceAttr { new: &'alloc str },
+	ReplaceText { new: &'alloc str },
 	RemoveText,
 }
 
@@ -26,7 +22,7 @@ pub struct HtmlRewrite<'alloc: 'data, 'data> {
 }
 
 impl<'alloc: 'data, 'data> HtmlRewrite<'alloc, 'data> {
-	pub fn add_scram_attr(after: Span, key: &'data str, val: Option<&'data str>) -> Self {
+	pub fn add_scram_attr(after: Span, key: &'data str, val: &'data str) -> Self {
 		Self {
 			span: Span::new(after.end, after.end),
 			ty: HtmlRewriteType::AddScramAttr { key, val },
@@ -39,7 +35,6 @@ impl<'alloc: 'data, 'data> HtmlRewrite<'alloc, 'data> {
 			ty: HtmlRewriteType::ReplaceAttr { new },
 		}
 	}
-
 	pub fn remove_attr(data: &'data str, key: Span, value: Span) -> Self {
 		let end = if Self::attr_is_quoted(data, value) {
 			value.end + 1
@@ -52,6 +47,14 @@ impl<'alloc: 'data, 'data> HtmlRewrite<'alloc, 'data> {
 			ty: HtmlRewriteType::RemoveText,
 		}
 	}
+
+	pub fn replace(node: Span, text: &'alloc str) -> Self {
+		Self {
+			span: node,
+			ty: HtmlRewriteType::ReplaceText { new: text },
+		}
+	}
+
 	pub fn remove_node(node: Span) -> Self {
 		Self {
 			span: node,
@@ -76,11 +79,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for HtmlRewrite<'alloc, 'data> {
 		let data = *data;
 		match self.ty {
 			HtmlRewriteType::AddScramAttr { key, val } => {
-				if let Some(val) = val {
-					TransformLL::insert(transforms![" scramjet-attr-", key, "=\"", val, "\""])
-				} else {
-					TransformLL::insert(transforms![" scramjet-attr-", key])
-				}
+				TransformLL::insert(transforms![" scramjet-attr-", key, "=\"", val, "\""])
 			}
 			HtmlRewriteType::ReplaceAttr { new } => {
 				TransformLL::replace(if Self::attr_is_quoted(data, self.span) {
@@ -89,6 +88,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for HtmlRewrite<'alloc, 'data> {
 					transforms!["\"", new, "\""]
 				})
 			}
+			HtmlRewriteType::ReplaceText { new } => TransformLL::replace(transforms![new]),
 			HtmlRewriteType::RemoveText => TransformLL::replace(transforms![]),
 		}
 	}

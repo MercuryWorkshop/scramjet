@@ -163,7 +163,7 @@ fn main() -> Result<()> {
 				}),
 			}];
 
-			let rewriter = Rewriter::new(rules)?;
+			let rewriter = Rewriter::new(rules, Box::new(|_, _, ()| Ok(Some("__EXTERNAL_TOOL_VAL__"))))?;
 
 			let ret = rewriter.rewrite(&alloc, &data, &())?;
 

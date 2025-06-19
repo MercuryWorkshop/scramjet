@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	span::Span,
@@ -113,17 +115,31 @@ const EVENT_ATTRIBUTES: [&str; 100] = [
 	"onscrollsnapchanging",
 ];
 
-pub struct Visitor<'alloc, 'data, T> {
+pub type VisitorExternalToolCallback<T> = Box<
+	dyn for<'alloc, 'data> Fn(
+		&'alloc Allocator,
+		VisitorExternalTool<'data>,
+		&'data T,
+	) -> Result<Option<&'alloc str>, Box<dyn Error + Sync + Send>>,
+>;
+
+pub struct Visitor<'alloc: 'data, 'data, T> {
 	pub alloc: &'alloc Allocator,
 	pub rules: &'data [RewriteRule<T>],
+	pub external_tool_func: &'data VisitorExternalToolCallback<T>,
 	pub rule_data: &'data T,
 
 	pub data: &'data str,
 	pub tree: VDom<'data>,
 }
 
-pub struct VisitorState<'data> {
-	pub base: Option<&'data str>,
+pub enum VisitorExternalTool<'data> {
+	SetMetaBase(&'data str),
+	Base64(&'data str),
+	RewriteInlineScript { code: &'data str, module: bool },
+	RewriteJsAttr { attr: &'data str, code: &'data str },
+	RewriteHttpEquivContent(&'data str),
+	RewriteCss(&'data str),
 }
 
 impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
@@ -142,8 +158,7 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 		Ok(Span::new(offset.try_into()?, end.try_into()?))
 	}
 
-	#[expect(dead_code)]
-	fn get(&self, handle: NodeHandle) -> &Node<'data> {
+	fn get(&'data self, handle: NodeHandle) -> &'data Node<'data> {
 		unsafe { handle.get(self.tree.parser()).unwrap_unchecked() }
 	}
 
@@ -159,9 +174,33 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 			.map(|x| &x.func)
 	}
 
-	fn visit_node(
+	fn match_script_type(ty: Option<&str>) -> bool {
+		ty.is_none_or(|x| {
+			matches!(
+				x,
+				"application/javascript" | "text/javascript" | "module" | "importmap",
+			)
+		})
+	}
+
+	fn external_tool(
 		&self,
-		state: &mut VisitorState<'data>,
+		tool: VisitorExternalTool<'data>,
+	) -> Result<Option<&'alloc str>, RewriterError> {
+		(self.external_tool_func)(self.alloc, tool, self.rule_data).map_err(RewriterError::ExternalTool)
+	}
+
+	fn external_tool_val(
+		&self,
+		tool: VisitorExternalTool<'data>,
+	) -> Result<&'alloc str, RewriterError> {
+		self.external_tool(tool)?
+			.ok_or(RewriterError::ExternalToolEmpty)
+	}
+
+	#[expect(clippy::too_many_lines)]
+	fn visit_node(
+		&'data self,
 		node: &'data Node<'data>,
 		changes: &mut HtmlChanges<'alloc, 'data>,
 	) -> Result<(), RewriterError> {
@@ -171,9 +210,9 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 				if name == "base"
 					&& let Some(Some(val)) = tag.attributes().get("href")
 				{
-					state
-						.base
-						.replace(val.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?);
+					self.external_tool(VisitorExternalTool::SetMetaBase(
+						val.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?,
+					))?;
 				}
 
 				for (k, v) in tag.attributes().unstable_raw().iter() {
@@ -186,28 +225,44 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 						let change = (cb)(self.alloc, value, self.rule_data)
 							.map_err(RewriterError::Rewrite)?;
 
-						let val = self.calculate_bounds(v)?;
+						let bounds = self.calculate_bounds(v)?;
 
 						if let Some(change) = change {
-							changes.add(HtmlRewrite::replace_attr(val, change));
+							changes.add(HtmlRewrite::replace_attr(bounds, change));
 						} else {
 							let key = self.calculate_bounds(k)?;
-							changes.add(HtmlRewrite::remove_attr(self.data, key, val));
+							changes.add(HtmlRewrite::remove_attr(self.data, key, bounds));
 						}
 					}
 
-					if EVENT_ATTRIBUTES.contains(&attr) {
-						let bounds = self.calculate_bounds(v.as_ref().unwrap_or(k))?;
-						changes.add(HtmlRewrite::add_scram_attr(
-							bounds,
-							attr,
-							v.as_ref()
-								.map(|x| x.try_as_utf8_str().ok_or(RewriterError::NotUtf8))
-								.transpose()?,
-						));
+					if EVENT_ATTRIBUTES.contains(&attr)
+						&& let Some(v) = v
+					{
+						let value = v.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
+						let bounds = self.calculate_bounds(v)?;
+						let rewritten =
+							self.external_tool_val(VisitorExternalTool::RewriteJsAttr {
+								attr,
+								code: value,
+							})?;
 
-						// TODO needs js interop
+						changes.add(HtmlRewrite::replace_attr(bounds, rewritten));
+						changes.add(HtmlRewrite::add_scram_attr(bounds, attr, value));
 					}
+				}
+
+				if name == "style"
+					&& let Some(child) = tag.children().top().get(0)
+					&& let Node::Raw(child) = self.get(*child)
+				{
+					let rewritten = self.external_tool_val(VisitorExternalTool::RewriteCss(
+						child.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?,
+					))?;
+
+					changes.add(HtmlRewrite::replace(
+						self.calculate_bounds(child)?,
+						rewritten,
+					));
 				}
 
 				if name == "script"
@@ -227,20 +282,34 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 				}
 
 				if name == "script"
-					&& let Some(ty) = tag.attributes().get("type")
-					&& ty
+					&& let ty = tag
+						.attributes()
+						.get("type")
+						.and_then(|x| x)
 						.map(|x| x.try_as_utf8_str().ok_or(RewriterError::NotUtf8))
-						.transpose()?
-						.is_none_or(|x| {
-							matches!(
-								x,
-								"application/javascript"
-									| "text/javascript" | "module"
-									| "importmap",
-							)
-						}) && let Some(child) = tag.children().top().get(0)
+						.transpose()? && Self::match_script_type(ty)
+					&& let Some(child) = tag.children().top().get(0)
+					&& let Some(child) = self.get(*child).as_raw()
 				{
-					// TODO needs js interop
+					let code = child.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
+					let module = ty.is_some_and(|x| x == "module");
+
+					let b64 = self.external_tool_val(VisitorExternalTool::Base64(code))?;
+					let rewritten =
+						self.external_tool_val(VisitorExternalTool::RewriteInlineScript {
+							code,
+							module,
+						})?;
+
+					changes.add(HtmlRewrite::add_scram_attr(
+						self.calculate_bounds(tag.name())?,
+						"script-source-src",
+						b64,
+					));
+					changes.add(HtmlRewrite::replace(
+						self.calculate_bounds(child)?,
+						rewritten,
+					));
 				}
 
 				if name == "meta"
@@ -258,7 +327,12 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 						&& let Some(Some(content)) = tag.attributes().get("content")
 					{
 						let val = content.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
-						// TODO figure out split that doesn't allocate
+						let rewritten = self
+							.external_tool_val(VisitorExternalTool::RewriteHttpEquivContent(val))?;
+						changes.add(HtmlRewrite::replace_attr(
+							self.calculate_bounds(content)?,
+							rewritten,
+						));
 					}
 				}
 
@@ -272,9 +346,8 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 		&'data self,
 		changes: &mut HtmlChanges<'alloc, 'data>,
 	) -> Result<(), RewriterError> {
-		let mut state = VisitorState { base: None };
 		for node in self.tree.nodes() {
-			self.visit_node(&mut state, node, changes)?;
+			self.visit_node(node, changes)?;
 		}
 		Ok(())
 	}

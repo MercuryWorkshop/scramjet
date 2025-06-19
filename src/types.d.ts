@@ -80,6 +80,7 @@ declare global {
 					unrewriteBlob: typeof unrewriteBlob;
 				};
 				rewrite: {
+					rewriteUrl: typeof rewriteUrl;
 					rewriteCss: typeof rewriteCss;
 					unrewriteCss: typeof unrewriteCss;
 					rewriteHtml: typeof rewriteHtml;

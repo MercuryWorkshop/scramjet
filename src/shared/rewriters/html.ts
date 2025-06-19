@@ -76,7 +76,7 @@ function rewriteHtmlWasm(
 	cookieStore: CookieStore,
 	meta: URLMeta,
 	fromTop: boolean = false
-) {
+): number {
 	const [rewriter, ret] = getRewriter(meta);
 
 	try {
@@ -84,7 +84,7 @@ function rewriteHtmlWasm(
 		const rewritten = rewriter.rewrite_html(html, meta, cookieStore);
 		const after = performance.now();
 
-		console.log(`wasm html rewrite took ${after - before}ms`);
+		return after - before;
 	} finally {
 		ret();
 	}
@@ -99,8 +99,12 @@ export function rewriteHtml(
 	const before = performance.now();
 	let ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
 	const after = performance.now();
-	console.log(`js html rewrite took ${after - before}ms`);
-	rewriteHtmlWasm(html, cookieStore, meta, fromTop);
+	let wasm = rewriteHtmlWasm(html, cookieStore, meta, fromTop);
+	let js = after - before;
+
+	console.log(
+		`html rewrite took ${js}ms in js and ${wasm}ms in wasm, ${((wasm - js) / js) * 100}%`
+	);
 	return ret;
 }
 

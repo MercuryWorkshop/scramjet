@@ -11,6 +11,8 @@ mod changes;
 pub mod rule;
 mod visitor;
 
+pub use visitor::{VisitorExternalTool, VisitorExternalToolCallback};
+
 #[derive(Debug, Error)]
 pub enum RewriterError {
 	#[error("tl: {0}")]
@@ -20,6 +22,10 @@ pub enum RewriterError {
 
 	#[error("rewrite function: {0}")]
 	Rewrite(Box<dyn Error + Sync + Send>),
+	#[error("external tool function: {0}")]
+	ExternalTool(Box<dyn Error + Sync + Send>),
+	#[error("external tool didn't return anything")]
+	ExternalToolEmpty,
 
 	#[error("Not utf8")]
 	NotUtf8,
@@ -35,14 +41,19 @@ pub enum RewriterError {
 
 pub struct Rewriter<T> {
 	rules: Vec<RewriteRule<T>>,
+	external_tool: VisitorExternalToolCallback<T>,
 
 	changes: RefCell<Option<HtmlChanges<'static, 'static>>>,
 }
 
 impl<T> Rewriter<T> {
-	pub fn new(rules: Vec<RewriteRule<T>>) -> Result<Self, RewriterError> {
+	pub fn new(
+		rules: Vec<RewriteRule<T>>,
+		external_tool: VisitorExternalToolCallback<T>,
+	) -> Result<Self, RewriterError> {
 		Ok(Self {
 			rules,
+			external_tool,
 			changes: RefCell::new(Some(HtmlChanges::new())),
 		})
 	}
@@ -103,7 +114,7 @@ impl<T> Rewriter<T> {
 		&'data self,
 		alloc: &'alloc Allocator,
 		html: &'data str,
-		data: &T
+		data: &T,
 	) -> Result<oxc::allocator::Vec<'alloc, u8>, RewriterError> {
 		let tree = tl::parse(html, ParserOptions::default())?;
 
@@ -112,6 +123,7 @@ impl<T> Rewriter<T> {
 		let visitor = Visitor {
 			alloc,
 			rules: &self.rules,
+			external_tool_func: &self.external_tool,
 			rule_data: data,
 
 			data: html,
