@@ -9,6 +9,7 @@ pub trait UrlRewriter {
 		flags: &Flags,
 		url: &str,
 		builder: &mut StringBuilder,
+		module: bool,
 	) -> Result<(), Box<dyn Error + Sync + Send>>;
 }
 
