@@ -68,6 +68,7 @@ impl UrlRewriter for WasmUrlRewriter {
 		flags: &Flags,
 		url: &str,
 		builder: &mut StringBuilder,
+		module: bool,
 	) -> std::result::Result<(), Box<dyn Error + Sync + Send>> {
 		let url = Url::new_with_base(url, &flags.base)
 			.map_err(RewriterError::from)?
@@ -81,6 +82,10 @@ impl UrlRewriter for WasmUrlRewriter {
 				.ok_or_else(|| RewriterError::not_str("url rewriter output"))?
 				.as_str(),
 		);
+		if module {
+			builder.push_str(if builder.contains("?") { "&" } else { "?" });
+			builder.push_str("type=module");
+		}
 
 		Ok(())
 	}

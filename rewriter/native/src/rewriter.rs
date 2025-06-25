@@ -21,6 +21,7 @@ impl UrlRewriter for NativeUrlRewriter {
 		flags: &Flags,
 		url: &str,
 		builder: &mut StringBuilder,
+		_module: bool,
 	) -> Result<(), Box<dyn Error + Sync + Send>> {
 		let base = Url::from_str(&flags.base)?;
 		builder.push_str(encode(base.join(url)?.as_str()).as_ref());
