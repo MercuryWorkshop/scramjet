@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Display, marker::PhantomData};
 
 use oxc::{
 	allocator::{Allocator, Vec},
@@ -11,14 +11,39 @@ use transform::{Transform, TransformType};
 
 #[derive(Debug, Error)]
 pub enum TransformError {
-	#[error("out of bounds while applying range {0}..{1}")]
-	Oob(u32, u32),
+	#[cfg(not(feature = "debug"))]
+	#[error("out of bounds while applying range {0}..{1} for {2} (span {3}..{4})")]
+	Oob(u32, u32, &'static str, u32, u32),
+	#[cfg(feature = "debug")]
+	#[error(
+		"out of bounds while applying range {0}..{1} for {2} (span {3}..{4}, last few spans: {5})"
+	)]
+	Oob(u32, u32, &'static str, u32, u32, LastSpans),
+
+	#[cfg(feature = "debug")]
+	#[error("Spans inside each other, all spans: {0}")]
+	InvalidSpans(LastSpans),
+
 	#[error("too much code added while applying changes at cursor {0}")]
 	AddedTooLarge(u32),
 	#[error("Allocator already set")]
 	AllocSet,
 	#[error("Allocator not set")]
 	AllocUnset,
+}
+
+#[cfg(feature = "debug")]
+pub struct LastSpans(std::vec::Vec<(Span, std::string::String)>);
+#[cfg(feature = "debug")]
+impl Display for LastSpans {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "\n(current) ")?;
+		for span in &self.0 {
+			writeln!(f, "{}..{}: {}", span.0.start, span.0.end, span.1)?;
+		}
+
+		Ok(())
+	}
 }
 
 pub struct TransformResult<'alloc> {
@@ -89,11 +114,32 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 		let mut offset = 0i32;
 		let mut buffer = Vec::with_capacity_in(js.len() * 2, alloc);
 
+		#[cfg(feature = "debug")]
+		let mut debug_vec = std::vec::Vec::new();
+
 		macro_rules! tryget {
-			($start:ident..$end:ident) => {
-				js.get($start as usize..$end as usize)
-					.ok_or_else(|| TransformError::Oob($start, $end))?
-			};
+			($reason:literal, $start:ident..$end:ident, $span:ident) => {{
+				let ret = js.get($start as usize..$end as usize);
+				#[cfg(not(feature = "debug"))]
+				{
+					ret.ok_or_else(|| {
+						TransformError::Oob($start, $end, $reason, $span.start, $span.end)
+					})?
+				}
+				#[cfg(feature = "debug")]
+				{
+					ret.ok_or_else(|| {
+						TransformError::Oob(
+							$start,
+							$end,
+							$reason,
+							$span.start,
+							$span.end,
+							LastSpans(debug_vec.iter().rev().cloned().take(6).collect()),
+						)
+					})?
+				}
+			}};
 		}
 
 		// insert has a 9 byte size, replace has a 13 byte minimum and usually it's like 5 bytes
@@ -108,12 +154,38 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 
 		self.inner.sort();
 
-		for change in self.inner.drain(..) {
-			let Span { start, end, .. } = change.span();
+		#[cfg(feature = "debug")]
+		{
+			let mut last_end = 0;
+			for change in &self.inner {
+				let span = change.span();
+				if last_end > span.start {
+					let vec = self
+						.inner
+						.drain(..)
+						.map(|x| {
+							(
+								x.span(),
+								x.into_low_level(data, 0).to_string(&mut itoa, alloc),
+							)
+						})
+						.collect();
+					return Err(TransformError::InvalidSpans(LastSpans(vec)));
+				}
+				last_end = span.end;
+			}
+		}
 
-			buffer.extend_from_slice(tryget!(cursor..start).as_bytes());
+		for change in self.inner.drain(..) {
+			let span = change.span();
+			let Span { start, end, .. } = span;
 
 			let transform = change.into_low_level(data, offset);
+			#[cfg(feature = "debug")]
+			debug_vec.push((span, transform.to_string(&mut itoa, alloc)));
+
+			buffer.extend_from_slice(tryget!("cursor -> start", cursor..start, span).as_bytes());
+
 			let len = transform.apply(&mut itoa, &mut buffer);
 			if build_map {
 				// pos
@@ -124,7 +196,9 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 
 			match transform.ty {
 				TransformType::Insert => {
-					buffer.extend_from_slice(tryget!(start..end).as_bytes());
+					buffer.extend_from_slice(
+						tryget!("insert: start -> end", start..end, span).as_bytes(),
+					);
 
 					if build_map {
 						// INSERT op
@@ -140,7 +214,9 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 						// len
 						map.extend_from_slice(&(end - start).to_le_bytes());
 						// oldstr
-						map.extend_from_slice(tryget!(start..end).as_bytes());
+						map.extend_from_slice(
+							tryget!("replace: start -> end", start..end, span).as_bytes(),
+						);
 					}
 
 					let len =
@@ -154,7 +230,8 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 		}
 
 		let js_len = js.len() as u32;
-		buffer.extend_from_slice(tryget!(cursor..js_len).as_bytes());
+		let span = Span::new(0, js_len);
+		buffer.extend_from_slice(tryget!("cursor -> js end", cursor..js_len, span).as_bytes());
 
 		Ok(TransformResult {
 			source: buffer,

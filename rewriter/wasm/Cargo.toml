@@ -20,4 +20,4 @@ html = { version = "0.1.0", path = "../html" }
 
 [features]
 default = ["debug"]
-debug = ["js/debug"]
+debug = ["js/debug", "html/debug"]

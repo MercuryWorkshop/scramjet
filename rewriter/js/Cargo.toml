@@ -14,4 +14,4 @@ transform = { version = "0.1.0", path = "../transform" }
 
 [features]
 default = ["debug"]
-debug = []
+debug = ["transform/debug"]

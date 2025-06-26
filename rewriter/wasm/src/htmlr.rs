@@ -136,6 +136,7 @@ export function rewriteHttpEquiv(fn, content, meta) {
 		contentArray[1] = fn(contentArray[1].trim(), meta);
 	return contentArray.join("url=");
 }
+export function log(val) { console.log("aaaaa", val) }
 "#)]
 extern "C" {
 	#[wasm_bindgen(js_name = "setMeta")]
@@ -160,6 +161,8 @@ extern "C" {
 	fn __external_tool_rewrite_css(func: &Function, code: &str, meta: &Object) -> String;
 	#[wasm_bindgen(js_name = "rewriteHttpEquiv")]
 	fn __external_tool_rewrite_http_equiv(func: &Function, content: &str, meta: &Object) -> String;
+	#[wasm_bindgen(js_name = "log")]
+	fn __external_tool_log(val: &str);
 }
 
 fn external_tool<'alloc, 'data>(
@@ -193,6 +196,10 @@ fn external_tool<'alloc, 'data>(
 		VisitorExternalTool::RewriteHttpEquivContent(content) => Ok(Some(alloc.alloc_str(
 			&__external_tool_rewrite_http_equiv(rewrite_url, content, meta),
 		))),
+		VisitorExternalTool::Log(log) => {
+			__external_tool_log(log);
+			Ok(None)
+		}
 	}
 }
 

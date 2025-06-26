@@ -1,5 +1,5 @@
 use oxc::{
-	allocator::Vec,
+	allocator::{Allocator, Vec},
 	ast::ast::AssignmentOperator,
 	span::{Atom, Span},
 };
@@ -106,6 +106,11 @@ impl<'a> TransformLL<'a> {
 		}
 
 		len
+	}
+	pub fn to_string(&self, itoa: &mut itoa::Buffer, alloc: &Allocator) -> String {
+		let mut vec = Vec::new_in(alloc);
+		self.apply(itoa, &mut vec);
+		std::str::from_utf8(&vec).unwrap().to_string()
 	}
 }
 

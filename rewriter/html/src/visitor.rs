@@ -140,6 +140,7 @@ pub enum VisitorExternalTool<'data> {
 	RewriteJsAttr { attr: &'data str, code: &'data str },
 	RewriteHttpEquivContent(&'data str),
 	RewriteCss(&'data str),
+	Log(&'data str),
 }
 
 impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
@@ -187,7 +188,8 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 		&self,
 		tool: VisitorExternalTool<'data>,
 	) -> Result<Option<&'alloc str>, RewriterError> {
-		(self.external_tool_func)(self.alloc, tool, self.rule_data).map_err(RewriterError::ExternalTool)
+		(self.external_tool_func)(self.alloc, tool, self.rule_data)
+			.map_err(RewriterError::ExternalTool)
 	}
 
 	fn external_tool_val(
@@ -228,6 +230,16 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 						let bounds = self.calculate_bounds(v)?;
 
 						if let Some(change) = change {
+							let change = if name == "script"
+								&& attr == "src" && let Some(Some(ty)) =
+								tag.attributes().get("type")
+								&& ty.try_as_utf8_str().ok_or(RewriterError::NotUtf8)? == "module"
+							{
+								self.alloc.alloc_concat_strs_array([change, "?type=module"])
+							} else {
+								change
+							};
+
 							changes.add(HtmlRewrite::replace_attr(bounds, change));
 						} else {
 							let key = self.calculate_bounds(k)?;
@@ -266,28 +278,13 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 				}
 
 				if name == "script"
-					&& let Some(Some(ty)) = tag.attributes().get("type")
-					&& ty.try_as_utf8_str().ok_or(RewriterError::NotUtf8)? == "module"
-					&& let Some(Some(src)) = tag.attributes().get("src")
-				{
-					let new_src = self.alloc.alloc_concat_strs_array([
-						src.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?,
-						"?type=module",
-					]);
-
-					changes.add(HtmlRewrite::replace_attr(
-						self.calculate_bounds(src)?,
-						new_src,
-					));
-				}
-
-				if name == "script"
 					&& let ty = tag
 						.attributes()
 						.get("type")
 						.and_then(|x| x)
 						.map(|x| x.try_as_utf8_str().ok_or(RewriterError::NotUtf8))
 						.transpose()? && Self::match_script_type(ty)
+					&& tag.attributes().get("src").is_none()
 					&& let Some(child) = tag.children().top().get(0)
 					&& let Some(child) = self.get(*child).as_raw()
 				{

@@ -20,6 +20,9 @@ pub enum RewriterError {
 	#[error("transformer: {0}")]
 	Transformer(#[from] transform::TransformError),
 
+	#[error("a b c {0} {1}")]
+	A(u32, u32),
+
 	#[error("rewrite function: {0}")]
 	Rewrite(Box<dyn Error + Sync + Send>),
 	#[error("external tool function: {0}")]

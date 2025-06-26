@@ -11,3 +11,6 @@ oxc = { workspace = true }
 itoa = "1.0.15"
 smallvec = "1.14.0"
 thiserror = "2.0.12"
+
+[features]
+debug = []

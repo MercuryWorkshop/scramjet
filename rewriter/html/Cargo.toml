@@ -11,3 +11,6 @@ transform = { version = "0.1.0", path = "../transform" }
 
 [lints]
 workspace = true
+
+[features]
+debug = ["transform/debug"]
