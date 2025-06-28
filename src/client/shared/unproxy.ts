@@ -89,39 +89,32 @@ export default function (client: ScramjetClient, self: typeof window) {
 			ctx.return(desc);
 		},
 	});
-	client.Proxy(
-		[
-			"Function.prototype.bind",
-			"Function.prototype.call",
-			"Function.prototype.apply",
-		],
-		{
-			apply(ctx) {
-				if (
-					(ctx.args[0] instanceof Window &&
-						ctx.args[0] !== client.globalProxy) ||
-					(ctx.args[0] instanceof Document &&
-						ctx.args[0] !== client.documentProxy)
-				) {
-					const client = ctx.args[0][SCRAMJETCLIENT];
-					ctx.this = new Proxy(ctx.this, {
-						apply(target, that, args) {
-							if (that === client.globalProxy) that = client.global;
-							if (that === client.documentProxy) that = client.global.document;
+	client.Proxy("Function.prototype.bind", {
+		apply(ctx) {
+			if (
+				(ctx.args[0] instanceof Window && ctx.args[0] !== client.globalProxy) ||
+				(ctx.args[0] instanceof Document &&
+					ctx.args[0] !== client.documentProxy)
+			) {
+				const client = ctx.args[0][SCRAMJETCLIENT];
+				console.log(ctx.this);
+				ctx.this = new Proxy(ctx.this, {
+					apply(target, that, args) {
+						if (that === client.globalProxy) that = client.global;
+						if (that === client.documentProxy) that = client.global.document;
 
-							for (const i in args) {
-								if (args[i] === client.globalProxy) args[i] = client.global;
-								if (args[i] === client.documentProxy)
-									args[i] = client.global.document;
-							}
+						for (const i in args) {
+							if (args[i] === client.globalProxy) args[i] = client.global;
+							if (args[i] === client.documentProxy)
+								args[i] = client.global.document;
+						}
 
-							return Reflect.apply(target, that, args);
-						},
-					});
-				}
-			},
-		}
-	);
+						return Reflect.apply(target, that, args);
+					},
+				});
+			}
+		},
+	});
 }
 
 export function unproxy(ctx: ProxyCtx, client: ScramjetClient) {
