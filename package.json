@@ -16,7 +16,7 @@
 		"dev:debug": "DEBUG=1 node server.js",
 		"prepack": "RELEASE=1 npm run rewriter:build && npm run build",
 		"pub": "npm publish --no-git-checks --access public",
-		"format": "prettier --config .prettierrc.js --write .",
+		"format": "prettier --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
 		"test": "npx playwright test"

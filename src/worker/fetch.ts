@@ -141,10 +141,7 @@ export async function handleFetch(
 				// console.log(headers);
 			} else {
 				headers.set("Referer", clientURL.toString());
-				headers.set(
-					"Origin",
-					clientURL.origin ? `${clientURL.protocol}//${clientURL.host}` : "null"
-				);
+				headers.set("Origin", clientURL.origin);
 			}
 		}
 
