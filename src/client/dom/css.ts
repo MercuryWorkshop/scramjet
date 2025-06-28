@@ -25,11 +25,25 @@ export default function (client: ScramjetClient) {
 			return unrewriteCss(ctx.get());
 		},
 	});
+
 	client.Proxy("CSSStyleSheet.prototype.insertRule", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
 		},
 	});
+
+	client.Proxy("CSSStyleSheet.prototype.replace", {
+		apply(ctx) {
+			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+		},
+	});
+
+	client.Proxy("CSSStyleSheet.prototype.replaceSync", {
+		apply(ctx) {
+			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+		},
+	});
+
 	client.Trap("CSSRule.prototype.cssText", {
 		set(ctx, value: string) {
 			ctx.set(rewriteCss(value, client.meta));
@@ -39,7 +53,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.Proxy(["CSSStyleValue.parse", "CSSStyleValue.parseAll"], {
+	client.Proxy("CSSStyleValue.parse", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
 			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
@@ -54,34 +68,34 @@ export default function (client: ScramjetClient) {
 			const style = ctx.get() as CSSStyleDeclaration;
 
 			return new Proxy(style, {
-				get(t, p) {
-					const v = Reflect.get(t, p);
+				get(target, prop) {
+					const value = Reflect.get(target, prop);
 
-					if (typeof v === "function") {
-						return new Proxy(v, {
+					if (typeof value === "function") {
+						return new Proxy(value, {
 							apply(target, that, args) {
 								return Reflect.apply(target, style, args);
 							},
 						});
 					}
 
-					if (p in CSSStyleDeclaration.prototype) return v;
-					if (!v) return v;
+					if (prop in CSSStyleDeclaration.prototype) return value;
+					if (!value) return value;
 
-					return unrewriteCss(v);
+					return unrewriteCss(value);
 				},
-				set(t, p, v) {
-					if (p == "cssText" || v == "" || typeof v !== "string") {
-						return Reflect.set(t, p, v);
+				set(target, prop, value) {
+					if (prop == "cssText" || value == "" || typeof value !== "string") {
+						return Reflect.set(target, prop, value);
 					}
 
-					return Reflect.set(t, p, rewriteCss(v, client.meta));
+					return Reflect.set(target, prop, rewriteCss(value, client.meta));
 				},
 			});
 		},
-		set(ctx, v: string) {
+		set(ctx, value: string) {
 			// this will actually run the trap for cssText. don't rewrite it here
-			ctx.set(v);
+			ctx.set(value);
 		},
 	});
 }

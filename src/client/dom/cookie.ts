@@ -9,7 +9,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 			if (data.scramjet$type === "cookie") {
 				client.cookieStore.setCookies([data.cookie], new URL(data.url));
-				let msg = {
+				const msg = {
 					scramjet$token: data.scramjet$token,
 					scramjet$type: "cookie",
 				};
