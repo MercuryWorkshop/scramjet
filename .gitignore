@@ -16,3 +16,4 @@ playwright-report
 test-results
 *.tgz
 package-lock.json
+rebuild.sh

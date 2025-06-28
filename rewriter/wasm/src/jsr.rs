@@ -74,34 +74,17 @@ impl UrlRewriter for WasmUrlRewriter {
 			.map_err(RewriterError::from)?
 			.to_string();
 
+		let mut rewritten = self.0
+				.call1(&JsValue::NULL, &url.into())
+				.map_err(RewriterError::from)?
+				.as_string()
+				.ok_or_else(|| RewriterError::not_str("url rewriter output"))?;
+
 		if module {
-			let url = Url::new(
-				self.0
-					.call1(&JsValue::NULL, &url.into())
-					.map_err(RewriterError::from)?
-					.as_string()
-					.ok_or_else(|| RewriterError::not_str("url rewriter output"))?
-					.as_str(),
-			)
-			.map_err(RewriterError::from)?;
-			// builder.push_str(if builder.contains("?") { "&" } else { "?" });
-			// builder.push_str("type=module");
-			url.search_params().append("type", "module");
-			builder.push_str(
-				&url.to_string()
-					.as_string()
-					.unwrap_or_else(|| format!("URL UNKNOWN")),
-			);
-		} else {
-			builder.push_str(
-				self.0
-					.call1(&JsValue::NULL, &url.into())
-					.map_err(RewriterError::from)?
-					.as_string()
-					.ok_or_else(|| RewriterError::not_str("url rewriter output"))?
-					.as_str(),
-			);
+			rewritten.push_str("?type=module");
 		}
+
+		builder.push_str(&rewritten);
 
 		Ok(())
 	}
