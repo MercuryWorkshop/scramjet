@@ -246,7 +246,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap(["Element.prototype.innerHTML", "Node.prototype.textContent"], {
+	client.Trap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
 			let newval;
 			if (ctx.this instanceof self.HTMLScriptElement) {
