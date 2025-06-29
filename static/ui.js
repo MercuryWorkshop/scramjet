@@ -27,26 +27,7 @@ const col = css`
 	flex-direction: column;
 `;
 
-const store = $store(
-	{
-		url: "https://google.com",
-		wispurl:
-			_CONFIG?.wispurl ||
-			(location.protocol === "https:" ? "wss" : "ws") +
-				"://" +
-				location.host +
-				"/wisp/",
-		bareurl:
-			_CONFIG?.bareurl ||
-			(location.protocol === "https:" ? "https" : "http") +
-				"://" +
-				location.host +
-				"/bare/",
-		proxy: "",
-	},
-	{ ident: "settings", backing: "localstorage", autosave: "auto" }
-);
-connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
+connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
 function Config() {
 	this.css = `
@@ -102,12 +83,22 @@ function Config() {
       <dialog class="cfg" style="background-color: #121212; color: white; border-radius: 8px;">
         <div style="align-self: end">
           <div class=${[flex, "buttons"]}>
-            <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
-            <button on:click=${() =>
+            <button on:click=${() => {
+							connection.setTransport("/baremod/index.mjs", [store.bareurl]);
+							store.transport = "/baremod/index.mjs";
+						}}>use bare server 3</button>
+            <button on:click=${() => {
 							connection.setTransport("/libcurl/index.mjs", [
 								{ wisp: store.wispurl },
-							])}>use libcurl.js</button>
-              <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
+							]);
+							store.transport = "/libcurl/index.mjs";
+						}}>use libcurl.js</button>
+              <button on:click=${() => {
+								connection.setTransport("/epoxy/index.mjs", [
+									{ wisp: store.wispurl },
+								]);
+								store.transport = "/epoxy/index.mjs";
+							}}>use epoxy</button>
           </div>
         </div>
         <div class=${[flex, col, "input_row"]}>
@@ -118,10 +109,10 @@ function Config() {
           <label for="bare_url_input">Bare URL:</label>
           <input id="bare_url_input" bind:value=${use(store.bareurl)} spellcheck="false"></input>
         </div>
-            <div class=${[flex, "buttons", "centered"]}>
-              <button on:click=${() => handleModalClose(this.root)}>close</button>
-            </div>
-
+        <div>${use(store.transport)}</div>
+        <div class=${[flex, "buttons", "centered"]}>
+          <button on:click=${() => handleModalClose(this.root)}>close</button>
+        </div>
       </dialog>
   `;
 }

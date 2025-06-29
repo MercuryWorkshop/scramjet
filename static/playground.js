@@ -24,26 +24,7 @@ const col = css`
 	flex-direction: column;
 `;
 
-const store = $store(
-	{
-		url: "https://google.com",
-		wispurl:
-			_CONFIG?.wispurl ||
-			(location.protocol === "https:" ? "wss" : "ws") +
-				"://" +
-				location.host +
-				"/wisp/",
-		bareurl:
-			_CONFIG?.bareurl ||
-			(location.protocol === "https:" ? "https" : "http") +
-				"://" +
-				location.host +
-				"/bare/",
-		proxy: "",
-	},
-	{ ident: "settings", backing: "localstorage", autosave: "auto" }
-);
-connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
+connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
 function PlaygroundApp() {
 	this.css = `
