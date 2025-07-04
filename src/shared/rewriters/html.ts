@@ -98,14 +98,14 @@ export function rewriteHtml(
 	fromTop: boolean = false
 ) {
 	const before = performance.now();
-	let ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
-	const after = performance.now();
+	const ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
+	dbg.time(meta, before, "html rewrite");
 	// let wasm = rewriteHtmlWasm(html, cookieStore, meta, fromTop);
 	// let js = after - before;
-	console.log(`html rewrite took ${after - before}ms`);
 	// console.log(
 	// 	`html rewrite took ${js}ms in js and ${wasm}ms in wasm, ${((wasm - js) / js) * 100}%`
 	// );
+
 	return ret;
 }
 
