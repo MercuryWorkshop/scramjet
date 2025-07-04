@@ -29,6 +29,59 @@ const col = css`
 
 connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
+let signedinr;
+let signedin = new Promise((resolve) => (signedinr = resolve));
+
+function SignIn() {
+	this.css = `
+    transition: opacity 0.4s ease;
+    :modal[open] {
+        animation: fade 0.4s ease normal;
+    }
+
+    :modal::backdrop {
+     backdrop-filter: blur(3px);
+    }
+  `;
+	this.status = "";
+
+	function handleModalClose(modal) {
+		modal.style.opacity = 0;
+		setTimeout(() => {
+			modal.close();
+			modal.style.opacity = 1;
+		}, 250);
+	}
+
+	const signin = async () => {
+		this.status = "Signing in...";
+		console.log("??");
+		try {
+			await puter.auth.signIn();
+			this.status = "Signed in successfully!";
+			signedinr();
+			handleModalClose(this.root);
+		} catch (e) {
+			console.log(e);
+			this.status = "Error signing in: " + e.message;
+			return;
+		}
+	};
+
+	return html`
+		<dialog
+			class="signin"
+			style="background-color: #121212; color: white; border-radius: 8px;"
+		>
+			<h1>Sign In</h1>
+			<p>Sign in with Puter to accses Scramjet Browser</p>
+
+			<button on:click=${signin}>Sign In</button>
+			<p>${use(this.status)}</p>
+		</dialog>
+	`;
+}
+
 function Config() {
 	this.css = `
     transition: opacity 0.4s ease;
@@ -197,6 +250,18 @@ function BrowserApp() {
 
 	const frame = scramjet.createFrame();
 
+	this.mount = async () => {
+		if (!puter.auth.isSignedIn()) {
+			const signin = h(SignIn);
+			document.body.appendChild(signin);
+			signin.showModal();
+			await signedin;
+		}
+
+		let wisp = await puter.net.generateWispV1URL();
+		console.log(wisp);
+	};
+
 	frame.addEventListener("urlchange", (e) => {
 		if (!e.url) return;
 		this.url = e.url;
@@ -225,7 +290,7 @@ function BrowserApp() {
         <button on:click=${() => frame.forward()}>-&gt;</button>
         <button on:click=${() => frame.reload()}>&#x21bb;</button>
 
-        <input class="bar" autocomplete="off" autocapitalize="off" autocorrect="off" 
+        <input class="bar" autocomplete="off" autocapitalize="off" autocorrect="off"
         bind:value=${use(this.url)} on:input=${(e) => {
 					this.url = e.target.value;
 				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
