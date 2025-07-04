@@ -2,3 +2,4 @@
 export const SCRAMJETCLIENTNAME = "scramjet client global";
 export const SCRAMJETCLIENT = Symbol.for(SCRAMJETCLIENTNAME);
 export const SCRAMJETFRAME = Symbol.for("scramjet frame handle");
+export const SCRAMJETFRAMENAME = "scramjet_frame";

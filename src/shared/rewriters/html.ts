@@ -8,6 +8,7 @@ import { CookieStore } from "../cookie";
 import { unrewriteBlob } from "../../shared/rewriters/url";
 import { $scramjet } from "../../scramjet";
 import { getRewriter } from "./wasm";
+import { SCRAMJETCLIENTNAME, SCRAMJETFRAMENAME } from "../../symbols";
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
@@ -231,7 +232,8 @@ export const htmlRules: {
 	},
 	{
 		fn: (value: string) => {
-			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+			if (["_parent", "_top", "_unfencedTop"].includes(value))
+				return SCRAMJETFRAMENAME; // TODO: ...
 			else return value;
 		},
 		target: ["a", "base"],
