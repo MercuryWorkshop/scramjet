@@ -1,5 +1,5 @@
 import { ElementType, Parser } from "htmlparser2";
-import { ChildNode, DomHandler, Element } from "domhandler";
+import { ChildNode, DomHandler, Element, Comment } from "domhandler";
 import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "./url";
 import { rewriteCss } from "./css";
@@ -319,7 +319,8 @@ function traverseParsedHtml(
 		if (
 			node.attribs["http-equiv"].toLowerCase() === "content-security-policy"
 		) {
-			node = {};
+			// just delete it. this needs to be emulated eventually but like
+			node = new Comment(node.attribs.content);
 		} else if (
 			node.attribs["http-equiv"] === "refresh" &&
 			node.attribs.content.includes("url")
