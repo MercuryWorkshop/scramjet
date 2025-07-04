@@ -1,6 +1,10 @@
 import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
-import { SCRAMJETCLIENT } from "../../symbols";
+import {
+	SCRAMJETCLIENT,
+	SCRAMJETCLIENTNAME,
+	SCRAMJETFRAMENAME,
+} from "../../symbols";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("window.open", {
@@ -8,7 +12,7 @@ export default function (client: ScramjetClient) {
 			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 
 			if (["_parent", "_top", "_unfencedTop"].includes(ctx.args[1]))
-				ctx.args[1] = "_self";
+				ctx.args[1] = SCRAMJETFRAMENAME; // TODO: this is still technically the wrong behavior
 
 			const realwin = ctx.call();
 

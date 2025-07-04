@@ -1,6 +1,6 @@
 import { ScramjetController } from ".";
 import type { ScramjetClient } from "../client/client";
-import { SCRAMJETCLIENT, SCRAMJETFRAME } from "../symbols";
+import { SCRAMJETCLIENT, SCRAMJETFRAME, SCRAMJETFRAMENAME } from "../symbols";
 
 export class ScramjetFrame extends EventTarget {
 	constructor(
@@ -8,6 +8,7 @@ export class ScramjetFrame extends EventTarget {
 		public frame: HTMLIFrameElement
 	) {
 		super();
+		frame.name = SCRAMJETFRAMENAME;
 		frame[SCRAMJETFRAME] = this;
 	}
 
