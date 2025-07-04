@@ -3,6 +3,7 @@ declare const dbg: {
 	warn: (message: string, ...args: any[]) => void;
 	error: (message: string, ...args: any[]) => void;
 	debug: (message: string, ...args: any[]) => void;
+	time: (meta: URLMeta, before: number, type: string) => void;
 };
 
 declare const COMMITHASH: string;

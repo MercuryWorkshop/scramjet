@@ -40,9 +40,9 @@ function rewriteJsWasm(
 
 			return { js: input, tag: "", map: null };
 		}
-		const after = performance.now();
+		dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
+
 		let { js, map, scramtag, errors } = out;
-		let duration = after - before;
 
 		if (flagEnabled("sourcemaps", meta.base) && !globalThis.clients) {
 			globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
@@ -57,20 +57,6 @@ function rewriteJsWasm(
 			for (const error of errors) {
 				console.error("oxc parse error", error);
 			}
-		}
-
-		if (flagEnabled("rewriterLogs", meta.base)) {
-			let timespan: string;
-			if (duration < 1) {
-				timespan = "BLAZINGLY FAST";
-			} else if (duration < 500) {
-				timespan = "decent speed";
-			} else {
-				timespan = "really slow";
-			}
-			console.log(
-				`oxc rewrite for "${source || "(unknown)"}" was ${timespan} (${duration}ms)`
-			);
 		}
 
 		return {

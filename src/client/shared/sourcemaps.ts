@@ -191,23 +191,7 @@ export default function (client: ScramjetClient, self: Self) {
 			value: (buf: Array<number>, tag: string) => {
 				const before = performance.now();
 				registerRewrites(buf, tag);
-				const after = performance.now();
-
-				const duration = after - before;
-
-				if (flagEnabled("rewriterLogs", new URL(location.href))) {
-					let timespan: string;
-					if (duration < 1) {
-						timespan = "BLAZINGLY FAST";
-					} else if (duration < 500) {
-						timespan = "decent speed";
-					} else {
-						timespan = "really slow";
-					}
-					console.log(
-						`js rewrite parsing for scramtag ${tag} was ${timespan} (${duration.toFixed(2)}ms)`
-					);
-				}
+				dbg.time(client.meta, before, `scramtag parse for ${tag}`);
 			},
 			enumerable: false,
 			writable: false,
@@ -221,23 +205,7 @@ export default function (client: ScramjetClient, self: Self) {
 		apply(ctx) {
 			const before = performance.now();
 			doUnrewrite(ctx);
-			const after = performance.now();
-
-			const duration = after - before;
-
-			if (flagEnabled("rewriterLogs", new URL(location.href))) {
-				let timespan: string;
-				if (duration < 1) {
-					timespan = "BLAZINGLY FAST";
-				} else if (duration < 500) {
-					timespan = "decent speed";
-				} else {
-					timespan = "really slow";
-				}
-				console.log(
-					`js unrewrite for function was ${timespan} (${duration.toFixed(2)}ms)`
-				);
-			}
+			dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);
 		},
 	});
 }
