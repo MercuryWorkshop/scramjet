@@ -171,7 +171,7 @@ export const htmlRules: {
 			"input",
 			"track",
 		],
-		href: ["a", "link", "area", "image"],
+		href: ["a", "link", "area", "use", "image"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
