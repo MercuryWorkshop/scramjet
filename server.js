@@ -89,6 +89,10 @@ fastify.listen({
 	port: PORT,
 	host: "0.0.0.0",
 });
+fastify.setNotFoundHandler((request, reply) => {
+	console.error("PAGE PUNCHED THROUGH SW - " + request.url);
+	reply.code(593).statusMessage("INVALID").send("punch through");
+});
 console.log(`Listening on http://localhost:${PORT}/`);
 if (!process.env.CI) {
 	try {
