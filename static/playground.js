@@ -46,7 +46,7 @@ function PlaygroundApp() {
       gap: 0.5em;
     }
 
-    .mcontainer { 
+    .mcontainer {
       background: #1e1e1e;
       h2 {
         margin: 0.1em;
@@ -117,6 +117,7 @@ function PlaygroundApp() {
 			</html>
 		`,
 			language: "html",
+			automaticLayout: true,
 		});
 		const css = monaco.editor.create(this.cssbox, {
 			value: dedent`
@@ -137,6 +138,7 @@ function PlaygroundApp() {
 			}
 		`,
 			language: "css",
+			automaticLayout: true,
 		});
 		const js = monaco.editor.create(this.jsbox, {
 			value: dedent`
@@ -161,6 +163,7 @@ function PlaygroundApp() {
 			}
 		`,
 			language: "javascript",
+			automaticLayout: true,
 		});
 
 		const recompile = async () => {
