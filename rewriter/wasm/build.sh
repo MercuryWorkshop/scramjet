@@ -26,8 +26,12 @@ fi
 	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
 		export RUSTFLAGS="${RUSTFLAGS} -C opt-level=z"
 	fi
+	STD_FEATURES="panic_immediate_abort"
+	if [ "${OPTIMIZE_FOR_SPEED:-0}" = "0" ]; then
+		STD_FEATURES="${STD_FEATURES},optimize_for_size"
+	fi
 	cargo build --release --target wasm32-unknown-unknown \
-		-Z build-std=panic_abort,std -Z build-std-features=panic_immediate_abort,optimize_for_size \
+		-Z build-std=panic_abort,std -Z build-std-features=${STD_FEATURES} \
 		--no-default-features --features "$FEATURES"
 )
 wasm-bindgen --target web --out-dir out/ ../target/wasm32-unknown-unknown/release/wasm.wasm
