@@ -97,8 +97,11 @@ function rewriteJsInner(
 ) {
 	if (flagEnabled("naiiveRewriter", meta.origin)) {
 		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
+		let out: any = rewriteJsNaiive(text);
+		if (typeof js === "string") out = out;
+		else out = new TextEncoder().encode(out);
 
-		return { js: rewriteJsNaiive(text), tag: "", map: null };
+		return { js: out, tag: "", map: null };
 	}
 
 	return rewriteJsWasm(js, url, meta, module);
