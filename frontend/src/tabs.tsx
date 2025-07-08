@@ -52,7 +52,7 @@ export const Tab: Component<
 
 			color: var(--aboutbrowser-inactive-tab-fg);
 
-			border-radius: 10px;
+			border-radius: 4px;
 			padding: 7px 8px 5px 8px;
 
 			display: flex;
@@ -66,7 +66,7 @@ export const Tab: Component<
 		.main span {
 			flex: 1;
 			font-size: 13px;
-			
+
 			overflow: hidden;
 			white-space: nowrap;
 			text-overflow: ellipsis;
@@ -87,7 +87,7 @@ export const Tab: Component<
 			background: var(--aboutbrowser-active-tab-bg);
 			color: var(--aboutbrowser-active-tab-fg);
 
-			border-radius: 12px 12px 0 0;
+			# border-radius: 12px 12px 0 0;
 		}
 
 		.belowcontainer {
@@ -185,9 +185,9 @@ export const Tab: Component<
 					<span>{use(this.title)}</span>
 					<Icon class="close" icon={iconClose} />
 				</div>
-				<div class="belowcontainer">
+				{/* <div class="belowcontainer">
 					{use(this.active).andThen(<div class="below"></div>)}
-				</div>
+				</div> */}
 			</div>
 		</div>
 	);
@@ -344,6 +344,14 @@ export const Tabs: Component<
 		(
 			<Tab
 				active={true}
+				icon="/vite.svg"
+				title="ViteViteViteViteViteVite  Vite Vite Vite"
+				funcs={tabfuncs}
+			/>
+		) as ComponentInstance<typeof Tab>,
+		(
+			<Tab
+				active={false}
 				icon="/vite.svg"
 				title="ViteViteViteViteViteVite  Vite Vite Vite"
 				funcs={tabfuncs}
