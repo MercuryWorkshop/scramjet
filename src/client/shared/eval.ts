@@ -22,8 +22,8 @@ export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 	if (typeof js !== "string") return js;
 
 	let indirection: typeof eval;
-	if (strict) {
-		console.log("STRICT");
+	if (this.url.hostname === "accounts.google.com") {
+		console.log("USING STRICT EVAL - BOTGUARD");
 		indirection = new Function(`
 			"use strict";
 			return eval;
