@@ -1,4 +1,5 @@
-import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+import BareClient, { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+import IDBMap from "@webreflection/idb-map";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
@@ -12,17 +13,25 @@ import {
 	rewriteWorkers,
 	unrewriteBlob,
 } from "../shared";
+import { getSiteDirective } from "../shared/security/siteTests";
 
 import type { URLMeta } from "../shared/rewriters/url";
 import { $scramjet, flagEnabled } from "../scramjet";
 import { rewriteJsWithMap } from "../shared/rewriters/js";
 
-function newmeta(url: URL): URLMeta {
+function newMeta(url: URL): URLMeta {
 	return {
 		origin: url,
 		base: url,
 	};
 }
+
+/**
+ * A persistent map of stored referrer policies for Force Referrer, so we can always have it for purposes of security policy emulation.
+ *
+ * Proxy URL (which will become a referrer later), Referrer Policy to record for later use in Force Referrer.
+ */
+export const storedReferrerPolicies = new IDBMap<string, string>();
 
 export async function handleFetch(
 	this: ScramjetServiceWorker,
@@ -30,17 +39,17 @@ export async function handleFetch(
 	client: Client | null
 ) {
 	try {
-		const requesturl = new URL(request.url);
-		let workertype = "";
-		if (requesturl.searchParams.has("type")) {
-			workertype = requesturl.searchParams.get("type") as string;
-			requesturl.searchParams.delete("type");
+		const requestUrl = new URL(request.url);
+		let workerType = "";
+		if (requestUrl.searchParams.has("type")) {
+			workerType = requestUrl.searchParams.get("type") as string;
+			requestUrl.searchParams.delete("type");
 		}
-		if (requesturl.searchParams.has("dest")) {
-			requesturl.searchParams.delete("dest");
+		if (requestUrl.searchParams.has("dest")) {
+			requestUrl.searchParams.delete("dest");
 		}
 
-		if (requesturl.pathname === this.config.files.wasm) {
+		if (requestUrl.pathname === this.config.files.wasm) {
 			return fetch(this.config.files.wasm).then(async (x) => {
 				const buf = await x.arrayBuffer();
 				const b64 = btoa(
@@ -64,16 +73,16 @@ export async function handleFetch(
 		}
 
 		if (
-			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
-			requesturl.pathname.startsWith(this.config.prefix + "data:")
+			requestUrl.pathname.startsWith(`${this.config.prefix}blob:`) ||
+			requestUrl.pathname.startsWith(`${this.config.prefix}data:`)
 		) {
-			let dataurl = requesturl.pathname.substring(this.config.prefix.length);
-			if (dataurl.startsWith("blob:")) {
-				dataurl = unrewriteBlob(dataurl);
+			let dataUrl = requestUrl.pathname.substring(this.config.prefix.length);
+			if (dataUrl.startsWith("blob:")) {
+				dataUrl = unrewriteBlob(dataUrl);
 			}
 
-			const response: Partial<BareResponseFetch> = await fetch(dataurl, {});
-			const url = dataurl.startsWith("blob:") ? dataurl : "(data url)";
+			const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
+			const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
 			response.finalURL = url;
 			let body: BodyType;
 
@@ -85,9 +94,9 @@ export async function handleFetch(
 								base: new URL(new URL(client.url).origin),
 								origin: new URL(new URL(client.url).origin),
 							}
-						: newmeta(new URL(unrewriteUrl(request.referrer))),
+						: newMeta(new URL(unrewriteUrl(request.referrer))),
 					request.destination,
-					workertype,
+					workerType,
 					this.cookieStore
 				);
 			}
@@ -105,22 +114,21 @@ export async function handleFetch(
 			});
 		}
 
-		const url = new URL(unrewriteUrl(requesturl));
+		const url = new URL(unrewriteUrl(requestUrl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
 			(w) => w.origin === url.origin
 		);
 
 		if (
-			activeWorker &&
-			activeWorker.connected &&
-			requesturl.searchParams.get("from") !== "swruntime"
+			activeWorker?.connected &&
+			requestUrl.searchParams.get("from") !== "swruntime"
 		) {
 			// TODO: check scope
 			const r = await activeWorker.fetch(request);
 			if (r) return r;
 		}
-		if (url.origin == new URL(request.url).origin) {
+		if (url.origin === new URL(request.url).origin) {
 			throw new Error(
 				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
 			);
@@ -140,7 +148,8 @@ export async function handleFetch(
 			if (clientURL.toString().includes("youtube.com")) {
 				// console.log(headers);
 			} else {
-				headers.set("Referer", clientURL.toString());
+				// Force referrer to unsafe-url for all requests
+				headers.set("Referer", clientURL.href);
 				headers.set("Origin", clientURL.origin);
 			}
 		}
@@ -152,12 +161,23 @@ export async function handleFetch(
 		}
 
 		headers.set("Sec-Fetch-Dest", request.destination);
-		//TODO: Emulate this later (like really)
-		headers.set("Sec-Fetch-Site", "same-origin");
 		headers.set(
 			"Sec-Fetch-Mode",
 			request.mode === "cors" ? request.mode : "same-origin"
 		);
+
+		if (request.referrer) {
+			const referrerUrl = new URL(unrewriteUrl(request.referrer));
+			const meta = newMeta(url);
+			const siteDirective = await getSiteDirective(
+				meta,
+				referrerUrl,
+				this.client
+			);
+			headers.set("Sec-Fetch-Site", siteDirective);
+		} else {
+			headers.set("Sec-Fetch-Site", "none");
+		}
 
 		const ev = new ScramjetRequestEvent(
 			url,
@@ -179,17 +199,19 @@ export async function handleFetch(
 				mode: request.mode === "cors" ? request.mode : "same-origin",
 				cache: request.cache,
 				redirect: "manual",
-				//@ts-ignore why the fuck is this not typed mircosoft
+				// @ts-ignore why the fuck is this not typed microsoft
 				duplex: "half",
 			}));
 
 		return await handleResponse(
 			url,
-			workertype,
+			workerType,
 			request.destination,
+			request.mode,
 			response,
 			this.cookieStore,
 			client,
+			this.client,
 			this
 		);
 	} catch (err) {
@@ -223,13 +245,31 @@ async function handleResponse(
 	url: URL,
 	workertype: string,
 	destination: RequestDestination,
+	mode: RequestMode,
 	response: BareResponseFetch,
 	cookieStore: CookieStore,
 	client: Client,
+	bareClient: BareClient,
 	swtarget: ScramjetServiceWorker
 ): Promise<Response> {
 	let responseBody: BodyType;
-	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
+	const isNavigationRequest =
+		mode === "navigate" && ["document", "iframe"].includes(destination);
+	const responseHeaders = await rewriteHeaders(
+		response.rawHeaders,
+		newMeta(url),
+		bareClient,
+		isNavigationRequest,
+		storedReferrerPolicies
+	);
+
+	// Store referrer policy from navigation responses for Force Referrer
+	if (isNavigationRequest && responseHeaders["referrer-policy"]) {
+		await storedReferrerPolicies.set(
+			url.href,
+			responseHeaders["referrer-policy"]
+		);
+	}
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
@@ -259,7 +299,7 @@ async function handleResponse(
 	if (response.body) {
 		responseBody = await rewriteBody(
 			response,
-			newmeta(url),
+			newMeta(url),
 			destination,
 			workertype,
 			cookieStore
