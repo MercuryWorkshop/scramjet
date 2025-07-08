@@ -36,7 +36,11 @@ fi
 )
 wasm-bindgen --target web --out-dir out/ ../target/wasm32-unknown-unknown/release/wasm.wasm
 
-sed -i 's/import.meta.url/""/g' out/wasm.js
+if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "freebsd"* ]] || [[ "$OSTYPE" == "dragonfly"* ]]; then
+	sed -i '' 's/import.meta.url/""/g' out/wasm.js
+else
+	sed -i 's/import.meta.url/""/g' out/wasm.js
+fi
 
 cd ../../
 
