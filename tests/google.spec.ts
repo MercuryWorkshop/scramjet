@@ -5,8 +5,8 @@ test.describe("Google", () => {
     test("The front page can load.", async ({ page }) => {
         const frame = await setupPage(page, "https://www.google.com/");
 
-        const logo = await frame.locator("img[alt='Google']").first().getAttribute("src");
-        expect(logo).not.toBeNull();
+        const search = await frame.locator("textarea[Title='Search']").first().waitFor({ state: "visible" });
+        expect(search).not.toBeNull();
     });
 
     test("The Google Apps menu opens and content is visible.", async ({ page }) => {

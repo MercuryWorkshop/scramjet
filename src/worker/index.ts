@@ -1,5 +1,5 @@
 import { FakeServiceWorker } from "./fakesw";
-import { swfetch } from "./fetch";
+import { handleFetch } from "./fetch";
 import type BareClient from "@mercuryworkshop/bare-mux";
 import { ScramjetConfig } from "../types";
 import { $scramjet, loadCodecs } from "../scramjet";
@@ -30,13 +30,21 @@ export class ScramjetServiceWorker extends EventTarget {
 			cookies.onsuccess = () => {
 				if (cookies.result) {
 					this.cookieStore.load(cookies.result);
-					dbg.log("Loaded cookies from IDB!");
 				}
 			};
 		};
 
 		addEventListener("message", async ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
+
+			if ("scramjet$token" in data) {
+				// (ack message)
+				const cb = this.syncPool[data.scramjet$token];
+				delete this.syncPool[data.scramjet$token];
+				cb(data);
+
+				return;
+			}
 
 			if (data.scramjet$type === "registerServiceWorker") {
 				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
@@ -51,7 +59,23 @@ export class ScramjetServiceWorker extends EventTarget {
 				const store = tx.objectStore("cookies");
 				store.put(JSON.parse(this.cookieStore.dump()), "cookies");
 			}
+
+			if (data.scramjet$type === "loadConfig") {
+				this.config = data.config;
+			}
 		});
+	}
+
+	async dispatch(client: Client, data: MessageW2C): Promise<MessageC2W> {
+		const token = this.synctoken++;
+		let cb: (val: MessageC2W) => void;
+		const promise: Promise<MessageC2W> = new Promise((r) => (cb = r));
+		this.syncPool[token] = cb;
+		data.scramjet$token = token;
+
+		client.postMessage(data);
+
+		return await promise;
 	}
 
 	async loadConfig() {
@@ -66,7 +90,7 @@ export class ScramjetServiceWorker extends EventTarget {
 				const store = tx.objectStore("config");
 				const config = store.get("config");
 
-				config.onsuccess = () => {
+				config.onsuccess = async () => {
 					this.config = config.result;
 					$scramjet.config = config.result;
 
@@ -84,13 +108,17 @@ export class ScramjetServiceWorker extends EventTarget {
 	route({ request }: FetchEvent) {
 		if (request.url.startsWith(location.origin + this.config.prefix))
 			return true;
+		else if (request.url.startsWith(location.origin + this.config.files.wasm))
+			return false;
 		else return false;
 	}
 
 	async fetch({ request, clientId }: FetchEvent) {
+		if (!this.config) await this.loadConfig();
+
 		const client = await self.clients.get(clientId);
 
-		return swfetch.call(this, request, client);
+		return handleFetch.call(this, request, client);
 	}
 }
 
@@ -109,12 +137,20 @@ type CookieMessage = {
 	url: string;
 };
 
-type MessageCommon = {
-	scramjet$type: string;
-	scramjet$token: number;
+type ConfigMessage = {
+	scramjet$type: "loadConfig";
+	config: ScramjetConfig;
 };
 
-type MessageTypeC2W = RegisterServiceWorkerMessage | CookieMessage;
+type MessageCommon = {
+	scramjet$type: string;
+	scramjet$token?: number;
+};
+
+type MessageTypeC2W =
+	| RegisterServiceWorkerMessage
+	| CookieMessage
+	| ConfigMessage;
 type MessageTypeW2C = CookieMessage;
 
 // c2w: client to (service) worker

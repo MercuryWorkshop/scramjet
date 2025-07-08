@@ -70,7 +70,7 @@ function rewriteJsWrapper(
 	return typeof input === "string" ? decoder.decode(js) : js;
 }
 
-export function rewriteJs(
+export function rewriteJsx(
 	js: string | ArrayBuffer,
 	module: boolean,
 	meta: URLMeta
@@ -94,22 +94,35 @@ export function rewriteJs(
 	return js;
 }
 
-// 1. does not work with modules
-// 2. cannot proxy import()
-// 3. disables "use strict" optimizations
-// 4. i think the global state can get clobbered somehow
-//
-// if you can ensure all the preconditions are met this is faster than full rewrites
-export function rewriteJsNaiive(js: string | ArrayBuffer) {
-	if (typeof js !== "string") {
-		js = new TextDecoder().decode(js);
-	}
+function rewriteJsInner(
+	js: string | Uint8Array,
+	url: string | null,
+	meta: URLMeta,
+	module = false
+) {
+	let jsr = rewriteJsx(js, false, meta);
+	// console.log(js);
+	return {
+		js: jsr,
+		tag: "",
+		map: null,
+	};
+}
 
-	return `
-	with (${$scramjet.config.globals.wrapfn} (globalThis)) {
+export function rewriteJs(
+	js: string | Uint8Array,
+	url: string | null,
+	meta: URLMeta,
+	module = false
+) {
+	return rewriteJsInner(js, url, meta, module).js;
+}
 
-			${js}
-
-	}
-	`;
+export function rewriteJsWithMap(
+	js: string | Uint8Array,
+	url: string | null,
+	meta: URLMeta,
+	module = false
+) {
+	return rewriteJsInner(js, url, meta, module);
 }

@@ -26,6 +26,7 @@ export class ScramjetServiceWorkerRuntime {
 	}
 
 	hook() {
+		// @ts-ignore
 		this.client.global.registration = {
 			// TODO IMPLEMENT SCOPES
 			scope: this.client.url.href,
@@ -38,10 +39,13 @@ export class ScramjetServiceWorkerRuntime {
 				postMessage: () => {},
 				addEventListener: () => {},
 				removeEventListener: () => {},
-				dispatchEvent: (_e: Event) => {},
+				dispatchEvent: (_e: Event): boolean => {
+					return false;
+				},
 			},
 			showNotification: async () => {},
 			unregister: async () => true,
+			//@ts-ignore
 			update: async () => {},
 			installing: null,
 			waiting: null,
@@ -60,15 +64,14 @@ function handleMessage(
 	const port = this.recvport;
 	const type = data.scramjet$type;
 	const token = data.scramjet$token;
+	const handlers = client.eventcallbacks.get(self);
 
 	if (type === "fetch") {
 		dbg.log("ee", data);
-		const fetchhandlers = client.eventcallbacks.get(self);
+		const fetchhandlers = handlers.filter((event) => event.event === "fetch");
 		if (!fetchhandlers) return;
 
 		for (const handler of fetchhandlers) {
-			if (handler.event !== "fetch") continue;
-
 			const request = data.scramjet$request;
 
 			const Request = client.natives["Request"];
@@ -123,7 +126,7 @@ function handleMessage(
 
 function trustEvent(event: Event): Event {
 	return new Proxy(event, {
-		get(target, prop, reciever) {
+		get(target, prop, _reciever) {
 			if (prop === "isTrusted") return true;
 
 			return Reflect.get(target, prop);

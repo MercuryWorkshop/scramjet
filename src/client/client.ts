@@ -17,17 +17,30 @@ import type { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
 import type { URLMeta } from "../shared/rewriters/url";
+import { SourceMaps } from "./shared/sourcemaps";
 
-declare global {
-	interface Window {
-		$s: any;
-		$tryset: any;
-		$sImport: any;
-	}
-}
-
+type NativeStore = {
+	store: Record<string, any>;
+	call: (target: string, that: any, ...args) => any;
+	construct: (target: string, ...args) => any;
+};
+type DescriptorStore = {
+	store: Record<string, PropertyDescriptor>;
+	get: (target: string, that: any) => any;
+	set: (target: string, that: any, value: any) => void;
+};
 //eslint-disable-next-line
 export type AnyFunction = Function;
+
+export type ScramjetModule = {
+	enabled: (client: ScramjetClient) => boolean | undefined;
+	disabled: (
+		client: ScramjetClient,
+		self: typeof globalThis
+	) => void | undefined;
+	order: number | undefined;
+	default: (client: ScramjetClient, self: typeof globalThis) => void;
+};
 
 export type ProxyCtx = {
 	fn: AnyFunction;
@@ -63,8 +76,9 @@ export class ScramjetClient {
 	serviceWorker: ServiceWorkerContainer;
 	bare: BareClientType;
 
-	descriptors: Record<string, PropertyDescriptor> = {};
-	natives: Record<string, any> = {};
+	natives: NativeStore;
+	descriptors: DescriptorStore;
+	sourcemaps: SourceMaps;
 	wrapfn: (i: any, ...args: any) => any;
 
 	cookieStore = new CookieStore();
@@ -90,17 +104,6 @@ export class ScramjetClient {
 			throw new Error();
 		}
 
-		this.serviceWorker = this.global.navigator.serviceWorker;
-
-		if (iswindow) {
-			this.documentProxy = createDocumentProxy(this, global);
-
-			global.document[SCRAMJETCLIENT] = this;
-		}
-
-		this.locationProxy = createLocationProxy(this, global);
-		this.globalProxy = createGlobalProxy(this, global);
-		this.wrapfn = createWrapFn(this, global);
 		if (iswindow) {
 			this.bare = new BareClient();
 		} else {
@@ -119,6 +122,91 @@ export class ScramjetClient {
 			);
 		}
 
+		this.serviceWorker = this.global.navigator.serviceWorker;
+
+		if (iswindow) {
+			this.documentProxy = createDocumentProxy(this, global);
+
+			global.document[SCRAMJETCLIENT] = this;
+		}
+
+		this.locationProxy = createLocationProxy(this, global);
+		this.globalProxy = createGlobalProxy(this, global);
+		this.wrapfn = createWrapFn(this, global);
+		this.sourcemaps = {};
+		this.natives = {
+			store: new Proxy(
+				{},
+				{
+					get: (target, prop: string) => {
+						if (prop in target) {
+							return target[prop];
+						}
+
+						const split = prop.split(".");
+						const realProp = split.pop();
+						const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+						if (!realTarget) return;
+
+						const original = Reflect.get(realTarget, realProp);
+						target[prop] = original;
+
+						return target[prop];
+					},
+				}
+			),
+			construct(target: string, ...args) {
+				const original = this.store[target];
+				if (!original) return null;
+
+				return new original(...args);
+			},
+			call(target: string, that: any, ...args) {
+				const original = this.store[target];
+				if (!original) return null;
+
+				return original.call(that, ...args);
+			},
+		};
+		this.descriptors = {
+			store: new Proxy(
+				{},
+				{
+					get: (target, prop: string) => {
+						if (prop in target) {
+							return target[prop];
+						}
+
+						const split = prop.split(".");
+						const realProp = split.pop();
+						const realTarget = split.reduce((a, b) => a?.[b], this.global);
+
+						if (!realTarget) return;
+
+						const original = nativeGetOwnPropertyDescriptor(
+							realTarget,
+							realProp
+						);
+						target[prop] = original;
+
+						return target[prop];
+					},
+				}
+			),
+			get(target: string, that: any) {
+				const original = this.store[target];
+				if (!original) return null;
+
+				return original.get.call(that);
+			},
+			set(target: string, that: any, value: any) {
+				const original = this.store[target];
+				if (!original) return null;
+
+				original.set.call(that, value);
+			},
+		};
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const client = this;
 		this.meta = {
@@ -127,7 +215,11 @@ export class ScramjetClient {
 			},
 			get base() {
 				if (iswindow) {
-					const base = client.global.document.querySelector("base");
+					const base = client.natives.call(
+						"Document.prototype.querySelector",
+						client.global.document,
+						"base"
+					);
 					if (base) {
 						let url = base.getAttribute("href");
 						const frag = url.indexOf("#");
@@ -147,7 +239,7 @@ export class ScramjetClient {
 
 	get frame(): ScramjetFrame | null {
 		if (!iswindow) return null;
-		const frame = this.global.window.frameElement;
+		const frame = this.descriptors.get("window.frameElement", this.global);
 
 		if (!frame) return null; // we're top level
 		const sframe = frame[SCRAMJETFRAME];
@@ -155,7 +247,7 @@ export class ScramjetClient {
 		if (!sframe) {
 			// we're in a subframe, recurse upward until we find one
 			let currentwin = this.global.window;
-			while (currentwin.parent != currentwin) {
+			while (currentwin.parent !== currentwin) {
 				if (!currentwin.frameElement) return null; // ??
 				if (currentwin.frameElement && currentwin.frameElement[SCRAMJETFRAME]) {
 					return currentwin.frameElement[SCRAMJETFRAME];
@@ -166,7 +258,16 @@ export class ScramjetClient {
 
 		return sframe;
 	}
+	get isSubframe(): boolean {
+		if (!iswindow) return false;
+		const frame = this.descriptors.get("window.frameElement", this.global);
 
+		if (!frame) return false; // we're top level
+		const sframe = frame[SCRAMJETFRAME];
+		if (!sframe) return true;
+
+		return false;
+	}
 	loadcookies(cookiestr: string) {
 		this.cookieStore.load(cookiestr);
 	}
@@ -177,10 +278,10 @@ export class ScramjetClient {
 			recursive: true,
 		});
 
-		const modules = [];
+		const modules: ScramjetModule[] = [];
 
 		for (const key of context.keys()) {
-			const module = context(key);
+			const module: ScramjetModule = context(key);
 			if (!key.endsWith(".ts")) continue;
 			if (
 				(key.startsWith("./dom/") && "window" in this.global) ||
@@ -240,7 +341,7 @@ export class ScramjetClient {
 		if (!target) return;
 
 		const original = Reflect.get(target, prop);
-		this.natives[name] = original;
+		this.natives.store[name] = original;
 
 		this.RawProxy(target, prop, handler);
 	}
@@ -257,7 +358,7 @@ export class ScramjetClient {
 		if (handler.construct) {
 			h.construct = function (
 				constructor: any,
-				argArray: any[],
+				args: any[],
 				newTarget: AnyFunction
 			) {
 				let returnValue: any = undefined;
@@ -266,7 +367,7 @@ export class ScramjetClient {
 				const ctx: ProxyCtx = {
 					fn: constructor,
 					this: null,
-					args: argArray,
+					args,
 					newTarget: newTarget,
 					return: (r: any) => {
 						earlyreturn = true;
@@ -291,14 +392,14 @@ export class ScramjetClient {
 		}
 
 		if (handler.apply) {
-			h.apply = function (fn: any, thisArg: any, argArray: any[]) {
+			h.apply = function (fn: any, that: any, args: any[]) {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
 
 				const ctx: ProxyCtx = {
 					fn,
-					this: thisArg,
-					args: argArray,
+					this: that,
+					args,
 					newTarget: null,
 					return: (r: any) => {
 						earlyreturn = true;
@@ -367,7 +468,7 @@ export class ScramjetClient {
 		if (!target) return;
 
 		const original = nativeGetOwnPropertyDescriptor(target, prop);
-		this.descriptors[name] = original;
+		this.descriptors.store[name] = original;
 
 		return this.RawTrap(target, prop, descriptor);
 	}

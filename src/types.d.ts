@@ -22,16 +22,18 @@ import { CookieStore } from "./shared/cookie";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "./symbols";
 import { ScramjetClient } from "./client/client";
 import { ScramjetFrame } from "./controller/frame";
+import { Rewriter } from "./shared/rewriters/wasm";
 
 type ScramjetFlags = {
 	serviceworkers: boolean;
+	syncxhr: boolean;
 	naiiveRewriter: boolean;
-	captureErrors: boolean;
 	strictRewrites: boolean;
-	cleanerrors: boolean;
+	rewriterLogs: boolean;
+	captureErrors: boolean;
+	cleanErrors: boolean;
 	scramitize: boolean;
 	sourcemaps: boolean;
-	syncxhr: boolean;
 };
 
 interface ScramjetConfig {
@@ -53,7 +55,7 @@ interface ScramjetConfig {
 		client: string;
 		sync: string;
 	};
-	defaultFlags: ScramjetFlags;
+	flags: ScramjetFlags;
 	siteFlags: Record<string, Partial<ScramjetFlags>>;
 	codec: {
 		encode: string;
@@ -61,6 +63,12 @@ interface ScramjetConfig {
 	};
 }
 
+interface ScramjetInitConfig extends ScramjetConfig {
+	codec: {
+		encode: (url: string) => string;
+		decode: (url: string) => string;
+	};
+}
 declare global {
 	interface Window {
 		$scramjet: {
@@ -72,6 +80,7 @@ declare global {
 					unrewriteBlob: typeof unrewriteBlob;
 				};
 				rewrite: {
+					rewriteUrl: typeof rewriteUrl;
 					rewriteCss: typeof rewriteCss;
 					unrewriteCss: typeof unrewriteCss;
 					rewriteHtml: typeof rewriteHtml;
@@ -89,6 +98,7 @@ declare global {
 					parseDomain: typeof parseDomain;
 				};
 				CookieStore: typeof CookieStore;
+				rewriter?: { rewriter: Rewriter; inUse: boolean }[];
 			};
 			config: ScramjetConfig;
 			codec: {
@@ -102,6 +112,7 @@ declare global {
 		};
 		COOKIE: string;
 		WASM: string;
+		REAL_WASM: Uint8Array;
 		ScramjetController: typeof ScramjetController;
 
 		// the scramjet client belonging to a window

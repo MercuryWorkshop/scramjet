@@ -3,16 +3,14 @@ import { config } from "../../shared";
 import { rewriteUrl } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient, self: Self) {
-	const Function = client.natives.Function;
+	const Function = client.natives.store["Function"];
 
-	self[config.globals.importfn] = function (base: string) {
-		return function (url: string) {
-			const resolved = new URL(url, base).href;
+	self[config.globals.importfn] = function (base: string, url: string) {
+		const resolved = new URL(url, base).href;
 
-			return Function(
-				`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
-			)();
-		};
+		return Function(
+			`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
+		)();
 	};
 
 	self[config.globals.metafn] = function (base: string) {

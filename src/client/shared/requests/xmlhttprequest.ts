@@ -1,18 +1,11 @@
 import { flagEnabled } from "../../../scramjet";
 import { config, unrewriteUrl, rewriteUrl } from "../../../shared";
 import { ScramjetClient } from "../../client";
-let nativeworker;
-let postmessage;
-
-if (self.Worker) {
-	nativeworker = Worker;
-	postmessage = Worker.prototype.postMessage;
-}
 
 export default function (client: ScramjetClient, self: Self) {
 	let worker;
 	if (self.Worker && flagEnabled("syncxhr", client.url)) {
-		worker = new nativeworker(config.files.sync);
+		worker = client.natives.construct("Worker", config.files.sync);
 	}
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
@@ -20,6 +13,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
 			if (ctx.args[1]) ctx.args[1] = rewriteUrl(ctx.args[1], client.meta);
+			if (ctx.args[2] === undefined) ctx.args[2] = true;
 			ctx.this[ARGS] = ctx.args;
 		},
 	});
@@ -39,18 +33,18 @@ export default function (client: ScramjetClient, self: Self) {
 			if (!flagEnabled("syncxhr", client.url)) {
 				console.warn("ignoring request - sync xhr disabled in flags");
 
-				return;
+				return ctx.return(undefined);
 			}
 
 			// it's a sync request
 			// sync xhr to service worker is not supported
 			// there's a nice way of polyfilling this though, we can spin on an atomic using sharedarraybuffer. this will maintain the sync behavior
 
-			// @ts-expect-error maxbytelength not in types yet i guess
+			//@ts-ignore
 			const sab = new SharedArrayBuffer(1024, { maxByteLength: 2147483647 });
 			const view = new DataView(sab);
 
-			postmessage.call(worker, {
+			client.natives.call("Worker.prototype.postMessage", worker, {
 				sab,
 				args,
 				headers: ctx.this[HEADERS],

@@ -6,6 +6,10 @@ const scramjet = new ScramjetController({
 		shared: "/scram/scramjet.shared.js",
 		sync: "/scram/scramjet.sync.js",
 	},
+	flags: {
+		rewriterLogs: true,
+		sourcemaps: false,
+	},
 	siteFlags: {
 		"https://worker-playground.glitch.me/.*": {
 			serviceworkers: true,
@@ -13,7 +17,8 @@ const scramjet = new ScramjetController({
 	},
 });
 
-scramjet.init("./sw.js");
+scramjet.init();
+navigator.serviceWorker.register("./sw.js");
 
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
@@ -23,26 +28,7 @@ const col = css`
 	flex-direction: column;
 `;
 
-const store = $store(
-	{
-		url: "https://google.com",
-		wispurl:
-			_CONFIG?.wispurl ||
-			(location.protocol === "https:" ? "wss" : "ws") +
-				"://" +
-				location.host +
-				"/wisp/",
-		bareurl:
-			_CONFIG?.bareurl ||
-			(location.protocol === "https:" ? "https" : "http") +
-				"://" +
-				location.host +
-				"/bare/",
-		proxy: "",
-	},
-	{ ident: "settings", backing: "localstorage", autosave: "auto" }
-);
-connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }]);
+connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
 function Config() {
 	this.css = `
@@ -98,12 +84,22 @@ function Config() {
       <dialog class="cfg" style="background-color: #121212; color: white; border-radius: 8px;">
         <div style="align-self: end">
           <div class=${[flex, "buttons"]}>
-            <button on:click=${() => connection.setTransport("/baremod/index.mjs", [store.bareurl])}>use bare server 3</button>
-            <button on:click=${() =>
+            <button on:click=${() => {
+							connection.setTransport("/baremod/index.mjs", [store.bareurl]);
+							store.transport = "/baremod/index.mjs";
+						}}>use bare server 3</button>
+            <button on:click=${() => {
 							connection.setTransport("/libcurl/index.mjs", [
 								{ wisp: store.wispurl },
-							])}>use libcurl.js</button>
-              <button on:click=${() => connection.setTransport("/epoxy/index.mjs", [{ wisp: store.wispurl }])}>use epoxy</button>
+							]);
+							store.transport = "/libcurl/index.mjs";
+						}}>use libcurl.js</button>
+              <button on:click=${() => {
+								connection.setTransport("/epoxy/index.mjs", [
+									{ wisp: store.wispurl },
+								]);
+								store.transport = "/epoxy/index.mjs";
+							}}>use epoxy</button>
           </div>
         </div>
         <div class=${[flex, col, "input_row"]}>
@@ -114,10 +110,10 @@ function Config() {
           <label for="bare_url_input">Bare URL:</label>
           <input id="bare_url_input" bind:value=${use(store.bareurl)} spellcheck="false"></input>
         </div>
-            <div class=${[flex, "buttons", "centered"]}>
-              <button on:click=${() => handleModalClose(this.root)}>close</button>
-            </div>
-
+        <div>${use(store.transport)}</div>
+        <div class=${[flex, "buttons", "centered"]}>
+          <button on:click=${() => handleModalClose(this.root)}>close</button>
+        </div>
       </dialog>
   `;
 }
@@ -206,15 +202,6 @@ function BrowserApp() {
 		if (!e.url) return;
 		this.url = e.url;
 	});
-	frame.frame.addEventListener("load", () => {
-		let url = frame.frame.contentWindow.location.href;
-		if (!url) return;
-		if (url === "about:blank") return;
-
-		this.url = $scramjet.codec.decode(
-			url.substring((location.href + "/scramjet").length)
-		);
-	});
 
 	const handleSubmit = () => {
 		this.url = this.url.trim();
@@ -228,6 +215,7 @@ function BrowserApp() {
 
 	const cfg = h(Config);
 	document.body.appendChild(cfg);
+	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/commit/${$scramjet.version.build}`;
 
 	return html`
       <div>
@@ -238,14 +226,15 @@ function BrowserApp() {
         <button on:click=${() => frame.forward()}>-&gt;</button>
         <button on:click=${() => frame.reload()}>&#x21bb;</button>
 
-        <input class="bar" bind:value=${use(this.url)} on:input=${(e) => {
+        <input class="bar" autocomplete="off" autocapitalize="off" autocorrect="off" 
+        bind:value=${use(this.url)} on:input=${(e) => {
 					this.url = e.target.value;
 				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
 
         <button on:click=${() => window.open(scramjet.encodeUrl(this.url))}>open</button>
 
         <p class="version">
-          <b>scramjet</b> ${$scramjet.version.version} <a href="https://github.com/MercuryWorkshop/scramjet/tree/${$scramjet.version.build}">${$scramjet.version.build}</a>
+          <b>scramjet</b> ${$scramjet.version.version} <a href=${use(this.githubURL)}>${$scramjet.version.build}</a>
         </p>
       </div>
       ${frame.frame}
@@ -253,7 +242,13 @@ function BrowserApp() {
     `;
 }
 window.addEventListener("load", async () => {
-	document.body.appendChild(h(BrowserApp));
+	const root = document.getElementById("app");
+	try {
+		root.replaceWith(h(BrowserApp));
+	} catch (e) {
+		root.replaceWith(document.createTextNode("" + e));
+		throw e;
+	}
 	function b64(buffer) {
 		let binary = "";
 		const bytes = new Uint8Array(buffer);

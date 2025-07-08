@@ -1,0 +1,5 @@
+ignoredBuiltDependencies:
+  - bufferutil
+
+packages:
+  - "./"

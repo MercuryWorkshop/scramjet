@@ -88,7 +88,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 	};
 
 	const realLocalStorage = self.localStorage;
-	const realSessionStorage = self.sessionStorage;
 
 	const localStorageProxy = new Proxy(self.localStorage, handler);
 	const sessionStorageProxy = new Proxy(self.sessionStorage, handler);

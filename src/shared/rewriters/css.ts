@@ -16,8 +16,9 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 	css = new String(css).toString();
 	css = css.replace(urlRegex, (match, url) => {
 		const encodedUrl =
-			type === "rewrite" ? rewriteUrl(url, meta) : unrewriteUrl(url);
-		console.log(encodedUrl);
+			type === "rewrite"
+				? rewriteUrl(url.trim(), meta)
+				: unrewriteUrl(url.trim());
 
 		return match.replace(url, encodedUrl);
 	});
@@ -31,7 +32,9 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 						return match;
 					}
 					const encodedUrl =
-						type === "rewrite" ? rewriteUrl(url, meta) : unrewriteUrl(url);
+						type === "rewrite"
+							? rewriteUrl(url.trim(), meta)
+							: unrewriteUrl(url.trim());
 
 					return `${firstQuote}${encodedUrl}${endQuote}`;
 				}

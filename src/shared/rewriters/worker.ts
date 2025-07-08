@@ -2,16 +2,16 @@ import { $scramjet } from "../../scramjet";
 import { rewriteJs } from "./js";
 import { URLMeta } from "./url";
 
-const clientscripts = ["wasm", "shared", "client"];
 export function rewriteWorkers(
-	js: string | ArrayBuffer,
+	js: string | Uint8Array,
 	type: string,
+	url: string,
 	meta: URLMeta
 ) {
 	let str = "";
-
+	const module = type === "module";
 	const script = (script) => {
-		if (type === "module") {
+		if (module) {
 			str += `import "${$scramjet.config.files[script]}"\n`;
 		} else {
 			str += `importScripts("${$scramjet.config.files[script]}");\n`;
@@ -22,16 +22,13 @@ export function rewriteWorkers(
 	script("shared");
 	str += `self.$scramjet.config = ${JSON.stringify($scramjet.config)};`;
 	script("client");
-	console.log(str);
 
-	let rewritten = rewriteJs(js, type === "module", meta);
-	if (rewritten instanceof Uint8Array) {
-		rewritten = new TextDecoder().decode(rewritten);
-	}
+	// let rewritten = rewriteJs(js, type === "module", meta);
+	// if (rewritten instanceof Uint8Array) {
+	// 	rewritten = new TextDecoder().decode(rewritten);
+	// }
 
-	str += rewritten;
-
-	dbg.log("Rewrite", type, str);
+	// str += rewritten;
 
 	return str;
 }

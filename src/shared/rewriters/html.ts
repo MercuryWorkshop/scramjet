@@ -8,7 +8,8 @@ import { CookieStore } from "../cookie";
 import { unrewriteBlob } from "../../shared/rewriters/url";
 import { $scramjet } from "../../scramjet";
 
-export function rewriteHtml(
+const encoder = new TextEncoder();
+function rewriteHtmlInner(
 	html: string,
 	cookieStore: CookieStore,
 	meta: URLMeta,
@@ -52,15 +53,39 @@ export function rewriteHtml(
 
 		const script = (src) => new Element("script", { src });
 
+		// for compatibility purpose
+		const base64Injected = bytesToBase64(encoder.encode(injected));
+
 		head.children.unshift(
 			script($scramjet.config.files.wasm),
 			script($scramjet.config.files.shared),
-			script("data:application/javascript;base64," + btoa(injected)),
+			script("data:application/javascript;base64," + base64Injected),
 			script($scramjet.config.files.client)
 		);
 	}
 
-	return render(handler.root);
+	return render(handler.root, {
+		encodeEntities: "utf8",
+		decodeEntities: false,
+	});
+}
+
+export function rewriteHtml(
+	html: string,
+	cookieStore: CookieStore,
+	meta: URLMeta,
+	fromTop: boolean = false
+) {
+	const before = performance.now();
+	let ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
+	const after = performance.now();
+	// let wasm = rewriteHtmlWasm(html, cookieStore, meta, fromTop);
+	// let js = after - before;
+	console.log(`html rewrite took ${after - before}ms`);
+	// console.log(
+	// 	`html rewrite took ${js}ms in js and ${wasm}ms in wasm, ${((wasm - js) / js) * 100}%`
+	// );
+	return ret;
 }
 
 // type ParseState = {
@@ -78,14 +103,14 @@ export function unrewriteHtml(html: string) {
 	function traverse(node: ChildNode) {
 		if ("attribs" in node) {
 			for (const key in node.attribs) {
-				if (key == "data-scramjet-script-source-src") {
+				if (key == "scramjet-attr-script-source-src") {
 					if (node.children[0] && "data" in node.children[0])
 						node.children[0].data = atob(node.attribs[key]);
 					continue;
 				}
 
-				if (key.startsWith("data-scramjet-")) {
-					node.attribs[key.slice(13)] = node.attribs[key];
+				if (key.startsWith("scramjet-attr-")) {
+					node.attribs[key.slice("scramjet-attr-".length)] = node.attribs[key];
 					delete node.attribs[key];
 				}
 			}
@@ -100,7 +125,9 @@ export function unrewriteHtml(html: string) {
 
 	traverse(handler.root);
 
-	return render(handler.root);
+	return render(handler.root, {
+		decodeEntities: false,
+	});
 }
 
 export const htmlRules: {
@@ -113,8 +140,17 @@ export const htmlRules: {
 		},
 
 		// url rewrites
-		src: ["embed", "img", "image", "iframe", "source", "input", "track"],
-		href: ["a", "link", "area"],
+		src: [
+			"embed",
+			"script",
+			"img",
+			"iframe",
+			"frame",
+			"source",
+			"input",
+			"track",
+		],
+		href: ["a", "link", "area", "image"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
@@ -134,21 +170,23 @@ export const htmlRules: {
 		src: ["video", "audio"],
 	},
 	{
+		fn: () => "",
+
+		integrity: ["script", "link"],
+	},
+	{
 		fn: () => null,
 
 		// csp stuff that must be deleted
 		nonce: "*",
-		crossorigin: "*",
-		integrity: ["script", "link"],
-		sandbox: ["iframe"],
 		csp: ["iframe"],
+		credentialless: ["iframe"],
 	},
 	{
 		fn: (value: string, meta: URLMeta) => rewriteSrcset(value, meta),
 
 		// srcset
 		srcset: ["img", "source"],
-		srcSet: ["img", "source"],
 		imagesrcset: ["link"],
 	},
 	{
@@ -174,6 +212,7 @@ export const htmlRules: {
 	{
 		fn: (value: string) => {
 			if (["_parent", "_top", "_unfencedTop"].includes(value)) return "_self";
+			else return value;
 		},
 		target: ["a", "base"],
 	},
@@ -190,10 +229,10 @@ function traverseParsedHtml(
 		meta.base = new URL(node.attribs.href, meta.origin);
 	}
 
-	if (node.attribs)
+	if (node.attribs) {
 		for (const rule of htmlRules) {
 			for (const attr in rule) {
-				const sel = rule[attr];
+				const sel = rule[attr.toLowerCase()];
 				if (typeof sel === "function") continue;
 
 				if (sel === "*" || sel.includes(node.name)) {
@@ -205,14 +244,32 @@ function traverseParsedHtml(
 						else {
 							node.attribs[attr] = v;
 						}
-						node.attribs[`data-scramjet-${attr}`] = value;
+						node.attribs[`scramjet-attr-${attr}`] = value;
 					}
 				}
 			}
 		}
+		for (const [attr, value] of Object.entries(node.attribs)) {
+			if (eventAttributes.includes(attr)) {
+				node.attribs[`scramjet-attr-${attr}`] = value;
+				node.attribs[attr] = rewriteJs(
+					value as string,
+					`(inline ${attr} on element)`,
+					meta
+				);
+			}
+		}
+	}
 
 	if (node.name === "style" && node.children[0] !== undefined)
 		node.children[0].data = rewriteCss(node.children[0].data, meta);
+
+	if (
+		node.name === "script" &&
+		node.attribs.type === "module" &&
+		node.attribs.src
+	)
+		node.attribs.src = node.attribs.src + "?type=module";
 
 	if (
 		node.name === "script" &&
@@ -220,29 +277,24 @@ function traverseParsedHtml(
 			node.attribs.type
 		)
 	) {
-		if (node.children[0] !== undefined) {
+		if (node.children[0]) {
 			let js = node.children[0].data;
-			// node.attribs[`data-scramjet-script-source-src`] = btoa(js);
-			node.attribs["data-scramjet-script-source-src"] = bytesToBase64(
-				new TextEncoder().encode(js)
+			const module = node.attribs.type === "module" ? true : false;
+			node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
+				encoder.encode(js)
 			);
 			const htmlcomment = /<!--[\s\S]*?-->/g;
 			js = js.replace(htmlcomment, "");
 			node.children[0].data = rewriteJs(
 				js,
-				node.attribs["type"] === "module",
-				meta
+				"(inline script element)",
+				meta,
+				module
 			);
-		} else if (node.attribs["src"]) {
-			let url = rewriteUrl(node.attribs["src"], meta);
-			if (node.attribs["type"] === "module") url += "?type=module";
-
-			node.attribs["data-scramjet-src"] = node.attribs["src"];
-			node.attribs["src"] = url;
 		}
 	}
 
-	if (node.name === "meta" && node.attribs["http-equiv"] != undefined) {
+	if (node.name === "meta" && node.attribs["http-equiv"] !== undefined) {
 		if (
 			node.attribs["http-equiv"].toLowerCase() === "content-security-policy"
 		) {
@@ -272,17 +324,21 @@ function traverseParsedHtml(
 }
 
 export function rewriteSrcset(srcset: string, meta: URLMeta) {
-	const urls = srcset.split(/ [0-9]+x,? ?/g);
-	if (!urls) return "";
-	const sufixes = srcset.match(/ [0-9]+x,? ?/g);
-	if (!sufixes) return "";
-	const rewrittenUrls = urls.map((url, i) => {
-		if (url && sufixes[i]) {
-			return rewriteUrl(url, meta) + sufixes[i];
-		}
+	const sources = srcset.split(",").map((src) => src.trim());
+	const rewrittenSources = sources.map((source) => {
+		// Split into URLs and descriptors (if any)
+		// e.g. url0, url1 1.5x, url2 2x
+		const [url, ...descriptors] = source.split(/\s+/);
+
+		// Rewrite the URLs and keep the descriptors (if any)
+		const rewrittenUrl = rewriteUrl(url.trim(), meta);
+
+		return descriptors.length > 0
+			? `${rewrittenUrl} ${descriptors.join(" ")}`
+			: rewrittenUrl;
 	});
 
-	return rewrittenUrls.join("");
+	return rewrittenSources.join(", ");
 }
 
 // function base64ToBytes(base64) {
@@ -298,3 +354,105 @@ function bytesToBase64(bytes: Uint8Array) {
 
 	return btoa(binString);
 }
+const eventAttributes = [
+	"onbeforexrselect",
+	"onabort",
+	"onbeforeinput",
+	"onbeforematch",
+	"onbeforetoggle",
+	"onblur",
+	"oncancel",
+	"oncanplay",
+	"oncanplaythrough",
+	"onchange",
+	"onclick",
+	"onclose",
+	"oncontentvisibilityautostatechange",
+	"oncontextlost",
+	"oncontextmenu",
+	"oncontextrestored",
+	"oncuechange",
+	"ondblclick",
+	"ondrag",
+	"ondragend",
+	"ondragenter",
+	"ondragleave",
+	"ondragover",
+	"ondragstart",
+	"ondrop",
+	"ondurationchange",
+	"onemptied",
+	"onended",
+	"onerror",
+	"onfocus",
+	"onformdata",
+	"oninput",
+	"oninvalid",
+	"onkeydown",
+	"onkeypress",
+	"onkeyup",
+	"onload",
+	"onloadeddata",
+	"onloadedmetadata",
+	"onloadstart",
+	"onmousedown",
+	"onmouseenter",
+	"onmouseleave",
+	"onmousemove",
+	"onmouseout",
+	"onmouseover",
+	"onmouseup",
+	"onmousewheel",
+	"onpause",
+	"onplay",
+	"onplaying",
+	"onprogress",
+	"onratechange",
+	"onreset",
+	"onresize",
+	"onscroll",
+	"onsecuritypolicyviolation",
+	"onseeked",
+	"onseeking",
+	"onselect",
+	"onslotchange",
+	"onstalled",
+	"onsubmit",
+	"onsuspend",
+	"ontimeupdate",
+	"ontoggle",
+	"onvolumechange",
+	"onwaiting",
+	"onwebkitanimationend",
+	"onwebkitanimationiteration",
+	"onwebkitanimationstart",
+	"onwebkittransitionend",
+	"onwheel",
+	"onauxclick",
+	"ongotpointercapture",
+	"onlostpointercapture",
+	"onpointerdown",
+	"onpointermove",
+	"onpointerrawupdate",
+	"onpointerup",
+	"onpointercancel",
+	"onpointerover",
+	"onpointerout",
+	"onpointerenter",
+	"onpointerleave",
+	"onselectstart",
+	"onselectionchange",
+	"onanimationend",
+	"onanimationiteration",
+	"onanimationstart",
+	"ontransitionrun",
+	"ontransitionstart",
+	"ontransitionend",
+	"ontransitioncancel",
+	"oncopy",
+	"oncut",
+	"onpaste",
+	"onscrollend",
+	"onscrollsnapchange",
+	"onscrollsnapchanging",
+];

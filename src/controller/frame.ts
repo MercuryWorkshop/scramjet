@@ -15,6 +15,10 @@ export class ScramjetFrame extends EventTarget {
 		return this.frame.contentWindow.window[SCRAMJETCLIENT];
 	}
 
+	get url(): URL {
+		return this.client.url;
+	}
+
 	go(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
 

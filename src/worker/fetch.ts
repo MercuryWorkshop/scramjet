@@ -1,22 +1,21 @@
 import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import { MessageW2C, ScramjetServiceWorker } from ".";
+import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
 import { CookieStore } from "../shared/cookie";
 import {
 	ScramjetHeaders,
 	unrewriteUrl,
-	rewriteUrl,
 	rewriteCss,
 	rewriteHeaders,
 	rewriteHtml,
-	rewriteJs,
 	rewriteWorkers,
 	unrewriteBlob,
 } from "../shared";
 
 import type { URLMeta } from "../shared/rewriters/url";
-import { $scramjet } from "../scramjet";
+import { $scramjet, flagEnabled } from "../scramjet";
+import { rewriteJsWithMap } from "../shared/rewriters/js";
 
 function newmeta(url: URL): URLMeta {
 	return {
@@ -25,19 +24,11 @@ function newmeta(url: URL): URLMeta {
 	};
 }
 
-export async function swfetch(
+export async function handleFetch(
 	this: ScramjetServiceWorker,
 	request: Request,
 	client: Client | null
 ) {
-	const urlParam = new URLSearchParams(new URL(request.url).search);
-
-	if (urlParam.has("url")) {
-		return Response.redirect(
-			rewriteUrl(urlParam.get("url"), newmeta(new URL(urlParam.get("url"))))
-		);
-	}
-
 	try {
 		const requesturl = new URL(request.url);
 		let workertype = "";
@@ -48,7 +39,30 @@ export async function swfetch(
 		if (requesturl.searchParams.has("dest")) {
 			requesturl.searchParams.delete("dest");
 		}
-
+		//
+		// if (requesturl.pathname === this.config.files.wasm) {
+		// 	return fetch(this.config.files.wasm).then(async (x) => {
+		// 		const buf = await x.arrayBuffer();
+		// 		const b64 = btoa(
+		// 			new Uint8Array(buf)
+		// 				.reduce(
+		// 					(data, byte) => (data.push(String.fromCharCode(byte)), data),
+		// 					[]
+		// 				)
+		// 				.join("")
+		// 		);
+		//
+		// 		let payload = "";
+		// 		payload +=
+		// 			"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+		// 		payload += `self.WASM = '${b64}';`;
+		//
+		// 		return new Response(payload, {
+		// 			headers: { "content-type": "text/javascript" },
+		// 		});
+		// 	});
+		// }
+		//
 		if (
 			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
 			requesturl.pathname.startsWith(this.config.prefix + "data:")
@@ -58,13 +72,14 @@ export async function swfetch(
 				dataurl = unrewriteBlob(dataurl);
 			}
 
-			const response: Response = await fetch(dataurl, {});
-
+			const response: Partial<BareResponseFetch> = await fetch(dataurl, {});
+			const url = dataurl.startsWith("blob:") ? dataurl : "(data url)";
+			response.finalURL = url;
 			let body: BodyType;
 
 			if (response.body) {
 				body = await rewriteBody(
-					response,
+					response as BareResponseFetch,
 					client
 						? {
 								base: new URL(new URL(client.url).origin),
@@ -99,7 +114,7 @@ export async function swfetch(
 		if (
 			activeWorker &&
 			activeWorker.connected &&
-			urlParam.get("from") !== "swruntime"
+			requesturl.searchParams.get("from") !== "swruntime"
 		) {
 			// TODO: check scope
 			const r = await activeWorker.fetch(request);
@@ -136,18 +151,22 @@ export async function swfetch(
 			headers.set("Cookie", cookies);
 		}
 
-		// TODO this is wrong somehow
-		headers.set("Sec-Fetch-Mode", "cors");
+		headers.set("Sec-Fetch-Dest", request.destination);
+		//TODO: Emulate this later (like really)
 		headers.set("Sec-Fetch-Site", "same-origin");
-		headers.set("Sec-Fetch-Dest", "empty");
+		headers.set(
+			"Sec-Fetch-Mode",
+			request.mode === "cors" ? request.mode : "same-origin"
+		);
 
-		const ev = new ScramjetRequestEvent("request");
-		ev.url = url;
-		ev.body = request.body;
-		ev.method = request.method;
-		ev.destination = request.destination;
-		ev.client = client;
-		ev.requestHeaders = headers.headers;
+		const ev = new ScramjetRequestEvent(
+			url,
+			headers.headers,
+			request.body,
+			request.method,
+			request.destination,
+			client
+		);
 		this.dispatchEvent(ev);
 
 		const response: BareResponseFetch =
@@ -174,11 +193,30 @@ export async function swfetch(
 			this
 		);
 	} catch (err) {
-		console.error("ERROR FROM SERVICE WORKER FETCH", err);
+		const errorDetails = {
+			message: err.message,
+			url: request.url,
+			destination: request.destination,
+			timestamp: new Date().toISOString(),
+		};
+		if (err.stack) {
+			errorDetails["stack"] = err.stack;
+		}
+
+		console.log(err);
+		console.error("ERROR FROM SERVICE WORKER FETCH: ", errorDetails);
+
 		if (!["document", "iframe"].includes(request.destination))
 			return new Response(undefined, { status: 500 });
 
-		return renderError(err, unrewriteUrl(request.url));
+		const formattedError = Object.entries(errorDetails)
+			.map(
+				([key, value]) =>
+					`${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`
+			)
+			.join("\n\n");
+
+		return renderError(formattedError, unrewriteUrl(request.url));
 	}
 }
 
@@ -196,12 +234,16 @@ async function handleResponse(
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
-		if (client)
-			client.postMessage({
+		if (client) {
+			const promise = swtarget.dispatch(client, {
 				scramjet$type: "cookie",
 				cookie,
 				url: url.href,
-			} as MessageW2C);
+			});
+			if (destination !== "document" && destination !== "iframe") {
+				await promise;
+			}
+		}
 	}
 
 	await cookieStore.setCookies(
@@ -266,15 +308,16 @@ async function handleResponse(
 		responseHeaders["Cross-Origin-Opener-Policy"] = "same-origin";
 	}
 
-	const ev = new ScramjetHandleResponseEvent("handleResponse");
-	ev.responseBody = responseBody;
-	ev.responseHeaders = responseHeaders;
-	ev.status = response.status;
-	ev.statusText = response.statusText;
-	ev.destination = destination;
-	ev.url = url;
-	ev.rawResponse = response;
-	ev.client = client;
+	const ev = new ScramjetHandleResponseEvent(
+		responseBody,
+		responseHeaders,
+		response.status,
+		response.statusText,
+		destination,
+		url,
+		response,
+		client
+	);
 	swtarget.dispatchEvent(ev);
 
 	return new Response(ev.responseBody, {
@@ -285,7 +328,7 @@ async function handleResponse(
 }
 
 async function rewriteBody(
-	response: Response,
+	response: BareResponseFetch,
 	meta: URLMeta,
 	destination: RequestDestination,
 	workertype: string,
@@ -295,21 +338,56 @@ async function rewriteBody(
 		case "iframe":
 		case "document":
 			if (response.headers.get("content-type")?.startsWith("text/html")) {
+				// note from percs: i think this has the potential to be slow asf, but for right now its fine (we should probably look for a better solution)
+				// another note from percs: regex seems to be broken, gonna comment this out
+				/*
+				const buf = await response.arrayBuffer();
+				const decode = new TextDecoder("utf-8").decode(buf);
+				const charsetHeader = response.headers.get("content-type");
+				const charset =
+					charsetHeader?.split("charset=")[1] ||
+					decode.match(/charset=([^"]+)/)?.[1] ||
+					"utf-8";
+				const htmlContent = charset
+					? new TextDecoder(charset).decode(buf)
+					: decode;
+				*/
 				return rewriteHtml(await response.text(), cookieStore, meta, true);
 			} else {
 				return response.body;
 			}
-		case "script":
-			return rewriteJs(
-				await response.arrayBuffer(),
-				workertype === "module",
-				meta
+		case "script": {
+			let { js, tag, map } = rewriteJsWithMap(
+				new Uint8Array(await response.arrayBuffer()),
+				response.finalURL,
+				meta,
+				workertype === "module"
 			);
+			if (flagEnabled("sourcemaps", meta.base) && map) {
+				// if (js instanceof Uint8Array) {
+				// 	js = new TextDecoder().decode(js);
+				// }
+				const sourcemapfn = `${globalThis.$scramjet.config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");`;
+				const strictMode = /^\s*(['"])use strict\1;?/;
+				if (strictMode.test(js)) {
+					js = js.replace(strictMode, `$&\n${sourcemapfn}`);
+				} else {
+					js = `${sourcemapfn}\n${js}`;
+				}
+			}
+
+			return js as unknown as ArrayBuffer;
+		}
 		case "style":
 			return rewriteCss(await response.text(), meta);
 		case "sharedworker":
 		case "worker":
-			return rewriteWorkers(await response.arrayBuffer(), workertype, meta);
+			return rewriteWorkers(
+				new Uint8Array(await response.arrayBuffer()),
+				workertype,
+				response.finalURL,
+				meta
+			);
 		default:
 			return response.body;
 	}
@@ -318,22 +396,30 @@ async function rewriteBody(
 type BodyType = string | ArrayBuffer | Blob | ReadableStream<any>;
 
 export class ScramjetHandleResponseEvent extends Event {
-	public responseHeaders: Record<string, string>;
-	public responseBody: BodyType;
-	public status: number;
-	public statusText: string;
-	public destination: string;
-	public url: URL;
-	public rawResponse: BareResponseFetch;
-	public client: Client;
+	constructor(
+		public responseBody: BodyType,
+		public responseHeaders: Record<string, string>,
+		public status: number,
+		public statusText: string,
+		public destination: string,
+		public url: URL,
+		public rawResponse: BareResponseFetch,
+		public client: Client
+	) {
+		super("handleResponse");
+	}
 }
 
 export class ScramjetRequestEvent extends Event {
-	public url: URL;
-	public destination: string;
-	public client: Client;
-	public method: string;
-	public body: BodyType;
-	public requestHeaders: Record<string, string>;
+	constructor(
+		public url: URL,
+		public requestHeaders: Record<string, string>,
+		public body: BodyType,
+		public method: string,
+		public destination: string,
+		public client: Client
+	) {
+		super("request");
+	}
 	public response?: BareResponseFetch;
 }

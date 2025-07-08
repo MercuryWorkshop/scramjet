@@ -8,9 +8,12 @@ static/epoxy-client.js
 static/bare-mux-worker.js
 meta.json
 rewriter/target
-rewriter/out
+rewriter/wasm/out
 static/wasm.js
 rewriter/*.js
 pnpm-lock.yaml
 playwright-report
 test-results
+*.tgz
+package-lock.json
+rebuild.sh

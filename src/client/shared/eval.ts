@@ -8,7 +8,7 @@ export default function (client: ScramjetClient, self: Self) {
 		value: function (js: any) {
 			if (typeof js !== "string") return js;
 
-			const rewritten = rewriteJs(js, false, client.meta);
+			const rewritten = rewriteJs(js, "(direct eval proxy)", client.meta);
 
 			return rewritten;
 		},
@@ -17,11 +17,22 @@ export default function (client: ScramjetClient, self: Self) {
 	});
 }
 
-export function indirectEval(this: ScramjetClient, js: any) {
+export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 	// > If the argument of eval() is not a string, eval() returns the argument unchanged
 	if (typeof js !== "string") return js;
 
-	const indirection = this.global.eval;
+	let indirection: typeof eval;
+	if (strict) {
+		console.log("STRICT");
+		indirection = new Function(`
+			"use strict";
+			return eval;
+		`) as typeof eval;
+	} else {
+		indirection = this.global.eval;
+	}
 
-	return indirection(rewriteJs(js, false, this.meta) as string);
+	return indirection(
+		rewriteJs(js, "(indirect eval proxy)", this.meta) as string
+	);
 }

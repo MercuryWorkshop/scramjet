@@ -6,7 +6,7 @@ use std::{panic, str::FromStr, sync::Arc, time::Duration};
 use error::{Result, RewriterError};
 use instant::Instant;
 use js_sys::{Function, Object, Reflect};
-use oxc_diagnostics::{NamedSource, OxcDiagnostic};
+use oxc::diagnostics::{NamedSource, OxcDiagnostic};
 use rewrite::{rewrite, Config, EncodeFn};
 use url::Url;
 use wasm_bindgen::prelude::*;

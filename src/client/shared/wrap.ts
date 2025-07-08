@@ -1,4 +1,4 @@
-import { iswindow, isworker } from "..";
+import { iswindow } from "..";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { config } from "../../shared";
@@ -6,16 +6,16 @@ import { config } from "../../shared";
 import { indirectEval } from "./eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
-	return function (identifier: any) {
+	return function (identifier: any, strict: boolean) {
 		if (identifier === self) return client.globalProxy;
 		if (identifier === self.location) return client.locationProxy;
-		if (identifier === eval) return indirectEval.bind(client);
+		if (identifier === eval) return indirectEval.bind(client, strict);
 
 		if (iswindow) {
 			if (identifier === self.parent) {
-				if (SCRAMJETCLIENT in self.parent.self) {
+				if (SCRAMJETCLIENT in self.parent) {
 					// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
-					return self.parent.self[SCRAMJETCLIENT].globalProxy;
+					return self.parent[SCRAMJETCLIENT].globalProxy;
 				} else {
 					// ... then we should pretend we aren't nested and return the current window
 					return client.globalProxy;
@@ -24,7 +24,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 				return client.documentProxy;
 			} else if (identifier === self.top) {
 				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
-				let current = self.self;
+				let current = self;
 
 				for (;;) {
 					const test = current.parent.self;
@@ -37,7 +37,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 					current = test;
 				}
 
-				return current[SCRAMJETCLIENT].globalProxy.window;
+				return current[SCRAMJETCLIENT].globalProxy;
 			}
 		}
 
@@ -82,17 +82,16 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	});
 
 	self.$scramitize = function (v) {
-		if (typeof v === "string" && v.includes("scramjet")) {
-			debugger;
+		if (v === self) debugger;
+		if (v === location) debugger;
+		if (iswindow) {
+			if (v === self.parent) debugger;
+			if (v === self.document) debugger;
+			if (v === self.top) debugger;
 		}
 
-		if (typeof v === "string" && v.includes(location.origin)) {
-			debugger;
-		}
-
-		if (iswindow && v instanceof Document && v.defaultView.$scramjet) {
-			debugger;
-		}
+		if (typeof v === "string" && v.includes("scramjet")) debugger;
+		if (typeof v === "string" && v.includes(location.origin)) debugger;
 
 		return v;
 	};

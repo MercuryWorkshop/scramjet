@@ -4,15 +4,17 @@ import { rewriteJs } from "../../shared";
 function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 	const stringifiedFunction = ctx.call().toString();
 
-	const content =
-		"return " + rewriteJs(`return ${stringifiedFunction}`, false, client.meta);
-	console.log(content);
-	ctx.return(ctx.fn(content)());
+	const content = rewriteJs(
+		stringifiedFunction,
+		"(function proxy)",
+		client.meta
+	);
+	ctx.return(ctx.fn(`return ${content}`)());
 }
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: ScramjetClient, _self: Self) {
 	const handler: Proxy = {
-		apply(ctx) {
+		apply(ctx: ProxyCtx) {
 			rewriteFunction(ctx, client);
 		},
 		construct(ctx) {
@@ -21,7 +23,7 @@ export default function (client: ScramjetClient, self: Self) {
 	};
 
 	client.Proxy("Function", handler);
-
+	/*
 	// god i love javascript
 	client.RawProxy(function () {}.constructor.prototype, "constructor", handler);
 	client.RawProxy(
@@ -39,4 +41,5 @@ export default function (client: ScramjetClient, self: Self) {
 		"constructor",
 		handler
 	);
+	*/
 }

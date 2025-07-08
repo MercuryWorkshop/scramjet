@@ -1,8 +1,7 @@
 import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 
-export default function (client: ScramjetClient, self: typeof globalThis) {
-	//TODO: this doesnt support request objects, do that later (i dont feel like it)
+export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("CacheStorage.prototype.open", {
 		apply(ctx) {
 			ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;
@@ -18,7 +17,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("CacheStorage.prototype.match", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});
@@ -32,7 +31,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("Cache.prototype.add", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});
@@ -44,7 +43,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					typeof ctx.args[0][i] === "string" ||
 					ctx.args[0][i] instanceof URL
 				) {
-					ctx.args[0][i] = rewriteUrl(ctx.args[0][i].toString(), client.meta);
+					ctx.args[0][i] = rewriteUrl(ctx.args[0][i], client.meta);
 				}
 			}
 		},
@@ -53,7 +52,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("Cache.prototype.put", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});
@@ -61,7 +60,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("Cache.prototype.match", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});
@@ -72,7 +71,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				(ctx.args[0] && typeof ctx.args[0] === "string") ||
 				(ctx.args[0] && ctx.args[0] instanceof URL)
 			) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});
@@ -83,7 +82,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				(ctx.args[0] && typeof ctx.args[0] === "string") ||
 				(ctx.args[0] && ctx.args[0] instanceof URL)
 			) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});
@@ -91,7 +90,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("Cache.prototype.delete", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0].toString(), client.meta);
+				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 			}
 		},
 	});

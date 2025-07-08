@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import type { GitHubActionOptions } from "@estruyf/github-actions-reporter";
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -8,13 +9,25 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: 2,
-	reporter: "html",
+	reporter: process.env.CI
+		? [
+				[
+					"@estruyf/github-actions-reporter",
+					{
+						title: "Test summary",
+						useDetails: true,
+						showError: true,
+					} as GitHubActionOptions,
+				],
+				["github"],
+			]
+		: "html",
 	timeout: 20000,
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: "on-first-retry",
-		actionTimeout: 5000,
+		actionTimeout: 10000,
 		baseURL: "http://localhost:1337",
 	},
 

@@ -30,14 +30,15 @@ Some of the popular websites that Scramjet supports include:
 -   Recent versions of `node.js` and `pnpm`
 -   `rustup`
 -   `wasm-bindgen`
--   `wasm-opt`
+-   [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
+-   [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
 
 #### Building
 
 -   Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
--   Then, install the dependencies with `pnpm i`
--   After, build the rewriter with `pnpm rewriter:build`
--   Finally, build Scramjet with `pnpm build`
+-   Install the dependencies with `pnpm i`
+-   Build the rewriter with `pnpm rewriter:build`
+-   Build Scramjet with `pnpm build`
 
 ### Running Scramjet Locally
 
@@ -48,7 +49,3 @@ pnpm dev
 ```
 
 Scramjet should now be running at `localhost:1337` and should rebuild upon a file being changed (excluding the rewriter).
-
-## Documentation
-
-See the current index of documentation [here](./documentation/README.md).

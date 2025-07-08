@@ -1,5 +1,4 @@
 import { flagEnabled } from "../../scramjet";
-import { config } from "../../shared";
 import { ScramjetClient } from "../client";
 
 export const enabled = (client: ScramjetClient) =>
@@ -7,11 +6,8 @@ export const enabled = (client: ScramjetClient) =>
 export function argdbg(arg, recurse = []) {
 	switch (typeof arg) {
 		case "string":
-			if (arg.includes("localhost:1337/scramjet/") && arg.includes("m3u8"))
-				debugger;
 			break;
 		case "object":
-			// if (arg instanceof Location) debugger;
 			if (
 				arg &&
 				arg[Symbol.iterator] &&
@@ -47,9 +43,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		apply(ctx) {
 			if (ctx.args[0])
 				ctx.args[0] = new Proxy(ctx.args[0], {
-					apply(target, thisArg, argArray) {
-						// console.warn("CAUGHT PROMISE REJECTION", argArray);
-						Reflect.apply(target, thisArg, argArray);
+					apply(target, that, args) {
+						// console.warn("CAUGHT PROMISE REJECTION", args);
+						Reflect.apply(target, that, args);
 					},
 				});
 		},

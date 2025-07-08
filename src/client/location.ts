@@ -1,7 +1,8 @@
 // @ts-nocheck
 import { ScramjetClient } from "./client";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { unrewriteUrl, rewriteUrl } from "../shared";
+import { rewriteUrl } from "../shared";
+import { UrlChangeEvent } from "./events";
 import { iswindow } from ".";
 
 export function createLocationProxy(
@@ -44,14 +45,20 @@ export function createLocationProxy(
 		}
 		if (native.set) {
 			desc.set = new Proxy(native.set, {
-				apply(target, thisArg, args) {
+				apply(target, that, args) {
 					if (prop === "href") {
 						// special case
 						client.url = args[0];
 
 						return;
 					}
+					if (prop === "hash") {
+						self.location.hash = args[0];
+						const ev = new UrlChangeEvent(client.url.href);
+						if (!client.isSubframe) client.frame?.dispatchEvent(ev);
 
+						return;
+					}
 					const url = new URL(client.url.href);
 					url[prop] = args[0];
 					client.url = url;
@@ -76,22 +83,28 @@ export function createLocationProxy(
 		});
 	if (self.location.assign)
 		fakeLocation.assign = new Proxy(self.location.assign, {
-			apply(target, thisArg, args) {
+			apply(target, that, args) {
 				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
+
+				const urlchangeev = new UrlChangeEvent(client.url.href);
+				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 			},
 		});
 	if (self.location.reload)
 		fakeLocation.reload = new Proxy(self.location.reload, {
-			apply(target, thisArg, args) {
+			apply(target, that, args) {
 				Reflect.apply(target, self.location, args);
 			},
 		});
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
-			apply(target, thisArg, args) {
+			apply(target, that, args) {
 				args[0] = rewriteUrl(args[0], client.meta);
 				Reflect.apply(target, self.location, args);
+
+				const urlchangeev = new UrlChangeEvent(client.url.href);
+				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 			},
 		});
 

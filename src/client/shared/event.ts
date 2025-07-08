@@ -1,4 +1,5 @@
 import { iswindow } from "..";
+import { unrewriteUrl } from "../../shared";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { getOwnPropertyDescriptorHandler } from "../helpers";
@@ -44,14 +45,31 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.data;
 			},
 		},
+		hashchange: {
+			oldURL() {
+				return unrewriteUrl(this.oldURL);
+			},
+			newURL() {
+				return unrewriteUrl(this.newURL);
+			},
+		},
+		storage: {
+			_init() {
+				return this.key.startsWith(client.url.host + "@");
+			},
+			key() {
+				return this.key.substring(this.key.indexOf("@") + 1);
+			},
+			url() {
+				return unrewriteUrl(this.url);
+			},
+		},
 	};
-
-	// TODO! window.event not proxied
 
 	function wraplistener(listener: (...args: any) => any) {
 		return new Proxy(listener, {
-			apply(target, thisArg, argArray) {
-				const realEvent: Event = argArray[0];
+			apply(target, that, args) {
+				const realEvent: Event = args[0];
 
 				// we only need to handle events dispatched from the browser
 				if (realEvent.isTrusted) {
@@ -64,13 +82,26 @@ export default function (client: ScramjetClient, self: Self) {
 							if (handler._init.call(realEvent) === false) return;
 						}
 
-						argArray[0] = new Proxy(realEvent, {
-							get(_target, prop, reciever) {
+						args[0] = new Proxy(realEvent, {
+							get(target, prop, reciever) {
+								const value = Reflect.get(target, prop);
 								if (prop in handler) {
-									return handler[prop].call(_target);
+									return handler[prop].call(target);
 								}
 
-								return Reflect.get(target, prop, reciever);
+								if (typeof value === "function") {
+									return new Proxy(value, {
+										apply(target, that, args) {
+											if (that === reciever) {
+												return Reflect.apply(target, realEvent, args);
+											}
+
+											return Reflect.apply(target, that, args);
+										},
+									});
+								}
+
+								return value;
 							},
 							getOwnPropertyDescriptor: getOwnPropertyDescriptorHandler,
 						});
@@ -80,13 +111,13 @@ export default function (client: ScramjetClient, self: Self) {
 				if (!self.event) {
 					Object.defineProperty(self, "event", {
 						get() {
-							return argArray[0];
+							return args[0];
 						},
 						configurable: true,
 					});
 				}
 
-				const rv = Reflect.apply(target, thisArg, argArray);
+				const rv = Reflect.apply(target, that, args);
 
 				return rv;
 			},

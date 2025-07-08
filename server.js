@@ -4,9 +4,11 @@ import { createServer } from "http";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { join } from "node:path";
+import rspackConfig from "./rspack.config.js";
+import { rspack } from "@rspack/core";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import wisp from "wisp-server-node";
+import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 
 //transports
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
@@ -19,6 +21,9 @@ const bare = createBareServer("/bare/", {
 	logErrors: true,
 	blockLocal: false,
 });
+
+wisp.options.allow_loopback_ips = true;
+wisp.options.allow_private_ips = true;
 
 const fastify = Fastify({
 	serverFactory: (handler) => {
@@ -84,25 +89,24 @@ fastify.listen({
 	port: PORT,
 	host: "0.0.0.0",
 });
-console.log(`Listening on port ${PORT}`);
+console.log(`Listening on http://localhost:${PORT}/`);
+if (!process.env.CI) {
+	try {
+		writeFileSync(
+			".git/hooks/pre-commit",
+			"pnpm prettier . -w\ngit update-index --again"
+		);
+		chmodSync(".git/hooks/pre-commit", 0o755);
+	} catch {}
 
-try {
-	writeFileSync(
-		".git/hooks/pre-commit",
-		"pnpm prettier . -w\ngit update-index --again"
-	);
-	chmodSync(".git/hooks/pre-commit", 0o755);
-} catch {}
-
-const watch = spawn("pnpm", ["rspack", "-w"], {
-	detached: true,
-	cwd: process.cwd(),
-});
-
-watch.stdout.on("data", (data) => {
-	console.log(`${data}`);
-});
-
-watch.stderr.on("data", (data) => {
-	console.log(`${data}`);
-});
+	const compiler = rspack(rspackConfig);
+	compiler.watch({}, (err, stats) => {
+		console.log(
+			stats.toString({
+				preset: "minimal",
+				colors: true,
+				version: false,
+			})
+		);
+	});
+}

@@ -1,11 +1,11 @@
 import { ScramjetClient } from "../client";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, _self: typeof window) {
 	client.Trap("Element.prototype.attributes", {
 		get(ctx) {
 			const map = ctx.get() as NamedNodeMap;
 			const proxy = new Proxy(map, {
-				get(target, prop, receiver) {
+				get(target, prop, _receiver) {
 					const value = Reflect.get(target, prop);
 
 					if (prop === "length") {
@@ -22,49 +22,26 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 					if (prop in NamedNodeMap.prototype && typeof value === "function") {
 						return new Proxy(value, {
-							apply(target, thisArg, argArray) {
-								if (thisArg === proxy) {
-									return Reflect.apply(target, map, argArray);
+							apply(target, that, args) {
+								if (that === proxy) {
+									return Reflect.apply(target, map, args);
 								}
 
-								return Reflect.apply(target, thisArg, argArray);
+								return Reflect.apply(target, that, args);
 							},
 						});
+					}
+
+					if (
+						(typeof prop === "string" || typeof prop === "number") &&
+						!isNaN(Number(prop))
+					) {
+						const position = Object.keys(proxy)[prop];
+
+						return map[position];
 					}
 
 					if (!this.has(target, prop)) return undefined;
-
-					if (value instanceof Attr) {
-						const attr = value;
-
-						return new Proxy(attr, {
-							get(target, prop) {
-								if (
-									prop === "value" ||
-									prop === "nodeValue" ||
-									prop === "textContent"
-								) {
-									// we're using the proxied getAttribute here
-									return target.ownerElement.getAttribute(target.name);
-								}
-
-								return Reflect.get(target, prop);
-							},
-							set(target, prop, value) {
-								if (
-									prop === "value" ||
-									prop === "nodeValue" ||
-									prop === "textContent"
-								) {
-									target.ownerElement.setAttribute(target.name, value);
-
-									return true;
-								}
-
-								return Reflect.set(target, prop, value);
-							},
-						});
-					}
 
 					return value;
 				},
@@ -75,14 +52,31 @@ export default function (client: ScramjetClient, self: typeof window) {
 				},
 				has(target, prop) {
 					if (typeof prop === "symbol") return Reflect.has(target, prop);
-					if (prop.startsWith("data-scramjet-")) return false;
-					if (map[prop]?.name?.startsWith("data-scramjet-")) return false;
+					if (prop.startsWith("scramjet-attr-")) return false;
+					if (map[prop]?.name?.startsWith("scramjet-attr-")) return false;
 
 					return Reflect.has(target, prop);
 				},
 			});
 
 			return proxy;
+		},
+	});
+
+	client.Trap("Attr.prototype.value", {
+		get(ctx) {
+			if (ctx.this?.ownerElement) {
+				return ctx.this.ownerElement.getAttribute(ctx.this.name);
+			}
+
+			return ctx.get();
+		},
+		set(ctx, value) {
+			if (ctx.this?.ownerElement) {
+				return ctx.this.ownerElement.setAttribute(ctx.this.name, value);
+			}
+
+			return ctx.set(value);
 		},
 	});
 }

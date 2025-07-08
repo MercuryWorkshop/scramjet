@@ -21,8 +21,10 @@ export default [
 			files: ["**/*.ts"],
 		})),
 	{
+		ignores: ["dist", "rewriter"],
+	},
+	{
 		files: ["**/*.ts"],
-
 		plugins: {
 			"@typescript-eslint": typescriptEslint,
 		},
