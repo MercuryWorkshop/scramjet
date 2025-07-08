@@ -10,6 +10,9 @@ const scramjet = new ScramjetController({
 		rewriterLogs: true,
 	},
 	siteFlags: {
+		"https://www.google.com/.*": {
+			naiiveRewriter: true,
+		},
 		"https://worker-playground.glitch.me/.*": {
 			serviceworkers: true,
 		},
