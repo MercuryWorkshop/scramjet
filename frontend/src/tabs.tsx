@@ -34,93 +34,6 @@ export const Tab: Component<
 		pos: number;
 	}
 > = function (cx) {
-	cx.css = `
-		:scope {
-			display: inline-block;
-			user-select: none;
-			position: absolute;
-
-			--tab-active-border-width: 11px;
-			--tab-active-border-radius: 10px;
-			--tab-active-border-radius-neg: -10px;
-		}
-
-		.main {
-			height: 28px;
-			min-width: 0;
-			width: 100%;
-
-			color: var(--aboutbrowser-inactive-tab-fg);
-
-			border-radius: 4px;
-			padding: 7px 8px 5px 8px;
-
-			display: flex;
-			align-items: center;
-			gap: 8px;
-		}
-		.main img {
-			width: 16px;
-			height: 16px;
-		}
-		.main span {
-			flex: 1;
-			font-size: 13px;
-
-			overflow: hidden;
-			white-space: nowrap;
-			text-overflow: ellipsis;
-		}
-		.main .close {
-			width: 14px;
-			height: 14px;
-		}
-
-		.main:not(.active):hover {
-			transition: background 250ms;
-
-			background: var(--aboutbrowser-hover-tab-bg);
-			color: var(--aboutbrowser-hover-tab-fg);
-		}
-
-		.main.active {
-			background: var(--aboutbrowser-active-tab-bg);
-			color: var(--aboutbrowser-active-tab-fg);
-
-			# border-radius: 12px 12px 0 0;
-		}
-
-		.belowcontainer {
-			position: relative;
-		}
-		.below {
-			position: absolute;
-			bottom: -6px;
-			height: 6px;
-			width: 100%;
-
-			background: var(--aboutbrowser-active-tab-bg);
-		}
-		.below::before, .below::after {
-			content: '';
-			position: absolute;
-			bottom: 0;
-
-			width: var(--tab-active-border-width);
-			height: var(--tab-active-border-radius);
-
-			background: var(--aboutbrowser-active-tab-bg);
-		}
-		.below::before {
-			left: var(--tab-active-border-radius-neg);
-			mask-image: radial-gradient(circle at 0 0, transparent var(--tab-active-border-radius), black 0);
-		}
-		.below::after {
-			right: var(--tab-active-border-radius-neg);
-			mask-image: radial-gradient(circle at var(--tab-active-border-width) 0, transparent var(--tab-active-border-radius), black 0);
-		}
-	`;
-
 	this.dragpos = -1;
 	this.dragoffset = -1;
 	this.width = 0;
@@ -192,6 +105,92 @@ export const Tab: Component<
 		</div>
 	);
 };
+Tab.css = `
+	:scope {
+		display: inline-block;
+		user-select: none;
+		position: absolute;
+
+		--tab-active-border-width: 11px;
+		--tab-active-border-radius: 10px;
+		--tab-active-border-radius-neg: -10px;
+	}
+
+	.main {
+		height: 28px;
+		min-width: 0;
+		width: 100%;
+
+		color: var(--aboutbrowser-inactive-tab-fg);
+
+		border-radius: 4px;
+		padding: 7px 8px 5px 8px;
+
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.main img {
+		width: 16px;
+		height: 16px;
+	}
+	.main span {
+		flex: 1;
+		font-size: 13px;
+
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	.main .close {
+		width: 14px;
+		height: 14px;
+	}
+
+	.main:not(.active):hover {
+		transition: background 250ms;
+
+		background: var(--aboutbrowser-hover-tab-bg);
+		color: var(--aboutbrowser-hover-tab-fg);
+	}
+
+	.main.active {
+		background: var(--aboutbrowser-active-tab-bg);
+		color: var(--aboutbrowser-active-tab-fg);
+
+		# border-radius: 12px 12px 0 0;
+	}
+
+	.belowcontainer {
+		position: relative;
+	}
+	.below {
+		position: absolute;
+		bottom: -6px;
+		height: 6px;
+		width: 100%;
+
+		background: var(--aboutbrowser-active-tab-bg);
+	}
+	.below::before, .below::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+
+		width: var(--tab-active-border-width);
+		height: var(--tab-active-border-radius);
+
+		background: var(--aboutbrowser-active-tab-bg);
+	}
+	.below::before {
+		left: var(--tab-active-border-radius-neg);
+		mask-image: radial-gradient(circle at 0 0, transparent var(--tab-active-border-radius), black 0);
+	}
+	.below::after {
+		right: var(--tab-active-border-radius-neg);
+		mask-image: radial-gradient(circle at var(--tab-active-border-width) 0, transparent var(--tab-active-border-radius), black 0);
+	}
+`;
 
 export const Tabs: Component<
 	{},
@@ -205,26 +204,6 @@ export const Tabs: Component<
 	},
 	{}
 > = function (cx) {
-	cx.css = `
-		:scope {
-			background: var(--aboutbrowser-frame-bg);
-			padding: 6px 12px;
-			height: calc(28px + 12px);
-
-			position: relative;
-		}
-
-		.extra {
-			position: absolute;
-		}
-
-		.left {
-			left: 0;
-		}
-		.right {
-			right: 0;
-		}
-	`;
 	const TAB_PADDING = 6;
 	const TAB_MAX_SIZE = 231;
 	const TAB_TRANSITION = "250ms ease";
@@ -373,3 +352,23 @@ export const Tabs: Component<
 		</div>
 	);
 };
+Tabs.css = `
+	:scope {
+		background: var(--aboutbrowser-frame-bg);
+		padding: 6px 12px;
+		height: calc(28px + 12px);
+
+		position: relative;
+	}
+
+	.extra {
+		position: absolute;
+	}
+
+	.left {
+		left: 0;
+	}
+	.right {
+		right: 0;
+	}
+`;
