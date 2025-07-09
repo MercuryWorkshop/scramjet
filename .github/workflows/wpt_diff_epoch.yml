@@ -39,8 +39,31 @@ jobs:
         with:
           token: ${{ github.token }}
 
+      - name: Setup Binaryen
+        uses: Aandreba/setup-binaryen@v1.0.0
+        with:
+          token: ${{ github.token }}
+
       - name: Setup wasm-snip
-        run: cargo install --git https://github.com/r58playz/wasm-snip
+        run: "cargo install --git https://github.com/r58playz/wasm-snip"
+
+      - name: Pack Scramjet
+        run: pnpm pack
+
+      - name: Upload Artifact (pnpm pack)
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: mercuryworkshop-scramjet-*.tgz
+
+      - name: Upload Artifact (dist)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scramjet
+          path: |
+            dist/*.js
+            dist/*.js.map
+            dist/*.wasm
 
   wpt-diff:
     name: Run WPT-diff Tests
