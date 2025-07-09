@@ -9,6 +9,10 @@ interface RedirectTracker {
 	referrerPolicy: string;
 	chainStarted: number;
 }
+interface ReferrerPolicyData {
+	policy: string;
+	referrer: string;
+}
 
 // Persist the redirect trackers for an hour
 const TRACKER_EXPIRY = 60 * 60 * 1000;
@@ -199,29 +203,35 @@ export async function cleanExpiredTrackers(): Promise<void> {
  *
  * @param url URL to store the policy for
  * @param policy Referrer policy to store
+ * @param referrer The referrer URL that set this policy
  */
 export async function storeReferrerPolicy(
 	url: string,
-	policy: string
+	policy: string,
+	referrer: string
 ): Promise<void> {
 	const db = await getDB();
 	const tx = db.transaction("referrerPolicies", "readwrite");
 	const store = tx.objectStore("referrerPolicies");
 
+	const data: ReferrerPolicyData = { policy, referrer };
+
 	return new Promise((resolve, reject) => {
-		const request = store.put(policy, url);
+		const request = store.put(data, url);
 		request.onsuccess = () => resolve();
 		request.onerror = () => reject(request.error);
 	});
 }
 
 /**
- * Get referrer policy for a URL
+ * Get referrer policy data for a URL
  *
  * @param url URL to get the policy for
- * @returns Referrer policy if found, or `null`
+ * @returns Referrer policy data if found, or `null`
  */
-export async function getReferrerPolicy(url: string): Promise<string | null> {
+export async function getReferrerPolicy(
+	url: string
+): Promise<ReferrerPolicyData | null> {
 	const db = await getDB();
 	const tx = db.transaction("referrerPolicies", "readonly");
 	const store = tx.objectStore("referrerPolicies");

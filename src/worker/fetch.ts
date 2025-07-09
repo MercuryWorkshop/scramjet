@@ -160,15 +160,58 @@ export async function handleFetch(
 			headers.set("Cookie", cookies);
 		}
 
-		// Emulate a top-level navigation, since we are likely in a proxy iframe
+		// Check if we should emulate a top-level navigation
+		let isTopLevelProxyNavigation = false;
 		if (
-			request.referrer &&
-			request.referrer !== "" &&
-			request.referrer !== "no-referrer" &&
-			new URL(request.referrer).origin === location.origin &&
 			request.destination === "iframe" &&
-			request.mode === "navigate"
+			request.mode === "navigate" &&
+			request.referrer &&
+			request.referrer !== "no-referrer"
 		) {
+			// Trace back through the referrer chain, checking if each was an iframe navigation using the clients, until we find a non-iframe parent on a non-proxy page
+			let currentReferrer = request.referrer;
+			const allClients = await self.clients.matchAll({ type: "window" });
+
+			// Trace backwards
+			while (currentReferrer) {
+				if (!currentReferrer.includes($scramjet.config.prefix)) {
+					isTopLevelProxyNavigation = true;
+					break;
+				}
+
+				// Find the parent for this iteration
+				const parentChainClient = allClients.find(
+					(c) => c.url === currentReferrer
+				);
+
+				// Get the next referrer policy that applies to this parent
+				// eslint-disable-next-line no-await-in-loop
+				const parentPolicyData = await getReferrerPolicy(currentReferrer);
+
+				if (!parentPolicyData || !parentPolicyData.referrer) {
+					// Check if this ends at the proxy origin
+					if (
+						parentChainClient &&
+						currentReferrer.startsWith(location.origin)
+					) {
+						isTopLevelProxyNavigation = true;
+					}
+					// Results are inclusive
+					break;
+				}
+
+				// Check if this was an iframe navigation by looking at the client
+				if (parentChainClient && parentChainClient.frameType === "nested") {
+					// Continue checking the chain
+					currentReferrer = parentPolicyData.referrer;
+				} else {
+					// Results are inclusive
+					break;
+				}
+			}
+		}
+
+		if (isTopLevelProxyNavigation) {
 			headers.set("Sec-Fetch-Dest", "document");
 			headers.set("Sec-Fetch-Mode", "navigate");
 		} else {
@@ -241,7 +284,8 @@ export async function handleFetch(
 			this.cookieStore,
 			client,
 			this.client,
-			this
+			this,
+			request.referrer
 		);
 	} catch (err) {
 		const errorDetails = {
@@ -279,7 +323,8 @@ async function handleResponse(
 	cookieStore: CookieStore,
 	client: Client,
 	bareClient: BareClient,
-	swtarget: ScramjetServiceWorker
+	swtarget: ScramjetServiceWorker,
+	referrer: string
 ): Promise<Response> {
 	let responseBody: BodyType;
 	const isNavigationRequest =
@@ -292,8 +337,12 @@ async function handleResponse(
 	);
 
 	// Store referrer policy from navigation responses for Force Referrer
-	if (isNavigationRequest && responseHeaders["referrer-policy"]) {
-		await storeReferrerPolicy(url.href, responseHeaders["referrer-policy"]);
+	if (isNavigationRequest && responseHeaders["referrer-policy"] && referrer) {
+		await storeReferrerPolicy(
+			url.href,
+			responseHeaders["referrer-policy"],
+			referrer
+		);
 	}
 
 	if (

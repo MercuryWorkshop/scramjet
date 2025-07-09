@@ -6,8 +6,8 @@ import { rewriteUrl, type URLMeta } from "./url";
 import { getSiteDirective } from "../security/siteTests";
 
 interface StoredReferrerPolicies {
-	get(url: string): Promise<string | null>;
-	set(url: string, policy: string): Promise<void>;
+	get(url: string): Promise<{ policy: string; referrer: string } | null>;
+	set(url: string, policy: string, referrer: string): Promise<void>;
 }
 
 /**
@@ -86,11 +86,9 @@ export async function rewriteHeaders(
 	// Emulate the referrer policy to set it back to what it should've been without Force Referrer in place
 	if (typeof headers["referer"] === "string") {
 		const referrerUrl = new URL(headers["referer"]);
-		const storedReferrerPolicyRaw = await storedReferrerPolicies.get(
-			referrerUrl.href
-		);
-		if (storedReferrerPolicyRaw) {
-			const storedReferrerPolicy = storedReferrerPolicyRaw
+		const storedPolicyData = await storedReferrerPolicies.get(referrerUrl.href);
+		if (storedPolicyData) {
+			const storedReferrerPolicy = storedPolicyData.policy
 				.toLowerCase()
 				.split(",")
 				.map((rawDir) => rawDir.trim());
