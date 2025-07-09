@@ -161,7 +161,14 @@ export async function handleFetch(
 		}
 
 		// Emulate a top-level navigation, since we are likely in a proxy iframe
-		if (request.destination === "iframe" && request.mode === "navigate") {
+		if (
+			request.referrer &&
+			request.referrer !== "" &&
+			request.referrer !== "no-referrer" &&
+			new URL(request.referrer).origin === location.origin &&
+			request.destination === "iframe" &&
+			request.mode === "navigate"
+		) {
 			headers.set("Sec-Fetch-Dest", "document");
 			headers.set("Sec-Fetch-Mode", "navigate");
 		} else {
