@@ -2,11 +2,13 @@ import type {
 	default as BareClient,
 	BareHeaders,
 } from "@mercuryworkshop/bare-mux";
-import type IDBMap from "@webreflection/idb-map";
 import { rewriteUrl, type URLMeta } from "./url";
 import { getSiteDirective } from "../security/siteTests";
 
-type StoredReferrerPolicies = IDBMap<string, string>;
+interface StoredReferrerPolicies {
+	get(url: string): Promise<string | null>;
+	set(url: string, policy: string): Promise<void>;
+}
 
 /**
  * Headers for security policy features that haven't been emulated yet
@@ -139,6 +141,13 @@ export async function rewriteHeaders(
 			}
 		}
 	}
+	if (
+		typeof headers["sec-fetch-dest"] === "string" &&
+		headers["sec-fetch-dest"] === ""
+	) {
+		headers["sec-fetch-dest"] = "empty";
+	}
+
 	if (
 		typeof headers["sec-fetch-site"] === "string" &&
 		headers["sec-fetch-site"] !== "none"

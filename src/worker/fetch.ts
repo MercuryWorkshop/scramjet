@@ -1,5 +1,4 @@
 import BareClient, { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import IDBMap from "@webreflection/idb-map";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
@@ -14,6 +13,14 @@ import {
 	unrewriteBlob,
 } from "../shared";
 import { getSiteDirective } from "../shared/security/siteTests";
+import {
+	initializeTracker,
+	updateTracker,
+	cleanTracker,
+	getMostRestrictiveSite,
+	storeReferrerPolicy,
+	getReferrerPolicy,
+} from "../shared/security/forceReferrer";
 
 import type { URLMeta } from "../shared/rewriters/url";
 import { $scramjet, flagEnabled } from "../scramjet";
@@ -25,13 +32,6 @@ function newMeta(url: URL): URLMeta {
 		base: url,
 	};
 }
-
-/**
- * A persistent map of stored referrer policies for Force Referrer, so we can always have it for purposes of security policy emulation.
- *
- * Proxy URL (which will become a referrer later), Referrer Policy to record for later use in Force Referrer.
- */
-export const storedReferrerPolicies = new IDBMap<string, string>();
 
 export async function handleFetch(
 	this: ScramjetServiceWorker,
@@ -160,24 +160,46 @@ export async function handleFetch(
 			headers.set("Cookie", cookies);
 		}
 
-		headers.set("Sec-Fetch-Dest", request.destination);
-		headers.set(
-			"Sec-Fetch-Mode",
-			request.mode === "cors" ? request.mode : "same-origin"
+		// Emulate a top-level navigation, since we are likely in a proxy iframe
+		if (request.destination === "iframe" && request.mode === "navigate") {
+			headers.set("Sec-Fetch-Dest", "document");
+			headers.set("Sec-Fetch-Mode", "navigate");
+		} else {
+			// Convert empty destination to "empty" string per spec
+			headers.set("Sec-Fetch-Dest", request.destination || "empty");
+			headers.set("Sec-Fetch-Mode", request.mode);
+		}
+
+		let siteDirective = "none";
+		if (
+			request.referrer &&
+			request.referrer !== "" &&
+			request.referrer !== "no-referrer"
+		) {
+			if (request.referrer.includes($scramjet.config.prefix)) {
+				const unrewrittenReferrer = unrewriteUrl(request.referrer);
+				if (unrewrittenReferrer) {
+					const referrerUrl = new URL(unrewrittenReferrer);
+					const meta = newMeta(url);
+					siteDirective = await getSiteDirective(
+						meta,
+						referrerUrl,
+						this.client
+					);
+				}
+			}
+		}
+
+		await initializeTracker(
+			url.toString(),
+			request.referrer ? unrewriteUrl(request.referrer) : null,
+			siteDirective
 		);
 
-		if (request.referrer) {
-			const referrerUrl = new URL(unrewriteUrl(request.referrer));
-			const meta = newMeta(url);
-			const siteDirective = await getSiteDirective(
-				meta,
-				referrerUrl,
-				this.client
-			);
-			headers.set("Sec-Fetch-Site", siteDirective);
-		} else {
-			headers.set("Sec-Fetch-Site", "none");
-		}
+		headers.set(
+			"Sec-Fetch-Site",
+			await getMostRestrictiveSite(url.toString(), siteDirective)
+		);
 
 		const ev = new ScramjetRequestEvent(
 			url,
@@ -260,15 +282,34 @@ async function handleResponse(
 		newMeta(url),
 		bareClient,
 		isNavigationRequest,
-		storedReferrerPolicies
+		{ get: getReferrerPolicy, set: storeReferrerPolicy }
 	);
 
 	// Store referrer policy from navigation responses for Force Referrer
 	if (isNavigationRequest && responseHeaders["referrer-policy"]) {
-		await storedReferrerPolicies.set(
-			url.href,
+		await storeReferrerPolicy(url.href, responseHeaders["referrer-policy"]);
+	}
+
+	if (
+		response.status >= 300 &&
+		response.status < 400 &&
+		responseHeaders["location"]
+	) {
+		const redirectUrl = new URL(unrewriteUrl(responseHeaders["location"]));
+
+		await updateTracker(
+			url.toString(),
+			redirectUrl.toString(),
 			responseHeaders["referrer-policy"]
 		);
+
+		const redirectMeta = newMeta(redirectUrl);
+		const newSiteDirective = await getSiteDirective(
+			redirectMeta,
+			url,
+			bareClient
+		);
+		await getMostRestrictiveSite(redirectUrl.toString(), newSiteDirective);
 	}
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
@@ -359,6 +400,11 @@ async function handleResponse(
 	);
 	swtarget.dispatchEvent(ev);
 
+	// Clean up tracker if not a redirect
+	if (!(response.status >= 300 && response.status < 400)) {
+		await cleanTracker(url.toString());
+	}
+
 	return new Response(ev.responseBody, {
 		headers: ev.responseHeaders as HeadersInit,
 		status: ev.status,
@@ -380,17 +426,17 @@ async function rewriteBody(
 				// note from percs: i think this has the potential to be slow asf, but for right now its fine (we should probably look for a better solution)
 				// another note from percs: regex seems to be broken, gonna comment this out
 				/*
-				const buf = await response.arrayBuffer();
-				const decode = new TextDecoder("utf-8").decode(buf);
-				const charsetHeader = response.headers.get("content-type");
-				const charset =
-					charsetHeader?.split("charset=")[1] ||
-					decode.match(/charset=([^"]+)/)?.[1] ||
-					"utf-8";
-				const htmlContent = charset
-					? new TextDecoder(charset).decode(buf)
-					: decode;
-				*/
+        const buf = await response.arrayBuffer();
+        const decode = new TextDecoder("utf-8").decode(buf);
+        const charsetHeader = response.headers.get("content-type");
+        const charset =
+          charsetHeader?.split("charset=")[1] ||
+          decode.match(/charset=([^"]+)/)?.[1] ||
+          "utf-8";
+        const htmlContent = charset
+          ? new TextDecoder(charset).decode(buf)
+          : decode;
+        */
 				return rewriteHtml(await response.text(), cookieStore, meta, true);
 			} else {
 				return response.body;

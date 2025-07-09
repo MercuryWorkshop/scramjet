@@ -116,6 +116,12 @@ export class ScramjetController {
 				if (!res.objectStoreNames.contains("cookies")) {
 					res.createObjectStore("cookies");
 				}
+				if (!res.objectStoreNames.contains("redirectTrackers")) {
+					res.createObjectStore("redirectTrackers");
+				}
+				if (!res.objectStoreNames.contains("referrerPolicies")) {
+					res.createObjectStore("referrerPolicies");
+				}
 			};
 			db.onerror = () => reject(db.error);
 		});
