@@ -288,7 +288,6 @@ async function handleResponse(
 		response.rawHeaders,
 		newMeta(url),
 		bareClient,
-		isNavigationRequest,
 		{ get: getReferrerPolicy, set: storeReferrerPolicy }
 	);
 

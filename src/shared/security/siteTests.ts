@@ -1,5 +1,4 @@
 import { type URLMeta } from "../rewriters/url";
-import IDBMap from "@webreflection/idb-map";
 
 import type {
 	default as BareClient,
@@ -8,12 +7,64 @@ import type {
 
 // Cache every hour
 const CACHE_DURATION_MINUTES = 60;
-const CACHE_KEY = "$scramjet-public-suffix-list";
+const CACHE_KEY = "publicSuffixList";
 
-const publicSuffixCache = new IDBMap<
-	string,
-	{ data: string[]; expiry: number }
->();
+/**
+ * Gets a connection to the IndexedDB database
+ *
+ * @returns Resolves to the database connection
+ */
+async function getDB(): Promise<IDBDatabase> {
+	const request = indexedDB.open("$scramjet", 1);
+
+	return new Promise((resolve, reject) => {
+		request.onerror = () => reject(request.error);
+		request.onsuccess = () => resolve(request.result);
+	});
+}
+
+/**
+ * Gets cached Public Suffix List
+ *
+ * @returns Cached Public Suffix List data if not expired, or `null`
+ */
+async function getCachedSuffixList(): Promise<{
+	data: string[];
+	expiry: number;
+} | null> {
+	const db = await getDB();
+	const tx = db.transaction(CACHE_KEY, "readonly");
+	const store = tx.objectStore(CACHE_KEY);
+
+	return new Promise((resolve) => {
+		const request = store.get(CACHE_KEY);
+		request.onsuccess = () => resolve(request.result || null);
+		request.onerror = () => resolve(null);
+	});
+}
+
+/**
+ * Stores public suffix list
+ *
+ * @param data Public Suffix list data to cache
+ */
+async function setCachedSuffixList(data: string[]): Promise<void> {
+	const db = await getDB();
+	const tx = db.transaction("publicSuffixList", "readwrite");
+	const store = tx.objectStore("publicSuffixList");
+
+	return new Promise((resolve, reject) => {
+		const request = store.put(
+			{
+				data,
+				expiry: Date.now() + CACHE_DURATION_MINUTES * 60 * 1000,
+			},
+			CACHE_KEY
+		);
+		request.onsuccess = () => resolve();
+		request.onerror = () => reject(request.error);
+	});
+}
 
 /**
  * Emulate `Sec-Fetch-Site` header using the referrer (another reason why Force Referrer is now a needed SJ feature)
@@ -154,7 +205,7 @@ function matchesSuffix(
 export async function getPublicSuffixList(
 	client: BareClient
 ): Promise<string[]> {
-	const cached = await publicSuffixCache.get(CACHE_KEY);
+	const cached = await getCachedSuffixList();
 	if (cached && Date.now() < cached.expiry) {
 		return cached.data;
 	}
@@ -179,10 +230,7 @@ export async function getPublicSuffixList(
 		})
 		.filter((line) => line && !line.startsWith("//"));
 
-	await publicSuffixCache.set(CACHE_KEY, {
-		data: publicSuffixes,
-		expiry: Date.now() + CACHE_DURATION_MINUTES * 60 * 1000,
-	});
+	await setCachedSuffixList(publicSuffixes);
 
 	return publicSuffixes;
 }

@@ -55,7 +55,6 @@ export async function rewriteHeaders(
 	rawHeaders: BareHeaders,
 	meta: URLMeta,
 	client: BareClient,
-	isNavigationRequest: boolean,
 	storedReferrerPolicies: StoredReferrerPolicies
 ) {
 	const headers = {};
