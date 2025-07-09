@@ -1,6 +1,14 @@
 import { flagEnabled } from "./scramjet";
 import type { URLMeta } from "./shared/rewriters/url";
 
+const logfuncs = {
+	log: console.log,
+	warn: console.warn,
+	error: console.error,
+	debug: console.debug,
+	info: console.info,
+};
+
 export default {
 	fmt: function (severity: string, message: string, ...args: any[]) {
 		const old = Error.prepareStackTrace;
@@ -36,7 +44,7 @@ export default {
 		this.print(severity, fmt, message, ...args);
 	},
 	print(severity: string, tag: string, message: string, ...args: any[]) {
-		const fn = console[severity] || console.log;
+		const fn = logfuncs[severity] || logfuncs.log;
 		const bg = {
 			log: "#000",
 			warn: "#f80",

@@ -205,7 +205,7 @@ export default function (client: ScramjetClient, self: Self) {
 		apply(ctx) {
 			const before = performance.now();
 			doUnrewrite(ctx);
-			dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);
+			// dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);
 		},
 	});
 }
