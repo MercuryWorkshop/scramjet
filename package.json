@@ -61,7 +61,6 @@
 	},
 	"dependencies": {
 		"@mercuryworkshop/bare-mux": "^2.1.7",
-		"@webreflection/idb-map": "^0.3.2",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.2.2",
