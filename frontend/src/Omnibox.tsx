@@ -28,15 +28,17 @@ export const UrlInput: Component<
 		active: boolean;
 		input: HTMLInputElement;
 
+		focusindex: number;
+
 		overflowItems: string[];
 	}
 > = function (cx) {
+	this.focusindex = 0;
 	this.value = "";
 	this.overflowItems = ["test", "test2", "test3", "test4", "test5"];
 	const fetchSuggestions = async () => {
-		console.log("fetched");
 		let resp = await client.fetch(
-			`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(this.input.value)}`
+			`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(this.input.value)}`
 		);
 		let json = await resp.json();
 		console.log(json);
@@ -46,6 +48,10 @@ export const UrlInput: Component<
 	let ratelimiting = false;
 	let interval = 100;
 	use(this.value).listen(() => {
+		if (!this.value) {
+			this.overflowItems = [];
+			return;
+		}
 		if (ratelimiting) {
 			if (currentTimeout) return;
 			// TODO: why is it using the node types here
@@ -78,10 +84,13 @@ export const UrlInput: Component<
 					<div
 						class="overflowitem"
 						on:click={() => {
-							this.input.value = item;
+							this.value = item;
 							this.active = false;
 							this.input.blur();
 						}}
+						class:focused={use(this.focusindex).map(
+							(i) => i - 1 === this.overflowItems.indexOf(item)
+						)}
 					>
 						<IconButton icon={iconSearch}></IconButton>
 						<span>{item}</span>
@@ -93,8 +102,30 @@ export const UrlInput: Component<
 				<input
 					this={use(this.input).bind()}
 					value={use(this.value).bind()}
+					on:keydown={(e: KeyboardEvent) => {
+						if (e.key === "ArrowDown") {
+							e.preventDefault();
+							this.active = true;
+							this.focusindex++;
+							if (this.focusindex > this.overflowItems.length) {
+								this.focusindex = 0;
+							}
+						}
+						if (e.key === "ArrowUp") {
+							e.preventDefault();
+							this.active = true;
+							this.focusindex--;
+							if (this.focusindex < 0) {
+								this.focusindex = this.overflowItems.length;
+							}
+						}
+						if (e.key === "Enter") {
+							e.preventDefault();
+						}
+					}}
 					on:input={(e: InputEvent) => {
-						this.value = (e.target as HTMLInputElement).value;
+						this.value = this.input.value;
+						this.focusindex = 0;
 					}}
 				></input>
 
@@ -127,6 +158,9 @@ UrlInput.css = `
     align-items: center;
     height: 2.5em;
     cursor: pointer;
+  }
+  .overflowitem.focused {
+    background: blue;
   }
 
   .overflow.active {
