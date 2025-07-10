@@ -121,7 +121,7 @@ jobs:
           artifact_name: 'wpt-report-scramjet'
           run_js_setup: false
           debug: true
-          verbose: true
+          verbose: false
 
       - name: Kill Scramjet Demo
         if: always()
