@@ -63,7 +63,9 @@ export interface ScramjetConfig {
 	};
 }
 
-export interface ScramjetInitConfig extends Omit<ScramjetConfig, "codec"> {
+export interface ScramjetInitConfig
+	extends Omit<ScramjetConfig, "codec" | "flags"> {
+	flags: Partial<ScramjetFlags>;
 	codec: {
 		encode: (url: string) => string;
 		decode: (url: string) => string;
