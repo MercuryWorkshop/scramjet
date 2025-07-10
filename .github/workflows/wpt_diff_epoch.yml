@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build Scramjet for WPT diff
+    name: Build Scramjet for WPT-diff
     runs-on: ubuntu-latest
 
     steps:
@@ -121,7 +121,7 @@ jobs:
           artifact_name: 'wpt-report-scramjet'
           run_js_setup: false
           debug: true
-          verbose: false
+          verbose: true
 
       - name: Kill Scramjet Demo
         if: always()
