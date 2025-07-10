@@ -19,7 +19,8 @@
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
-		"test": "npx playwright test"
+		"test": "npx playwright test",
+		"preinstall": "npx only-allow pnpm"
 	},
 	"files": [
 		"dist/*.js",
