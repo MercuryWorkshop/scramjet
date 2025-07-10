@@ -15,6 +15,7 @@
 	"dependencies": {
 		"@iconify/types": "^2.0.0",
 		"@ktibow/iconset-material-symbols": "^0.0.1749705809",
-		"dreamland": "workspace:dreamland"
+		"dreamland": "workspace:dreamland",
+		"@mercuryworkshop/scramjet": "workspace:scramjet"
 	}
 }

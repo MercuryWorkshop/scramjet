@@ -8,7 +8,31 @@ import { BareMuxConnection, BareClient } from "@mercuryworkshop/bare-mux";
 let connection = new BareMuxConnection("/baremux/worker.js");
 connection.setTransport("/epoxy/index.mjs", [{ wisp: "wss://anura.pro" }]);
 export let client = new BareClient();
-console.log(client);
+
+const scramjet = new ScramjetController({
+	files: {
+		wasm: "/scram/scramjet.wasm.wasm",
+		worker: "/scram/scramjet.worker.js",
+		client: "/scram/scramjet.client.js",
+		shared: "/scram/scramjet.shared.js",
+		sync: "/scram/scramjet.sync.js",
+	},
+	flags: {
+		rewriterLogs: false,
+		naiiveRewriter: false,
+	},
+	siteFlags: {
+		"https://www.google.com/.*": {
+			naiiveRewriter: true,
+		},
+		"https://worker-playground.glitch.me/.*": {
+			serviceworkers: true,
+		},
+	},
+});
+
+scramjet.init();
+navigator.serviceWorker.register("./sw.js");
 
 let browser = createBrowser();
 (self as any).browser = browser;
