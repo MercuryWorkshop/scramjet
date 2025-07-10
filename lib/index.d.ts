@@ -7,6 +7,8 @@ import * as frame from "../dist/types/controller/frame.ts";
 declare global {
 	const ScramjetController: typeof controller.ScramjetController;
 	const ScramjetFrame: typeof frame.ScramjetFrame;
+	type ScramjetController = controller.ScramjetController;
+	type ScramjetFrame = frame.ScramjetFrame;
 
 	type ScramjetConfig = types.ScramjetConfig;
 	type ScramjetInitConfig = types.ScramjetInitConfig;
