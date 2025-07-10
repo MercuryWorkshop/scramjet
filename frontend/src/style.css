@@ -8,6 +8,10 @@ html,
 	overflow: hidden;
 }
 
+:root {
+	font-family: "Noto Sans";
+}
+
 * {
 	box-sizing: border-box;
 }

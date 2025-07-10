@@ -9,7 +9,7 @@ let connection = new BareMuxConnection("/baremux/worker.js");
 connection.setTransport("/epoxy/index.mjs", [{ wisp: "wss://anura.pro" }]);
 export let client = new BareClient();
 
-const scramjet = new ScramjetController({
+export const scramjet = new ScramjetController({
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
 		worker: "/scram/scramjet.worker.js",
@@ -33,7 +33,6 @@ const scramjet = new ScramjetController({
 
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
-let frame = scramjet.createFrame();
 
 let browser = createBrowser();
 (self as any).browser = browser;

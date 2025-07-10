@@ -1,6 +1,10 @@
 import iconClose from "@ktibow/iconset-material-symbols/close";
 import iconAdd from "@ktibow/iconset-material-symbols/add";
-import type { Component, ComponentInstance } from "dreamland/core";
+import {
+	createState,
+	type Component,
+	type ComponentInstance,
+} from "dreamland/core";
 import { Icon } from "./ui/Icon";
 
 type TabCallbacks = {
@@ -13,86 +17,28 @@ type TabCallbacks = {
 	"on:setactive": (id: Symbol) => void;
 };
 
-export const Tab: Component<
-	{
-		active: boolean;
-		icon: string;
-		title: string;
-
-		funcs: TabCallbacks;
-	},
-	{
-		dragroot: HTMLElement;
-		dragoffset: number;
-	},
-	{
-		id: Symbol;
-
-		dragpos: number;
-
-		width: number;
-		pos: number;
-	}
-> = function (cx) {
-	this.dragpos = -1;
-	this.dragoffset = -1;
-	this.width = 0;
-	this.pos = 0;
-
-	this.id = Symbol();
-
-	const calcDragPos = (e: MouseEvent) => {
-		const maxPos = this.funcs.getMaxDragPos() - cx.root.offsetWidth;
-
-		const pos = e.clientX - this.dragoffset - this.funcs.getAbsoluteStart();
-
-		this.dragpos = Math.min(Math.max(this.funcs.getLayoutStart(), pos), maxPos);
-		this.funcs.relayout();
-	};
-
-	cx.mount = () => {
-		const root = cx.root;
-
-		root.addEventListener("mousedown", (e: MouseEvent) => {
-			this.active = true;
-			this.funcs["on:setactive"](this.id);
-
-			const rect = root.getBoundingClientRect();
-			root.style.zIndex = "100";
-			this.dragroot.style.width = rect.width + "px";
-			this.dragroot.style.position = "absolute";
-			this.dragoffset = e.clientX - rect.left;
-
-			if (this.dragoffset < 0) throw new Error("dragoffset must be positive");
-
-			calcDragPos(e);
-		});
-		root.addEventListener("transitionend", () => {
-			root.style.transition = "";
-			root.style.zIndex = "0";
-			this.funcs["on:transitionend"]();
-		});
-
-		window.addEventListener("mousemove", (e: MouseEvent) => {
-			if (this.dragoffset == -1) return;
-			calcDragPos(e);
-		});
-
-		window.addEventListener("mouseup", (_e) => {
-			if (this.dragoffset == -1) return;
-
-			this.dragroot.style.width = "";
-			this.dragroot.style.position = "unset";
-
-			this.dragoffset = -1;
-			this.dragpos = -1;
-			this.funcs.relayout();
-		});
-	};
-
+export const Tab: Component<{
+	active: boolean;
+	id: number;
+	icon: string;
+	title: string;
+	mousedown: (e: MouseEvent) => void;
+	transitionend: () => void;
+}> = function (cx) {
 	return (
-		<div style="z-index: 0;">
-			<div this={use(this.dragroot).bind()} style="position: unset;">
+		<div
+			style="z-index: 0;"
+			class="tab"
+			data-id={this.id}
+			on:mousedown={(e) => this.mousedown(e)}
+			on:transitionend={() => {
+				console.log("tr end");
+				cx.root.style.transition = "";
+				cx.root.style.zIndex = "0";
+				this.transitionend();
+			}}
+		>
+			<div class="dragroot" style="position: unset;">
 				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
 					<img src={use(this.icon)} />
 					<span>{use(this.title)}</span>
@@ -192,6 +138,17 @@ Tab.css = `
 	}
 `;
 
+type TabData = Stateful<{
+	id: number;
+	title: string;
+	active: boolean;
+
+	dragoffset: number;
+	dragpos: number;
+
+	width: number;
+	pos: number;
+}>;
 export const Tabs: Component<
 	{},
 	{
@@ -200,10 +157,25 @@ export const Tabs: Component<
 		rightEl: HTMLElement;
 		afterEl: HTMLElement;
 
-		tabs: ComponentInstance<typeof Tab>[];
+		tabs: TabData[];
+		currentlydragging: number;
 	},
 	{}
 > = function (cx) {
+	this.currentlydragging = -1;
+	let id = 0;
+	function mktab(title) {
+		return createState({
+			id: id++,
+			title,
+			dragoffset: -1,
+			dragpos: -1,
+			width: 0,
+			pos: 0,
+		});
+	}
+	this.tabs = [mktab("T 1"), mktab("T 2")];
+
 	const TAB_PADDING = 6;
 	const TAB_MAX_SIZE = 231;
 	const TAB_TRANSITION = "250ms ease";
@@ -249,10 +221,7 @@ export const Tabs: Component<
 	};
 
 	const reorderTabs = () => {
-		this.tabs.sort((aComponent, bComponent) => {
-			let a = aComponent.$.state;
-			let b = bComponent.$.state;
-
+		this.tabs.sort((a, b) => {
 			const aCenter = a.pos + a.width / 2;
 
 			const bLeft = b.pos;
@@ -264,6 +233,10 @@ export const Tabs: Component<
 		});
 	};
 
+	const getTabFromIndex = (index: number) => {
+		return cx.root.querySelector(`.tab[data-id='${index}']`) as HTMLElement;
+	};
+
 	const layoutTabs = (transition: boolean) => {
 		const width = getTabWidth();
 
@@ -271,8 +244,8 @@ export const Tabs: Component<
 
 		let dragpos = -1;
 		let currpos = getLayoutStart();
-		for (const component of this.tabs) {
-			let tab = component.$.state;
+		for (const tab of this.tabs) {
+			let component = getTabFromIndex(tab.id);
 			component.style.width = width + "px";
 
 			const tabPos = tab.dragpos != -1 ? tab.dragpos : currpos;
@@ -291,62 +264,82 @@ export const Tabs: Component<
 		const afterpos = Math.max(dragpos, currpos);
 		this.afterEl.style.transform = `translateX(${afterpos}px)`;
 	};
-	const tabfuncs: TabCallbacks = {
-		relayout() {
-			layoutTabs(true);
-		},
-		getMaxDragPos() {
-			return getLayoutStart() + getRootWidth();
-		},
-		getAbsoluteStart() {
-			return getAbsoluteStart();
-		},
-		getLayoutStart() {
-			return getLayoutStart();
-		},
-
-		"on:transitionend": () => {
-			transitioningTabs--;
-			if (transitioningTabs == 0) {
-				this.tabs = this.tabs;
-			}
-		},
-		"on:setactive": (id: Symbol) => {
-			for (const tab of this.tabs) {
-				if (tab.$.state.id != id) tab.$.state.active = false;
-			}
-			// TODO on:active
-		},
-	};
-
-	this.tabs = [
-		(
-			<Tab
-				active={true}
-				icon="/vite.svg"
-				title="ViteViteViteViteViteVite  Vite Vite Vite"
-				funcs={tabfuncs}
-			/>
-		) as ComponentInstance<typeof Tab>,
-		(
-			<Tab
-				active={false}
-				icon="/vite.svg"
-				title="ViteViteViteViteViteVite  Vite Vite Vite"
-				funcs={tabfuncs}
-			/>
-		) as ComponentInstance<typeof Tab>,
-	];
 
 	cx.mount = () => {
 		requestAnimationFrame(() => layoutTabs(false));
 		window.addEventListener("resize", () => layoutTabs(false));
 	};
 
+	const getMaxDragPos = () => {
+		return getLayoutStart() + getRootWidth();
+	};
+
+	const calcDragPos = (e: MouseEvent, tab: TabData) => {
+		const root = getTabFromIndex(tab.id);
+		const maxPos = getMaxDragPos() - root.offsetWidth;
+
+		const pos = e.clientX - tab.dragoffset - getAbsoluteStart();
+
+		tab.dragpos = Math.min(Math.max(getLayoutStart(), pos), maxPos);
+		layoutTabs(true);
+	};
+
+	window.addEventListener("mousemove", (e: MouseEvent) => {
+		if (this.currentlydragging == -1) return;
+		calcDragPos(e, this.tabs.find((tab) => tab.id === this.currentlydragging)!);
+	});
+
+	window.addEventListener("mouseup", (e) => {
+		if (this.currentlydragging == -1) return;
+		const tab = this.tabs.find((tab) => tab.id === this.currentlydragging);
+		const root = getTabFromIndex(tab.id);
+		const dragroot = root.querySelector(".dragroot") as HTMLElement;
+
+		dragroot.style.width = "";
+		dragroot.style.position = "unset";
+		tab.dragoffset = -1;
+		tab.dragpos = -1;
+		layoutTabs(true);
+		this.currentlydragging = -1;
+	});
+
+	const mosueDown = (e: MouseEvent, tab: TabData) => {
+		tab.active = true;
+		this.currentlydragging = tab.id;
+
+		const root = getTabFromIndex(tab.id);
+		const rect = root.getBoundingClientRect();
+		root.style.zIndex = "100";
+		const dragroot = root.querySelector(".dragroot") as HTMLElement;
+		dragroot.style.width = rect.width + "px";
+		dragroot.style.position = "absolute";
+		tab.dragoffset = e.clientX - rect.left;
+
+		if (tab.dragoffset < 0) throw new Error("dragoffset must be positive");
+
+		calcDragPos(e, tab);
+	};
+
+	const transitionend = () => {
+		transitioningTabs--;
+		if (transitioningTabs == 0) {
+			this.tabs = this.tabs;
+		}
+	};
+
 	return (
 		<div this={use(this.container).bind()}>
 			<div class="extra left" this={use(this.leftEl).bind()}></div>
-			{use(this.tabs)}
+			{use(this.tabs).mapEach((tab) => (
+				<Tab
+					id={tab.id}
+					title={tab.title}
+					icon="/vite.svg"
+					active={use(tab.id).map((id) => id === this.currentlydragging)}
+					mousedown={(e) => mosueDown(e, tab)}
+					transitionend={transitionend}
+				/>
+			))}
 			<div class="extra after" this={use(this.afterEl).bind()}></div>
 			<div class="extra right" this={use(this.rightEl).bind()}></div>
 		</div>
