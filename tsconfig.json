@@ -5,8 +5,10 @@
 		"target": "ES2022",
 		"moduleResolution": "Bundler",
 		"module": "ES2022",
-		"noEmit": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+    "declaration": true,
+    "declarationDir": "./dist/types",
+    "emitDeclarationOnly": true,
 	},
 	"include": [
 		"src"

@@ -24,7 +24,7 @@ import { ScramjetClient } from "./client/client";
 import { ScramjetFrame } from "./controller/frame";
 import { Rewriter } from "./shared/rewriters/wasm";
 
-type ScramjetFlags = {
+export type ScramjetFlags = {
 	serviceworkers: boolean;
 	syncxhr: boolean;
 	naiiveRewriter: boolean;
@@ -36,7 +36,7 @@ type ScramjetFlags = {
 	sourcemaps: boolean;
 };
 
-interface ScramjetConfig {
+export interface ScramjetConfig {
 	prefix: string;
 	globals: {
 		wrapfn: string;
@@ -63,7 +63,7 @@ interface ScramjetConfig {
 	};
 }
 
-interface ScramjetInitConfig extends ScramjetConfig {
+export interface ScramjetInitConfig extends Omit<ScramjetConfig, "codec"> {
 	codec: {
 		encode: (url: string) => string;
 		decode: (url: string) => string;
