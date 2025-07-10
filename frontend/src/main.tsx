@@ -3,6 +3,12 @@ import "./style.css";
 import { createBrowser } from "./browser";
 import { createMenu } from "./Menu";
 let app = document.getElementById("app")!;
+import { BareMuxConnection, BareClient } from "@mercuryworkshop/bare-mux";
+
+let connection = new BareMuxConnection("/baremux/worker.js");
+connection.setTransport("/epoxy/index.mjs", [{ wisp: "wss://anura.pro" }]);
+export let client = new BareClient();
+console.log(client);
 
 let browser = createBrowser();
 (self as any).browser = browser;

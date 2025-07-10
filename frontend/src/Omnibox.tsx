@@ -10,6 +10,7 @@ import iconShield from "@ktibow/iconset-material-symbols/shield";
 import iconStar from "@ktibow/iconset-material-symbols/star";
 import iconSearch from "@ktibow/iconset-material-symbols/search";
 import { createMenu } from "./Menu";
+import { client } from "./main";
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -23,13 +24,41 @@ Spacer.css = `
 export const UrlInput: Component<
 	{},
 	{
+		value: string;
 		active: boolean;
 		input: HTMLInputElement;
 
 		overflowItems: string[];
 	}
 > = function (cx) {
+	this.value = "";
 	this.overflowItems = ["test", "test2", "test3", "test4", "test5"];
+	const fetchSuggestions = async () => {
+		console.log("fetched");
+		let resp = await client.fetch(
+			`http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(this.input.value)}`
+		);
+		let json = await resp.json();
+		console.log(json);
+		this.overflowItems = json[1].slice(0, 5);
+	};
+	let currentTimeout: number | null = null;
+	let ratelimiting = false;
+	let interval = 100;
+	use(this.value).listen(() => {
+		if (ratelimiting) {
+			if (currentTimeout) return;
+			// TODO: why is it using the node types here
+			currentTimeout = setTimeout(() => {
+				ratelimiting = false;
+				fetchSuggestions();
+				currentTimeout = null;
+			}, interval);
+		} else {
+			ratelimiting = true;
+			fetchSuggestions();
+		}
+	});
 	return (
 		<div
 			on:click={(e: MouseEvent) => {
@@ -61,7 +90,13 @@ export const UrlInput: Component<
 			</div>
 			<div class="realbar">
 				<IconButton icon={iconShield}></IconButton>
-				<input this={use(this.input).bind()}></input>
+				<input
+					this={use(this.input).bind()}
+					value={use(this.value).bind()}
+					on:input={(e: InputEvent) => {
+						this.value = (e.target as HTMLInputElement).value;
+					}}
+				></input>
 
 				<IconButton icon={iconStar}></IconButton>
 			</div>
