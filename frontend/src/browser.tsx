@@ -1,7 +1,9 @@
 import { createState, type Stateful } from "dreamland/core";
 import { ThemeVars, type Theme } from "./ui/theme";
-import { Tab, Tabs } from "./tabs";
-import { Omnibox } from "./Omnibox";
+import { Tabs, Tab } from "./tabs";
+import { IconButton, Omnibox } from "./Omnibox";
+import { scramjet } from "./main";
+import iconAdd from "@ktibow/iconset-material-symbols/add";
 
 class StatefulClass {
 	constructor(state: Stateful<any>) {
@@ -13,6 +15,9 @@ export class Browser extends StatefulClass {
 	built: boolean = false;
 
 	theme: Theme;
+	tabs: Tab[] = [];
+	activetab: number;
+
 	constructor(state: Stateful<any>) {
 		super(state);
 
@@ -39,14 +44,34 @@ export class Browser extends StatefulClass {
 		};
 	}
 
+	newTab(title: string) {
+		let frame = scramjet.createFrame();
+		let tab = new Tab(title, frame);
+		this.tabs = [...this.tabs, tab];
+		return tab;
+	}
+
 	build(): HTMLElement {
+		let tab = this.newTab("title");
+		this.activetab = tab.id;
 		if (this.built) throw new Error("already built");
 		this.built = true;
 
 		return (
 			<div>
 				<ThemeVars colors={use(this.theme)} />
-				<Tabs />
+				<div style="display: flex">
+					<Tabs
+						tabs={use(this.tabs).bind()}
+						activetab={use(this.activetab).bind()}
+					/>
+					<IconButton
+						icon={iconAdd}
+						click={() => {
+							this.newTab("tab 2");
+						}}
+					></IconButton>
+				</div>
 				<Omnibox />
 			</div>
 		);

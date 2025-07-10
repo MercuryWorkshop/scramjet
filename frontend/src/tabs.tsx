@@ -1,23 +1,14 @@
 import iconClose from "@ktibow/iconset-material-symbols/close";
-import iconAdd from "@ktibow/iconset-material-symbols/add";
 import {
 	createState,
 	type Component,
 	type ComponentInstance,
+	type Stateful,
 } from "dreamland/core";
 import { Icon } from "./ui/Icon";
+import { IconButton } from "./Omnibox";
 
-type TabCallbacks = {
-	relayout: () => void;
-	getMaxDragPos: () => number;
-	getLayoutStart: () => number;
-	getAbsoluteStart: () => number;
-
-	"on:transitionend": () => void;
-	"on:setactive": (id: Symbol) => void;
-};
-
-export const Tab: Component<{
+export const DragTab: Component<{
 	active: boolean;
 	id: number;
 	icon: string;
@@ -51,7 +42,7 @@ export const Tab: Component<{
 		</div>
 	);
 };
-Tab.css = `
+DragTab.css = `
 	:scope {
 		display: inline-block;
 		user-select: none;
@@ -138,35 +129,22 @@ Tab.css = `
 	}
 `;
 
-type TabData = Stateful<{
+let id = 0;
+export class Tab {
 	id: number;
 	title: string;
-	active: boolean;
+	frame: ScramjetFrame;
 
 	dragoffset: number;
 	dragpos: number;
 
 	width: number;
 	pos: number;
-}>;
-export const Tabs: Component<
-	{},
-	{
-		container: HTMLElement;
-		leftEl: HTMLElement;
-		rightEl: HTMLElement;
-		afterEl: HTMLElement;
 
-		tabs: TabData[];
-		currentlydragging: number;
-	},
-	{}
-> = function (cx) {
-	this.currentlydragging = -1;
-	let id = 0;
-	function mktab(title) {
+	constructor(title: string, frame: ScramjetFrame) {
 		return createState({
 			id: id++,
+			frame,
 			title,
 			dragoffset: -1,
 			dragpos: -1,
@@ -174,7 +152,23 @@ export const Tabs: Component<
 			pos: 0,
 		});
 	}
-	this.tabs = [mktab("T 1"), mktab("T 2")];
+}
+export const Tabs: Component<
+	{
+		tabs: Tab[];
+		activetab: number;
+	},
+	{
+		container: HTMLElement;
+		leftEl: HTMLElement;
+		rightEl: HTMLElement;
+		afterEl: HTMLElement;
+
+		currentlydragging: number;
+	},
+	{}
+> = function (cx) {
+	this.currentlydragging = -1;
 
 	const TAB_PADDING = 6;
 	const TAB_MAX_SIZE = 231;
@@ -264,6 +258,11 @@ export const Tabs: Component<
 		const afterpos = Math.max(dragpos, currpos);
 		this.afterEl.style.transform = `translateX(${afterpos}px)`;
 	};
+	use(this.tabs).listen(() => {
+		setTimeout(() => {
+			layoutTabs(true);
+		}, 10);
+	});
 
 	cx.mount = () => {
 		requestAnimationFrame(() => layoutTabs(false));
@@ -274,7 +273,7 @@ export const Tabs: Component<
 		return getLayoutStart() + getRootWidth();
 	};
 
-	const calcDragPos = (e: MouseEvent, tab: TabData) => {
+	const calcDragPos = (e: MouseEvent, tab: Tab) => {
 		const root = getTabFromIndex(tab.id);
 		const maxPos = getMaxDragPos() - root.offsetWidth;
 
@@ -291,7 +290,7 @@ export const Tabs: Component<
 
 	window.addEventListener("mouseup", (e) => {
 		if (this.currentlydragging == -1) return;
-		const tab = this.tabs.find((tab) => tab.id === this.currentlydragging);
+		const tab = this.tabs.find((tab) => tab.id === this.currentlydragging)!;
 		const root = getTabFromIndex(tab.id);
 		const dragroot = root.querySelector(".dragroot") as HTMLElement;
 
@@ -303,8 +302,7 @@ export const Tabs: Component<
 		this.currentlydragging = -1;
 	});
 
-	const mosueDown = (e: MouseEvent, tab: TabData) => {
-		tab.active = true;
+	const mosueDown = (e: MouseEvent, tab: Tab) => {
 		this.currentlydragging = tab.id;
 
 		const root = getTabFromIndex(tab.id);
@@ -331,11 +329,11 @@ export const Tabs: Component<
 		<div this={use(this.container).bind()}>
 			<div class="extra left" this={use(this.leftEl).bind()}></div>
 			{use(this.tabs).mapEach((tab) => (
-				<Tab
+				<DragTab
 					id={tab.id}
 					title={tab.title}
 					icon="/vite.svg"
-					active={use(tab.id).map((id) => id === this.currentlydragging)}
+					active={use(this.activetab).map((x) => x === tab.id)}
 					mousedown={(e) => mosueDown(e, tab)}
 					transitionend={transitionend}
 				/>
@@ -347,6 +345,7 @@ export const Tabs: Component<
 };
 Tabs.css = `
 	:scope {
+	flex: 1;
 		background: var(--aboutbrowser-frame-bg);
 		padding: 6px 12px;
 		height: calc(28px + 12px);
