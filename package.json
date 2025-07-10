@@ -14,7 +14,7 @@
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
 		"dev:debug": "DEBUG=1 node server.js",
-		"prepack": "RELEASE=1 npm run rewriter:build && npm run build",
+		"prepack": "RELEASE=1 npm run rewriter:build && tsc && npm run build",
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
