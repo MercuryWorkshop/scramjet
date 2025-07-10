@@ -110,11 +110,15 @@ jobs:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
           submodules: recursive
+      - name: Tell gha to work properly
+        run: |
+          cp ./wpt-diff/action.yml .github/workflows/action.yml
 
       - name: Run WPT-Diff
         uses: ./wpt-diff/
         with:
-          proxyName: scramjet
+          artifact_name: 'wpt-report-scramjet'
+          location: './wpt-diff/'
 
       - name: Kill Scramjet Demo
         if: always()
