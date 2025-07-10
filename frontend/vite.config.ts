@@ -1,22 +1,29 @@
 import { defineConfig } from "vite";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
+import { scramjetPath } from "@mercuryworkshop/scramjet";
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
+
+import { viteStaticCopy } from "vite-plugin-static-copy";
 console.log(epoxyPath, baremuxPath);
 
 export default defineConfig({
 	plugins: [
-		{
-			name: "static-files",
-			configureServer(server) {
-				server.middlewares.use((req, res, next) => {
-					if (req.url.startsWith("/epoxy/")) {
-						req.url = req.url.replace("/epoxy/", epoxyPath + "/");
-					} else if (req.url.startsWith("/baremux/")) {
-						req.url = req.url.replace("/baremux/", baremuxPath + "/");
-					}
-					next();
-				});
-			},
-		},
+		viteStaticCopy({
+			structured: false,
+			targets: [
+				{
+					src: epoxyPath + "/*",
+					dest: "epoxy/",
+				},
+				{
+					src: baremuxPath + "/*",
+					dest: "baremux/",
+				},
+				{
+					src: scramjetPath + "/*",
+					dest: "scram/",
+				},
+			],
+		}),
 	],
 });

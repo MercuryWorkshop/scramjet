@@ -33,6 +33,7 @@ const scramjet = new ScramjetController({
 
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
+let frame = scramjet.createFrame();
 
 let browser = createBrowser();
 (self as any).browser = browser;
