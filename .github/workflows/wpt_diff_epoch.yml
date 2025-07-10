@@ -112,7 +112,7 @@ jobs:
           submodules: recursive
 
       - name: Run WPT-Diff
-        uses: ./wpt-diff-repo/.github/actions/wpt_diff
+        uses: ./wpt-diff-repo/.github/actions/wpt_diff.yml
         with:
           proxyName: scramjet
           wpt_max_tests: 999999999
