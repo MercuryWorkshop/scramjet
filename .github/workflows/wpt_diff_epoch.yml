@@ -166,7 +166,7 @@ jobs:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
 
-      - name: Checkout Web Platform Tests
+      - name: Checkout WPT
         uses: actions/checkout@v4
         with:
           repository: web-platform-tests/wpt
@@ -248,14 +248,14 @@ jobs:
           api_base_url = "https://wpt.fyi"
           EOF
 
-      - name: Start WPT server
+      - name: Start WPT Server
         working-directory: wpt-diff/wpt
         run: |
           ./wpt serve --no-h2 &
           echo "WPT_PID=$!" >> "$GITHUB_ENV"
           sleep 10
 
-      - name: Run WPT-Diff shard
+      - name: Run WPT-Diff Shard
         uses: GabrielBB/xvfb-action@v1
         env:
           CI: true
@@ -270,14 +270,14 @@ jobs:
             kill "$DEMO_PID" || true
           fi
 
-      - name: Stop WPT server
+      - name: Stop WPT Server
         if: always()
         run: |
           if [ -n "$WPT_PID" ]; then
             kill "$WPT_PID" || true
           fi
 
-      - name: Upload shard artifacts
+      - name: Upload Shard Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wpt-shard-results-${{ matrix.shard }}
@@ -286,7 +286,7 @@ jobs:
             wpt-diff/failed-tests.json
 
   combine-reports:
-    name: Combine and upload final reports
+    name: Combine and upload final Reports
     runs-on: ubuntu-latest
     needs: wpt-diff
     if: success() && needs.wpt-diff.result == 'success'
@@ -298,7 +298,7 @@ jobs:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
 
-      - name: Combine reports and run regression check
+      - name: Combine Reports and run Regression Check
         uses: ./wpt-diff/
         with:
           location: wpt-diff
