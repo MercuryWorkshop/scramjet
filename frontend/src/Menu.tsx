@@ -6,6 +6,11 @@ export const Menu: Component<{
 	y: number;
 	items: { label: string; action?: () => void }[];
 }> = function (cx) {
+	const close = () => {
+		cx.root.remove();
+		browser.unfocusframes = false;
+	};
+
 	cx.mount = () => {
 		browser.unfocusframes = true;
 		document.body.appendChild(cx.root);
@@ -15,22 +20,8 @@ export const Menu: Component<{
 		if (this.x > maxX) this.x = maxX;
 		if (this.y > maxY) this.y = maxY;
 
-		document.body.addEventListener(
-			"click",
-			() => {
-				cx.root.remove();
-				browser.unfocusframes = false;
-			},
-			{ once: true }
-		);
-		document.body.addEventListener(
-			"contextmenu",
-			() => {
-				cx.root.remove();
-				browser.unfocusframes = false;
-			},
-			{ once: true }
-		);
+		document.body.addEventListener("click", close, { once: true });
+		document.body.addEventListener("contextmenu", close, { once: true });
 
 		cx.root.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -39,7 +30,15 @@ export const Menu: Component<{
 	return (
 		<div style={use`--x: ${this.x}px; --y: ${this.y}px;`}>
 			{use(this.items).mapEach((item) => (
-				<button on:click={() => item.action?.()}>{item.label}</button>
+				<button
+					on:click={(e: MouseEvent) => {
+						item.action?.();
+						close();
+						e.stopPropagation();
+					}}
+				>
+					{item.label}
+				</button>
 			))}
 		</div>
 	);
