@@ -87,25 +87,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Setup Rust toolchain
-        env:
-          RUSTUP_TOOLCHAIN: nightly-2025-07-10
-        run: |
-          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src --target wasm32-unknown-unknown
-          rustup default "$RUSTUP_TOOLCHAIN"
-          cd rewriter
-          rustup show
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
-        env:
-          RUSTUP_TOOLCHAIN: nightly-2025-07-10
         with:
           workspaces: "rewriter"
           cache-all-crates: true
-          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST WASM_BINDGEN RUSTUP_TOOLCHAIN"
+          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST WASM_BINDGEN"
           cache-targets: true
           cache-bin: true
+
+      - name: Setup Rust toolchain
+        run: |
+          cd rewriter
+          rustup show
 
       - name: Install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
@@ -296,10 +290,7 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           working-directory: wpt-diff
-          run: |
-            SHARD_COUNT="${{ github.event.inputs.shard_count || '2' }}"
-            MAX_TESTS_ARG="${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}"
-            pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_ARG
+          run: pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.shard_count || '2' }}" ${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}
 
       - name: Stop Scramjet demo server
         if: always()
