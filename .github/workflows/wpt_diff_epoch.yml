@@ -191,6 +191,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
+      - name: Restore Typia Validators Cache
+        id: typia-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: wpt-diff/generatedValidators/
+          key: ${{ runner.os }}-typia-${{ hashFiles('wpt-diff/src/util/validators/**/*.ts', 'wpt-diff/types/**/*.ts', 'wpt-diff/tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-typia-
+
       - name: Install dependencies and setup
         run: |
           cd wpt-diff
@@ -199,7 +208,10 @@ jobs:
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != 'true' ]; then
             pnpm exec playwright install chromium
           fi
-          pnpm generate:validators
+          # Generate validators only if cache miss
+          if [ "${{ steps.typia-cache.outputs.cache-hit }}" != 'true' ]; then
+            pnpm generate:validators
+          fi
 
       - name: Save Playwright browsers cache
         if: steps.playwright-cache.outputs.cache-hit != 'true'
@@ -210,6 +222,13 @@ jobs:
             ~/Library/Caches/ms-playwright
             C:\\Users\\runneradmin\\AppData\\Local\\ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('wpt-diff/pnpm-lock.yaml') }}
+
+      - name: Save typia validators cache
+        if: steps.typia-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: wpt-diff/generatedValidators/
+          key: ${{ runner.os }}-typia-${{ hashFiles('wpt-diff/src/util/validators/**/*.ts', 'wpt-diff/types/**/*.ts', 'wpt-diff/tsconfig.json') }}
 
       - name: Generate WPT-Diff config
         working-directory: wpt-diff
@@ -238,11 +257,11 @@ jobs:
 
       - name: Run WPT-Diff shard
         uses: GabrielBB/xvfb-action@v1
+        env:
+          CI: true
         with:
-          run: |
-            cd wpt-diff && \
-            export CI=true && \
-            pnpm start --report wpt-report.json --output-failed failed-tests.json --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}"
+          working-directory: wpt-diff
+          run: pnpm start --report wpt-report.json --output-failed failed-tests.json --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}"
 
       - name: Stop Scramjet Demo Server
         if: always()
@@ -270,7 +289,7 @@ jobs:
     name: Combine and upload final reports
     runs-on: ubuntu-latest
     needs: wpt-diff
-    if: always() && needs.wpt-diff.result != 'cancelled'
+    if: success() && needs.wpt-diff.result == 'success'
 
     steps:
       - name: Checkout WPT-diff
