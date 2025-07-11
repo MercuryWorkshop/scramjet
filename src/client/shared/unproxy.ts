@@ -51,6 +51,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("IntersectionObserver", {
 		construct(ctx) {
 			unproxy(ctx, client);
+			if (typeof ctx.args[1] === "object" && "root" in ctx.args[1])
+				if (ctx.args[1].root === client.documentProxy)
+					ctx.args[1].root = self.document;
 		},
 	});
 
