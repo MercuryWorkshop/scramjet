@@ -14,6 +14,8 @@ export const DragTab: Component<{
 	icon: string;
 	title: string;
 	mousedown: (e: MouseEvent) => void;
+	click: () => void;
+	destroy: () => void;
 	transitionend: () => void;
 }> = function (cx) {
 	return (
@@ -29,11 +31,23 @@ export const DragTab: Component<{
 				this.transitionend();
 			}}
 		>
-			<div class="dragroot" style="position: unset;">
+			<div
+				class="dragroot"
+				style="position: unset;"
+				on:click={() => this.click()}
+			>
 				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
 					<img src={use(this.icon)} />
 					<span>{use(this.title)}</span>
-					<Icon class="close" icon={iconClose} />
+					<button
+						class="close"
+						on:click={(e) => {
+							e.stopPropagation();
+							this.destroy();
+						}}
+					>
+						<Icon icon={iconClose} />
+					</button>
 				</div>
 				{/* <div class="belowcontainer">
 					{use(this.active).andThen(<div class="below"></div>)}
@@ -79,9 +93,22 @@ DragTab.css = `
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
-	.main .close {
+	.main .close > * {
 		width: 14px;
 		height: 14px;
+	}
+	.close {
+	   outline: none;
+    border: none;
+    background: none;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+    margin-left: 8px;
 	}
 
 	.main:not(.active):hover {
@@ -134,6 +161,7 @@ export class Tab {
 	id: number;
 	title: string;
 	frame: ScramjetFrame;
+	url: string;
 
 	dragoffset: number;
 	dragpos: number;
@@ -146,6 +174,7 @@ export class Tab {
 			id: id++,
 			frame,
 			title,
+			url: "puter://blank",
 			dragoffset: -1,
 			dragpos: -1,
 			width: 0,
@@ -156,7 +185,8 @@ export class Tab {
 export const Tabs: Component<
 	{
 		tabs: Tab[];
-		activetab: number;
+		activetab: Tab;
+		destroyTab: (tab: Tab) => void;
 	},
 	{
 		container: HTMLElement;
@@ -302,7 +332,7 @@ export const Tabs: Component<
 		this.currentlydragging = -1;
 	});
 
-	const mosueDown = (e: MouseEvent, tab: Tab) => {
+	const mouseDown = (e: MouseEvent, tab: Tab) => {
 		this.currentlydragging = tab.id;
 
 		const root = getTabFromIndex(tab.id);
@@ -333,8 +363,16 @@ export const Tabs: Component<
 					id={tab.id}
 					title={tab.title}
 					icon="/vite.svg"
-					active={use(this.activetab).map((x) => x === tab.id)}
-					mousedown={(e) => mosueDown(e, tab)}
+					active={use(this.activetab).map((x) => x === tab)}
+					mousedown={(e) => mouseDown(e, tab)}
+					click={() => {
+						if (this.activetab !== tab) {
+							this.activetab = tab;
+						}
+					}}
+					destroy={() => {
+						this.destroyTab(tab);
+					}}
 					transitionend={transitionend}
 				/>
 			))}

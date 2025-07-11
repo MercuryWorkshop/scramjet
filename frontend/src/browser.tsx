@@ -4,6 +4,17 @@ import { Tabs, Tab } from "./tabs";
 import { IconButton, Omnibox } from "./Omnibox";
 import { scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-material-symbols/add";
+import { popTab, pushTab, Shell } from "./Shell";
+
+// let a = createState({
+// 	b: createState({
+// 		c: "test",
+// 	}),
+// });
+// use(a.b.c).listen((v) => {
+// 	console.log("a.b.c changed to", v);
+// });
+// a.b.c = "test2";
 
 class StatefulClass {
 	constructor(state: Stateful<any>) {
@@ -16,7 +27,7 @@ export class Browser extends StatefulClass {
 
 	theme: Theme;
 	tabs: Tab[] = [];
-	activetab: number;
+	activetab: Tab;
 
 	constructor(state: Stateful<any>) {
 		super(state);
@@ -47,23 +58,51 @@ export class Browser extends StatefulClass {
 	newTab(title: string) {
 		let frame = scramjet.createFrame();
 		let tab = new Tab(title, frame);
+		frame.go("https://google.com");
+		frame.addEventListener("navigate", (e) => {
+			console.error(e);
+			tab.url = frame.client.url.href;
+		});
+		frame.frame.addEventListener("load", (e) => {
+			tab.url = frame.client.url.href;
+		});
+		use(tab.url).listen(() => {
+			this.activetab = this.activetab;
+		});
+		pushTab(tab);
 		this.tabs = [...this.tabs, tab];
+		this.activetab = tab;
 		return tab;
 	}
 
+	destroyTab(tab: Tab) {
+		this.tabs = this.tabs.filter((t) => t !== tab);
+		console.log(this.tabs);
+		if (this.activetab === tab) {
+			this.activetab = this.tabs[0] || this.newTab("New Tab");
+		}
+		console.log(this.tabs);
+
+		console.log(this.activetab);
+		popTab(tab);
+	}
+
 	build(): HTMLElement {
+		let shell = <Shell tabs={use(this.tabs)} activetab={use(this.activetab)} />;
+
 		let tab = this.newTab("title");
-		this.activetab = tab.id;
+		this.activetab = tab;
 		if (this.built) throw new Error("already built");
 		this.built = true;
 
 		return (
 			<div>
 				<ThemeVars colors={use(this.theme)} />
-				<div style="display: flex">
+				<div style="display: flex; align-items: center; background: var(--aboutbrowser-frame-bg)">
 					<Tabs
 						tabs={use(this.tabs).bind()}
 						activetab={use(this.activetab).bind()}
+						destroyTab={(tab) => this.destroyTab(tab)}
 					/>
 					<IconButton
 						icon={iconAdd}
@@ -72,7 +111,8 @@ export class Browser extends StatefulClass {
 						}}
 					></IconButton>
 				</div>
-				<Omnibox />
+				<Omnibox value={use(this.activetab.url)} />
+				{shell}
 			</div>
 		);
 	}

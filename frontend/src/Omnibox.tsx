@@ -22,9 +22,10 @@ Spacer.css = `
 `;
 
 export const UrlInput: Component<
-	{},
 	{
 		value: string;
+	},
+	{
 		active: boolean;
 		input: HTMLInputElement;
 
@@ -34,7 +35,6 @@ export const UrlInput: Component<
 	}
 > = function (cx) {
 	this.focusindex = 0;
-	this.value = "";
 	this.overflowItems = ["test", "test2", "test3", "test4", "test5"];
 	const fetchSuggestions = async () => {
 		let resp = await client.fetch(
@@ -218,14 +218,16 @@ IconButton.css = `
   }
 `;
 
-export const Omnibox: Component<{}> = function (cx) {
+export const Omnibox: Component<{
+	value: string;
+}> = function (cx) {
 	return (
 		<div>
 			<IconButton icon={iconBack}></IconButton>
 			<IconButton icon={iconForwards}></IconButton>
 			<IconButton icon={iconRefresh}></IconButton>
 			<Spacer></Spacer>
-			<UrlInput></UrlInput>
+			<UrlInput value={use(this.value)}></UrlInput>
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>
 			<IconButton
