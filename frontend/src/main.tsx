@@ -42,6 +42,9 @@ try {
 	built.id = "app";
 
 	app.replaceWith(built);
+	built.addEventListener("contextmenu", (e) => {
+		e.preventDefault();
+	});
 } catch (e) {
 	let err = e as any;
 	app.replaceWith(

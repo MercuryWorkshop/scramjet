@@ -23,6 +23,14 @@ export const Menu: Component<{
 			},
 			{ once: true }
 		);
+		document.body.addEventListener(
+			"contextmenu",
+			() => {
+				cx.root.remove();
+				browser.unfocusframes = false;
+			},
+			{ once: true }
+		);
 
 		cx.root.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -46,9 +54,19 @@ Menu.css = `
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    padding: 8px;
     display: flex;
     flex-direction: column;
+    min-width: 10em;
+  }
+  button {
+    background: none;
+    border: none;
+    font-size: 0.8em;
+    padding: 1em;
+    text-align: left;
+  }
+  button:hover {
+    background: #f0f0f0;
   }
 `;
 

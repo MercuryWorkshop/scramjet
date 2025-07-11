@@ -69,15 +69,52 @@ export class Browser extends StatefulClass {
 		frame.frame.addEventListener("load", (e) => {
 			tab.url = frame.client.url.href;
 		});
-		frame.addEventListener("contextInit", (e) => {
-			const framedoc = frame.frame.contentDocument!;
+		frame.addEventListener("contextInit", (ctx) => {
+			const framedoc = ctx.window.document;
 
 			framedoc.addEventListener("contextmenu", (e) => {
-				createMenu(e.x, e.y, [
+				// need to calculate the real position of the frame relative to the top
+				let xoff = 0;
+				let yoff = 0;
+				let currentwin = ctx.window;
+				while (currentwin.parent && currentwin.frameElement) {
+					// this will return true until the end of the scramjet boundary
+					let { x, y } = currentwin.frameElement.getBoundingClientRect();
+					xoff += x;
+					yoff += y;
+					currentwin = currentwin.parent;
+				}
+				// parent is trapped, so it won't calculate the topmost iframe. do that manually
+				let { x, y } = frame.frame.getBoundingClientRect();
+				xoff += x;
+				yoff += y;
+				createMenu(xoff + e.pageX, yoff + e.pageY, [
 					{
-						label: "??",
+						label: "Back",
+						action: () => {
+							frame.back();
+						},
+					},
+					{
+						label: "Forward",
+						action: () => {
+							frame.forward();
+						},
+					},
+					{
+						label: "Reload",
+						action: () => {
+							frame.reload();
+						},
+					},
+					{
+						label: "Bookmark",
+						action: () => {
+							console.log("Bookmarking", tab.title, tab.url);
+						},
 					},
 				]);
+				e.preventDefault();
 			});
 			const head = framedoc.querySelector("head")!;
 			const observer = new MutationObserver(() => {
