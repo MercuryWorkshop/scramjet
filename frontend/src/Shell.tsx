@@ -1,5 +1,6 @@
 import type { Component } from "dreamland/core";
 import type { Tab } from "./tabs";
+import { browser } from "./main";
 
 export let pushTab: (tab: Tab) => void;
 export let popTab: (tab: Tab) => void;
@@ -28,11 +29,14 @@ export const Shell: Component<{
 		}
 	};
 
-	return <div></div>;
+	return <div class:unfocus={use(browser.unfocusframes)}></div>;
 };
 Shell.css = `
   :scope {
     flex: 1;
+  }
+  .unfocus {
+    pointer-events: none;
   }
   .container {
     width: 100%;

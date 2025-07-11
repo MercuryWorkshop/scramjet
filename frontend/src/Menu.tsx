@@ -1,4 +1,5 @@
 import type { Component, DLElement } from "dreamland/core";
+import { browser } from "./main";
 
 export const Menu: Component<{
 	x: number;
@@ -6,6 +7,7 @@ export const Menu: Component<{
 	items: { label: string; action?: () => void }[];
 }> = function (cx) {
 	cx.mount = () => {
+		browser.unfocusframes = true;
 		document.body.appendChild(cx.root);
 		const { top, left, width, height } = cx.root.getBoundingClientRect();
 		let maxX = document.documentElement.clientWidth - width;
@@ -17,6 +19,7 @@ export const Menu: Component<{
 			"click",
 			() => {
 				cx.root.remove();
+				browser.unfocusframes = false;
 			},
 			{ once: true }
 		);

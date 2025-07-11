@@ -34,20 +34,12 @@ export const scramjet = new ScramjetController({
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
-let browser = createBrowser();
+export let browser = createBrowser();
 (self as any).browser = browser;
 
 try {
 	let built = browser.build();
 	built.id = "app";
-	built.addEventListener("contextmenu", (e) => {
-		createMenu(e.x, e.y, [
-			{
-				label: "Reload",
-			},
-		]);
-		e.preventDefault();
-	});
 
 	app.replaceWith(built);
 } catch (e) {

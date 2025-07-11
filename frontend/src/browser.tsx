@@ -5,6 +5,7 @@ import { IconButton, Omnibox } from "./Omnibox";
 import { scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-material-symbols/add";
 import { popTab, pushTab, Shell } from "./Shell";
+import { createMenu } from "./Menu";
 
 // let a = createState({
 // 	b: createState({
@@ -28,6 +29,8 @@ export class Browser extends StatefulClass {
 	theme: Theme;
 	tabs: Tab[] = [];
 	activetab: Tab;
+
+	unfocusframes: boolean = false;
 
 	constructor(state: Stateful<any>) {
 		super(state);
@@ -68,6 +71,14 @@ export class Browser extends StatefulClass {
 		});
 		frame.addEventListener("contextInit", (e) => {
 			const framedoc = frame.frame.contentDocument!;
+
+			framedoc.addEventListener("contextmenu", (e) => {
+				createMenu(e.x, e.y, [
+					{
+						label: "??",
+					},
+				]);
+			});
 			const head = framedoc.querySelector("head")!;
 			const observer = new MutationObserver(() => {
 				const title = framedoc.querySelector("title");

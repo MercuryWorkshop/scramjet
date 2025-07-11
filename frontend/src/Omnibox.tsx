@@ -10,7 +10,7 @@ import iconShield from "@ktibow/iconset-material-symbols/shield";
 import iconStar from "@ktibow/iconset-material-symbols/star";
 import iconSearch from "@ktibow/iconset-material-symbols/search";
 import { createMenu } from "./Menu";
-import { client } from "./main";
+import { browser, client } from "./main";
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -70,8 +70,10 @@ export const UrlInput: Component<
 		<div
 			on:click={(e: MouseEvent) => {
 				this.active = true;
+				browser.unfocusframes = true;
 				document.body.addEventListener("click", (e) => {
 					this.active = false;
+					browser.unfocusframes = false;
 					e.stopPropagation();
 				});
 				this.input.focus();
