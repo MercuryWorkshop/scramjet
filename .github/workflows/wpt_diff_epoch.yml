@@ -1,4 +1,4 @@
-name: WPT-diff Tests
+name: WPT Test Results
 
 on:
   schedule:
@@ -6,21 +6,31 @@ on:
     - cron: "30 0 * * *"
   workflow_dispatch:
     inputs:
-      test_mode:
-        description: "Run in test mode (fewer shards)"
+      shard_count:
+        description: "Number of shards to run"
         required: false
-        default: true
+        default: "2"
+        type: string
+      max_tests:
+        description: "Maximum total number of tests (divided across shards)"
+        required: false
+        default: ""
+        type: string
+      skip_combiner:
+        description: "Skip the report combination step"
+        required: false
+        default: false
         type: boolean
 
 jobs:
   check-changes:
-    name: Check for Changes
+    name: Check for changes
     runs-on: ubuntu-latest
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
 
     steps:
-      - name: Checkout Scramjet
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
@@ -53,14 +63,14 @@ jobs:
             echo "No changes detected (skipping tests)"
           fi
 
-  build:
-    name: Build Scramjet for WPT-diff
+  build-scramjet:
+    name: Build Scramjet
     runs-on: ubuntu-latest
     needs: check-changes
     if: needs.check-changes.outputs.should-run == 'true'
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
@@ -94,12 +104,12 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
 
-      - name: install wbg
+      - name: Install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
         with:
           version: 0.2.100
 
-      - name: Setup Binaryen
+      - name: Setup binaryen
         uses: Aandreba/setup-binaryen@v1.0.0
         with:
           token: ${{ github.token }}
@@ -110,34 +120,55 @@ jobs:
       - name: Pack Scramjet
         run: pnpm pack
 
-      - name: Upload Artifact (pnpm pack)
+      - name: Upload artifact (pnpm pack)
         uses: actions/upload-artifact@v4
         with:
           name: packaged-scramjet
           path: mercuryworkshop-scramjet-*.tgz
 
-      - name: Upload Artifact (dist)
+      - name: Upload artifact (dist)
         uses: actions/upload-artifact@v4
         with:
-          name: scramjet
+          name: scramjet-dist
           path: |
             dist/*.js
             dist/*.js.map
             dist/*.wasm
 
-  wpt-diff:
-    name: Run WPT-diff Tests (Shard ${{ matrix.shard }})
+  generate-matrix:
+    name: Generate shard matrix
     runs-on: ubuntu-latest
-    needs: build
+    needs: check-changes
+    if: needs.check-changes.outputs.should-run == 'true'
+    outputs:
+      shards: ${{ steps.generate.outputs.shards }}
+    steps:
+      - name: Generate shard list
+        id: generate
+        run: |
+          SHARD_COUNT="${{ github.event.inputs.shard_count || '2' }}"
+          SHARDS=$(seq -s'", "' 1 $SHARD_COUNT)
+          echo "shards=[\"$SHARDS\"]" >> "$GITHUB_OUTPUT"
+
+  run-wpt-tests:
+    name: WPT tests (shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    needs: [build-scramjet, generate-matrix]
     timeout-minutes: 350
     strategy:
-      fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event.inputs.test_mode == 'true' && '[1, 2]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
+        shard: ${{ fromJson(needs.generate-matrix.outputs.shards) }}
+      fail-fast: false
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet-dist
+          path: dist
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -158,19 +189,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: scramjet
-          path: dist
-
-      - name: Start Scramjet Demo Server
-        run: |
-          pnpm start &
-          DEMO_PID="$!"
-          echo "DEMO_PID=$DEMO_PID" >> "$GITHUB_ENV"
-          sleep 10
-
       - name: Checkout WPT-diff
         uses: actions/checkout@v4
         with:
@@ -181,7 +199,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: web-platform-tests/wpt
-          ref: master
+          ref: epochs/daily
           path: wpt-diff/wpt
           fetch-depth: 1
 
@@ -202,7 +220,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      - name: Restore Typia Validators Cache
+      - name: Restore Typia validators cache
         id: typia-cache
         uses: actions/cache/restore@v4
         with:
@@ -211,7 +229,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-typia-
 
-      - name: Install dependencies and setup
+      - name: Setup WPT-diff dependencies
         run: |
           cd wpt-diff
           pnpm install
@@ -234,14 +252,20 @@ jobs:
             C:\\Users\\runneradmin\\AppData\\Local\\ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('wpt-diff/pnpm-lock.yaml') }}
 
-      - name: Save typia validators cache
+      - name: Save Typia validators cache
         if: steps.typia-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: wpt-diff/generatedValidators/
           key: ${{ runner.os }}-typia-${{ hashFiles('wpt-diff/src/util/validators/**/*.ts', 'wpt-diff/types/**/*.ts', 'wpt-diff/tsconfig.json') }}
 
-      - name: Generate WPT-Diff config
+      - name: Start Scramjet demo server
+        run: |
+          pnpm start &
+          DEMO_PID="$!"
+          echo "DEMO_PID=$DEMO_PID" >> "$GITHUB_ENV"
+
+      - name: Generate WPT-diff config
         working-directory: wpt-diff
         run: |
           cat > config.toml << EOF
@@ -259,48 +283,54 @@ jobs:
           api_base_url = "https://wpt.fyi"
           EOF
 
-      - name: Start WPT Server
+      - name: Start WPT server
         working-directory: wpt-diff/wpt
         run: |
           ./wpt serve --no-h2 &
           echo "WPT_PID=$!" >> "$GITHUB_ENV"
-          sleep 10
 
-      - name: Run WPT-Diff Shard
+      - name: Run WPT tests
         uses: GabrielBB/xvfb-action@v1
         env:
           CI: true
         with:
           working-directory: wpt-diff
-          run: pnpm start --report wpt-report.json --output-failed failed-tests.json --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}"
+          run: |
+            SHARD_COUNT="${{ github.event.inputs.shard_count || '2' }}"
+            MAX_TESTS_FLAG=""
+            if [ "${{ github.event.inputs.max_tests }}" != "" ]; then
+              MAX_TESTS_FLAG="--max-tests ${{ github.event.inputs.max_tests }}"
+            fi
+            pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_FLAG
 
-      - name: Stop Scramjet Demo Server
+      - name: Stop Scramjet demo server
         if: always()
         run: |
           if [ -n "$DEMO_PID" ]; then
             kill "$DEMO_PID" || true
           fi
 
-      - name: Stop WPT Server
+      - name: Stop WPT server
         if: always()
         run: |
           if [ -n "$WPT_PID" ]; then
             kill "$WPT_PID" || true
           fi
 
-      - name: Upload Shard Artifacts
+      - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
-          name: wpt-shard-results-${{ matrix.shard }}
+          name: wpt-test-results-shard-${{ matrix.shard }}
           path: |
-            wpt-diff/wpt-report.json
+            wpt-diff/wpt-report-diff.json
+            wpt-diff/wpt-report-proxy.json
             wpt-diff/failed-tests.json
 
-  combine-reports:
-    name: Combine and upload final Reports
+  combine-and-upload-reports:
+    name: Combine and upload reports
+    needs: [build-scramjet, generate-matrix, run-wpt-tests]
+    if: ${{ !cancelled() && needs.run-wpt-tests.result != 'failure' && github.event.inputs.skip_combiner != 'true' }}
     runs-on: ubuntu-latest
-    needs: wpt-diff
-    if: success() && needs.wpt-diff.result == 'success'
 
     steps:
       - name: Checkout WPT-diff
@@ -309,12 +339,12 @@ jobs:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
 
-      - name: Combine Reports and run Regression Check
+      - name: Combine reports and run regression check
         uses: ./wpt-diff/
         with:
           location: wpt-diff
           enable_regression_check: false
           github_repository: MercuryWorkshop/WPT-diff
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          regression_check_workflow_name: "WPT-diff Tests"
-          artifact_name: wpt-diff-reports
+          regression_check_workflow_name: "WPT Test Results"
+          artifact_name: wpt-test-reports
