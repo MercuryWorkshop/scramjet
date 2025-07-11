@@ -36,6 +36,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "rewriter -> target"
+          cache-all-crates: true
+
       - name: install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
         with:
