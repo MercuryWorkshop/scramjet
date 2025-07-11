@@ -87,29 +87,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Pin Rust nightly snapshot
-        run: |
-          SNAPSHOT=nightly-2025-07-10
-          rustup toolchain install "$SNAPSHOT" --profile minimal --component rust-src --target wasm32-unknown-unknown
-          rustup override set "$SNAPSHOT"
-          echo "RUSTUP_TOOLCHAIN=$SNAPSHOT" >> "$GITHUB_ENV"
-
       - name: Setup Rust toolchain
+        env:
+          RUSTUP_TOOLCHAIN: nightly-2025-07-10
         run: |
+          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --component rust-src --target wasm32-unknown-unknown
+          rustup default "$RUSTUP_TOOLCHAIN"
           cd rewriter
           rustup show
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
+        env:
+          RUSTUP_TOOLCHAIN: nightly-2025-07-10
         with:
           workspaces: "rewriter"
           cache-all-crates: true
           env-vars: "CARGO CC CFLAGS CXX CMAKE RUST WASM_BINDGEN RUSTUP_TOOLCHAIN"
           cache-targets: true
-          cache-directories: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
+          cache-bin: true
 
       - name: Install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
@@ -121,8 +117,8 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - name: Setup wasm-snip
-        run: "cargo install --git https://github.com/r58playz/wasm-snip"
+      - name: Install wasm-snip
+        run: cargo install --git https://github.com/r58playz/wasm-snip
 
       - name: Pack Scramjet
         run: pnpm pack
@@ -298,13 +294,11 @@ jobs:
 
       - name: Run WPT tests
         uses: GabrielBB/xvfb-action@v1
-        env:
-          CI: true
-          SHARD_COUNT: ${{ github.event.inputs.shard_count || '2' }}
-          MAX_TESTS_ARG: ${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}
         with:
           working-directory: wpt-diff
           run: |
+            SHARD_COUNT="${{ github.event.inputs.shard_count || '2' }}"
+            MAX_TESTS_ARG="${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}"
             pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_ARG
 
       - name: Stop Scramjet demo server
