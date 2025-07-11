@@ -114,9 +114,9 @@ jobs:
     needs: build
     timeout-minutes: 350
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event.inputs.test_mode == 'true' && '[0, 1]' || '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]') }}
+        shard: ${{ fromJSON(github.event.inputs.test_mode == 'true' && '[1, 2]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
 
     steps:
       - name: Checkout code
@@ -150,7 +150,7 @@ jobs:
       - name: Start demo server
         run: |
           pnpm start &
-          DEMO_PID=$!
+          DEMO_PID="$!"
           echo "DEMO_PID=$DEMO_PID" >> "$GITHUB_ENV"
           sleep 10
 
@@ -227,7 +227,7 @@ jobs:
         working-directory: wpt-diff/wpt
         run: |
           ./wpt serve --no-h2 &
-          echo "WPT_PID=$!" >> $GITHUB_ENV
+          echo "WPT_PID=$!" >> "$GITHUB_ENV"
           sleep 10
 
       - name: Run WPT-Diff shard
@@ -236,13 +236,9 @@ jobs:
           run: |
             cd wpt-diff
             export CI=true
-            pnpm start \
-              --report wpt-report.json \
-              --output-failed failed-tests.json \
-              --shard ${{ matrix.shard }} \
-              --total-shards ${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}
+            pnpm start --report wpt-report.json --output-failed failed-tests.json --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}"
 
-      - name: Kill Scramjet Demo
+      - name: Kill demo server
         if: always()
         run: |
           if [ -n "$DEMO_PID" ]; then
