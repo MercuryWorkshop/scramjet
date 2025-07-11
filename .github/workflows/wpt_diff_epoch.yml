@@ -78,18 +78,10 @@ jobs:
         run: pnpm install
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            rewriter/target/
-            rewriter/wasm/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('rewriter/Cargo.lock', 'rewriter/rust-toolchain.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          workspaces: "rewriter -> target"
+          cache-all-crates: true
 
       - name: install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
