@@ -1,3 +1,13 @@
+export type ScramjetEvent =
+	| NavigateEvent
+	| UrlChangeEvent
+	| ScramjetContextEvent;
+export type ScramjetEvents = {
+	navigate: NavigateEvent;
+	urlchange: UrlChangeEvent;
+	contextInit: ScramjetContextEvent;
+};
+
 export class NavigateEvent extends Event {
 	constructor(public url: string) {
 		super("navigate");

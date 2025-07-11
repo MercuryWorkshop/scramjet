@@ -1,5 +1,6 @@
 import { ScramjetController } from ".";
 import type { ScramjetClient } from "../client/client";
+import { ScramjetEvent, ScramjetEvents } from "../client/events";
 import { SCRAMJETCLIENT, SCRAMJETFRAME, SCRAMJETFRAMENAME } from "../symbols";
 
 export class ScramjetFrame extends EventTarget {
@@ -38,5 +39,13 @@ export class ScramjetFrame extends EventTarget {
 
 	reload() {
 		this.frame.contentWindow?.location.reload();
+	}
+
+	addEventListener<K extends keyof ScramjetEvents>(
+		type: K,
+		listener: (event: ScramjetEvents[K]) => void,
+		options?: boolean | AddEventListenerOptions
+	): void {
+		super.addEventListener(type, listener as EventListener, options);
 	}
 }
