@@ -1,6 +1,13 @@
 name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    paths-ignore:
+      - ".github/workflows/**"
+  pull_request:
+    paths-ignore:
+      - ".github/workflows/**"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -132,9 +139,9 @@ jobs:
     permissions: write-all
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       - name: Get artifacts
