@@ -168,6 +168,7 @@ export class Tab {
 
 	width: number;
 	pos: number;
+	icon: string;
 
 	constructor(title: string, frame: ScramjetFrame) {
 		return createState({
@@ -175,6 +176,7 @@ export class Tab {
 			frame,
 			title,
 			url: "puter://blank",
+			icon: "/vite.svg",
 			dragoffset: -1,
 			dragpos: -1,
 			width: 0,
@@ -361,8 +363,8 @@ export const Tabs: Component<
 			{use(this.tabs).mapEach((tab) => (
 				<DragTab
 					id={tab.id}
-					title={tab.title}
-					icon="/vite.svg"
+					title={use(tab.title)}
+					icon={use(tab.icon)}
 					active={use(this.activetab).map((x) => x === tab)}
 					mousedown={(e) => mouseDown(e, tab)}
 					click={() => {

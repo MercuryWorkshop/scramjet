@@ -22,7 +22,7 @@ export const scramjet = new ScramjetController({
 		naiiveRewriter: false,
 	},
 	siteFlags: {
-		"https://www.google.com/.*": {
+		"https://www.google.com/(search|sorry).*": {
 			naiiveRewriter: true,
 		},
 		"https://worker-playground.glitch.me/.*": {

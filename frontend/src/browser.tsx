@@ -76,6 +76,24 @@ export class Browser extends StatefulClass {
 				} else {
 					tab.title = "New Tab";
 				}
+				const favicon = framedoc.querySelector(
+					"link[rel='icon'], link[rel='shortcut icon']"
+				);
+				if (favicon) {
+					const iconhref = favicon.getAttribute("href");
+					if (iconhref) {
+						const rewritten = scramjet.encodeUrl(
+							new URL(iconhref, frame.client.url)
+						);
+						tab.icon = rewritten;
+					} else {
+						tab.icon = "/vite.svg";
+					}
+				} else {
+					tab.icon = scramjet.encodeUrl(
+						new URL("/favicon.ico", frame.client.url)
+					);
+				}
 			});
 			observer.observe(head, {
 				childList: true,
