@@ -293,10 +293,10 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         env:
           CI: true
+          SHARD_COUNT: ${{ github.event.inputs.shard_count || '2' }}
         with:
           working-directory: wpt-diff
           run: |
-            SHARD_COUNT="${{ github.event.inputs.shard_count || '2' }}"
             MAX_TESTS_FLAG=""
             if [ "${{ github.event.inputs.max_tests }}" != "" ]; then
               MAX_TESTS_FLAG="--max-tests ${{ github.event.inputs.max_tests }}"
