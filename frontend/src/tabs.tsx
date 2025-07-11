@@ -1,4 +1,5 @@
 import iconClose from "@ktibow/iconset-material-symbols/close";
+import iconAdd from "@ktibow/iconset-material-symbols/add";
 import {
 	createState,
 	type Component,
@@ -194,6 +195,7 @@ export const Tabs: Component<
 		tabs: Tab[];
 		activetab: Tab;
 		destroyTab: (tab: Tab) => void;
+		addTab: () => void;
 	},
 	{
 		container: HTMLElement;
@@ -383,7 +385,9 @@ export const Tabs: Component<
 					transitionend={transitionend}
 				/>
 			))}
-			<div class="extra after" this={use(this.afterEl).bind()}></div>
+			<div class="extra after" this={use(this.afterEl).bind()}>
+				<IconButton icon={iconAdd} click={this.addTab}></IconButton>
+			</div>
 			<div class="extra right" this={use(this.rightEl).bind()}></div>
 		</div>
 	);
@@ -399,7 +403,11 @@ Tabs.css = `
 	}
 
 	.extra {
+		top: 0px;
+		height: 100%;
 		position: absolute;
+		display: flex;
+		align-items: center;
 	}
 
 	.left {
