@@ -24,6 +24,7 @@ Spacer.css = `
 export const UrlInput: Component<
 	{
 		value: string;
+		navigate: (url: string) => void;
 	},
 	{
 		active: boolean;
@@ -121,6 +122,14 @@ export const UrlInput: Component<
 						}
 						if (e.key === "Enter") {
 							e.preventDefault();
+							if (this.focusindex > 0) {
+								this.value = this.overflowItems[this.focusindex - 1];
+								this.navigate(this.value);
+								this.active = false;
+								this.input.blur();
+							} else {
+								this.navigate(this.value);
+							}
 						}
 					}}
 					on:input={(e: InputEvent) => {
@@ -220,6 +229,7 @@ IconButton.css = `
 
 export const Omnibox: Component<{
 	value: string;
+	navigate: (url: string) => void;
 }> = function (cx) {
 	return (
 		<div>
@@ -227,7 +237,7 @@ export const Omnibox: Component<{
 			<IconButton icon={iconForwards}></IconButton>
 			<IconButton icon={iconRefresh}></IconButton>
 			<Spacer></Spacer>
-			<UrlInput value={use(this.value)}></UrlInput>
+			<UrlInput value={use(this.value)} navigate={this.navigate}></UrlInput>
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>
 			<IconButton

@@ -109,6 +109,15 @@ export class Browser extends StatefulClass {
 		return tab;
 	}
 
+	navigate(url: string) {
+		if (URL.canParse(url)) {
+			this.activetab.frame.go(url);
+		} else {
+			const search = `https://google.com/search?q=${encodeURIComponent(url)}`;
+			this.activetab.frame.go(search);
+		}
+	}
+
 	destroyTab(tab: Tab) {
 		this.tabs = this.tabs.filter((t) => t !== tab);
 		console.log(this.tabs);
@@ -145,7 +154,10 @@ export class Browser extends StatefulClass {
 						}}
 					></IconButton>
 				</div>
-				<Omnibox value={use(this.activetab.url)} />
+				<Omnibox
+					value={use(this.activetab.url)}
+					navigate={(url) => this.navigate(url)}
+				/>
 				{shell}
 			</div>
 		);
