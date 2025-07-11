@@ -66,6 +66,22 @@ export class Browser extends StatefulClass {
 		frame.frame.addEventListener("load", (e) => {
 			tab.url = frame.client.url.href;
 		});
+		frame.addEventListener("contextInit", (e) => {
+			const framedoc = frame.frame.contentDocument!;
+			const head = framedoc.querySelector("head")!;
+			const observer = new MutationObserver(() => {
+				const title = framedoc.querySelector("title");
+				if (title) {
+					tab.title = title.textContent || "New Tab";
+				} else {
+					tab.title = "New Tab";
+				}
+			});
+			observer.observe(head, {
+				childList: true,
+				subtree: true,
+			});
+		});
 		use(tab.url).listen(() => {
 			this.activetab = this.activetab;
 		});
