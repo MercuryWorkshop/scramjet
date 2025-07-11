@@ -7,7 +7,8 @@ const scramjet = new ScramjetController({
 		sync: "/scram/scramjet.sync.js",
 	},
 	flags: {
-		rewriterLogs: true,
+		rewriterLogs: false,
+		naiiveRewriter: false,
 	},
 	siteFlags: {
 		"https://www.google.com/.*": {
@@ -32,8 +33,8 @@ const col = css`
 
 connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
-let signedinr;
-let signedin = new Promise((resolve) => (signedinr = resolve));
+// let signedinr;
+// let signedin = new Promise((resolve) => (signedinr = resolve));
 
 function SignIn() {
 	this.css = `
@@ -254,15 +255,14 @@ function BrowserApp() {
 	const frame = scramjet.createFrame();
 
 	this.mount = async () => {
-		if (!puter.auth.isSignedIn()) {
-			const signin = h(SignIn);
-			document.body.appendChild(signin);
-			signin.showModal();
-			await signedin;
-		}
-
-		let wisp = await puter.net.generateWispV1URL();
-		console.log(wisp);
+		// if (!puter.auth.isSignedIn()) {
+		// 	const signin = h(SignIn);
+		// 	document.body.appendChild(signin);
+		// 	signin.showModal();
+		// 	await signedin;
+		// }
+		// let wisp = await puter.net.generateWispV1URL();
+		// console.log(wisp);
 	};
 
 	frame.addEventListener("urlchange", (e) => {
