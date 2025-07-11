@@ -5,6 +5,12 @@ on:
     # Every night at 0:30 UTC
     - cron: "30 0 * * *"
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "Run in test mode (fewer shards)"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   check-changes:
@@ -22,28 +28,28 @@ jobs:
       - name: Check for recent changes
         id: check
         run: |
-          # Check if there were any commits in the last 24 hours
+          # Check if there were any commits in the last day
           SCRAMJET_CHANGED=$(git log --since="24 hours ago" --oneline | wc -l)
 
-          # Check WPT-diff repo for recent changes
+          # Check WPT-diff repo
           git clone --shallow-since="24 hours ago" https://github.com/MercuryWorkshop/WPT-diff.git wpt-diff-check
           cd wpt-diff-check
           WPTDIFF_CHANGED=$(git log --since="24 hours ago" --oneline | wc -l)
           cd ..
 
-          # Check WPT upstream for recent changes
-          # They are always committing it must be the final hours of the world when they don't
+          # Check WPT upstream
+          # They are always committing (it must be the final hours of the world when they don't)
           git clone --shallow-since="24 hours ago" https://github.com/web-platform-tests/wpt.git wpt-check
           cd wpt-check
           WPT_CHANGED=$(git log --since="24 hours ago" --oneline | wc -l)
           cd ..
 
-          # Run if any repo has changes or if manually triggered
+          # Run tests if any repo has changes or if manually triggered
           if [ "$SCRAMJET_CHANGED" -gt 0 ] || [ "$WPTDIFF_CHANGED" -gt 0 ] || [ "$WPT_CHANGED" -gt 0 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
             echo "Changes detected or manually triggered (will run tests)"
           else
-            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "should-run=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected (skipping tests)"
           fi
 
@@ -110,7 +116,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        shard: ${{ fromJSON(github.event.inputs.test_mode == 'true' && '[0, 1]' || '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]') }}
 
     steps:
       - name: Checkout code
@@ -127,6 +133,11 @@ jobs:
           node-version: latest
           cache: pnpm
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
       - name: Install dependencies
         run: pnpm install
 
@@ -136,14 +147,11 @@ jobs:
           name: scramjet
           path: dist
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run the Scramjet Demo
+      - name: Start demo server
         run: |
           pnpm start &
           DEMO_PID=$!
-          echo "DEMO_PID=$DEMO_PID" >> $GITHUB_ENV
+          echo "DEMO_PID=$DEMO_PID" >> "$GITHUB_ENV"
           sleep 10
 
       - name: Checkout WPT-diff
@@ -152,45 +160,52 @@ jobs:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
 
-      - name: Checkout WPT
+      - name: Checkout Web Platform Tests
         uses: actions/checkout@v4
         with:
           repository: web-platform-tests/wpt
-          path: wpt-diff/wpt
           ref: main
+          path: wpt-diff/wpt
           fetch-depth: 1
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
       - name: Setup WPT hosts
-        working-directory: wpt-diff/wpt
         run: |
+          cd wpt-diff/wpt
           ./wpt make-hosts-file | sudo tee -a /etc/hosts
 
-      - name: Setup pnpm for WPT-diff
-        uses: pnpm/action-setup@v4
+      - name: Restore Playwright browsers cache
+        id: playwright-cache
+        uses: actions/cache/restore@v4
         with:
-          version: latest
-          package_json_dir: wpt-diff
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            C:\\Users\\runneradmin\\AppData\\Local\\ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('wpt-diff/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
-      - name: Install WPT-diff dependencies
-        working-directory: wpt-diff
+      - name: Install dependencies and setup
         run: |
+          cd wpt-diff
           pnpm install
-          pnpm exec playwright install chromium
+          # Install Playwright browsers only if cache miss
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != 'true' ]; then
+            pnpm exec playwright install chromium
+          fi
           pnpm generate:validators
 
-      - name: Start WPT server
-        working-directory: wpt-diff/wpt
-        run: |
-          ./wpt serve --no-h2 &
-          echo "WPT_PID=$!" >> $GITHUB_ENV
-          sleep 10
+      - name: Save Playwright browsers cache
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            C:\\Users\\runneradmin\\AppData\\Local\\ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('wpt-diff/pnpm-lock.yaml') }}
 
-      - name: Create WPT-diff config
+      - name: Generate WPT-Diff config
         working-directory: wpt-diff
         run: |
           cat > config.toml << EOF
@@ -208,45 +223,49 @@ jobs:
           api_base_url = "https://wpt.fyi"
           EOF
 
-      - name: Run WPT-diff tests
+      - name: Start WPT server
+        working-directory: wpt-diff/wpt
+        run: |
+          ./wpt serve --no-h2 &
+          echo "WPT_PID=$!" >> $GITHUB_ENV
+          sleep 10
+
+      - name: Run WPT-Diff shard
         uses: coactions/setup-xvfb@v1
         with:
-          working-directory: "wpt-diff"
           run: |
+            cd wpt-diff
             export CI=true
             pnpm start \
               --report wpt-report.json \
               --output-failed failed-tests.json \
               --shard ${{ matrix.shard }} \
-              --total-shards 10
-
-      - name: Stop WPT server
-        if: always()
-        run: |
-          if [ ! -z "$WPT_PID" ]; then
-            kill $WPT_PID || true
-          fi
+              --total-shards ${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}
 
       - name: Kill Scramjet Demo
         if: always()
         run: |
-          if [ ! -z "$DEMO_PID" ]; then
-            kill $DEMO_PID || true
+          if [ -n "$DEMO_PID" ]; then
+            kill "$DEMO_PID" || true
           fi
 
-      - name: Upload shard results
+      - name: Stop WPT server
         if: always()
+        run: |
+          if [ -n "$WPT_PID" ]; then
+            kill "$WPT_PID" || true
+          fi
+
+      - name: Upload shard artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wpt-shard-results-${{ matrix.shard }}
           path: |
-            ./wpt-diff/wpt-report.json
-            ./wpt-diff/failed-tests.json
-          if-no-files-found: error
-          retention-days: 1
+            wpt-diff/wpt-report.json
+            wpt-diff/failed-tests.json
 
   combine-reports:
-    name: Combine and Upload Final Reports
+    name: Combine and upload final reports
     runs-on: ubuntu-latest
     needs: wpt-diff
     if: always() && needs.wpt-diff.result != 'cancelled'
@@ -258,35 +277,12 @@ jobs:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Combine reports and run regression check
+        uses: ./wpt-diff/
         with:
-          version: latest
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: latest
-          cache: pnpm
-          cache-dependency-path: wpt-diff/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: wpt-diff
-        run: pnpm install
-
-      - name: Download all shard results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: wpt-shard-results-*
-          path: ./shard-results
-
-      - name: Combine reports
-        working-directory: wpt-diff
-        run: pnpm combine-reports ../shard-results ../final-reports
-
-      - name: Upload final WPT-diff reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: wpt-diff-final-reports-scramjet
-          path: final-reports/
-          retention-days: 90
+          location: wpt-diff
+          enable_regression_check: false
+          github_repository: MercuryWorkshop/WPT-diff
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          regression_check_workflow_name: "WPT-diff Tests"
+          artifact_name: wpt-diff-reports
