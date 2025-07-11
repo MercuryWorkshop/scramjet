@@ -33,7 +33,7 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
-      - name: Install dependencies
+      - name: Install pnpm dependencies
         run: pnpm install
 
       - name: Cache Rust dependencies

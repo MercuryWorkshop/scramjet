@@ -77,11 +77,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Setup Rust toolchain
+        run: |
+          cd rewriter
+          rustup show
+
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "rewriter"
           cache-all-crates: true
+          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST WASM_BINDGEN"
+          cache-targets: true
+          cache-directories: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
 
       - name: install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
