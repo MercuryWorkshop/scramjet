@@ -87,6 +87,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Pin Rust nightly snapshot
+        run: |
+          SNAPSHOT=nightly-2025-07-10
+          rustup toolchain install "$SNAPSHOT" --profile minimal --component rust-src
+          echo "RUSTUP_TOOLCHAIN=$SNAPSHOT" >> "$GITHUB_ENV"
+
       - name: Setup Rust toolchain
         run: |
           cd rewriter
@@ -294,14 +300,11 @@ jobs:
         env:
           CI: true
           SHARD_COUNT: ${{ github.event.inputs.shard_count || '2' }}
+          MAX_TESTS_ARG: ${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}
         with:
           working-directory: wpt-diff
           run: |
-            MAX_TESTS_FLAG=""
-            if [ "${{ github.event.inputs.max_tests }}" != "" ]; then
-              MAX_TESTS_FLAG="--max-tests ${{ github.event.inputs.max_tests }}"
-            fi
-            pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_FLAG
+            pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_ARG
 
       - name: Stop Scramjet demo server
         if: always()
