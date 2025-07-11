@@ -7,9 +7,51 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-changes:
+    name: Check for Changes
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+
+    steps:
+      - name: Checkout Scramjet
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for recent changes
+        id: check
+        run: |
+          # Check if there were any commits in the last 24 hours
+          SCRAMJET_CHANGED=$(git log --since="24 hours ago" --oneline | wc -l)
+
+          # Check WPT-diff repo for recent changes
+          git clone --shallow-since="24 hours ago" https://github.com/MercuryWorkshop/WPT-diff.git wpt-diff-check
+          cd wpt-diff-check
+          WPTDIFF_CHANGED=$(git log --since="24 hours ago" --oneline | wc -l)
+          cd ..
+
+          # Check WPT upstream for recent changes
+          # They are always committing it must be the final hours of the world when they don't
+          git clone --shallow-since="24 hours ago" https://github.com/web-platform-tests/wpt.git wpt-check
+          cd wpt-check
+          WPT_CHANGED=$(git log --since="24 hours ago" --oneline | wc -l)
+          cd ..
+
+          # Run if any repo has changes or if manually triggered
+          if [ "$SCRAMJET_CHANGED" -gt 0 ] || [ "$WPTDIFF_CHANGED" -gt 0 ] || [ "$WPT_CHANGED" -gt 0 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "Changes detected or manually triggered (will run tests)"
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "No changes detected (skipping tests)"
+          fi
+
   build:
     name: Build Scramjet for WPT-diff
     runs-on: ubuntu-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.should-run == 'true'
 
     steps:
       - name: Checkout code
@@ -39,11 +81,6 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - name: Setup Binaryen
-        uses: Aandreba/setup-binaryen@v1.0.0
-        with:
-          token: ${{ github.token }}
-
       - name: Setup wasm-snip
         run: "cargo install --git https://github.com/r58playz/wasm-snip"
 
@@ -66,9 +103,14 @@ jobs:
             dist/*.wasm
 
   wpt-diff:
-    name: Run WPT-diff Tests
+    name: Run WPT-diff Tests (Shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 350
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     steps:
       - name: Checkout code
@@ -109,19 +151,81 @@ jobs:
         with:
           repository: MercuryWorkshop/WPT-diff
           path: wpt-diff
-          submodules: recursive
-      - name: Tell gha to work properly
-        run: |
-          cp ./wpt-diff/action.yml .github/workflows/action.yml
 
-      - name: Run WPT-Diff
-        uses: ./wpt-diff/
+      - name: Checkout WPT
+        uses: actions/checkout@v4
         with:
-          location: './wpt-diff/'
-          artifact_name: 'wpt-report-scramjet'
-          run_js_setup: false
-          debug: true
-          verbose: true
+          repository: web-platform-tests/wpt
+          path: wpt-diff/wpt
+          ref: main
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Setup WPT hosts
+        working-directory: wpt-diff/wpt
+        run: |
+          ./wpt make-hosts-file | sudo tee -a /etc/hosts
+
+      - name: Setup pnpm for WPT-diff
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          package_json_dir: wpt-diff
+
+      - name: Install WPT-diff dependencies
+        working-directory: wpt-diff
+        run: |
+          pnpm install
+          pnpm exec playwright install chromium
+          pnpm generate:validators
+
+      - name: Start WPT server
+        working-directory: wpt-diff/wpt
+        run: |
+          ./wpt serve --no-h2 &
+          echo "WPT_PID=$!" >> $GITHUB_ENV
+          sleep 10
+
+      - name: Create WPT-diff config
+        working-directory: wpt-diff
+        run: |
+          cat > config.toml << EOF
+          [debug]
+          debug = true
+          verbose = true
+
+          [wpt]
+          max_tests = "all"
+          under_proxy = true
+
+          [wpt.urls]
+          proxy_base_url = "http://localhost:1337/"
+          tests_base_url = "http://web-platform.test:8000"
+          api_base_url = "https://wpt.fyi"
+          EOF
+
+      - name: Run WPT-diff tests
+        uses: coactions/setup-xvfb@v1
+        with:
+          working-directory: "wpt-diff"
+          run: |
+            export CI=true
+            pnpm start \
+              --report wpt-report.json \
+              --output-failed failed-tests.json \
+              --shard ${{ matrix.shard }} \
+              --total-shards 10
+
+      - name: Stop WPT server
+        if: always()
+        run: |
+          if [ ! -z "$WPT_PID" ]; then
+            kill $WPT_PID || true
+          fi
 
       - name: Kill Scramjet Demo
         if: always()
@@ -129,3 +233,60 @@ jobs:
           if [ ! -z "$DEMO_PID" ]; then
             kill $DEMO_PID || true
           fi
+
+      - name: Upload shard results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpt-shard-results-${{ matrix.shard }}
+          path: |
+            ./wpt-diff/wpt-report.json
+            ./wpt-diff/failed-tests.json
+          if-no-files-found: error
+          retention-days: 1
+
+  combine-reports:
+    name: Combine and Upload Final Reports
+    runs-on: ubuntu-latest
+    needs: wpt-diff
+    if: always() && needs.wpt-diff.result != 'cancelled'
+
+    steps:
+      - name: Checkout WPT-diff
+        uses: actions/checkout@v4
+        with:
+          repository: MercuryWorkshop/WPT-diff
+          path: wpt-diff
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: pnpm
+          cache-dependency-path: wpt-diff/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: wpt-diff
+        run: pnpm install
+
+      - name: Download all shard results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wpt-shard-results-*
+          path: ./shard-results
+
+      - name: Combine reports
+        working-directory: wpt-diff
+        run: pnpm combine-reports ../shard-results ../final-reports
+
+      - name: Upload final WPT-diff reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpt-diff-final-reports-scramjet
+          path: final-reports/
+          retention-days: 90
