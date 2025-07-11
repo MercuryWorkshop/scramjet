@@ -286,11 +286,17 @@ jobs:
           ./wpt serve --no-h2 &
           echo "WPT_PID=$!" >> "$GITHUB_ENV"
 
+      - name: Install xvfb
+        run: sudo apt install -y xvfb
+
       - name: Run WPT tests
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          working-directory: wpt-diff
-          run: pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.shard_count || '2' }}" ${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}
+        working-directory: wpt-diff
+        env:
+          CI: true
+          SHARD_COUNT: ${{ github.event.inputs.shard_count || '2' }}
+          MAX_TESTS_ARG: ${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}
+        run: |
+          xvfb-run --auto-servernum pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_ARG
 
       - name: Stop Scramjet demo server
         if: always()
