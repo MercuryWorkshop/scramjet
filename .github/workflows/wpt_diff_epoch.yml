@@ -161,6 +161,13 @@ jobs:
           name: scramjet
           path: dist
 
+      - name: Start Scramjet Demo Server
+        run: |
+          pnpm start &
+          DEMO_PID="$!"
+          echo "DEMO_PID=$DEMO_PID" >> "$GITHUB_ENV"
+          sleep 10
+
       - name: Checkout WPT-diff
         uses: actions/checkout@v4
         with:
@@ -241,9 +248,16 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           run: |
-            cd wpt-diff
-            export CI=true
+            cd wpt-diff && \
+            export CI=true && \
             pnpm start --report wpt-report.json --output-failed failed-tests.json --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}"
+
+      - name: Stop Scramjet Demo Server
+        if: always()
+        run: |
+          if [ -n "$DEMO_PID" ]; then
+            kill "$DEMO_PID" || true
+          fi
 
       - name: Stop WPT server
         if: always()
