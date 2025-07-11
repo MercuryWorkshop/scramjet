@@ -77,6 +77,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rewriter/target/
+            rewriter/wasm/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rewriter/Cargo.lock', 'rewriter/rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: install wbg
         uses: jetli/wasm-bindgen-action@v0.2.0
         with:
@@ -146,13 +160,6 @@ jobs:
         with:
           name: scramjet
           path: dist
-
-      - name: Start demo server
-        run: |
-          pnpm start &
-          DEMO_PID="$!"
-          echo "DEMO_PID=$DEMO_PID" >> "$GITHUB_ENV"
-          sleep 10
 
       - name: Checkout WPT-diff
         uses: actions/checkout@v4
@@ -231,19 +238,12 @@ jobs:
           sleep 10
 
       - name: Run WPT-Diff shard
-        uses: coactions/setup-xvfb@v1
+        uses: GabrielBB/xvfb-action@v1
         with:
           run: |
             cd wpt-diff
             export CI=true
             pnpm start --report wpt-report.json --output-failed failed-tests.json --shard "${{ matrix.shard }}" --total-shards "${{ github.event.inputs.test_mode == 'true' && '2' || '10' }}"
-
-      - name: Kill demo server
-        if: always()
-        run: |
-          if [ -n "$DEMO_PID" ]; then
-            kill "$DEMO_PID" || true
-          fi
 
       - name: Stop WPT server
         if: always()
