@@ -35,6 +35,11 @@ export const DragTab: Component<{
 				class="dragroot"
 				style="position: unset;"
 				on:click={() => this.click()}
+				on:auxclick={(e) => {
+					if (e.button === 1) {
+						this.destroy();
+					}
+				}}
 			>
 				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
 					<img src={use(this.icon)} />
