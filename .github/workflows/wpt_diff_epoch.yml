@@ -90,7 +90,8 @@ jobs:
       - name: Pin Rust nightly snapshot
         run: |
           SNAPSHOT=nightly-2025-07-10
-          rustup toolchain install "$SNAPSHOT" --profile minimal --component rust-src
+          rustup toolchain install "$SNAPSHOT" --profile minimal --component rust-src --target wasm32-unknown-unknown
+          rustup override set "$SNAPSHOT"
           echo "RUSTUP_TOOLCHAIN=$SNAPSHOT" >> "$GITHUB_ENV"
 
       - name: Setup Rust toolchain
@@ -103,7 +104,7 @@ jobs:
         with:
           workspaces: "rewriter"
           cache-all-crates: true
-          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST WASM_BINDGEN"
+          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST WASM_BINDGEN RUSTUP_TOOLCHAIN"
           cache-targets: true
           cache-directories: |
             ~/.cargo/registry/index
