@@ -80,7 +80,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "rewriter -> target"
+          workspaces: "rewriter"
           cache-all-crates: true
 
       - name: install wbg
