@@ -8,5 +8,6 @@ export function memoize<T extends HTMLElement>(
 	}
 	const element = fn();
 	cache[key] = element;
+
 	return element;
 }

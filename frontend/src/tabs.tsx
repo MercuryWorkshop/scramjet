@@ -10,15 +10,12 @@ import { Icon } from "./ui/Icon";
 import { IconButton } from "./Omnibox";
 import { memoize } from "./memoize";
 
-let cache = {};
-
 export const DragTab: Component<{
 	active: boolean;
 	id: number;
 	icon: string;
 	title: string;
 	mousedown: (e: MouseEvent) => void;
-	click: () => void;
 	destroy: () => void;
 	transitionend: () => void;
 }> = function (cx) {
@@ -27,7 +24,11 @@ export const DragTab: Component<{
 			style="z-index: 0;"
 			class="tab"
 			data-id={this.id}
-			on:mousedown={(e) => this.mousedown(e)}
+			on:mousedown={(e) => {
+				this.mousedown(e);
+				e.stopPropagation();
+				e.preventDefault();
+			}}
 			on:transitionend={() => {
 				console.log("tr end");
 				cx.root.style.transition = "";
@@ -38,7 +39,6 @@ export const DragTab: Component<{
 			<div
 				class="dragroot"
 				style="position: unset;"
-				on:click={() => this.click()}
 				on:auxclick={(e) => {
 					if (e.button === 1) {
 						this.destroy();
@@ -46,13 +46,7 @@ export const DragTab: Component<{
 				}}
 			>
 				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
-					{memoize(
-						() => (
-							<img src={use(this.icon)} />
-						),
-						this.icon,
-						cache
-					)}
+					<img src={use(this.icon)} />
 					<span>{use(this.title)}</span>
 					<button
 						class="close"
@@ -376,27 +370,35 @@ export const Tabs: Component<
 		this.afterEl.style.transition = "";
 	};
 
+	let tabcache = {};
+
 	return (
 		<div this={use(this.container).bind()}>
 			<div class="extra left" this={use(this.leftEl).bind()}></div>
-			{use(this.tabs).mapEach((tab) => (
-				<DragTab
-					id={tab.id}
-					title={use(tab.title)}
-					icon={use(tab.icon)}
-					active={use(this.activetab).map((x) => x === tab)}
-					mousedown={(e) => mouseDown(e, tab)}
-					click={() => {
-						if (this.activetab !== tab) {
-							this.activetab = tab;
-						}
-					}}
-					destroy={() => {
-						this.destroyTab(tab);
-					}}
-					transitionend={transitionend}
-				/>
-			))}
+			{use(this.tabs).mapEach((tab) =>
+				memoize(
+					() => (
+						<DragTab
+							id={tab.id}
+							title={use(tab.title)}
+							icon={use(tab.icon)}
+							active={use(this.activetab).map((x) => x === tab)}
+							mousedown={(e) => mouseDown(e, tab)}
+							click={() => {
+								if (this.activetab !== tab) {
+									this.activetab = tab;
+								}
+							}}
+							destroy={() => {
+								this.destroyTab(tab);
+							}}
+							transitionend={transitionend}
+						/>
+					),
+					tab.id,
+					tabcache
+				)
+			)}
 			<div class="extra after" this={use(this.afterEl).bind()}>
 				<IconButton icon={iconAdd} click={this.addTab}></IconButton>
 			</div>
