@@ -166,6 +166,37 @@ export class Browser extends StatefulClass {
 				childList: true,
 				subtree: true,
 			});
+			const anchorObserver = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					mutation.addedNodes.forEach((node) => {
+						if (node instanceof HTMLAnchorElement) {
+							const openInNewTab = () => {
+								const href = scramjet.decodeUrl(node.href);
+								let newtab = this.newTab("title");
+								if (href) {
+									newtab.frame.go(href);
+								} else {
+									newtab.frame.go("about:blank");
+								}
+							};
+							node.addEventListener("click", (e) => {
+								if (node.target !== "_blank") return;
+								e.preventDefault();
+								openInNewTab();
+							});
+							node.addEventListener("auxclick", (e) => {
+								if (e.button !== 1) return; // middle click
+								e.preventDefault();
+								openInNewTab();
+							});
+						}
+					});
+				});
+			});
+			anchorObserver.observe(framedoc, {
+				childList: true,
+				subtree: true,
+			});
 		});
 		use(tab.url).listen(() => {
 			this.activetab = this.activetab;
