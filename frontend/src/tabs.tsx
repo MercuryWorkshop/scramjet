@@ -294,6 +294,7 @@ export const Tabs: Component<
 			component.style.transform = `translateX(${tabPos}px)`;
 			if (transition && tab.dragpos == -1 && tab.pos != tabPos) {
 				component.style.transition = `transform ${TAB_TRANSITION}`;
+				this.afterEl.style.transition = `transform ${TAB_TRANSITION}`;
 				transitioningTabs++;
 			}
 			dragpos = Math.max(dragpos, tab.dragpos + width + TAB_PADDING);
@@ -371,6 +372,8 @@ export const Tabs: Component<
 		if (transitioningTabs == 0) {
 			this.tabs = this.tabs;
 		}
+
+		this.afterEl.style.transition = "";
 	};
 
 	return (
