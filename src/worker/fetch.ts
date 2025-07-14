@@ -1,4 +1,4 @@
-import { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+import BareClient, { BareResponseFetch } from "@mercuryworkshop/bare-mux";
 import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
@@ -12,12 +12,21 @@ import {
 	rewriteWorkers,
 	unrewriteBlob,
 } from "../shared";
+import { getSiteDirective } from "../shared/security/siteTests";
+import {
+	initializeTracker,
+	updateTracker,
+	cleanTracker,
+	getMostRestrictiveSite,
+	storeReferrerPolicy,
+	getReferrerPolicy,
+} from "../shared/security/forceReferrer";
 
 import type { URLMeta } from "../shared/rewriters/url";
 import { $scramjet, flagEnabled } from "../scramjet";
 import { rewriteJsWithMap } from "../shared/rewriters/js";
 
-function newmeta(url: URL): URLMeta {
+function newMeta(url: URL): URLMeta {
 	return {
 		origin: url,
 		base: url,
@@ -30,17 +39,17 @@ export async function handleFetch(
 	client: Client | null
 ) {
 	try {
-		const requesturl = new URL(request.url);
-		let workertype = "";
-		if (requesturl.searchParams.has("type")) {
-			workertype = requesturl.searchParams.get("type") as string;
-			requesturl.searchParams.delete("type");
+		const requestUrl = new URL(request.url);
+		let workerType = "";
+		if (requestUrl.searchParams.has("type")) {
+			workerType = requestUrl.searchParams.get("type") as string;
+			requestUrl.searchParams.delete("type");
 		}
-		if (requesturl.searchParams.has("dest")) {
-			requesturl.searchParams.delete("dest");
+		if (requestUrl.searchParams.has("dest")) {
+			requestUrl.searchParams.delete("dest");
 		}
 
-		if (requesturl.pathname === this.config.files.wasm) {
+		if (requestUrl.pathname === this.config.files.wasm) {
 			return fetch(this.config.files.wasm).then(async (x) => {
 				const buf = await x.arrayBuffer();
 				const b64 = btoa(
@@ -64,16 +73,16 @@ export async function handleFetch(
 		}
 
 		if (
-			requesturl.pathname.startsWith(this.config.prefix + "blob:") ||
-			requesturl.pathname.startsWith(this.config.prefix + "data:")
+			requestUrl.pathname.startsWith(`${this.config.prefix}blob:`) ||
+			requestUrl.pathname.startsWith(`${this.config.prefix}data:`)
 		) {
-			let dataurl = requesturl.pathname.substring(this.config.prefix.length);
-			if (dataurl.startsWith("blob:")) {
-				dataurl = unrewriteBlob(dataurl);
+			let dataUrl = requestUrl.pathname.substring(this.config.prefix.length);
+			if (dataUrl.startsWith("blob:")) {
+				dataUrl = unrewriteBlob(dataUrl);
 			}
 
-			const response: Partial<BareResponseFetch> = await fetch(dataurl, {});
-			const url = dataurl.startsWith("blob:") ? dataurl : "(data url)";
+			const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
+			const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
 			response.finalURL = url;
 			let body: BodyType;
 
@@ -85,9 +94,9 @@ export async function handleFetch(
 								base: new URL(new URL(client.url).origin),
 								origin: new URL(new URL(client.url).origin),
 							}
-						: newmeta(new URL(unrewriteUrl(request.referrer))),
+						: newMeta(new URL(unrewriteUrl(request.referrer))),
 					request.destination,
-					workertype,
+					workerType,
 					this.cookieStore
 				);
 			}
@@ -105,22 +114,21 @@ export async function handleFetch(
 			});
 		}
 
-		const url = new URL(unrewriteUrl(requesturl));
+		const url = new URL(unrewriteUrl(requestUrl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
 			(w) => w.origin === url.origin
 		);
 
 		if (
-			activeWorker &&
-			activeWorker.connected &&
-			requesturl.searchParams.get("from") !== "swruntime"
+			activeWorker?.connected &&
+			requestUrl.searchParams.get("from") !== "swruntime"
 		) {
 			// TODO: check scope
 			const r = await activeWorker.fetch(request);
 			if (r) return r;
 		}
-		if (url.origin == new URL(request.url).origin) {
+		if (url.origin === new URL(request.url).origin) {
 			throw new Error(
 				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
 			);
@@ -140,7 +148,8 @@ export async function handleFetch(
 			if (clientURL.toString().includes("youtube.com")) {
 				// console.log(headers);
 			} else {
-				headers.set("Referer", clientURL.toString());
+				// Force referrer to unsafe-url for all requests
+				headers.set("Referer", clientURL.href);
 				headers.set("Origin", clientURL.origin);
 			}
 		}
@@ -151,12 +160,95 @@ export async function handleFetch(
 			headers.set("Cookie", cookies);
 		}
 
-		headers.set("Sec-Fetch-Dest", request.destination);
-		//TODO: Emulate this later (like really)
-		headers.set("Sec-Fetch-Site", "same-origin");
+		// Check if we should emulate a top-level navigation
+		let isTopLevelProxyNavigation = false;
+		if (
+			request.destination === "iframe" &&
+			request.mode === "navigate" &&
+			request.referrer &&
+			request.referrer !== "no-referrer"
+		) {
+			// Trace back through the referrer chain, checking if each was an iframe navigation using the clients, until we find a non-iframe parent on a non-proxy page
+			let currentReferrer = request.referrer;
+			const allClients = await self.clients.matchAll({ type: "window" });
+
+			// Trace backwards
+			while (currentReferrer) {
+				if (!currentReferrer.includes($scramjet.config.prefix)) {
+					isTopLevelProxyNavigation = true;
+					break;
+				}
+
+				// Find the parent for this iteration
+				const parentChainClient = allClients.find(
+					(c) => c.url === currentReferrer
+				);
+
+				// Get the next referrer policy that applies to this parent
+				// eslint-disable-next-line no-await-in-loop
+				const parentPolicyData = await getReferrerPolicy(currentReferrer);
+
+				if (!parentPolicyData || !parentPolicyData.referrer) {
+					// Check if this ends at the proxy origin
+					if (
+						parentChainClient &&
+						currentReferrer.startsWith(location.origin)
+					) {
+						isTopLevelProxyNavigation = true;
+					}
+					// Results are inclusive
+					break;
+				}
+
+				// Check if this was an iframe navigation by looking at the client
+				if (parentChainClient && parentChainClient.frameType === "nested") {
+					// Continue checking the chain
+					currentReferrer = parentPolicyData.referrer;
+				} else {
+					// Results are inclusive
+					break;
+				}
+			}
+		}
+
+		if (isTopLevelProxyNavigation) {
+			headers.set("Sec-Fetch-Dest", "document");
+			headers.set("Sec-Fetch-Mode", "navigate");
+		} else {
+			// Convert empty destination to "empty" string per spec
+			headers.set("Sec-Fetch-Dest", request.destination || "empty");
+			headers.set("Sec-Fetch-Mode", request.mode);
+		}
+
+		let siteDirective = "none";
+		if (
+			request.referrer &&
+			request.referrer !== "" &&
+			request.referrer !== "no-referrer"
+		) {
+			if (request.referrer.includes($scramjet.config.prefix)) {
+				const unrewrittenReferrer = unrewriteUrl(request.referrer);
+				if (unrewrittenReferrer) {
+					const referrerUrl = new URL(unrewrittenReferrer);
+					const meta = newMeta(url);
+					siteDirective = await getSiteDirective(
+						meta,
+						referrerUrl,
+						this.client
+					);
+				}
+			}
+		}
+
+		await initializeTracker(
+			url.toString(),
+			request.referrer ? unrewriteUrl(request.referrer) : null,
+			siteDirective
+		);
+
 		headers.set(
-			"Sec-Fetch-Mode",
-			request.mode === "cors" ? request.mode : "same-origin"
+			"Sec-Fetch-Site",
+			await getMostRestrictiveSite(url.toString(), siteDirective)
 		);
 
 		const ev = new ScramjetRequestEvent(
@@ -179,18 +271,21 @@ export async function handleFetch(
 				mode: request.mode === "cors" ? request.mode : "same-origin",
 				cache: request.cache,
 				redirect: "manual",
-				//@ts-ignore why the fuck is this not typed mircosoft
+				// @ts-ignore why the fuck is this not typed microsoft
 				duplex: "half",
 			}));
 
 		return await handleResponse(
 			url,
-			workertype,
+			workerType,
 			request.destination,
+			request.mode,
 			response,
 			this.cookieStore,
 			client,
-			this
+			this.client,
+			this,
+			request.referrer
 		);
 	} catch (err) {
 		const errorDetails = {
@@ -223,13 +318,54 @@ async function handleResponse(
 	url: URL,
 	workertype: string,
 	destination: RequestDestination,
+	mode: RequestMode,
 	response: BareResponseFetch,
 	cookieStore: CookieStore,
 	client: Client,
-	swtarget: ScramjetServiceWorker
+	bareClient: BareClient,
+	swtarget: ScramjetServiceWorker,
+	referrer: string
 ): Promise<Response> {
 	let responseBody: BodyType;
-	const responseHeaders = rewriteHeaders(response.rawHeaders, newmeta(url));
+	const isNavigationRequest =
+		mode === "navigate" && ["document", "iframe"].includes(destination);
+	const responseHeaders = await rewriteHeaders(
+		response.rawHeaders,
+		newMeta(url),
+		bareClient,
+		{ get: getReferrerPolicy, set: storeReferrerPolicy }
+	);
+
+	// Store referrer policy from navigation responses for Force Referrer
+	if (isNavigationRequest && responseHeaders["referrer-policy"] && referrer) {
+		await storeReferrerPolicy(
+			url.href,
+			responseHeaders["referrer-policy"],
+			referrer
+		);
+	}
+
+	if (
+		response.status >= 300 &&
+		response.status < 400 &&
+		responseHeaders["location"]
+	) {
+		const redirectUrl = new URL(unrewriteUrl(responseHeaders["location"]));
+
+		await updateTracker(
+			url.toString(),
+			redirectUrl.toString(),
+			responseHeaders["referrer-policy"]
+		);
+
+		const redirectMeta = newMeta(redirectUrl);
+		const newSiteDirective = await getSiteDirective(
+			redirectMeta,
+			url,
+			bareClient
+		);
+		await getMostRestrictiveSite(redirectUrl.toString(), newSiteDirective);
+	}
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	for (const cookie in maybeHeaders) {
@@ -259,7 +395,7 @@ async function handleResponse(
 	if (response.body) {
 		responseBody = await rewriteBody(
 			response,
-			newmeta(url),
+			newMeta(url),
 			destination,
 			workertype,
 			cookieStore
@@ -319,6 +455,11 @@ async function handleResponse(
 	);
 	swtarget.dispatchEvent(ev);
 
+	// Clean up tracker if not a redirect
+	if (!(response.status >= 300 && response.status < 400)) {
+		await cleanTracker(url.toString());
+	}
+
 	return new Response(ev.responseBody, {
 		headers: ev.responseHeaders as HeadersInit,
 		status: ev.status,
@@ -340,17 +481,17 @@ async function rewriteBody(
 				// note from percs: i think this has the potential to be slow asf, but for right now its fine (we should probably look for a better solution)
 				// another note from percs: regex seems to be broken, gonna comment this out
 				/*
-				const buf = await response.arrayBuffer();
-				const decode = new TextDecoder("utf-8").decode(buf);
-				const charsetHeader = response.headers.get("content-type");
-				const charset =
-					charsetHeader?.split("charset=")[1] ||
-					decode.match(/charset=([^"]+)/)?.[1] ||
-					"utf-8";
-				const htmlContent = charset
-					? new TextDecoder(charset).decode(buf)
-					: decode;
-				*/
+        const buf = await response.arrayBuffer();
+        const decode = new TextDecoder("utf-8").decode(buf);
+        const charsetHeader = response.headers.get("content-type");
+        const charset =
+          charsetHeader?.split("charset=")[1] ||
+          decode.match(/charset=([^"]+)/)?.[1] ||
+          "utf-8";
+        const htmlContent = charset
+          ? new TextDecoder(charset).decode(buf)
+          : decode;
+        */
 				return rewriteHtml(await response.text(), cookieStore, meta, true);
 			} else {
 				return response.body;
