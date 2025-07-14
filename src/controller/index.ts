@@ -95,8 +95,9 @@ export class ScramjetController {
 
 	decodeUrl(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
+		const prefixed = location.origin + $scramjet.config.prefix;
 
-		return $scramjet.codec.decode(url);
+		return $scramjet.codec.decode(url.slice(prefixed.length));
 	}
 
 	async openIDB(): Promise<IDBDatabase> {
