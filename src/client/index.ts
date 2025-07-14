@@ -30,7 +30,7 @@ if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 		runtime.hook();
 	}
 
-	const contextev = new ScramjetContextEvent(client.global.window);
+	const contextev = new ScramjetContextEvent(client.global.window, client);
 	client.frame?.dispatchEvent(contextev);
 	const urlchangeev = new UrlChangeEvent(client.url.href);
 	if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
