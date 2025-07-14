@@ -90,6 +90,8 @@ export const UrlInput: Component<
 							this.value = item;
 							this.active = false;
 							this.input.blur();
+
+							this.navigate(this.value);
 						}}
 						class:focused={use(this.focusindex).map(
 							(i) => i - 1 === this.overflowItems.indexOf(item)
@@ -232,12 +234,15 @@ IconButton.css = `
 export const Omnibox: Component<{
 	value: string;
 	navigate: (url: string) => void;
+	goBack: () => void;
+	goForwards: () => void;
+	refresh: () => void;
 }> = function (cx) {
 	return (
 		<div>
-			<IconButton icon={iconBack}></IconButton>
-			<IconButton icon={iconForwards}></IconButton>
-			<IconButton icon={iconRefresh}></IconButton>
+			<IconButton click={this.goBack} icon={iconBack}></IconButton>
+			<IconButton click={this.goForwards} icon={iconForwards}></IconButton>
+			<IconButton click={this.refresh} icon={iconRefresh}></IconButton>
 			<Spacer></Spacer>
 			<UrlInput value={use(this.value)} navigate={this.navigate}></UrlInput>
 			<Spacer></Spacer>

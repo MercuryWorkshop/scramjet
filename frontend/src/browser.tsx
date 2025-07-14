@@ -247,6 +247,15 @@ export class Browser extends StatefulClass {
 				/>
 				<Omnibox
 					value={use(this.activetab.url)}
+					goBack={() => {
+						this.activetab.frame.back();
+					}}
+					goForwards={() => {
+						this.activetab.frame.forward();
+					}}
+					refresh={() => {
+						this.activetab.frame.reload();
+					}}
 					navigate={(url) => this.navigate(url)}
 				/>
 				{shell}
