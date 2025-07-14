@@ -69,7 +69,26 @@ export class Browser extends StatefulClass {
 		frame.frame.addEventListener("load", (e) => {
 			tab.url = frame.client.url.href;
 		});
+		let browser = this;
+
 		frame.addEventListener("contextInit", (ctx) => {
+			ctx.client.Proxy("window.open", {
+				apply(pctx) {
+					let tab = browser.newTab("_blank");
+					tab.frame.go(pctx.args[0]);
+
+					// this is a bit jank: we need the global proxy NOW, but it will only load naturally after a few seconds
+					const realContentWindow = tab.frame.frame.contentWindow;
+					// :(
+					const ctor: any = ctx.client.constructor;
+					// see open.ts
+					const newclient = new ctor(realContentWindow);
+					newclient.hook();
+
+					pctx.return(newclient.globalProxy);
+				},
+			});
+
 			const framedoc = ctx.window.document;
 
 			framedoc.addEventListener("contextmenu", (e) => {
