@@ -174,6 +174,7 @@ export class Tab {
 
 	dragoffset: number;
 	dragpos: number;
+	startdragpos: number;
 
 	width: number;
 	pos: number;
@@ -187,6 +188,7 @@ export class Tab {
 			url: "puter://blank",
 			icon: "/vite.svg",
 			dragoffset: -1,
+			startdragpos: -1,
 			dragpos: -1,
 			width: 0,
 			pos: 0,
@@ -337,6 +339,12 @@ export const Tabs: Component<
 		const root = getTabFromIndex(tab.id);
 		const dragroot = root.querySelector(".dragroot") as HTMLElement;
 
+		let lifetimeOffset = tab.pos - tab.startdragpos;
+		if (Math.abs(lifetimeOffset) < 20) {
+			// TODO: arbitrary magic
+			if (this.activetab != tab) this.activetab = tab;
+		}
+
 		dragroot.style.width = "";
 		dragroot.style.position = "unset";
 		tab.dragoffset = -1;
@@ -355,6 +363,7 @@ export const Tabs: Component<
 		dragroot.style.width = rect.width + "px";
 		dragroot.style.position = "absolute";
 		tab.dragoffset = e.clientX - rect.left;
+		tab.startdragpos = rect.left;
 
 		if (tab.dragoffset < 0) throw new Error("dragoffset must be positive");
 
