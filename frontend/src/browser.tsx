@@ -3,7 +3,7 @@ import { ThemeVars, type Theme } from "./ui/theme";
 import { Tabs, Tab } from "./tabs";
 import { IconButton, Omnibox } from "./Omnibox";
 import { scramjet } from "./main";
-import iconAdd from "@ktibow/iconset-material-symbols/add";
+import iconAdd from "@ktibow/iconset-ion/add";
 import { popTab, pushTab, Shell } from "./Shell";
 import { createMenu } from "./Menu";
 
@@ -239,19 +239,12 @@ export class Browser extends StatefulClass {
 		return (
 			<div>
 				<ThemeVars colors={use(this.theme)} />
-				<div style="display: flex; align-items: center; background: var(--aboutbrowser-frame-bg)">
-					<Tabs
-						tabs={use(this.tabs).bind()}
-						activetab={use(this.activetab).bind()}
-						destroyTab={(tab) => this.destroyTab(tab)}
-					/>
-					<IconButton
-						icon={iconAdd}
-						click={() => {
-							this.newTab("tab 2");
-						}}
-					></IconButton>
-				</div>
+				<Tabs
+					tabs={use(this.tabs).bind()}
+					activetab={use(this.activetab).bind()}
+					destroyTab={(tab) => this.destroyTab(tab)}
+					addTab={() => this.newTab("title")}
+				/>
 				<Omnibox
 					value={use(this.activetab.url)}
 					navigate={(url) => this.navigate(url)}

@@ -1,14 +1,14 @@
 import type { Component } from "dreamland/core";
 import { Icon } from "./ui/Icon";
 import type { IconifyIcon } from "@iconify/types";
-import iconBack from "@ktibow/iconset-material-symbols/arrow-back";
-import iconForwards from "@ktibow/iconset-material-symbols/arrow-forward";
-import iconRefresh from "@ktibow/iconset-material-symbols/refresh";
-import iconExtension from "@ktibow/iconset-material-symbols/extension";
-import iconSettings from "@ktibow/iconset-material-symbols/settings";
-import iconShield from "@ktibow/iconset-material-symbols/shield";
-import iconStar from "@ktibow/iconset-material-symbols/star";
-import iconSearch from "@ktibow/iconset-material-symbols/search";
+import iconBack from "@ktibow/iconset-ion/arrow-back";
+import iconForwards from "@ktibow/iconset-ion/arrow-forward";
+import iconRefresh from "@ktibow/iconset-ion/refresh";
+import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
+import iconSettings from "@ktibow/iconset-ion/settings-outline";
+import iconShield from "@ktibow/iconset-ion/shield-outline";
+import iconStar from "@ktibow/iconset-ion/star-outline";
+import iconSearch from "@ktibow/iconset-ion/search";
 import { createMenu } from "./Menu";
 import { browser, client } from "./main";
 

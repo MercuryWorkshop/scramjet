@@ -14,7 +14,7 @@
 	},
 	"dependencies": {
 		"@iconify/types": "^2.0.0",
-		"@ktibow/iconset-material-symbols": "^0.0.1749705809",
+		"@ktibow/iconset-ion": "^8.0.13",
 		"@mercuryworkshop/epoxy-transport": "^2.1.27",
 		"@mercuryworkshop/scramjet": "workspace:scramjet",
 		"dreamland": "workspace:dreamland",

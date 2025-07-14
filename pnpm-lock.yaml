@@ -163,9 +163,9 @@ importers:
       '@iconify/types':
         specifier: ^2.0.0
         version: 2.0.0
-      '@ktibow/iconset-material-symbols':
-        specifier: ^0.0.1749705809
-        version: 0.0.1749705809
+      '@ktibow/iconset-ion':
+        specifier: ^8.0.13
+        version: 8.0.13
       '@mercuryworkshop/epoxy-transport':
         specifier: ^2.1.27
         version: 2.1.27
@@ -533,8 +533,8 @@ packages:
     peerDependencies:
       tslib: '2'
 
-  '@ktibow/iconset-material-symbols@0.0.1749705809':
-    resolution: {integrity: sha512-3u+yotA6NY/9pCy9nQDR+jgSbb89M5WHJf9qJ8LPEjGgfOfN5c3dNdUkRLErvPq3PT8ROlURl7G6bmoHvctQSA==}
+  '@ktibow/iconset-ion@8.0.13':
+    resolution: {integrity: sha512-EgPzcsi+6fwh+JK9nn/lV8KiIVnueDBhiOVPYOTA8YeWizucC1n8wDhojGMDW2nxW6KLl7PpobSnH7s354a8hg==}
 
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
@@ -3293,7 +3293,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@ktibow/iconset-material-symbols@0.0.1749705809':
+  '@ktibow/iconset-ion@8.0.13':
     dependencies:
       '@iconify/types': 2.0.0
 

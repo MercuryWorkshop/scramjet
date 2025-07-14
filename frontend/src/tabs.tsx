@@ -1,5 +1,5 @@
-import iconClose from "@ktibow/iconset-material-symbols/close";
-import iconAdd from "@ktibow/iconset-material-symbols/add";
+import iconClose from "@ktibow/iconset-ion/close";
+import iconAdd from "@ktibow/iconset-ion/add";
 import {
 	createState,
 	type Component,
@@ -394,7 +394,6 @@ export const Tabs: Component<
 };
 Tabs.css = `
 	:scope {
-	flex: 1;
 		background: var(--aboutbrowser-frame-bg);
 		padding: 6px 12px;
 		height: calc(28px + 12px);
