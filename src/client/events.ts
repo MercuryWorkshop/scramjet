@@ -1,3 +1,5 @@
+import { ScramjetClient } from "./client";
+
 export type ScramjetEvent =
 	| NavigateEvent
 	| UrlChangeEvent
@@ -21,7 +23,10 @@ export class UrlChangeEvent extends Event {
 }
 
 export class ScramjetContextEvent extends Event {
-	constructor(public window: Self) {
+	constructor(
+		public window: Self,
+		public client: ScramjetClient
+	) {
 		super("contextInit");
 	}
 }
