@@ -8,6 +8,9 @@ import {
 } from "dreamland/core";
 import { Icon } from "./ui/Icon";
 import { IconButton } from "./Omnibox";
+import { memoize } from "./memoize";
+
+let cache = {};
 
 export const DragTab: Component<{
 	active: boolean;
@@ -43,7 +46,13 @@ export const DragTab: Component<{
 				}}
 			>
 				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
-					<img src={use(this.icon)} />
+					{memoize(
+						() => (
+							<img src={use(this.icon)} />
+						),
+						this.icon,
+						cache
+					)}
 					<span>{use(this.title)}</span>
 					<button
 						class="close"
