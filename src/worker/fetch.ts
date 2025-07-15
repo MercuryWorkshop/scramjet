@@ -26,13 +26,6 @@ import type { URLMeta } from "../shared/rewriters/url";
 import { $scramjet, flagEnabled } from "../scramjet";
 import { rewriteJsWithMap } from "../shared/rewriters/js";
 
-function newMeta(url: URL): URLMeta {
-	return {
-		origin: url,
-		base: url,
-	};
-}
-
 export async function handleFetch(
 	this: ScramjetServiceWorker,
 	request: Request,
@@ -47,6 +40,21 @@ export async function handleFetch(
 		}
 		if (requestUrl.searchParams.has("dest")) {
 			requestUrl.searchParams.delete("dest");
+		}
+
+		let meta: URLMeta = {};
+		if (client) {
+			meta.base = new URL(unrewriteUrl(client.url));
+			meta.origin = new URL(unrewriteUrl(client.url));
+		} else {
+			meta.base = new URL(unrewriteUrl(request.url));
+			meta.origin = new URL(unrewriteUrl(request.url));
+		}
+		if (requestUrl.searchParams.has("topFrame")) {
+			meta.topFrameName = requestUrl.searchParams.get("topFrame");
+		}
+		if (requestUrl.searchParams.has("parentFrame")) {
+			meta.parentFrameName = requestUrl.searchParams.get("parentFrame");
 		}
 
 		if (requestUrl.pathname === this.config.files.wasm) {
@@ -89,12 +97,7 @@ export async function handleFetch(
 			if (response.body) {
 				body = await rewriteBody(
 					response as BareResponseFetch,
-					client
-						? {
-								base: new URL(new URL(client.url).origin),
-								origin: new URL(new URL(client.url).origin),
-							}
-						: newMeta(new URL(unrewriteUrl(request.referrer))),
+					meta,
 					request.destination,
 					workerType,
 					this.cookieStore
@@ -230,7 +233,6 @@ export async function handleFetch(
 				const unrewrittenReferrer = unrewriteUrl(request.referrer);
 				if (unrewrittenReferrer) {
 					const referrerUrl = new URL(unrewrittenReferrer);
-					const meta = newMeta(url);
 					siteDirective = await getSiteDirective(
 						meta,
 						referrerUrl,
@@ -277,6 +279,7 @@ export async function handleFetch(
 
 		return await handleResponse(
 			url,
+			meta,
 			workerType,
 			request.destination,
 			request.mode,
@@ -316,6 +319,7 @@ export async function handleFetch(
 
 async function handleResponse(
 	url: URL,
+	meta: URLMeta,
 	workertype: string,
 	destination: RequestDestination,
 	mode: RequestMode,
@@ -331,7 +335,7 @@ async function handleResponse(
 		mode === "navigate" && ["document", "iframe"].includes(destination);
 	const responseHeaders = await rewriteHeaders(
 		response.rawHeaders,
-		newMeta(url),
+		meta,
 		bareClient,
 		{ get: getReferrerPolicy, set: storeReferrerPolicy }
 	);
@@ -358,7 +362,10 @@ async function handleResponse(
 			responseHeaders["referrer-policy"]
 		);
 
-		const redirectMeta = newMeta(redirectUrl);
+		const redirectMeta = {
+			origin: redirectUrl,
+			base: redirectUrl,
+		};
 		const newSiteDirective = await getSiteDirective(
 			redirectMeta,
 			url,
@@ -395,7 +402,7 @@ async function handleResponse(
 	if (response.body) {
 		responseBody = await rewriteBody(
 			response,
-			newMeta(url),
+			meta,
 			destination,
 			workertype,
 			cookieStore

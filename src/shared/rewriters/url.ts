@@ -4,6 +4,8 @@ import { rewriteJs } from "./js";
 export type URLMeta = {
 	origin: URL;
 	base: URL;
+	topFrameName?: string;
+	parentFrameName?: string;
 };
 
 function tryCanParseURL(url: string, origin?: string | URL): URL | null {
@@ -54,6 +56,9 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 			location.origin +
 			$scramjet.config.prefix +
 			$scramjet.codec.encode(realUrl.href) +
+			(meta.topFrameName
+				? `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`
+				: "") +
 			realHash
 		);
 	}
@@ -61,6 +66,10 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 
 export function unrewriteUrl(url: string | URL) {
 	if (url instanceof URL) url = url.toString();
+	// remove query string
+	if (url.includes("?")) {
+		url = url.split("?")[0];
+	}
 
 	const prefixed = location.origin + $scramjet.config.prefix;
 
