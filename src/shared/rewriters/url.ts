@@ -56,9 +56,6 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 			location.origin +
 			$scramjet.config.prefix +
 			$scramjet.codec.encode(realUrl.href) +
-			(meta.topFrameName
-				? `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`
-				: "") +
 			realHash
 		);
 	}

@@ -160,22 +160,23 @@ export const htmlRules: {
 		},
 
 		// url rewrites
-		src: [
-			"embed",
-			"script",
-			"img",
-			"iframe",
-			"frame",
-			"source",
-			"input",
-			"track",
-		],
+		src: ["embed", "script", "img", "frame", "source", "input", "track"],
 		href: ["a", "link", "area", "use", "image"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
 		poster: ["video"],
 		"xlink:href": ["image"],
+	},
+	{
+		fn: (value: string, meta: URLMeta) => {
+			let url = rewriteUrl(value, meta);
+			if (meta.topFrameName)
+				url += `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`;
+
+			return url;
+		},
+		src: ["iframe"],
 	},
 	{
 		fn: (value: string, meta: URLMeta) => {
