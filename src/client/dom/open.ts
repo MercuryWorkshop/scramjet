@@ -1,18 +1,15 @@
 import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
-import {
-	SCRAMJETCLIENT,
-	SCRAMJETCLIENTNAME,
-	SCRAMJETFRAMENAME,
-} from "../../symbols";
+import { SCRAMJETCLIENT } from "../../symbols";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("window.open", {
 		apply(ctx) {
 			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
 
-			if (["_parent", "_top", "_unfencedTop"].includes(ctx.args[1]))
-				ctx.args[1] = SCRAMJETFRAMENAME; // TODO: this is still technically the wrong behavior
+			if (ctx.args[1] === "_top" || ctx.args[1] === "_unfencedTop")
+				ctx.args[1] = client.meta.topFrameName;
+			if (ctx.args[1] === "_parent") ctx.args[1] = client.meta.parentFrameName;
 
 			const realwin = ctx.call();
 

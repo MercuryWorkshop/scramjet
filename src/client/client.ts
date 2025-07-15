@@ -232,6 +232,93 @@ export class ScramjetClient {
 
 				return client.url;
 			},
+			get topFrameName() {
+				if (!iswindow)
+					throw new Error("topFrameName was called from a worker?");
+
+				let currentWin = client.global;
+				if (currentWin.parent.window == currentWin.window) {
+					// we're top level & we don't have a frame name
+					return null;
+				}
+
+				// find the topmost frame that's controlled by scramjet, stopping before the real top frame
+				while (currentWin.parent.window !== currentWin.window) {
+					if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
+					currentWin = currentWin.parent.window;
+				}
+
+				const curclient = currentWin[SCRAMJETCLIENT];
+				const frame = curclient.descriptors.get(
+					"window.frameElement",
+					currentWin
+				);
+				if (!frame) {
+					// we're inside an iframe, but the top frame is scramjet-controlled and top level, so we can't get a top frame name
+					return null;
+				}
+				if (!frame.name) {
+					// the top frame is scramjet-controlled, but it has no name. this is user error
+					console.error(
+						"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+					);
+
+					return null;
+				}
+
+				return frame.name;
+			},
+			get parentFrameName() {
+				if (!iswindow)
+					throw new Error("parentFrameName was called from a worker?");
+				if (client.global.parent.window == client.global.window) {
+					// we're top level & we don't have a frame name
+					return null;
+				}
+
+				let parentWin = client.global.parent.window;
+				if (parentWin[SCRAMJETCLIENT]) {
+					// we're inside an iframe, and the parent is scramjet-controlled
+					const parentClient = parentWin[SCRAMJETCLIENT];
+					const frame = parentClient.descriptors.get(
+						"window.frameElement",
+						parentWin
+					);
+
+					if (!frame) {
+						// parent is scramjet controlled and top-level. there is no parent frame name
+						return null;
+					}
+
+					if (!frame.name) {
+						// the parent frame is scramjet-controlled, but it has no name. this is user error
+						console.error(
+							"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+						);
+
+						return null;
+					}
+
+					return frame.name;
+				} else {
+					// we're inside an iframe, and the parent is not scramjet-controlled
+					// return our own frame name
+					const frame = client.descriptors.get(
+						"window.frameElement",
+						client.global
+					);
+					if (!frame.name) {
+						// the parent frame is not scramjet-controlled, so we can't get a parent frame name
+						console.error(
+							"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+						);
+
+						return null;
+					}
+
+					return frame.name;
+				}
+			},
 		};
 
 		global[SCRAMJETCLIENT] = this;

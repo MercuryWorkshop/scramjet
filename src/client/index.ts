@@ -14,12 +14,24 @@ export const isshared = "SharedWorkerGlobalScope" in self;
 export const isemulatedsw =
 	new URL(self.location.href).searchParams.get("dest") === "serviceworker";
 
+function createFrameId() {
+	return `${Array(8)
+		.fill(0)
+		.map(() => Math.floor(Math.random() * 36).toString(36))
+		.join("")}`;
+}
+
 dbg.log("initializing scramjet client");
 // if it already exists, that means the handlers have probably already been setup by the parent document
 if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
 	loadCodecs();
 
 	const client = new ScramjetClient(self);
+	const frame: HTMLIFrameElement = self.frameElement as HTMLIFrameElement;
+	if (frame && !frame.name) {
+		// all frames need to be named for our logic to work
+		frame.name = createFrameId();
+	}
 
 	if (self.COOKIE) client.loadcookies(self.COOKIE);
 

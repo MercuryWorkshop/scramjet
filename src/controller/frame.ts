@@ -1,15 +1,20 @@
 import { ScramjetController } from ".";
 import type { ScramjetClient } from "../client/client";
 import { ScramjetEvent, ScramjetEvents } from "../client/events";
-import { SCRAMJETCLIENT, SCRAMJETFRAME, SCRAMJETFRAMENAME } from "../symbols";
-
+import { SCRAMJETCLIENT, SCRAMJETFRAME } from "../symbols";
+function createFrameId() {
+	return `${Array(8)
+		.fill(0)
+		.map(() => Math.floor(Math.random() * 36).toString(36))
+		.join("")}`;
+}
 export class ScramjetFrame extends EventTarget {
 	constructor(
 		private controller: ScramjetController,
 		public frame: HTMLIFrameElement
 	) {
 		super();
-		frame.name = SCRAMJETFRAMENAME;
+		frame.name = createFrameId();
 		frame[SCRAMJETFRAME] = this;
 	}
 
