@@ -33,29 +33,6 @@ export async function handleFetch(
 ) {
 	try {
 		const requestUrl = new URL(request.url);
-		let workerType = "";
-		if (requestUrl.searchParams.has("type")) {
-			workerType = requestUrl.searchParams.get("type") as string;
-			requestUrl.searchParams.delete("type");
-		}
-		if (requestUrl.searchParams.has("dest")) {
-			requestUrl.searchParams.delete("dest");
-		}
-
-		let meta: URLMeta = {};
-		if (client) {
-			meta.base = new URL(unrewriteUrl(client.url));
-			meta.origin = new URL(unrewriteUrl(client.url));
-		} else {
-			meta.base = new URL(unrewriteUrl(request.url));
-			meta.origin = new URL(unrewriteUrl(request.url));
-		}
-		if (requestUrl.searchParams.has("topFrame")) {
-			meta.topFrameName = requestUrl.searchParams.get("topFrame");
-		}
-		if (requestUrl.searchParams.has("parentFrame")) {
-			meta.parentFrameName = requestUrl.searchParams.get("parentFrame");
-		}
 
 		if (requestUrl.pathname === this.config.files.wasm) {
 			return fetch(this.config.files.wasm).then(async (x) => {
@@ -78,6 +55,27 @@ export async function handleFetch(
 					headers: { "content-type": "text/javascript" },
 				});
 			});
+		}
+
+		let workerType = "";
+		if (requestUrl.searchParams.has("type")) {
+			workerType = requestUrl.searchParams.get("type") as string;
+			requestUrl.searchParams.delete("type");
+		}
+		if (requestUrl.searchParams.has("dest")) {
+			requestUrl.searchParams.delete("dest");
+		}
+		const url = new URL(unrewriteUrl(requestUrl));
+
+		let meta: URLMeta = {
+			origin: url,
+			base: url,
+		};
+		if (requestUrl.searchParams.has("topFrame")) {
+			meta.topFrameName = requestUrl.searchParams.get("topFrame");
+		}
+		if (requestUrl.searchParams.has("parentFrame")) {
+			meta.parentFrameName = requestUrl.searchParams.get("parentFrame");
 		}
 
 		if (
@@ -116,8 +114,6 @@ export async function handleFetch(
 				headers: headers,
 			});
 		}
-
-		const url = new URL(unrewriteUrl(requestUrl));
 
 		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
 			(w) => w.origin === url.origin
