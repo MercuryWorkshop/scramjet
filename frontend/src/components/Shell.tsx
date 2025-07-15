@@ -1,15 +1,13 @@
 import type { Component } from "dreamland/core";
 import type { Tab } from "./TabStrip";
 import { browser } from "../main";
-
-export let pushTab: (tab: Tab) => void;
-export let popTab: (tab: Tab) => void;
+import { popTab, pushTab } from "../browser";
 
 export const Shell: Component<{
 	tabs: Tab[];
 	activetab: Tab;
 }> = function (cx) {
-	pushTab = (tab) => {
+	pushTab.listen((tab) => {
 		tab.frame.frame.classList.add(cx.id);
 		cx.root.appendChild(
 			<div
@@ -19,15 +17,15 @@ export const Shell: Component<{
 				{tab.frame.frame}
 			</div>
 		);
-	};
-	popTab = (tab) => {
+	});
+	popTab.listen((tab) => {
 		for (let el of cx.root.children) {
 			if (el.children[0] == tab.frame.frame) {
 				el.remove();
 				break;
 			}
 		}
-	};
+	});
 
 	return <div class:unfocus={use(browser.unfocusframes)}></div>;
 };

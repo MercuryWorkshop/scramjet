@@ -4,18 +4,12 @@ import { Tabs, Tab } from "./components/TabStrip";
 import { Omnibox } from "./components/Omnibox";
 import { scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-ion/add";
-import { popTab, pushTab, Shell } from "./components/Shell";
+import { Shell } from "./components/Shell";
 import { createMenu } from "./components/Menu";
+import { createDelegate } from "./delegate";
 
-// let a = createState({
-// 	b: createState({
-// 		c: "test",
-// 	}),
-// });
-// use(a.b.c).listen((v) => {
-// 	console.log("a.b.c changed to", v);
-// });
-// a.b.c = "test2";
+export const pushTab = createDelegate<Tab>();
+export const popTab = createDelegate<Tab>();
 
 class StatefulClass {
 	constructor(state: Stateful<any>) {
