@@ -6,9 +6,9 @@ import {
 	type ComponentInstance,
 	type Stateful,
 } from "dreamland/core";
-import { Icon } from "./ui/Icon";
-import { IconButton } from "./Omnibox";
-import { memoize } from "./memoize";
+import { Icon } from "./Icon";
+import { memoize } from "../memoize";
+import { IconButton } from "./IconButton";
 
 export const DragTab: Component<{
 	active: boolean;
@@ -339,12 +339,6 @@ export const Tabs: Component<
 		const root = getTabFromIndex(tab.id);
 		const dragroot = root.querySelector(".dragroot") as HTMLElement;
 
-		let lifetimeOffset = tab.pos - tab.startdragpos;
-		if (Math.abs(lifetimeOffset) < 20) {
-			// TODO: arbitrary magic
-			if (this.activetab != tab) this.activetab = tab;
-		}
-
 		dragroot.style.width = "";
 		dragroot.style.position = "unset";
 		tab.dragoffset = -1;
@@ -368,6 +362,8 @@ export const Tabs: Component<
 		if (tab.dragoffset < 0) throw new Error("dragoffset must be positive");
 
 		calcDragPos(e, tab);
+
+		if (this.activetab != tab) this.activetab = tab;
 	};
 
 	const transitionend = () => {
@@ -393,11 +389,6 @@ export const Tabs: Component<
 							icon={use(tab.icon)}
 							active={use(this.activetab).map((x) => x === tab)}
 							mousedown={(e) => mouseDown(e, tab)}
-							click={() => {
-								if (this.activetab !== tab) {
-									this.activetab = tab;
-								}
-							}}
 							destroy={() => {
 								this.destroyTab(tab);
 							}}

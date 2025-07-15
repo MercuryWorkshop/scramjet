@@ -1,11 +1,11 @@
 import { createState, type Stateful } from "dreamland/core";
-import { ThemeVars, type Theme } from "./ui/theme";
-import { Tabs, Tab } from "./tabs";
-import { IconButton, Omnibox } from "./Omnibox";
+import { ThemeVars, type Theme } from "./theme";
+import { Tabs, Tab } from "./components/TabStrip";
+import { Omnibox } from "./components/Omnibox";
 import { scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-ion/add";
-import { popTab, pushTab, Shell } from "./Shell";
-import { createMenu } from "./Menu";
+import { popTab, pushTab, Shell } from "./components/Shell";
+import { createMenu } from "./components/Menu";
 
 // let a = createState({
 // 	b: createState({

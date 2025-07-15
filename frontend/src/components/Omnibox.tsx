@@ -1,6 +1,4 @@
 import type { Component } from "dreamland/core";
-import { Icon } from "./ui/Icon";
-import type { IconifyIcon } from "@iconify/types";
 import iconBack from "@ktibow/iconset-ion/arrow-back";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import iconRefresh from "@ktibow/iconset-ion/refresh";
@@ -10,7 +8,8 @@ import iconShield from "@ktibow/iconset-ion/shield-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconSearch from "@ktibow/iconset-ion/search";
 import { createMenu } from "./Menu";
-import { browser, client } from "./main";
+import { browser, client } from "../main";
+import { IconButton } from "./IconButton";
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -205,29 +204,6 @@ UrlInput.css = `
     display: flex;
     z-index: 1;
     align-items: center;
-  }
-`;
-
-export const IconButton: Component<{
-	icon: IconifyIcon;
-	click?: (e: MouseEvent) => void;
-}> = function (cx) {
-	return (
-		<button on:click={(e) => this.click?.(e)}>
-			<Icon icon={this.icon} />
-		</button>
-	);
-};
-IconButton.css = `
-  :scope {
-    padding: 0.4em;
-    display: flex;
-    outline: none;
-    border: none;
-    font-size: 1.25em;
-    background: inerhit
-    # background: var(--aboutbrowser-toolbar-bg);
-    cursor: pointer;
   }
 `;
 

@@ -1,7 +1,7 @@
 import "./style.css";
 
 import { createBrowser } from "./browser";
-import { createMenu } from "./Menu";
+import { createMenu } from "./components/Menu";
 let app = document.getElementById("app")!;
 import { BareMuxConnection, BareClient } from "@mercuryworkshop/bare-mux";
 

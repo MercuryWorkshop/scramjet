@@ -1,6 +1,6 @@
 import type { Component } from "dreamland/core";
-import type { Tab } from "./tabs";
-import { browser } from "./main";
+import type { Tab } from "./TabStrip";
+import { browser } from "../main";
 
 export let pushTab: (tab: Tab) => void;
 export let popTab: (tab: Tab) => void;
