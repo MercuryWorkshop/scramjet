@@ -9,12 +9,11 @@ let connection = new BareMuxConnection("/baremux/worker.js");
 connection.setTransport("/epoxy/index.mjs", [{ wisp: "wss://anura.pro" }]);
 export let client = new BareClient();
 
+const { ScramjetController } = $scramjetLoadController();
 export const scramjet = new ScramjetController({
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
-		worker: "/scram/scramjet.worker.js",
-		client: "/scram/scramjet.client.js",
-		shared: "/scram/scramjet.shared.js",
+		all: "/scram/scramjet.all.js",
 		sync: "/scram/scramjet.sync.js",
 	},
 	flags: {

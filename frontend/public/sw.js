@@ -1,5 +1,6 @@
-importScripts("/scram/scramjet.shared.js", "/scram/scramjet.worker.js");
+importScripts("/scram/scramjet.all.js");
 
+const { ScramjetServiceWorker } = $scramjetLoadWorker();
 const scramjet = new ScramjetServiceWorker();
 
 async function handleRequest(event) {
