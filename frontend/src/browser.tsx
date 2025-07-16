@@ -240,7 +240,7 @@ export class Browser extends StatefulClass {
 					addTab={() => this.newTab("title")}
 				/>
 				<Omnibox
-					value={use(this.activetab.url)}
+					tabUrl={use(this.activetab.url)}
 					goBack={() => {
 						this.activetab.frame.back();
 					}}

@@ -8,6 +8,7 @@ import {
 } from "dreamland/core";
 import { Icon } from "./Icon";
 import { memoize } from "../memoize";
+import { HistoryState } from "../history";
 import { IconButton } from "./IconButton";
 
 export const DragTab: Component<{
@@ -179,6 +180,8 @@ export class Tab {
 	width: number;
 	pos: number;
 	icon: string;
+
+	history: HistoryState[];
 
 	constructor(title: string, frame: ScramjetFrame) {
 		return createState({

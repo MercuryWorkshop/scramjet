@@ -22,10 +22,11 @@ Spacer.css = `
 
 export const UrlInput: Component<
 	{
-		value: string;
+		tabUrl: string;
 		navigate: (url: string) => void;
 	},
 	{
+		value: string;
 		active: boolean;
 		input: HTMLInputElement;
 
@@ -75,7 +76,9 @@ export const UrlInput: Component<
 					browser.unfocusframes = false;
 					e.stopPropagation();
 				});
+				this.value = this.tabUrl;
 				this.input.focus();
+				this.input.select();
 				e.stopPropagation();
 			}}
 		>
@@ -103,43 +106,58 @@ export const UrlInput: Component<
 			</div>
 			<div class="realbar">
 				<IconButton icon={iconShield}></IconButton>
-				<input
-					this={use(this.input).bind()}
-					value={use(this.value).bind()}
-					on:keydown={(e: KeyboardEvent) => {
-						if (e.key === "ArrowDown") {
-							e.preventDefault();
-							this.active = true;
-							this.focusindex++;
-							if (this.focusindex > this.overflowItems.length) {
-								this.focusindex = 0;
+				{use(this.active).andThen(
+					<input
+						this={use(this.input).bind()}
+						value={use(this.value).bind()}
+						on:keydown={(e: KeyboardEvent) => {
+							if (e.key === "ArrowDown") {
+								e.preventDefault();
+								this.active = true;
+								this.focusindex++;
+								if (this.focusindex > this.overflowItems.length) {
+									this.focusindex = 0;
+								}
 							}
-						}
-						if (e.key === "ArrowUp") {
-							e.preventDefault();
-							this.active = true;
-							this.focusindex--;
-							if (this.focusindex < 0) {
-								this.focusindex = this.overflowItems.length;
+							if (e.key === "ArrowUp") {
+								e.preventDefault();
+								this.active = true;
+								this.focusindex--;
+								if (this.focusindex < 0) {
+									this.focusindex = this.overflowItems.length;
+								}
 							}
-						}
-						if (e.key === "Enter") {
-							e.preventDefault();
-							if (this.focusindex > 0) {
-								this.value = this.overflowItems[this.focusindex - 1];
-								this.navigate(this.value);
-								this.active = false;
-								this.input.blur();
-							} else {
-								this.navigate(this.value);
+							if (e.key === "Enter") {
+								e.preventDefault();
+								if (this.focusindex > 0) {
+									this.value = this.overflowItems[this.focusindex - 1];
+									this.navigate(this.value);
+									this.active = false;
+									this.input.blur();
+								} else {
+									this.navigate(this.value);
+								}
 							}
-						}
-					}}
-					on:input={(e: InputEvent) => {
-						this.value = this.input.value;
-						this.focusindex = 0;
-					}}
-				></input>
+						}}
+						on:input={(e: InputEvent) => {
+							this.value = this.input.value;
+							this.focusindex = 0;
+						}}
+					></input>
+				)}
+				{use(this.active)
+					.map((a) => !a)
+					.andThen(
+						<span class="inactiveurl">
+							{use(this.tabUrl).map((v) =>
+								v && URL.canParse(v)
+									? new URL(v).hostname +
+										new URL(v).pathname +
+										new URL(v).search
+									: ""
+							)}
+						</span>
+					)}
 
 				<IconButton icon={iconStar}></IconButton>
 			</div>
@@ -186,7 +204,7 @@ UrlInput.css = `
     border-radius: 4px;
     margin: 0.25em;
   }
-  input {
+  input, .inactiveurl {
     background: none;
     border: none;
     outline: none;
@@ -196,6 +214,11 @@ UrlInput.css = `
     height: 100%;
     width: 100%;
   }
+  .inactiveurl {
+    display: flex;
+    align-items: center;
+  }
+
 
   .realbar {
     position: absolute;
@@ -208,7 +231,7 @@ UrlInput.css = `
 `;
 
 export const Omnibox: Component<{
-	value: string;
+	tabUrl: string;
 	navigate: (url: string) => void;
 	goBack: () => void;
 	goForwards: () => void;
@@ -220,7 +243,7 @@ export const Omnibox: Component<{
 			<IconButton click={this.goForwards} icon={iconForwards}></IconButton>
 			<IconButton click={this.refresh} icon={iconRefresh}></IconButton>
 			<Spacer></Spacer>
-			<UrlInput value={use(this.value)} navigate={this.navigate}></UrlInput>
+			<UrlInput tabUrl={use(this.tabUrl)} navigate={this.navigate}></UrlInput>
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>
 			<IconButton
