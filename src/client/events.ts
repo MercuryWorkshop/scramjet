@@ -11,18 +11,21 @@ export type ScramjetEvents = {
 };
 
 export class NavigateEvent extends Event {
+	type = "navigate";
 	constructor(public url: string) {
 		super("navigate");
 	}
 }
 
 export class UrlChangeEvent extends Event {
+	type = "urlchange";
 	constructor(public url: string) {
 		super("urlchange");
 	}
 }
 
 export class ScramjetContextEvent extends Event {
+	type = "contextInit";
 	constructor(
 		public window: Self,
 		public client: ScramjetClient
