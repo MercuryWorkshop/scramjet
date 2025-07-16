@@ -3,15 +3,7 @@ import { ScramjetServiceWorker } from ".";
 import { renderError } from "./error";
 import { FakeServiceWorker } from "./fakesw";
 import { CookieStore } from "../shared/cookie";
-import {
-	ScramjetHeaders,
-	unrewriteUrl,
-	rewriteCss,
-	rewriteHeaders,
-	rewriteHtml,
-	rewriteWorkers,
-	unrewriteBlob,
-} from "../shared";
+
 import { getSiteDirective } from "../shared/security/siteTests";
 import {
 	initializeTracker,
@@ -22,9 +14,18 @@ import {
 	getReferrerPolicy,
 } from "../shared/security/forceReferrer";
 
-import type { URLMeta } from "../shared/rewriters/url";
-import { $scramjet, flagEnabled } from "../scramjet";
+import {
+	unrewriteBlob,
+	unrewriteUrl,
+	type URLMeta,
+} from "../shared/rewriters/url";
 import { rewriteJsWithMap } from "../shared/rewriters/js";
+import { ScramjetHeaders } from "../shared/headers";
+import { config, flagEnabled } from "../shared";
+import { rewriteHeaders } from "../shared/rewriters/headers";
+import { rewriteHtml } from "../shared/rewriters/html";
+import { rewriteCss } from "../shared/rewriters/css";
+import { rewriteWorkers } from "../shared/rewriters/worker";
 
 export async function handleFetch(
 	this: ScramjetServiceWorker,
@@ -67,7 +68,7 @@ export async function handleFetch(
 		}
 		const url = new URL(unrewriteUrl(requestUrl));
 
-		let meta: URLMeta = {
+		const meta: URLMeta = {
 			origin: url,
 			base: url,
 		};
@@ -138,10 +139,7 @@ export async function handleFetch(
 			headers.set(key, value);
 		}
 
-		if (
-			client &&
-			new URL(client.url).pathname.startsWith($scramjet.config.prefix)
-		) {
+		if (client && new URL(client.url).pathname.startsWith(config.prefix)) {
 			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
 			const clientURL = new URL(unrewriteUrl(client.url));
 			if (clientURL.toString().includes("youtube.com")) {
@@ -173,7 +171,7 @@ export async function handleFetch(
 
 			// Trace backwards
 			while (currentReferrer) {
-				if (!currentReferrer.includes($scramjet.config.prefix)) {
+				if (!currentReferrer.includes(config.prefix)) {
 					isTopLevelProxyNavigation = true;
 					break;
 				}
@@ -225,7 +223,7 @@ export async function handleFetch(
 			request.referrer !== "" &&
 			request.referrer !== "no-referrer"
 		) {
-			if (request.referrer.includes($scramjet.config.prefix)) {
+			if (request.referrer.includes(config.prefix)) {
 				const unrewrittenReferrer = unrewriteUrl(request.referrer);
 				if (unrewrittenReferrer) {
 					const referrerUrl = new URL(unrewrittenReferrer);
@@ -291,13 +289,13 @@ export async function handleFetch(
 			message: err.message,
 			url: request.url,
 			destination: request.destination,
-			timestamp: new Date().toISOString(),
 		};
 		if (err.stack) {
 			errorDetails["stack"] = err.stack;
 		}
 
 		console.error("ERROR FROM SERVICE WORKER FETCH: ", errorDetails);
+		console.error(err);
 
 		if (!["document", "iframe"].includes(request.destination))
 			return new Response(undefined, { status: 500 });
@@ -510,7 +508,7 @@ async function rewriteBody(
 				if (js instanceof Uint8Array) {
 					js = new TextDecoder().decode(js);
 				}
-				const sourcemapfn = `${globalThis.$scramjet.config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");`;
+				const sourcemapfn = `${config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");`;
 				const strictMode = /^\s*(['"])use strict\1;?/;
 				if (strictMode.test(js)) {
 					js = js.replace(strictMode, `$&\n${sourcemapfn}`);

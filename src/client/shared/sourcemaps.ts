@@ -1,4 +1,4 @@
-import { flagEnabled } from "../../scramjet";
+import { config, flagEnabled } from "../../shared";
 import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "../../symbols";
 import { ProxyCtx, ScramjetClient } from "../client";
 
@@ -141,6 +141,7 @@ function doUnrewrite(ctx: ProxyCtx) {
 
 	if (!rewrites) {
 		console.warn("failed to get rewrites for tag", tag);
+
 		return ctx.return(stringified);
 	}
 
@@ -184,20 +185,16 @@ export const enabled = (client: ScramjetClient) =>
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
-	Object.defineProperty(
-		self,
-		globalThis.$scramjet.config.globals.pushsourcemapfn,
-		{
-			value: (buf: Array<number>, tag: string) => {
-				const before = performance.now();
-				registerRewrites(buf, tag);
-				dbg.time(client.meta, before, `scramtag parse for ${tag}`);
-			},
-			enumerable: false,
-			writable: false,
-			configurable: false,
-		}
-	);
+	Object.defineProperty(self, config.globals.pushsourcemapfn, {
+		value: (buf: Array<number>, tag: string) => {
+			const before = performance.now();
+			registerRewrites(buf, tag);
+			dbg.time(client.meta, before, `scramtag parse for ${tag}`);
+		},
+		enumerable: false,
+		writable: false,
+		configurable: false,
+	});
 
 	// when we rewrite javascript it will make function.toString leak internals
 	// this can lead to double rewrites which is bad

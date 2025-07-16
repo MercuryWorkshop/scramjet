@@ -1,6 +1,12 @@
+import {
+	codecDecode,
+	codecEncode,
+	config,
+	loadCodecs,
+	setConfig,
+} from "../shared/index";
 import { ScramjetConfig, ScramjetInitConfig } from "../types";
 import { ScramjetFrame } from "./frame";
-import { $scramjet, loadCodecs } from "../scramjet";
 
 export class ScramjetController {
 	private db: IDBDatabase;
@@ -20,10 +26,8 @@ export class ScramjetController {
 				pushsourcemapfn: "$scramjet$pushsourcemap",
 			},
 			files: {
-				wasm: "/scramjet.wasm.js",
-				shared: "/scramjet.shared.js",
-				worker: "/scramjet.worker.js",
-				client: "/scramjet.client.js",
+				wasm: "/scramjet.wasm.wasm",
+				all: "/scramjet.all.js",
 				sync: "/scramjet.sync.js",
 			},
 			flags: {
@@ -65,7 +69,7 @@ export class ScramjetController {
 		const newConfig = deepMerge(defaultConfig, config);
 		newConfig.codec.encode = newConfig.codec.encode.toString();
 		newConfig.codec.decode = newConfig.codec.decode.toString();
-		$scramjet.config = newConfig as ScramjetConfig;
+		setConfig(newConfig as ScramjetConfig);
 	}
 
 	async init(): Promise<void> {
@@ -74,7 +78,7 @@ export class ScramjetController {
 		await this.openIDB();
 		navigator.serviceWorker.controller?.postMessage({
 			scramjet$type: "loadConfig",
-			config: $scramjet.config,
+			config,
 		});
 		dbg.log("config loaded");
 	}
@@ -90,14 +94,14 @@ export class ScramjetController {
 	encodeUrl(url: string | URL): string {
 		if (url instanceof URL) url = url.toString();
 
-		return $scramjet.config.prefix + $scramjet.codec.encode(url);
+		return config.prefix + codecEncode(url);
 	}
 
 	decodeUrl(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
-		const prefixed = location.origin + $scramjet.config.prefix;
+		const prefixed = location.origin + config.prefix;
 
-		return $scramjet.codec.decode(url.slice(prefixed.length));
+		return codecDecode(url.slice(prefixed.length));
 	}
 
 	async openIDB(): Promise<IDBDatabase> {
@@ -139,7 +143,7 @@ export class ScramjetController {
 		}
 		const tx = this.db.transaction("config", "readwrite");
 		const store = tx.objectStore("config");
-		const req = store.put($scramjet.config, "config");
+		const req = store.put(config, "config");
 
 		return new Promise((resolve, reject) => {
 			req.onsuccess = resolve;
@@ -147,12 +151,10 @@ export class ScramjetController {
 		});
 	}
 
-	async modifyConfig(config: ScramjetConfig) {
-		$scramjet.config = Object.assign({}, $scramjet.config, config);
+	async modifyConfig(newconfig: ScramjetConfig) {
+		setConfig(Object.assign({}, config, newconfig));
 		loadCodecs();
 
 		await this.#saveConfig();
 	}
 }
-
-window.ScramjetController = ScramjetController;

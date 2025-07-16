@@ -1,5 +1,5 @@
+import { rewriteCss, unrewriteCss } from "../../shared/rewriters/css";
 import { ScramjetClient } from "../client";
-import { rewriteCss, unrewriteCss } from "../../shared";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {

@@ -1,4 +1,4 @@
-import { flagEnabled } from "./scramjet";
+import { flagEnabled } from "./shared";
 import type { URLMeta } from "./shared/rewriters/url";
 
 const logfuncs = {

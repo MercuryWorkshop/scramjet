@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { ScramjetClient } from "./client";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
-import { rewriteUrl } from "../shared";
 import { UrlChangeEvent } from "./events";
 import { iswindow } from ".";
+import { rewriteUrl } from "../shared/rewriters/url";
 
 export function createLocationProxy(
 	client: ScramjetClient,
@@ -11,7 +10,7 @@ export function createLocationProxy(
 ) {
 	const Location = iswindow ? self.Location : self.WorkerLocation;
 	// location cannot be Proxy()d
-	const fakeLocation = {};
+	const fakeLocation: any = {};
 	Object.setPrototypeOf(fakeLocation, Location.prototype);
 	fakeLocation.constructor = Location;
 
@@ -32,7 +31,7 @@ export function createLocationProxy(
 		const native = nativeGetOwnPropertyDescriptor(descriptorSource, prop);
 		if (!native) continue;
 
-		const desc = {
+		const desc: Partial<PropertyDescriptor> = {
 			configurable: true,
 			enumerable: true,
 		};

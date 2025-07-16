@@ -1,5 +1,3 @@
-import { $scramjet } from "../scramjet";
-
 export function errorTemplate(trace: string, fetchedURL: string) {
 	// turn script into a data URI so we don"t have to escape any HTML values
 	const script = `
@@ -7,9 +5,9 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                 fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
                 for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(location.hostname)};
                 reload.addEventListener("click", () => location.reload());
-                version.textContent = ${JSON.stringify($scramjet.version.version)};
-                build.textContent = ${JSON.stringify($scramjet.version.build)};
-                
+                version.textContent = ${JSON.stringify($scramjetVersion)};
+                build.textContent = ${JSON.stringify($scramjetVersion)};
+
                 document.getElementById('copy-button').addEventListener('click', async () => {
                     const text = document.getElementById('errorTrace').value;
                     await navigator.clipboard.writeText(text);

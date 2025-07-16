@@ -1,5 +1,5 @@
+import { rewriteUrl } from "../../shared/rewriters/url";
 import { ScramjetClient } from "../client";
-import { rewriteUrl } from "../../shared";
 import { UrlChangeEvent } from "../events";
 
 export default function (client: ScramjetClient, _self: Self) {

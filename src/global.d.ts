@@ -1,3 +1,5 @@
+/// <reference types="@rspack/core/module" />
+
 declare const dbg: {
 	log: (message: string, ...args: any[]) => void;
 	warn: (message: string, ...args: any[]) => void;

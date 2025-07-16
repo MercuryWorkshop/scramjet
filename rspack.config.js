@@ -14,10 +14,11 @@ export default defineConfig({
 	mode: "development",
 	devtool: "source-map",
 	entry: {
-		shared: join(__dirname, "src/shared/index.ts"),
-		worker: join(__dirname, "src/worker/index.ts"),
-		client: join(__dirname, "src/client/index.ts"),
-		controller: join(__dirname, "src/controller/index.ts"),
+		all: join(__dirname, "src/entry.ts"),
+		// shared: join(__dirname, "src/shared/index.ts"),
+		// worker: join(__dirname, "src/worker/index.ts"),
+		// client: join(__dirname, "src/client/index.ts"),
+		// controller: join(__dirname, "src/controller/index.ts"),
 		sync: join(__dirname, "src/sync.ts"),
 	},
 	resolve: {

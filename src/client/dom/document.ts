@@ -1,4 +1,4 @@
-import { rewriteHtml } from "../../shared";
+import { rewriteHtml } from "../../shared/rewriters/html";
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, _self: Self) {

@@ -1,3 +1,5 @@
+/// <reference path="../lib/index.d.ts" />
+
 // dumb hack to allow firefox to work (please dont do this in prod)
 if (navigator.userAgent.includes("Firefox")) {
 	Object.defineProperty(globalThis, "crossOriginIsolated", {
@@ -6,8 +8,8 @@ if (navigator.userAgent.includes("Firefox")) {
 	});
 }
 
-importScripts("/scram/scramjet.shared.js", "/scram/scramjet.worker.js");
-
+importScripts("/scram/scramjet.all.js");
+const { ScramjetServiceWorker } = $scramjetLoadWorker();
 const scramjet = new ScramjetServiceWorker();
 
 async function handleRequest(event) {

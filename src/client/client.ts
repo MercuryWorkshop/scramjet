@@ -8,16 +8,18 @@ import { createLocationProxy } from "./location";
 import { nativeGetOwnPropertyDescriptor } from "./natives";
 import {
 	BareClient,
-	CookieStore,
-	config,
-	unrewriteUrl,
-	rewriteUrl,
-} from "../shared";
-import type { BareClient as BareClientType } from "@mercuryworkshop/bare-mux";
+	type BareClient as BareClientType,
+} from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "./shared/wrap";
 import { NavigateEvent } from "./events";
-import type { URLMeta } from "../shared/rewriters/url";
+import {
+	rewriteUrl,
+	unrewriteUrl,
+	type URLMeta,
+} from "../shared/rewriters/url";
 import { SourceMaps } from "./shared/sourcemaps";
+import { config } from "../shared";
+import { CookieStore } from "../shared/cookie";
 
 type NativeStore = {
 	store: Record<string, any>;
@@ -365,7 +367,6 @@ export class ScramjetClient {
 	}
 
 	hook() {
-		// @ts-ignore
 		const context = import.meta.webpackContext(".", {
 			recursive: true,
 		});
@@ -373,7 +374,7 @@ export class ScramjetClient {
 		const modules: ScramjetModule[] = [];
 
 		for (const key of context.keys()) {
-			const module: ScramjetModule = context(key);
+			const module = context(key) as ScramjetModule;
 			if (!key.endsWith(".ts")) continue;
 			if (
 				(key.startsWith("./dom/") && "window" in this.global) ||

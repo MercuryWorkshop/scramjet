@@ -1,5 +1,5 @@
-import { flagEnabled } from "../../scramjet";
-import { config, unrewriteUrl } from "../../shared";
+import { config, flagEnabled } from "../../shared";
+import { unrewriteUrl } from "../../shared/rewriters/url";
 import { ScramjetClient } from "../client";
 
 export const enabled = (client: ScramjetClient) =>
@@ -13,7 +13,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		for (let i = 0; i < stack.length; i++) {
 			const url = stack[i].getFileName();
 
-			if (url.endsWith(config.files.client)) {
+			if (url.endsWith(config.files.all)) {
 				// strip stack frames including scramjet handlers from the trace
 				const lines = newstack.split("\n");
 				const line = lines.find((l) => l.includes(url));

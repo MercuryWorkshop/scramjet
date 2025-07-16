@@ -1,4 +1,4 @@
-import { rewriteUrl } from "../../shared";
+import { rewriteUrl } from "../../shared/rewriters/url";
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, self: Self) {

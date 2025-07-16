@@ -1,9 +1,10 @@
 import { FakeServiceWorker } from "./fakesw";
 import { handleFetch } from "./fetch";
-import type BareClient from "@mercuryworkshop/bare-mux";
+import BareClient from "@mercuryworkshop/bare-mux";
 import { ScramjetConfig } from "../types";
-import { $scramjet, loadCodecs } from "../scramjet";
 import { asyncSetWasm } from "../shared/rewriters/wasm";
+import { CookieStore } from "../shared/cookie";
+import { config, loadCodecs, setConfig } from "../shared";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
@@ -12,13 +13,13 @@ export class ScramjetServiceWorker extends EventTarget {
 	syncPool: Record<number, (val?: any) => void> = {};
 	synctoken = 0;
 
-	cookieStore = new $scramjet.shared.CookieStore();
+	cookieStore = new CookieStore();
 
 	serviceWorkers: FakeServiceWorker[] = [];
 
 	constructor() {
 		super();
-		this.client = new $scramjet.shared.util.BareClient();
+		this.client = new BareClient();
 
 		const db = indexedDB.open("$scramjet", 1);
 
@@ -89,19 +90,17 @@ export class ScramjetServiceWorker extends EventTarget {
 				const db = request.result;
 				const tx = db.transaction("config", "readonly");
 				const store = tx.objectStore("config");
-				const config = store.get("config");
+				const storedconfig = store.get("config");
 
-				config.onsuccess = async () => {
-					this.config = config.result;
-					$scramjet.config = config.result;
-
-					loadCodecs();
+				storedconfig.onsuccess = async () => {
+					this.config = storedconfig.result;
+					setConfig(storedconfig.result);
 
 					await asyncSetWasm();
 
 					resolve();
 				};
-				config.onerror = () => reject(config.error);
+				storedconfig.onerror = () => reject(storedconfig.error);
 			};
 
 			request.onerror = () => reject(request.error);
