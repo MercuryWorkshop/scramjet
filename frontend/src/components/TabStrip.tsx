@@ -8,8 +8,8 @@ import {
 } from "dreamland/core";
 import { Icon } from "./Icon";
 import { memoize } from "../memoize";
-import { HistoryState } from "../history";
 import { IconButton } from "./IconButton";
+import type { Tab } from "../Tab";
 
 export const DragTab: Component<{
 	active: boolean;
@@ -166,38 +166,6 @@ DragTab.css = `
 	}
 `;
 
-let id = 0;
-export class Tab {
-	id: number;
-	title: string;
-	frame: ScramjetFrame;
-	url: string;
-
-	dragoffset: number;
-	dragpos: number;
-	startdragpos: number;
-
-	width: number;
-	pos: number;
-	icon: string;
-
-	history: HistoryState[];
-
-	constructor(title: string, frame: ScramjetFrame) {
-		return createState({
-			id: id++,
-			frame,
-			title,
-			url: "puter://blank",
-			icon: "/vite.svg",
-			dragoffset: -1,
-			startdragpos: -1,
-			dragpos: -1,
-			width: 0,
-			pos: 0,
-		});
-	}
-}
 export const Tabs: Component<
 	{
 		tabs: Tab[];

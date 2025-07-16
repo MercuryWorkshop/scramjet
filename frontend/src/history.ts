@@ -1,4 +1,4 @@
-import type { Tab } from "./components/TabStrip";
+import type { Tab } from "./Tab";
 
 // history api emulation
 export type HistoryState = {
