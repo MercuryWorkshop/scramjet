@@ -1,6 +1,6 @@
+import { config, flagEnabled } from "..";
 import { URLMeta } from "./url";
 
-import { $scramjet, flagEnabled } from "../../scramjet";
 import { getRewriter, JsRewriterOutput } from "./wasm";
 
 Error.stackTraceLimit = 50;
@@ -45,10 +45,7 @@ function rewriteJsWasm(
 		let { js, map, scramtag, errors } = out;
 
 		if (flagEnabled("sourcemaps", meta.base) && !globalThis.clients) {
-			globalThis[globalThis.$scramjet.config.globals.pushsourcemapfn](
-				Array.from(map),
-				scramtag
-			);
+			globalThis[config.globals.pushsourcemapfn](Array.from(map), scramtag);
 
 			map = null;
 		}
@@ -81,7 +78,7 @@ function rewriteJsNaiive(js: string | ArrayBuffer) {
 	}
 
 	return `
-		with (${$scramjet.config.globals.wrapfn}(globalThis)) {
+		with (${config.globals.wrapfn}(globalThis)) {
 
 			${js}
 

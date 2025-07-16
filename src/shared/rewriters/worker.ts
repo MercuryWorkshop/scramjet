@@ -1,4 +1,4 @@
-import { $scramjet } from "../../scramjet";
+import { config } from "..";
 import { rewriteJs } from "./js";
 import { URLMeta } from "./url";
 
@@ -12,16 +12,15 @@ export function rewriteWorkers(
 	const module = type === "module";
 	const script = (script) => {
 		if (module) {
-			str += `import "${$scramjet.config.files[script]}"\n`;
+			str += `import "${config.files[script]}"\n`;
 		} else {
-			str += `importScripts("${$scramjet.config.files[script]}");\n`;
+			str += `importScripts("${config.files[script]}");\n`;
 		}
 	};
 
 	script("wasm");
-	script("shared");
-	str += `self.$scramjet.config = ${JSON.stringify($scramjet.config)};`;
-	script("client");
+	script("all");
+	str += `$scramjetLoadClient(${JSON.stringify(config)});`;
 
 	let rewritten = rewriteJs(js, url, meta, module);
 	if (rewritten instanceof Uint8Array) {

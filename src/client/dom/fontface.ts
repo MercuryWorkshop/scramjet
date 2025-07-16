@@ -1,5 +1,5 @@
+import { rewriteCss } from "../../shared/rewriters/css";
 import { ScramjetClient } from "../client";
-import { rewriteCss } from "../../shared";
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("FontFace", {

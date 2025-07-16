@@ -1,5 +1,5 @@
-import { flagEnabled } from "../../../scramjet";
-import { config, unrewriteUrl, rewriteUrl } from "../../../shared";
+import { config, flagEnabled } from "../../../shared";
+import { rewriteUrl, unrewriteUrl } from "../../../shared/rewriters/url";
 import { ScramjetClient } from "../../client";
 
 export default function (client: ScramjetClient, self: Self) {

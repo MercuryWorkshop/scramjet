@@ -1,5 +1,5 @@
-import { BareMuxConnection } from "../../shared";
-import { rewriteUrl } from "../../shared";
+import { BareMuxConnection } from "@mercuryworkshop/bare-mux";
+import { rewriteUrl } from "../../shared/rewriters/url";
 import { ScramjetClient } from "../client";
 
 export default function (client: ScramjetClient, _self: typeof globalThis) {

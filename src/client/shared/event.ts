@@ -1,5 +1,5 @@
 import { iswindow } from "..";
-import { unrewriteUrl } from "../../shared";
+import { unrewriteUrl } from "../../shared/rewriters/url";
 import { SCRAMJETCLIENT } from "../../symbols";
 import { ScramjetClient } from "../client";
 import { getOwnPropertyDescriptorHandler } from "../helpers";

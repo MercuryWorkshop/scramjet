@@ -1,9 +1,9 @@
+const { ScramjetController } = $scramjetLoadController();
+
 const scramjet = new ScramjetController({
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
-		worker: "/scram/scramjet.worker.js",
-		client: "/scram/scramjet.client.js",
-		shared: "/scram/scramjet.shared.js",
+		all: "/scram/scramjet.all.js",
 		sync: "/scram/scramjet.sync.js",
 	},
 	flags: {
@@ -219,7 +219,7 @@ function BrowserApp() {
 
 	const cfg = h(Config);
 	document.body.appendChild(cfg);
-	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/commit/${$scramjet.version.build}`;
+	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/commit/${$scramjetVersion.build}`;
 
 	return html`
       <div>
@@ -238,7 +238,7 @@ function BrowserApp() {
         <button on:click=${() => window.open(scramjet.encodeUrl(this.url))}>open</button>
 
         <p class="version">
-          <b>scramjet</b> ${$scramjet.version.version} <a href=${use(this.githubURL)}>${$scramjet.version.build}</a>
+          <b>scramjet</b> ${$scramjetVersion.version} <a href=${use(this.githubURL)}>${$scramjetVersion.build}</a>
         </p>
       </div>
       ${frame.frame}

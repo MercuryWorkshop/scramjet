@@ -1,6 +1,6 @@
 // entrypoint for scramjet.client.js
 
-import { loadCodecs } from "../scramjet";
+import { loadCodecs, setConfig } from "../shared/index";
 import { SCRAMJETCLIENT } from "../symbols";
 import { ScramjetClient } from "./client";
 import { ScramjetContextEvent, UrlChangeEvent } from "./events";
@@ -21,35 +21,35 @@ function createFrameId() {
 		.join("")}`;
 }
 
-dbg.log("initializing scramjet client");
-// if it already exists, that means the handlers have probably already been setup by the parent document
-if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
-	loadCodecs();
+export function clientInitHook(config: ScramjetConfig) {
+	setConfig(config);
+	dbg.log("initializing scramjet client");
+	// if it already exists, that means the handlers have probably already been setup by the parent document
+	if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
+		loadCodecs();
 
-	const client = new ScramjetClient(self);
-	const frame: HTMLIFrameElement = self.frameElement as HTMLIFrameElement;
-	if (frame && !frame.name) {
-		// all frames need to be named for our logic to work
-		frame.name = createFrameId();
+		const client = new ScramjetClient(self);
+		const frame: HTMLIFrameElement = self.frameElement as HTMLIFrameElement;
+		if (frame && !frame.name) {
+			// all frames need to be named for our logic to work
+			frame.name = createFrameId();
+		}
+
+		if (self.COOKIE) client.loadcookies(self.COOKIE);
+
+		client.hook();
+
+		if (isemulatedsw) {
+			const runtime = new ScramjetServiceWorkerRuntime(client);
+			runtime.hook();
+		}
+
+		const contextev = new ScramjetContextEvent(client.global.window, client);
+		client.frame?.dispatchEvent(contextev);
+		const urlchangeev = new UrlChangeEvent(client.url.href);
+		if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 	}
 
-	if (self.COOKIE) client.loadcookies(self.COOKIE);
-
-	client.hook();
-
-	if (isemulatedsw) {
-		const runtime = new ScramjetServiceWorkerRuntime(client);
-		runtime.hook();
-	}
-
-	const contextev = new ScramjetContextEvent(client.global.window, client);
-	client.frame?.dispatchEvent(contextev);
-	const urlchangeev = new UrlChangeEvent(client.url.href);
-	if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
-}
-
-Reflect.deleteProperty(self, "WASM");
-Reflect.deleteProperty(self, "COOKIE");
-if ("document" in self && document?.currentScript) {
-	document.currentScript.remove();
+	Reflect.deleteProperty(self, "WASM");
+	Reflect.deleteProperty(self, "COOKIE");
 }

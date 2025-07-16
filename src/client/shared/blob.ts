@@ -1,4 +1,4 @@
-import { rewriteBlob, unrewriteBlob } from "../../shared";
+import { rewriteBlob, unrewriteBlob } from "../../shared/rewriters/url";
 import { ScramjetClient } from "../client";
 export default function (client: ScramjetClient) {
 	// hide the origin from object urls from the page

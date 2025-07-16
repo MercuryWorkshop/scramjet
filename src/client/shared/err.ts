@@ -1,4 +1,4 @@
-import { flagEnabled } from "../../scramjet";
+import { flagEnabled } from "../../shared";
 import { ScramjetClient } from "../client";
 
 export const enabled = (client: ScramjetClient) =>

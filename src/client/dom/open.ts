@@ -1,6 +1,6 @@
-import { rewriteUrl } from "../../shared";
 import { ScramjetClient } from "../client";
 import { SCRAMJETCLIENT } from "../../symbols";
+import { rewriteUrl } from "../../shared/rewriters/url";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("window.open", {

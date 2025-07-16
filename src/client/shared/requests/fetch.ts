@@ -1,9 +1,8 @@
 // ts throws an error if you dont do window.fetch
 
 import { isemulatedsw } from "../..";
-import { unrewriteUrl } from "../../../shared";
+import { rewriteUrl, unrewriteUrl } from "../../../shared/rewriters/url";
 import { ScramjetClient } from "../../client";
-import { rewriteUrl } from "../../../shared";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("fetch", {

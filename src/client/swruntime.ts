@@ -1,5 +1,5 @@
+import { unrewriteUrl } from "../shared/rewriters/url";
 import { ScramjetClient } from "./client";
-import { unrewriteUrl } from "../shared";
 
 export class ScramjetServiceWorkerRuntime {
 	recvport: MessagePort;
