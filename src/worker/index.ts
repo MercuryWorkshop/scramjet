@@ -1,10 +1,10 @@
-import { FakeServiceWorker } from "./fakesw";
-import { handleFetch } from "./fetch";
+import { FakeServiceWorker } from "@/worker/fakesw";
+import { handleFetch } from "@/worker/fetch";
 import BareClient from "@mercuryworkshop/bare-mux";
-import { ScramjetConfig } from "../types";
-import { asyncSetWasm } from "../shared/rewriters/wasm";
-import { CookieStore } from "../shared/cookie";
-import { config, loadCodecs, setConfig } from "../shared";
+import { ScramjetConfig } from "@/types";
+import { asyncSetWasm } from "@rewriters/wasm";
+import { CookieStore } from "@/shared/cookie";
+import { config, loadCodecs, setConfig } from "@/shared";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;

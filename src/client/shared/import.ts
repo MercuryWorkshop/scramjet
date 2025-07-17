@@ -1,6 +1,6 @@
-import { ScramjetClient } from "../client";
-import { config } from "../../shared";
-import { rewriteUrl } from "../../shared/rewriters/url";
+import { ScramjetClient } from "@client/index";
+import { config } from "@/shared";
+import { rewriteUrl } from "@rewriters/url";
 
 export default function (client: ScramjetClient, self: Self) {
 	const Function = client.natives.store["Function"];

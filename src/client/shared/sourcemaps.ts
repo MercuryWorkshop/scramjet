@@ -1,6 +1,6 @@
-import { config, flagEnabled } from "../../shared";
-import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "../../symbols";
-import { ProxyCtx, ScramjetClient } from "../client";
+import { config, flagEnabled } from "@/shared";
+import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
+import { ProxyCtx, ScramjetClient } from "@client/index";
 
 enum RewriteType {
 	Insert = 0,

@@ -2,8 +2,8 @@ import type {
 	default as BareClient,
 	BareHeaders,
 } from "@mercuryworkshop/bare-mux";
-import { rewriteUrl, type URLMeta } from "./url";
-import { getSiteDirective } from "../security/siteTests";
+import { rewriteUrl, type URLMeta } from "@rewriters/url";
+import { getSiteDirective } from "@/shared/security/siteTests";
 
 interface StoredReferrerPolicies {
 	get(url: string): Promise<{ policy: string; referrer: string } | null>;

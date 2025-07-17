@@ -1,4 +1,4 @@
-import { ScramjetClient } from "../client";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("StorageManager.prototype.getDirectory", {

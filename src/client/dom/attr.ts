@@ -1,4 +1,4 @@
-import { ScramjetClient } from "../client";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, _self: typeof window) {
 	client.Trap("Element.prototype.attributes", {

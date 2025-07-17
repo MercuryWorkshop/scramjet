@@ -1,7 +1,7 @@
-import { ScramjetClient } from "../client";
-import { type MessageC2W } from "../../worker";
-import { flagEnabled } from "../../shared";
-import { rewriteUrl } from "../../shared/rewriters/url";
+import { ScramjetClient } from "@client/index";
+import { type MessageC2W } from "@/worker";
+import { flagEnabled } from "@/shared";
+import { rewriteUrl } from "@rewriters/url";
 
 // we need a late order because we're mangling with addEventListener at a higher level
 export const order = 2;

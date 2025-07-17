@@ -1,6 +1,6 @@
-import { codecDecode, codecEncode } from "..";
-import { config } from "../../shared";
-import { rewriteJs } from "./js";
+import { codecDecode, codecEncode } from "@/shared";
+import { config } from "@/shared";
+import { rewriteJs } from "@rewriters/js";
 
 export type URLMeta = {
 	origin: URL;

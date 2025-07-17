@@ -4,9 +4,9 @@ import {
 	config,
 	loadCodecs,
 	setConfig,
-} from "../shared/index";
-import { ScramjetConfig, ScramjetInitConfig } from "../types";
-import { ScramjetFrame } from "./frame";
+} from "@/shared/index";
+import { ScramjetConfig, ScramjetInitConfig } from "@/types";
+import { ScramjetFrame } from "@/controller/frame";
 
 export class ScramjetController {
 	private db: IDBDatabase;

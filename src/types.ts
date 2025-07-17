@@ -1,7 +1,7 @@
-import { ScramjetClient } from "./client/client";
-import { ScramjetController } from "./controller";
-import { ScramjetFrame } from "./controller/frame";
-import { SCRAMJETCLIENT, SCRAMJETFRAME } from "./symbols";
+import { ScramjetClient } from "@client/index";
+import { ScramjetController } from "@/controller";
+import { ScramjetFrame } from "@/controller/frame";
+import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 
 export type ScramjetFlags = {
 	serviceworkers: boolean;

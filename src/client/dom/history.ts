@@ -1,6 +1,6 @@
-import { rewriteUrl } from "../../shared/rewriters/url";
-import { ScramjetClient } from "../client";
-import { UrlChangeEvent } from "../events";
+import { rewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
+import { UrlChangeEvent } from "@client/events";
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("History.prototype.pushState", {

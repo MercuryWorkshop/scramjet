@@ -1,7 +1,7 @@
-import { iswindow } from "..";
-import { SCRAMJETCLIENT } from "../../symbols";
-import { ScramjetClient } from "../client";
-import { POLLUTANT } from "../shared/realm";
+import { iswindow } from "@client/entry";
+import { SCRAMJETCLIENT } from "@/symbols";
+import { ScramjetClient } from "@client/index";
+import { POLLUTANT } from "@client/shared/realm";
 
 export default function (client: ScramjetClient) {
 	if (iswindow)

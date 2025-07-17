@@ -1,4 +1,4 @@
-import { ScramjetClient } from "../client";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	const handler: ProxyHandler<Storage> = {

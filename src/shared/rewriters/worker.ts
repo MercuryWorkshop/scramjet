@@ -1,6 +1,6 @@
-import { config } from "..";
-import { rewriteJs } from "./js";
-import { URLMeta } from "./url";
+import { config } from "@/shared";
+import { rewriteJs } from "@rewriters/js";
+import { URLMeta } from "@rewriters/url";
 
 export function rewriteWorkers(
 	js: string | Uint8Array,

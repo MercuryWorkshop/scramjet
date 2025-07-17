@@ -1,5 +1,5 @@
-import { flagEnabled } from "./shared";
-import type { URLMeta } from "./shared/rewriters/url";
+import { flagEnabled } from "@/shared";
+import type { URLMeta } from "@rewriters/url";
 
 const logfuncs = {
 	log: console.log,

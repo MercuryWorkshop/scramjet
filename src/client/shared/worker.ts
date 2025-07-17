@@ -1,6 +1,6 @@
 import { BareMuxConnection } from "@mercuryworkshop/bare-mux";
-import { rewriteUrl } from "../../shared/rewriters/url";
-import { ScramjetClient } from "../client";
+import { rewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, _self: typeof globalThis) {
 	client.Proxy("Worker", {

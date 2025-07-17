@@ -1,6 +1,6 @@
-import { config } from "../../shared";
-import { rewriteJs } from "../../shared/rewriters/js";
-import { ScramjetClient } from "../client";
+import { config } from "@/shared";
+import { rewriteJs } from "@rewriters/js";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: Self) {
 	// used for proxying *direct eval*

@@ -1,16 +1,16 @@
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { JsRewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
-import { codecDecode, codecEncode, config, flagEnabled } from "..";
+import { codecDecode, codecEncode, config, flagEnabled } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
-import { rewriteUrl, URLMeta } from "./url";
-import { htmlRules } from "../htmlRules";
-import { rewriteCss, unrewriteCss } from "./css";
-import { rewriteJs } from "./js";
-import { getInjectScripts } from "./html";
-import { CookieStore } from "../cookie";
+import { rewriteUrl, URLMeta } from "@rewriters/url";
+import { htmlRules } from "@/shared/htmlRules";
+import { rewriteCss } from "@rewriters/css";
+import { rewriteJs } from "@rewriters/js";
+import { getInjectScripts } from "@rewriters/html";
+import { CookieStore } from "@/shared/cookie";
 
 let wasm_u8: Uint8Array;
 if (self.WASM)

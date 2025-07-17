@@ -1,6 +1,6 @@
-import { iswindow } from "..";
-import { SCRAMJETCLIENT } from "../../symbols";
-import { ProxyCtx, ScramjetClient } from "../client";
+import { iswindow } from "@client/entry";
+import { SCRAMJETCLIENT } from "@/symbols";
+import { ProxyCtx, ScramjetClient } from "@client/index";
 
 // we don't want to end up overriding a property on window that's derived from a prototype until we've proxied the prototype
 export const order = 3;

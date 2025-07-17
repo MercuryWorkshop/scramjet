@@ -1,11 +1,11 @@
-import { htmlRules } from "../../shared/htmlRules";
-import { rewriteCss, unrewriteCss } from "../../shared/rewriters/css";
-import { rewriteHtml, unrewriteHtml } from "../../shared/rewriters/html";
-import { rewriteJs } from "../../shared/rewriters/js";
-import { rewriteUrl, unrewriteUrl } from "../../shared/rewriters/url";
-import { SCRAMJETCLIENT } from "../../symbols";
-import { ScramjetClient } from "../client";
-import { nativeGetOwnPropertyDescriptor } from "../natives";
+import { htmlRules } from "@/shared/htmlRules";
+import { rewriteCss, unrewriteCss } from "@rewriters/css";
+import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
+import { rewriteJs } from "@rewriters/js";
+import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
+import { SCRAMJETCLIENT } from "@/symbols";
+import { ScramjetClient } from "@client/index";
+import { nativeGetOwnPropertyDescriptor } from "@client/natives";
 
 const encoder = new TextEncoder();
 function bytesToBase64(bytes: Uint8Array) {
