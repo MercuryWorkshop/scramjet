@@ -1,14 +1,13 @@
 import { createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
 import { scramjet } from "./main";
-import type { HistoryState } from "./history";
+import { History, injectHistoryEmulation } from "./history";
 
 let id = 0;
 export class Tab extends StatefulClass {
 	id: number;
 	title: string | null;
 	frame: ScramjetFrame;
-	url: string;
 
 	dragoffset: number;
 	dragpos: number;
@@ -18,15 +17,17 @@ export class Tab extends StatefulClass {
 	pos: number;
 	icon: string;
 
-	history: HistoryState[];
+	history: History;
 
-	constructor() {
-		super(createState({}));
+	constructor(public url: URL = new URL("puter://newtab")) {
+		super(createState(new Object(Tab.prototype)));
 		this.id = id++;
 
-		this.frame = scramjet.createFrame();
 		this.title = null;
-		this.url = "puter://blank";
+
+		this.history = new History(this);
+		this.history.push(this.url, undefined);
+
 		this.icon = "/vite.svg";
 
 		this.dragoffset = -1;
@@ -34,14 +35,27 @@ export class Tab extends StatefulClass {
 		this.dragpos = -1;
 		this.width = 0;
 		this.pos = 0;
-		this.history = [];
+
+		const frame = scramjet.createFrame();
+		injectHistoryEmulation(frame, this);
+
+		this.frame = frame;
+	}
+
+	// only caller should be history.ts for this
+	navigate(url: URL) {
+		this.url = url;
+		if (url.protocol == "puter:") {
+			switch (url.host) {
+				case "newtab":
+					this.title = "New Tab";
+			}
+		} else {
+			this.frame.go(url);
+		}
 	}
 }
 
-// frame.addEventListener("navigate", (e) => {
-// 			console.error(e);
-// 			tab.url = frame.client.url.href;
-// 		});
 // 		frame.frame.addEventListener("load", (e) => {
 // 			tab.url = frame.client.url.href;
 // 		});

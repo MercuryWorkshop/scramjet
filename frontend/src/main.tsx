@@ -51,4 +51,5 @@ try {
 			`Error mounting: ${"message" in err ? err.message : err}`
 		)
 	);
+	console.error(err);
 }

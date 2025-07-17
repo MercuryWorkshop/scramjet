@@ -1,6 +1,6 @@
 import { createState, type Stateful } from "dreamland/core";
 import { ThemeVars, type Theme } from "./theme";
-import { Tabs, Tab } from "./components/TabStrip";
+import { Tabs } from "./components/TabStrip";
 import { Omnibox } from "./components/Omnibox";
 import { scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-ion/add";
@@ -8,6 +8,7 @@ import { Shell } from "./components/Shell";
 import { createMenu } from "./components/Menu";
 import { createDelegate } from "./delegate";
 import { StatefulClass } from "./StatefulClass";
+import { Tab } from "./Tab";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
@@ -55,15 +56,6 @@ export class Browser extends StatefulClass {
 		return tab;
 	}
 
-	navigate(url: string) {
-		if (URL.canParse(url)) {
-			this.activetab.frame.go(url);
-		} else {
-			const search = `https://google.com/search?q=${encodeURIComponent(url)}`;
-			this.activetab.frame.go(search);
-		}
-	}
-
 	destroyTab(tab: Tab) {
 		this.tabs = this.tabs.filter((t) => t !== tab);
 		console.log(this.tabs);
@@ -96,10 +88,10 @@ export class Browser extends StatefulClass {
 				<Omnibox
 					tabUrl={use(this.activetab.url)}
 					goBack={() => {
-						this.activetab.frame.back();
+						this.activetab.history.go(-1);
 					}}
 					goForwards={() => {
-						this.activetab.frame.forward();
+						this.activetab.history.go(1);
 					}}
 					refresh={() => {
 						this.activetab.frame.reload();
