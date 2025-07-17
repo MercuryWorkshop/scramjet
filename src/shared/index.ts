@@ -1,4 +1,4 @@
-import { ScramjetConfig, ScramjetFlags } from "../types";
+import { ScramjetConfig, ScramjetFlags } from "@/types";
 
 export let codecEncode: (input: string) => string;
 export let codecDecode: (input: string) => string;

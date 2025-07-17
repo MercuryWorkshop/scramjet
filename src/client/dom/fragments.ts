@@ -1,5 +1,5 @@
-import { rewriteHtml } from "../../shared/rewriters/html";
-import { ScramjetClient } from "../client";
+import { rewriteHtml } from "@rewriters/html";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Range.prototype.createContextualFragment", {

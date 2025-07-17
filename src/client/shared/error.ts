@@ -1,6 +1,6 @@
-import { config, flagEnabled } from "../../shared";
-import { unrewriteUrl } from "../../shared/rewriters/url";
-import { ScramjetClient } from "../client";
+import { config, flagEnabled } from "@/shared";
+import { unrewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
 
 export const enabled = (client: ScramjetClient) =>
 	flagEnabled("cleanErrors", client.url);

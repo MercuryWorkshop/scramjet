@@ -1,4 +1,4 @@
-import { type MessageW2R, type MessageR2W } from "../client/swruntime";
+import { type MessageW2R, type MessageR2W } from "@client/swruntime";
 
 export class FakeServiceWorker {
 	syncToken = 0;

@@ -1,7 +1,7 @@
-import { CookieStore } from "./cookie";
-import { rewriteCss } from "./rewriters/css";
-import { rewriteHtml, rewriteSrcset } from "./rewriters/html";
-import { rewriteUrl, unrewriteBlob, URLMeta } from "./rewriters/url";
+import { CookieStore } from "@/shared/cookie";
+import { rewriteCss } from "@rewriters/css";
+import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
+import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);

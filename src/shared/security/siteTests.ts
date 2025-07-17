@@ -1,4 +1,4 @@
-import { type URLMeta } from "../rewriters/url";
+import { type URLMeta } from "@rewriters/url";
 
 import type {
 	default as BareClient,

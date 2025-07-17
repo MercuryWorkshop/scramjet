@@ -1,4 +1,4 @@
-import { URLMeta, rewriteUrl, unrewriteUrl } from "./url";
+import { URLMeta, rewriteUrl, unrewriteUrl } from "@rewriters/url";
 
 export function rewriteCss(css: string, meta: URLMeta) {
 	return handleCss("rewrite", css, meta);

@@ -1,9 +1,9 @@
-// import { encodeUrl } from "../shared";
-import { iswindow } from ".";
-import { SCRAMJETCLIENT } from "../symbols";
-import { ScramjetClient } from "./client";
-// import { config } from "../shared";
-import { getOwnPropertyDescriptorHandler } from "./helpers";
+// import { encodeUrl } from "@/shared";
+import { iswindow } from "@client/entry";
+import { SCRAMJETCLIENT } from "@/symbols";
+import { ScramjetClient } from "@client/index";
+// import { config } from "@/shared";
+import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 
 export const UNSAFE_GLOBALS = [
 	"window",

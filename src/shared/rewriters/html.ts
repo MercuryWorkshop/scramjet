@@ -1,13 +1,13 @@
 import { ElementType, Parser } from "htmlparser2";
 import { ChildNode, DomHandler, Element, Comment } from "domhandler";
 import render from "dom-serializer";
-import { URLMeta, rewriteUrl } from "./url";
-import { rewriteCss } from "./css";
-import { rewriteJs } from "./js";
-import { CookieStore } from "../cookie";
-import { getRewriter } from "./wasm";
-import { config } from "..";
-import { htmlRules } from "../htmlRules";
+import { URLMeta, rewriteUrl } from "@rewriters/url";
+import { rewriteCss } from "@rewriters/css";
+import { rewriteJs } from "@rewriters/js";
+import { CookieStore } from "@/shared/cookie";
+import { getRewriter } from "@rewriters/wasm";
+import { config } from "@/shared";
+import { htmlRules } from "@/shared/htmlRules";
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(

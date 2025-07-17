@@ -1,6 +1,6 @@
-import { config, flagEnabled } from "../../../shared";
-import { rewriteUrl, unrewriteUrl } from "../../../shared/rewriters/url";
-import { ScramjetClient } from "../../client";
+import { config, flagEnabled } from "@/shared";
+import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: Self) {
 	let worker;

@@ -1,10 +1,10 @@
 import BareClient, { BareResponseFetch } from "@mercuryworkshop/bare-mux";
-import { ScramjetServiceWorker } from ".";
-import { renderError } from "./error";
-import { FakeServiceWorker } from "./fakesw";
-import { CookieStore } from "../shared/cookie";
+import { ScramjetServiceWorker } from "@/worker";
+import { renderError } from "@/worker/error";
+import { FakeServiceWorker } from "@/worker/fakesw";
+import { CookieStore } from "@/shared/cookie";
 
-import { getSiteDirective } from "../shared/security/siteTests";
+import { getSiteDirective } from "@/shared/security/siteTests";
 import {
 	initializeTracker,
 	updateTracker,
@@ -12,20 +12,16 @@ import {
 	getMostRestrictiveSite,
 	storeReferrerPolicy,
 	getReferrerPolicy,
-} from "../shared/security/forceReferrer";
+} from "@/shared/security/forceReferrer";
 
-import {
-	unrewriteBlob,
-	unrewriteUrl,
-	type URLMeta,
-} from "../shared/rewriters/url";
-import { rewriteJsWithMap } from "../shared/rewriters/js";
-import { ScramjetHeaders } from "../shared/headers";
-import { config, flagEnabled } from "../shared";
-import { rewriteHeaders } from "../shared/rewriters/headers";
-import { rewriteHtml } from "../shared/rewriters/html";
-import { rewriteCss } from "../shared/rewriters/css";
-import { rewriteWorkers } from "../shared/rewriters/worker";
+import { unrewriteBlob, unrewriteUrl, type URLMeta } from "@rewriters/url";
+import { rewriteJsWithMap } from "@rewriters/js";
+import { ScramjetHeaders } from "@/shared/headers";
+import { config, flagEnabled } from "@/shared";
+import { rewriteHeaders } from "@rewriters/headers";
+import { rewriteHtml } from "@rewriters/html";
+import { rewriteCss } from "@rewriters/css";
+import { rewriteWorkers } from "@rewriters/worker";
 
 export async function handleFetch(
 	this: ScramjetServiceWorker,

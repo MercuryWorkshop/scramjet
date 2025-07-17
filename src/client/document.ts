@@ -1,6 +1,6 @@
-import { rewriteUrl } from "../shared/rewriters/url";
-import { ScramjetClient } from "./client";
-import { getOwnPropertyDescriptorHandler } from "./helpers";
+import { rewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
+import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 
 export function createDocumentProxy(
 	client: ScramjetClient,

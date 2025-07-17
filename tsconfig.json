@@ -9,6 +9,11 @@
     "declaration": true,
     "declarationDir": "./dist/types",
     "emitDeclarationOnly": true,
+    "paths": {
+      "@rewriters/*": ["./src/shared/rewriters/*"],
+      "@client/*": ["./src/client/*"],
+      "@/*": ["./src/*"]
+    }
 	},
 	"include": [
 		"src"

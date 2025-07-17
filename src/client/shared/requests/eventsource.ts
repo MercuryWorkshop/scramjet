@@ -1,5 +1,5 @@
-import { rewriteUrl, unrewriteUrl } from "../../../shared/rewriters/url";
-import { ScramjetClient } from "../../client";
+import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("EventSource", {

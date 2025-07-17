@@ -6,7 +6,7 @@ self.$scramjetLoadController = function () {
 };
 
 self.$scramjetLoadClient = function (config) {
-	const client = require("./client/index");
+	const client = require("./client/entry");
 	client.clientInitHook(config);
 
 	return client;

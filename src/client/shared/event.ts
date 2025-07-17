@@ -1,10 +1,10 @@
-import { iswindow } from "..";
-import { unrewriteUrl } from "../../shared/rewriters/url";
-import { SCRAMJETCLIENT } from "../../symbols";
-import { ScramjetClient } from "../client";
-import { getOwnPropertyDescriptorHandler } from "../helpers";
-import { nativeGetOwnPropertyDescriptor } from "../natives";
-import { unproxy } from "./unproxy";
+import { iswindow } from "@client/entry";
+import { unrewriteUrl } from "@rewriters/url";
+import { SCRAMJETCLIENT } from "@/symbols";
+import { ScramjetClient } from "@client/index";
+import { getOwnPropertyDescriptorHandler } from "@client/helpers";
+import { nativeGetOwnPropertyDescriptor } from "@client/natives";
+import { unproxy } from "@client/shared/unproxy";
 
 const realOnEvent = Symbol.for("scramjet original onevent function");
 

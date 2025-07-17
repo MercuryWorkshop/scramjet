@@ -1,5 +1,5 @@
-import { rewriteBlob, unrewriteBlob } from "../../shared/rewriters/url";
-import { ScramjetClient } from "../client";
+import { rewriteBlob, unrewriteBlob } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
 export default function (client: ScramjetClient) {
 	// hide the origin from object urls from the page
 	client.Proxy("URL.createObjectURL", {

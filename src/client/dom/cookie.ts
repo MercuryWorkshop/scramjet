@@ -1,5 +1,5 @@
-import type { MessageC2W, MessageW2C } from "../../worker";
-import { ScramjetClient } from "../client";
+import type { MessageC2W, MessageW2C } from "@/worker";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: typeof window) {
 	client.serviceWorker.addEventListener(

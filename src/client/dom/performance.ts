@@ -1,5 +1,5 @@
-import { unrewriteUrl } from "../../shared/rewriters/url";
-import { ScramjetClient } from "../client";
+import { unrewriteUrl } from "@rewriters/url";
+import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Trap("PerformanceEntry.prototype.name", {

@@ -1,9 +1,9 @@
-import { iswindow } from "..";
-import { SCRAMJETCLIENT } from "../../symbols";
-import { ScramjetClient } from "../client";
-import { config } from "../../shared";
-// import { argdbg } from "./err";
-import { indirectEval } from "./eval";
+import { iswindow } from "@client/entry";
+import { SCRAMJETCLIENT } from "@/symbols";
+import { ScramjetClient } from "@client/index";
+import { config } from "@/shared";
+// import { argdbg } from "@client/shared/err";
+import { indirectEval } from "@client/shared/eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any, strict: boolean) {

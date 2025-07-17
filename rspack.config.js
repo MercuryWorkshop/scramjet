@@ -15,14 +15,15 @@ export default defineConfig({
 	devtool: "source-map",
 	entry: {
 		all: join(__dirname, "src/entry.ts"),
-		// shared: join(__dirname, "src/shared/index.ts"),
-		// worker: join(__dirname, "src/worker/index.ts"),
-		// client: join(__dirname, "src/client/index.ts"),
-		// controller: join(__dirname, "src/controller/index.ts"),
 		sync: join(__dirname, "src/sync.ts"),
 	},
 	resolve: {
 		extensions: [".ts", ".js"],
+		alias: {
+			"@rewriters": join(__dirname, "src/shared/rewriters"),
+			"@client": join(__dirname, "src/client"),
+			"@": join(__dirname, "src"),
+		},
 	},
 	module: {
 		rules: [

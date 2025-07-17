@@ -1,4 +1,4 @@
-import { ScramjetClient } from "./client";
+import { ScramjetClient } from "@client/index";
 
 export type ScramjetEvent =
 	| NavigateEvent

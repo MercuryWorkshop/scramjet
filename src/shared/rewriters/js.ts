@@ -1,7 +1,7 @@
-import { config, flagEnabled } from "..";
-import { URLMeta } from "./url";
+import { config, flagEnabled } from "@/shared";
+import { URLMeta } from "@rewriters/url";
 
-import { getRewriter, JsRewriterOutput } from "./wasm";
+import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
 
 Error.stackTraceLimit = 50;
 

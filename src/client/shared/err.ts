@@ -1,5 +1,5 @@
-import { flagEnabled } from "../../shared";
-import { ScramjetClient } from "../client";
+import { flagEnabled } from "@/shared";
+import { ScramjetClient } from "@client/index";
 
 export const enabled = (client: ScramjetClient) =>
 	flagEnabled("captureErrors", client.url);
