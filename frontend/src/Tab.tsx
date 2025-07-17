@@ -1,7 +1,12 @@
 import { createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
 import { scramjet } from "./main";
-import { History, injectHistoryEmulation } from "./history";
+import {
+	addHistoryListeners,
+	History,
+	injectHistoryEmulation,
+} from "./history";
+import { NewTab } from "./pages/NewTab";
 
 let id = 0;
 export class Tab extends StatefulClass {
@@ -22,12 +27,15 @@ export class Tab extends StatefulClass {
 	canGoForward: boolean = false;
 	canGoBack: boolean = false;
 
+	internalpage: HTMLElement | null;
+
 	constructor(public url: URL = new URL("puter://newtab")) {
 		super(createState(Object.create(Tab.prototype)));
 
 		this.id = id++;
 
 		this.title = null;
+		this.internalpage = null;
 
 		this.history = new History(this);
 		this.history.push(this.url, undefined);
@@ -41,7 +49,10 @@ export class Tab extends StatefulClass {
 		this.pos = 0;
 
 		const frame = scramjet.createFrame();
-		injectHistoryEmulation(frame, this);
+		addHistoryListeners(frame, this);
+		frame.addEventListener("contextInit", (ctx) => {
+			injectHistoryEmulation(ctx.client, this);
+		});
 
 		this.frame = frame;
 	}
@@ -53,8 +64,10 @@ export class Tab extends StatefulClass {
 			switch (url.host) {
 				case "newtab":
 					this.title = "New Tab";
+					this.internalpage = <NewTab tab={this} />;
 			}
 		} else {
+			this.internalpage = null;
 			this.frame.go(url);
 		}
 	}
