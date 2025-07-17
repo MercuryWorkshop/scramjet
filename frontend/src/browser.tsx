@@ -6,9 +6,9 @@ import { scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-ion/add";
 import { Shell } from "./components/Shell";
 import { createMenu } from "./components/Menu";
-import { createDelegate } from "./delegate";
 import { StatefulClass } from "./StatefulClass";
 import { Tab } from "./Tab";
+import { createDelegate } from "dreamland/utils";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
@@ -86,7 +86,9 @@ export class Browser extends StatefulClass {
 					addTab={() => this.newTab("title")}
 				/>
 				<Omnibox
-					tabUrl={use(this.activetab.url)}
+					tabUrl={use(this.activetab)
+						.zip(use(this.activetab.url))
+						.map(([a]) => use(a.url))}
 					goBack={() => {
 						this.activetab.history.go(-1);
 					}}
@@ -96,7 +98,14 @@ export class Browser extends StatefulClass {
 					refresh={() => {
 						this.activetab.frame.reload();
 					}}
-					navigate={(url) => this.navigate(url)}
+					navigate={(url: string) => {
+						if (URL.canParse(url)) {
+							this.activetab.history.push(new URL(url), undefined, true);
+						} else {
+							const search = `https://google.com/search?q=${encodeURIComponent(url)}`;
+							this.activetab.history.push(new URL(search), undefined, true);
+						}
+					}}
 				/>
 				{shell}
 			</div>
