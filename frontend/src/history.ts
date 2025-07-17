@@ -12,7 +12,7 @@ export class History {
 
 	constructor(private tab: Tab) {}
 
-	push(url: URL, state: any, navigate: boolean = true): HistoryState {
+	push(url: URL, state: any = null, navigate: boolean = true): HistoryState {
 		this.states.push({ url, state });
 		this.index++;
 
@@ -60,8 +60,9 @@ export class History {
 	}
 }
 
-export function injectHistoryEmulation(frame: ScramjetFrame, tab: Tab) {
+export function addHistoryListeners(frame: ScramjetFrame, tab: Tab) {
 	frame.addEventListener("navigate", (e) => {
+		console.log("History push from navigate", e, tab.history.states);
 		// this event is fired whenever location.href is set, or similar
 		// importantly not fired when replaceState is called (we overwrite it ourselves in injectContext)
 
@@ -71,12 +72,14 @@ export function injectHistoryEmulation(frame: ScramjetFrame, tab: Tab) {
 
 		console.log("History push from navigate", url, tab.history.states);
 	});
-	frame.frame.addEventListener("beforeunload", (e: BeforeUnloadEvent) => {
-		console.log("History beforeunload", e);
-	});
 }
 
-function injectContext(client: ScramjetClient, tab: Tab) {
+export function injectHistoryEmulation(client: ScramjetClient, tab: Tab) {
+	// this is extremely problematic in terms of security but whatever
+	client.global.addEventListener("beforeunload", (e: BeforeUnloadEvent) => {
+		console.log("History beforeunload", e);
+	});
+
 	client.Proxy("History.prototype.pushState", {
 		apply(ctx) {
 			console.log("STATE PUSH", ctx.args);

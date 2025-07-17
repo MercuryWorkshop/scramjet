@@ -13,7 +13,9 @@ export const Shell: Component<{
 			<div
 				class={`container ${cx.id}`}
 				class:active={use(this.activetab).map((t) => t === tab)}
+				class:showframe={use(tab.internalpage).map((t) => !t)}
 			>
+				{use(tab.internalpage)}
 				{tab.frame.frame}
 			</div>
 		);
@@ -48,5 +50,9 @@ Shell.css = `
     width: 100%;
     height: 100%;
     border: none;
+    display: none;
+  }
+  .showframe iframe{
+    display: block;
   }
 `;
