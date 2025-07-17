@@ -20,7 +20,8 @@ export class Tab extends StatefulClass {
 	history: History;
 
 	constructor(public url: URL = new URL("puter://newtab")) {
-		super(createState(new Object(Tab.prototype)));
+		super(createState(Object.create(Tab.prototype)));
+
 		this.id = id++;
 
 		this.title = null;

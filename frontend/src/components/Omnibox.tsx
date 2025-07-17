@@ -22,7 +22,7 @@ Spacer.css = `
 
 export const UrlInput: Component<
 	{
-		tabUrl: string;
+		tabUrl: URL;
 		navigate: (url: string) => void;
 	},
 	{
@@ -76,7 +76,7 @@ export const UrlInput: Component<
 					browser.unfocusframes = false;
 					e.stopPropagation();
 				});
-				this.value = this.tabUrl;
+				this.value = this.tabUrl.href;
 				this.input.focus();
 				this.input.select();
 				e.stopPropagation();
@@ -149,12 +149,12 @@ export const UrlInput: Component<
 					.map((a) => !a)
 					.andThen(
 						<span class="inactiveurl">
-							{use(this.tabUrl).map((v) =>
-								v && URL.canParse(v)
-									? new URL(v).hostname +
-										new URL(v).pathname +
-										new URL(v).search
-									: ""
+							{use(this.tabUrl).map(
+								(v) =>
+									(v.protocol === "puter:" ? v.protocol : "") +
+									v.host +
+									v.pathname +
+									v.search
 							)}
 						</span>
 					)}
@@ -231,7 +231,7 @@ UrlInput.css = `
 `;
 
 export const Omnibox: Component<{
-	tabUrl: string;
+	tabUrl: URL;
 	navigate: (url: string) => void;
 	goBack: () => void;
 	goForwards: () => void;

@@ -1,7 +1,7 @@
 import type { Component } from "dreamland/core";
-import type { Tab } from "./TabStrip";
 import { browser } from "../main";
 import { popTab, pushTab } from "../browser";
+import type { Tab } from "../Tab";
 
 export const Shell: Component<{
 	tabs: Tab[];
