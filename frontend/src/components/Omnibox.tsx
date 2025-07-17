@@ -236,11 +236,21 @@ export const Omnibox: Component<{
 	goBack: () => void;
 	goForwards: () => void;
 	refresh: () => void;
+	canGoBack: boolean;
+	canGoForwards: boolean;
 }> = function (cx) {
 	return (
 		<div>
-			<IconButton click={this.goBack} icon={iconBack}></IconButton>
-			<IconButton click={this.goForwards} icon={iconForwards}></IconButton>
+			<IconButton
+				active={use(this.canGoBack)}
+				click={this.goBack}
+				icon={iconBack}
+			></IconButton>
+			<IconButton
+				active={use(this.canGoForwards)}
+				click={this.goForwards}
+				icon={iconForwards}
+			></IconButton>
 			<IconButton click={this.refresh} icon={iconRefresh}></IconButton>
 			<Spacer></Spacer>
 			<UrlInput tabUrl={use(this.tabUrl)} navigate={this.navigate}></UrlInput>

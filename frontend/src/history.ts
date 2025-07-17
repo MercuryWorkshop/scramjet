@@ -7,7 +7,7 @@ export type HistoryState = {
 };
 
 export class History {
-	index: number = 0;
+	index: number = -1;
 	states: HistoryState[] = [];
 
 	constructor(private tab: Tab) {}
@@ -17,6 +17,9 @@ export class History {
 		this.index++;
 
 		if (navigate) this.tab.navigate(url);
+
+		this.tab.canGoBack = this.canGoBack();
+		this.tab.canGoForward = this.canGoForward();
 
 		return this.states[this.index];
 	}
@@ -29,6 +32,9 @@ export class History {
 
 		if (navigate) this.tab.navigate(url);
 
+		this.tab.canGoBack = this.canGoBack();
+		this.tab.canGoForward = this.canGoForward();
+
 		return this.states[this.index];
 	}
 	go(delta: number, navigate: boolean = true): HistoryState {
@@ -40,6 +46,9 @@ export class History {
 		}
 
 		if (navigate) this.tab.navigate(this.states[this.index].url);
+
+		this.tab.canGoBack = this.canGoBack();
+		this.tab.canGoForward = this.canGoForward();
 
 		return this.states[this.index];
 	}

@@ -48,7 +48,7 @@ export class Browser extends StatefulClass {
 		};
 	}
 
-	newTab(title: string) {
+	newTab() {
 		let tab = new Tab();
 		pushTab(tab);
 		this.tabs = [...this.tabs, tab];
@@ -60,18 +60,15 @@ export class Browser extends StatefulClass {
 		this.tabs = this.tabs.filter((t) => t !== tab);
 		console.log(this.tabs);
 		if (this.activetab === tab) {
-			this.activetab = this.tabs[0] || this.newTab("New Tab");
+			this.activetab = this.tabs[0] || this.newTab();
 		}
-		console.log(this.tabs);
-
-		console.log(this.activetab);
 		popTab(tab);
 	}
 
 	build(): HTMLElement {
 		let shell = <Shell tabs={use(this.tabs)} activetab={use(this.activetab)} />;
 
-		let tab = this.newTab("title");
+		let tab = this.newTab();
 		this.activetab = tab;
 		if (this.built) throw new Error("already built");
 		this.built = true;
@@ -83,13 +80,14 @@ export class Browser extends StatefulClass {
 					tabs={use(this.tabs).bind()}
 					activetab={use(this.activetab).bind()}
 					destroyTab={(tab) => this.destroyTab(tab)}
-					addTab={() => this.newTab("title")}
+					addTab={() => this.newTab()}
 				/>
 				<Omnibox
-					tabUrl={use(this.activetab)
-						.zip(use(this.activetab.url))
-						.map(([a]) => use(a.url))}
+					tabUrl={use(this.activetab.url)}
+					canGoBack={use(this.activetab.canGoBack)}
+					canGoForwards={use(this.activetab.canGoForward)}
 					goBack={() => {
+						console.log("WHAT");
 						this.activetab.history.go(-1);
 					}}
 					goForwards={() => {

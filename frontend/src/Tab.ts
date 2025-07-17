@@ -19,6 +19,9 @@ export class Tab extends StatefulClass {
 
 	history: History;
 
+	canGoForward: boolean = false;
+	canGoBack: boolean = false;
+
 	constructor(public url: URL = new URL("puter://newtab")) {
 		super(createState(Object.create(Tab.prototype)));
 
