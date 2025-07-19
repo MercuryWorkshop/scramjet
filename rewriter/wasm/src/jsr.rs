@@ -74,11 +74,12 @@ impl UrlRewriter for WasmUrlRewriter {
 			.map_err(RewriterError::from)?
 			.to_string();
 
-		let mut rewritten = self.0
-				.call1(&JsValue::NULL, &url.into())
-				.map_err(RewriterError::from)?
-				.as_string()
-				.ok_or_else(|| RewriterError::not_str("url rewriter output"))?;
+		let mut rewritten = self
+			.0
+			.call1(&JsValue::NULL, &url.into())
+			.map_err(RewriterError::from)?
+			.as_string()
+			.ok_or_else(|| RewriterError::not_str("url rewriter output"))?;
 
 		if module {
 			rewritten.push_str("?type=module");

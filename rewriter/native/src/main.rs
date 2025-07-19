@@ -168,7 +168,7 @@ fn main() -> Result<()> {
 				Box::new(|_, _, ()| Ok(Some("__EXTERNAL_TOOL_VAL__"))),
 			)?;
 
-			let ret = rewriter.rewrite(&alloc, &data, &())?;
+			let ret = rewriter.rewrite(&alloc, &data, &(), true)?;
 
 			println!("{}", str::from_utf8(&ret)?);
 

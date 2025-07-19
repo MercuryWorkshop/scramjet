@@ -9,6 +9,8 @@ import { rewriteUrl, URLMeta } from "./url";
 import { htmlRules } from "../htmlRules";
 import { rewriteCss, unrewriteCss } from "./css";
 import { rewriteJs } from "./js";
+import { getInjectScripts } from "./html";
+import { CookieStore } from "../cookie";
 
 let wasm_u8: Uint8Array;
 if (self.WASM)
@@ -20,7 +22,7 @@ export async function asyncSetWasm() {
 	wasm_u8 = new Uint8Array(buf);
 }
 
-const decoder = new TextDecoder();
+export const textDecoder = new TextDecoder();
 let MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
 
 function initWasm() {
@@ -30,7 +32,7 @@ function initWasm() {
 	if (![...wasm_u8.slice(0, 4)].every((x, i) => x === MAGIC[i]))
 		throw new Error(
 			"rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: " +
-				decoder.decode(wasm_u8)
+				textDecoder.decode(wasm_u8)
 		);
 
 	initSync({
@@ -58,6 +60,13 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 					rewriteUrl,
 					rewriteCss,
 					rewriteJs,
+					getHtmlInjectCode(cookieStore: CookieStore, foundHead: boolean) {
+						let inject = getInjectScripts(
+							cookieStore,
+							(src) => `<script src="${src}"></script>`
+						).join("");
+						return foundHead ? `<head>${inject}</head>` : inject;
+					},
 				},
 			},
 			flagEnabled,

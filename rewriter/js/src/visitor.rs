@@ -58,7 +58,7 @@ where
 			builder.push_str("__URL_REWRITER_ALREADY_ERRORED__");
 		} else if let Err(err) =
 			self.rewriter
-				.rewrite(self.config, &self.flags, &url.value, &mut builder,module)
+				.rewrite(self.config, &self.flags, &url.value, &mut builder, module)
 		{
 			self.error.replace(err);
 			builder.push_str("__URL_REWRITER_ERROR__");
@@ -184,7 +184,7 @@ where
 	}
 
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
-		self.rewrite_url(&it.source,true);
+		self.rewrite_url(&it.source, true);
 		walk::walk_import_declaration(self, it);
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'data>) {
@@ -196,11 +196,11 @@ where
 	}
 
 	fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'data>) {
-		self.rewrite_url(&it.source,true);
+		self.rewrite_url(&it.source, true);
 	}
 	fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'data>) {
 		if let Some(source) = &it.source {
-			self.rewrite_url(source,true);
+			self.rewrite_url(source, true);
 		}
 		// do not walk further, we don't want to rewrite the identifiers
 	}

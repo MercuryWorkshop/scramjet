@@ -115,6 +115,7 @@ impl<T> Rewriter<T> {
 		alloc: &'alloc Allocator,
 		html: &'data str,
 		data: &T,
+		from_top: bool,
 	) -> Result<oxc::allocator::Vec<'alloc, u8>, RewriterError> {
 		let tree = tl::parse(html, ParserOptions::default())?;
 
@@ -128,8 +129,9 @@ impl<T> Rewriter<T> {
 
 			data: html,
 			tree,
+			from_top,
 		};
-		visitor.visit(&mut changes)?;
+		visitor.rewrite(&mut changes)?;
 
 		let res = changes.perform(html)?;
 

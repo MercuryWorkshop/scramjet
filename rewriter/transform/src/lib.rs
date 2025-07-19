@@ -33,6 +33,7 @@ pub enum TransformError {
 }
 
 #[cfg(feature = "debug")]
+#[derive(Debug)]
 pub struct LastSpans(std::vec::Vec<(Span, std::string::String)>);
 #[cfg(feature = "debug")]
 impl Display for LastSpans {

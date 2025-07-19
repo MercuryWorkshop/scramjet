@@ -12,6 +12,7 @@ enum HtmlRewriteType<'alloc: 'data, 'data> {
 	AddScramAttr { key: &'data str, val: &'data str },
 	ReplaceAttr { new: &'alloc str },
 	ReplaceText { new: &'alloc str },
+	InsertText { text: &'alloc str },
 	RemoveText,
 }
 
@@ -55,6 +56,13 @@ impl<'alloc: 'data, 'data> HtmlRewrite<'alloc, 'data> {
 		}
 	}
 
+	pub fn insert_text(after: Span, text: &'alloc str) -> Self {
+		Self {
+			span: Span::new(after.end, after.end),
+			ty: HtmlRewriteType::InsertText { text },
+		}
+	}
+
 	pub fn remove_node(node: Span) -> Self {
 		Self {
 			span: node,
@@ -89,6 +97,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for HtmlRewrite<'alloc, 'data> {
 				})
 			}
 			HtmlRewriteType::ReplaceText { new } => TransformLL::replace(transforms![new]),
+			HtmlRewriteType::InsertText { text } => TransformLL::insert(transforms![text]),
 			HtmlRewriteType::RemoveText => TransformLL::replace(transforms![]),
 		}
 	}

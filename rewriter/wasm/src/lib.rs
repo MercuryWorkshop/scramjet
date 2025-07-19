@@ -54,7 +54,7 @@ pub struct Rewriter {
 	scramjet: Object,
 	js: JsRewriter,
 	html: HtmlRewriter,
-	html_funcs: (Function, Function, Function),
+	html_funcs: (Function, Function, Function, Function),
 }
 
 #[wasm_bindgen]
@@ -116,6 +116,7 @@ impl Rewriter {
 		html: String,
 		meta: Object,
 		cookie: Object,
+		from_top: bool,
 	) -> Result<HtmlRewriterOutput> {
 		let out = match self.html.rewrite(
 			&self.alloc,
@@ -126,7 +127,9 @@ impl Rewriter {
 				self.html_funcs.0.clone(),
 				self.html_funcs.1.clone(),
 				self.html_funcs.2.clone(),
+				self.html_funcs.3.clone(),
 			),
+			from_top,
 		) {
 			Ok(x) => x,
 			Err(x) => {

@@ -23,11 +23,11 @@ extern "C" {
 	pub type HtmlRewriterOutput;
 }
 
-pub type HtmlRewriter = Rewriter<(Object, Object, Function, Function, Function)>;
+pub type HtmlRewriter = Rewriter<(Object, Object, Function, Function, Function, Function)>;
 
 fn build_rules(
 	rules: Vec<Object>,
-) -> Result<Vec<RewriteRule<(Object, Object, Function, Function, Function)>>> {
+) -> Result<Vec<RewriteRule<(Object, Object, Function, Function, Function, Function)>>> {
 	rules
 		.into_iter()
 		.map(|x| {
@@ -85,9 +85,10 @@ fn build_rules(
 				func: Box::new(
 					move |alloc,
 					      val,
-					      (meta, cookie, _, _, _): &(
+					      (meta, cookie, _, _, _, _): &(
 						Object,
 						Object,
+						Function,
 						Function,
 						Function,
 						Function,
@@ -136,6 +137,9 @@ export function rewriteHttpEquiv(fn, content, meta) {
 		contentArray[1] = fn(contentArray[1].trim(), meta);
 	return contentArray.join("url=");
 }
+export function getInjectCode(func, cookie, found_head) {
+	return func(cookie, found_head);
+}
 export function log(val) { console.log("aaaaa", val) }
 "#)]
 extern "C" {
@@ -161,6 +165,12 @@ extern "C" {
 	fn __external_tool_rewrite_css(func: &Function, code: &str, meta: &Object) -> String;
 	#[wasm_bindgen(js_name = "rewriteHttpEquiv")]
 	fn __external_tool_rewrite_http_equiv(func: &Function, content: &str, meta: &Object) -> String;
+	#[wasm_bindgen(js_name = "getInjectCode")]
+	fn __external_tool_get_inject_code(
+		func: &Function,
+		cookie: &Object,
+		found_head: bool,
+	) -> String;
 	#[wasm_bindgen(js_name = "log")]
 	fn __external_tool_log(val: &str);
 }
@@ -168,9 +178,10 @@ extern "C" {
 fn external_tool<'alloc, 'data>(
 	alloc: &'alloc Allocator,
 	tool: VisitorExternalTool<'data>,
-	(meta, _, rewrite_js, rewrite_css, rewrite_url): &'data (
+	(meta, cookie, rewrite_js, rewrite_css, rewrite_url, get_inject): &'data (
 		Object,
 		Object,
+		Function,
 		Function,
 		Function,
 		Function,
@@ -200,6 +211,9 @@ fn external_tool<'alloc, 'data>(
 			__external_tool_log(log);
 			Ok(None)
 		}
+		VisitorExternalTool::GetScriptText { found_head } => Ok(Some(alloc.alloc_str(
+			&__external_tool_get_inject_code(get_inject, cookie, found_head),
+		))),
 	}
 }
 
@@ -216,7 +230,7 @@ pub fn create_html(scramjet: &Object) -> Result<HtmlRewriter> {
 	Ok(HtmlRewriter::new(rules, Box::new(external_tool))?)
 }
 
-pub fn get_html_params(scramjet: &Object) -> Result<(Function, Function, Function)> {
+pub fn get_html_params(scramjet: &Object) -> Result<(Function, Function, Function, Function)> {
 	let shared = get_obj(scramjet, "shared")?;
 	let rewrite = get_obj(&shared, "rewrite")?;
 
@@ -229,8 +243,11 @@ pub fn get_html_params(scramjet: &Object) -> Result<(Function, Function, Functio
 	let url = get_obj(&rewrite, "rewriteUrl")?
 		.dyn_into::<Function>()
 		.map_err(|_| RewriterError::not_fn("rewriteUrl"))?;
+	let inject_code = get_obj(&rewrite, "getHtmlInjectCode")?
+		.dyn_into::<Function>()
+		.map_err(|_| RewriterError::not_fn("getHtmlInjectCode"))?;
 
-	Ok((js, css, url))
+	Ok((js, css, url, inject_code))
 }
 
 pub fn create_html_output(out: &[u8]) -> Result<HtmlRewriterOutput> {

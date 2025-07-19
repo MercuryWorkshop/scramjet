@@ -1,11 +1,9 @@
 import { config, flagEnabled } from "..";
 import { URLMeta } from "./url";
 
-import { getRewriter, JsRewriterOutput } from "./wasm";
+import { getRewriter, JsRewriterOutput, textDecoder } from "./wasm";
 
 Error.stackTraceLimit = 50;
-
-const decoder = new TextDecoder();
 
 function rewriteJsWasm(
 	input: string | Uint8Array,
@@ -36,7 +34,12 @@ function rewriteJsWasm(
 			}
 		} catch (err) {
 			const err1 = err as Error;
-			console.warn("failed rewriting js for", source, err1.message, input);
+			console.warn(
+				"failed rewriting js for",
+				source,
+				err1.message,
+				input instanceof Uint8Array ? textDecoder.decode(input) : input
+			);
 
 			return { js: input, tag: "", map: null };
 		}
@@ -57,7 +60,7 @@ function rewriteJsWasm(
 		}
 
 		return {
-			js: typeof input === "string" ? decoder.decode(js) : js,
+			js: typeof input === "string" ? textDecoder.decode(js) : js,
 			tag: scramtag,
 			map,
 		};
@@ -74,7 +77,7 @@ function rewriteJsWasm(
 // if you can ensure all the preconditions are met this is faster than full rewrites
 function rewriteJsNaiive(js: string | ArrayBuffer) {
 	if (typeof js !== "string") {
-		js = new TextDecoder().decode(js);
+		js = textDecoder.decode(js);
 	}
 
 	return `

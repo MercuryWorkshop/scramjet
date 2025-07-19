@@ -131,6 +131,7 @@ pub struct Visitor<'alloc: 'data, 'data, T> {
 
 	pub data: &'data str,
 	pub tree: VDom<'data>,
+	pub from_top: bool,
 }
 
 pub enum VisitorExternalTool<'data> {
@@ -140,6 +141,7 @@ pub enum VisitorExternalTool<'data> {
 	RewriteJsAttr { attr: &'data str, code: &'data str },
 	RewriteHttpEquivContent(&'data str),
 	RewriteCss(&'data str),
+	GetScriptText { found_head: bool },
 	Log(&'data str),
 }
 
@@ -201,23 +203,29 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 	}
 
 	#[expect(clippy::too_many_lines)]
-	fn visit_node(
+	pub fn rewrite(
 		&'data self,
-		node: &'data Node<'data>,
 		changes: &mut HtmlChanges<'alloc, 'data>,
 	) -> Result<(), RewriterError> {
-		match node {
-			Node::Tag(tag) => {
+		let mut head = None;
+
+		for node in self.tree.nodes() {
+			if let Node::Tag(tag) = node {
 				let name = tag.name().try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
+
+				if name == "head" && head.is_none() {
+					head.replace(tag);
+				}
+
 				if name == "base"
-					&& let Some(Some(val)) = tag.attributes().get("href")
+					&& let Some(Some(val)) = tag.attributes().get(&"href".into())
 				{
 					self.external_tool(VisitorExternalTool::SetMetaBase(
 						val.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?,
 					))?;
 				}
 
-				for (k, v) in tag.attributes().unstable_raw().iter() {
+				for (k, v) in tag.attributes().iter() {
 					let attr = k.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
 
 					if let Some(cb) = self.check_rules(name, attr)
@@ -232,7 +240,7 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 						if let Some(change) = change {
 							let change = if name == "script"
 								&& attr == "src" && let Some(Some(ty)) =
-								tag.attributes().get("type")
+								tag.attributes().get(&"type".into())
 								&& ty.try_as_utf8_str().ok_or(RewriterError::NotUtf8)? == "module"
 							{
 								self.alloc.alloc_concat_strs_array([change, "?type=module"])
@@ -280,14 +288,13 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 				if name == "script"
 					&& let ty = tag
 						.attributes()
-						.get("type")
-						.and_then(|x| x)
+						.get(&"type".into())
+						.and_then(|x| x.as_ref())
 						.map(|x| x.try_as_utf8_str().ok_or(RewriterError::NotUtf8))
 						.transpose()? && Self::match_script_type(ty)
-					&& tag.attributes().get("src").is_none()
-					&& let Some(child) = tag.children().top().get(0)
-					&& let Some(child) = self.get(*child).as_raw()
+					&& tag.attributes().get(&"src".into()).is_none()
 				{
+					let child = tag.inner_html();
 					let code = child.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
 					let module = ty.is_some_and(|x| x == "module");
 
@@ -310,7 +317,7 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 				}
 
 				if name == "meta"
-					&& let Some(Some(eqiv)) = tag.attributes().get("http-equiv")
+					&& let Some(Some(eqiv)) = tag.attributes().get(&"http-equiv".into())
 				{
 					let mut val = StringBuilder::from_str_in(
 						eqiv.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?,
@@ -321,7 +328,7 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 					if val == "content-security-policy" {
 						changes.add(HtmlRewrite::remove_node(self.boundaries(tag)?));
 					} else if val == "refresh"
-						&& let Some(Some(content)) = tag.attributes().get("content")
+						&& let Some(Some(content)) = tag.attributes().get(&"content".into())
 					{
 						let val = content.try_as_utf8_str().ok_or(RewriterError::NotUtf8)?;
 						let rewritten = self
@@ -332,20 +339,27 @@ impl<'alloc, 'data, T> Visitor<'alloc, 'data, T> {
 						));
 					}
 				}
-
-				Ok(())
 			}
-			_ => Ok(()),
 		}
-	}
 
-	pub fn visit(
-		&'data self,
-		changes: &mut HtmlChanges<'alloc, 'data>,
-	) -> Result<(), RewriterError> {
-		for node in self.tree.nodes() {
-			self.visit_node(node, changes)?;
+		if self.from_top {
+			let (head_span, head_text) = if let Some(head) = head {
+				let outer = self.boundaries(head)?;
+				let inner = self.calculate_bounds(head.inner_html())?;
+
+				let start = Span::new(outer.start, inner.start);
+				let text = self
+					.external_tool_val(VisitorExternalTool::GetScriptText { found_head: true })?;
+				(start, text)
+			} else {
+				let text = self
+					.external_tool_val(VisitorExternalTool::GetScriptText { found_head: false })?;
+				(Span::new(0, 0), text)
+			};
+
+			changes.add(HtmlRewrite::insert_text(head_span, head_text));
 		}
+
 		Ok(())
 	}
 }

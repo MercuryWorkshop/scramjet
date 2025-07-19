@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 oxc = { workspace = true }
 thiserror = "2.0.12"
-tl = "0.7.8"
+tl = { git = "https://github.com/r58playz/tl" }
 transform = { version = "0.1.0", path = "../transform" }
 
 [lints]
