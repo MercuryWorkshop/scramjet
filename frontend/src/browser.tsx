@@ -12,6 +12,7 @@ import { createDelegate } from "dreamland/utils";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
+export const forceScreenshot = createDelegate<Tab>();
 
 export class Browser extends StatefulClass {
 	built: boolean = false;

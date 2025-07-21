@@ -1,7 +1,8 @@
 import { css, type Component } from "dreamland/core";
 import { browser } from "../main";
-import { popTab, pushTab } from "../browser";
+import { forceScreenshot, popTab, pushTab } from "../browser";
 import type { Tab } from "../Tab";
+import html2canvas from "html2canvas";
 
 export const Shell: Component<{
 	tabs: Tab[];
@@ -12,6 +13,7 @@ export const Shell: Component<{
 		cx.root.appendChild(
 			<div
 				class={`container ${cx.id}`}
+				data-tab={tab.id}
 				class:active={use(this.activetab).map((t) => t === tab)}
 				class:showframe={use(tab.internalpage).map((t) => !t)}
 			>
@@ -21,12 +23,20 @@ export const Shell: Component<{
 		);
 	});
 	popTab.listen((tab) => {
-		for (let el of cx.root.children) {
-			if (el.children[0] == tab.frame.frame) {
-				el.remove();
-				break;
-			}
-		}
+		const container = cx.root.querySelector(`[data-tab="${tab.id}"]`);
+		if (!container) throw new Error(`No container found for tab ${tab.id}`);
+		container.remove();
+	});
+	forceScreenshot.listen(async (tab) => {
+		const container = cx.root.querySelector(
+			`[data-tab="${tab.id}"]`
+		) as HTMLElement;
+		if (!container) throw new Error(`No container found for tab ${tab.id}`);
+
+		const canvas = await html2canvas(
+			container.children[0].contentDocument.body
+		);
+		tab.screenshot = canvas.toDataURL();
 	});
 
 	return <div class:unfocus={use(browser.unfocusframes)}></div>;

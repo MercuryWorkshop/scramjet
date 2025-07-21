@@ -14,6 +14,7 @@ export class Tab extends StatefulClass {
 	id: number;
 	title: string | null;
 	frame: ScramjetFrame;
+	screenshot: string | null = null;
 
 	dragoffset: number;
 	dragpos: number;

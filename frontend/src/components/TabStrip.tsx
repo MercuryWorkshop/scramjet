@@ -11,12 +11,12 @@ import { Icon } from "./Icon";
 import { memoize } from "../memoize";
 import { IconButton } from "./IconButton";
 import type { Tab } from "../Tab";
+import html2canvas from "html2canvas";
 
 export const DragTab: Component<{
 	active: boolean;
 	id: number;
-	icon: string;
-	title: string;
+	tab: Tab;
 	mousedown: (e: MouseEvent) => void;
 	destroy: () => void;
 	transitionend: () => void;
@@ -38,6 +38,10 @@ export const DragTab: Component<{
 				this.transitionend();
 			}}
 		>
+			<div class="tooltip">
+				<span>{use(this.tab.title)}</span>
+				<img src={use(this.tab.screenshot)} />
+			</div>
 			<div
 				class="dragroot"
 				style="position: unset;"
@@ -48,8 +52,8 @@ export const DragTab: Component<{
 				}}
 			>
 				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
-					<img src={use(this.icon)} />
-					<span>{use(this.title)}</span>
+					<img src={use(this.tab.icon)} />
+					<span>{use(this.tab.title)}</span>
 					<button
 						class="close"
 						on:click={(e) => {
@@ -76,6 +80,25 @@ DragTab.style = css`
 		--tab-active-border-width: 11px;
 		--tab-active-border-radius: 10px;
 		--tab-active-border-radius-neg: -10px;
+	}
+
+	.tooltip {
+		position: absolute;
+		top: 5em;
+		left: 0;
+		z-index: 1000;
+		background: var(--aboutbrowser-tooltip-bg);
+		width: 20em;
+		/* height: 10em; */
+		flex-direction: column;
+		display: none;
+		border-radius: 4px;
+	}
+	:scope:hover .tooltip {
+		display: flex;
+	}
+	.tooltip img {
+		width: 100%;
 	}
 
 	.main {
@@ -109,17 +132,17 @@ DragTab.style = css`
 		height: 14px;
 	}
 	.close {
-	   outline: none;
-    border: none;
-    background: none;
-    cursor: pointer;
+		outline: none;
+		border: none;
+		background: none;
+		cursor: pointer;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 
-    padding: 0;
-    margin-left: 8px;
+		padding: 0;
+		margin-left: 8px;
 	}
 
 	.main:not(.active):hover {
@@ -132,8 +155,6 @@ DragTab.style = css`
 	.main.active {
 		background: var(--aboutbrowser-active-tab-bg);
 		color: var(--aboutbrowser-active-tab-fg);
-
-		# border-radius: 12px 12px 0 0;
 	}
 
 	.belowcontainer {
@@ -147,8 +168,9 @@ DragTab.style = css`
 
 		background: var(--aboutbrowser-active-tab-bg);
 	}
-	.below::before, .below::after {
-		content: '';
+	.below::before,
+	.below::after {
+		content: "";
 		position: absolute;
 		bottom: 0;
 
@@ -159,11 +181,19 @@ DragTab.style = css`
 	}
 	.below::before {
 		left: var(--tab-active-border-radius-neg);
-		mask-image: radial-gradient(circle at 0 0, transparent var(--tab-active-border-radius), black 0);
+		mask-image: radial-gradient(
+			circle at 0 0,
+			transparent var(--tab-active-border-radius),
+			black 0
+		);
 	}
 	.below::after {
 		right: var(--tab-active-border-radius-neg);
-		mask-image: radial-gradient(circle at var(--tab-active-border-width) 0, transparent var(--tab-active-border-radius), black 0);
+		mask-image: radial-gradient(
+			circle at var(--tab-active-border-width) 0,
+			transparent var(--tab-active-border-radius),
+			black 0
+		);
 	}
 `;
 
@@ -358,8 +388,7 @@ export const Tabs: Component<
 					() => (
 						<DragTab
 							id={tab.id}
-							title={use(tab.title)}
-							icon={use(tab.icon)}
+							tab={tab}
 							active={use(this.activetab).map((x) => x === tab)}
 							mousedown={(e) => mouseDown(e, tab)}
 							destroy={() => {
