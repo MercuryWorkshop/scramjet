@@ -62,7 +62,7 @@ export class Tab extends StatefulClass {
 	}
 
 	// only caller should be history.ts for this
-	navigate(url: URL) {
+	_directnavigate(url: URL) {
 		this.url = url;
 		if (url.protocol == "puter:") {
 			switch (url.host) {
@@ -80,6 +80,88 @@ export class Tab extends StatefulClass {
 			this.frame.go(url);
 		}
 	}
+
+	pushNavigate(url: URL) {
+		this.history.push(url, undefined, true);
+	}
+	replaceNavigate(url: URL) {
+		this.history.replace(url, undefined, true);
+	}
+
+	back() {
+		if (this.canGoBack) {
+			this.history.go(-1);
+		}
+	}
+	forward() {
+		if (this.canGoForward) {
+			this.history.go(1);
+		}
+	}
+	reload() {
+		if (this.internalpage) {
+			this._directnavigate(this.url);
+		} else {
+			this.frame.reload();
+		}
+	}
+}
+
+function pageContextItems(client: ScramjetClient, tab: Tab) {
+	let frame = tab.frame;
+
+	const selection = client.global.getSelection();
+	if (selection && selection.toString().length > 0) {
+		return [
+			{
+				label: "Search",
+				action: () => {
+					const query = selection.toString();
+					if (query) {
+						tab.pushNavigate(
+							new URL(
+								`https://www.google.com/search?q=${encodeURIComponent(query)}`
+							)
+						);
+					}
+				},
+			},
+			{
+				label: "Copy",
+				action: () => {
+					navigator.clipboard.writeText(selection.toString());
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			label: "Back",
+			action: () => {
+				tab.back();
+			},
+		},
+		{
+			label: "Forward",
+			action: () => {
+				tab.forward();
+			},
+		},
+		{
+			label: "Reload",
+			action: () => {
+				tab.reload();
+			},
+		},
+		{
+			label: "Bookmark",
+			action: () => {
+				// TODO:
+				console.log("Bookmarking", tab.title, tab.url);
+			},
+		},
+	];
 }
 
 function injectContextMenu(client: ScramjetClient, tab: Tab) {
@@ -100,32 +182,8 @@ function injectContextMenu(client: ScramjetClient, tab: Tab) {
 		let { x, y } = frame.frame.getBoundingClientRect();
 		xoff += x;
 		yoff += y;
-		createMenu(xoff + e.pageX, yoff + e.pageY, [
-			{
-				label: "Back",
-				action: () => {
-					frame.back();
-				},
-			},
-			{
-				label: "Forward",
-				action: () => {
-					frame.forward();
-				},
-			},
-			{
-				label: "Reload",
-				action: () => {
-					frame.reload();
-				},
-			},
-			{
-				label: "Bookmark",
-				action: () => {
-					console.log("Bookmarking", tab.title, tab.url);
-				},
-			},
-		]);
+
+		createMenu(xoff + e.pageX, yoff + e.pageY, pageContextItems(client, tab));
 		e.preventDefault();
 	});
 }

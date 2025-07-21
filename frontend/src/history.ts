@@ -16,7 +16,7 @@ export class History {
 		this.states.push({ url, state });
 		this.index++;
 
-		if (navigate) this.tab.navigate(url);
+		if (navigate) this.tab._directnavigate(url);
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();
@@ -30,7 +30,7 @@ export class History {
 			this.push(url, state);
 		}
 
-		if (navigate) this.tab.navigate(url);
+		if (navigate) this.tab._directnavigate(url);
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();
@@ -45,7 +45,7 @@ export class History {
 			this.index = this.states.length - 1;
 		}
 
-		if (navigate) this.tab.navigate(this.states[this.index].url);
+		if (navigate) this.tab._directnavigate(this.states[this.index].url);
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();

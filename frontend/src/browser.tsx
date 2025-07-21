@@ -88,20 +88,21 @@ export class Browser extends StatefulClass {
 					canGoBack={use(this.activetab.canGoBack)}
 					canGoForwards={use(this.activetab.canGoForward)}
 					goBack={() => {
-						this.activetab.history.go(-1);
+						this.activetab.back();
 					}}
 					goForwards={() => {
-						this.activetab.history.go(1);
+						this.activetab.forward();
 					}}
 					refresh={() => {
 						this.activetab.frame.reload();
 					}}
 					navigate={(url: string) => {
+						// TODO: dejank
 						if (URL.canParse(url)) {
-							this.activetab.history.push(new URL(url), undefined, true);
+							this.activetab.pushNavigate(new URL(url));
 						} else {
 							const search = `https://google.com/search?q=${encodeURIComponent(url)}`;
-							this.activetab.history.push(new URL(search), undefined, true);
+							this.activetab.pushNavigate(new URL(search));
 						}
 					}}
 				/>
