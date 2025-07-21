@@ -175,6 +175,9 @@ importers:
       dreamland:
         specifier: workspace:dreamland
         version: link:../dreamlandjs
+      monaco-editor:
+        specifier: ^0.52.2
+        version: 0.52.2
       vite-plugin-static-copy:
         specifier: ^3.1.0
         version: 3.1.0(vite@6.3.5(@types/node@24.0.14)(terser@5.43.1))
@@ -2174,6 +2177,9 @@ packages:
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
+
+  monaco-editor@0.52.2:
+    resolution: {integrity: sha512-GEQWEZmfkOGLdd3XK8ryrfWz3AIP8YymVXiPHEdewrUq7mh0qrKrfHLNCXcbB6sTnMLnOZ3ztSiKcciFUkIJwQ==}
 
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
@@ -5134,6 +5140,8 @@ snapshots:
       brace-expansion: 2.0.2
 
   minipass@7.1.2: {}
+
+  monaco-editor@0.52.2: {}
 
   mrmime@2.0.1: {}
 

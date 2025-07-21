@@ -7,6 +7,7 @@ import {
 	injectHistoryEmulation,
 } from "./history";
 import { NewTab } from "./pages/NewTab";
+import { Playground } from "./pages/Playground";
 
 let id = 0;
 export class Tab extends StatefulClass {
@@ -65,6 +66,11 @@ export class Tab extends StatefulClass {
 				case "newtab":
 					this.title = "New Tab";
 					this.internalpage = <NewTab tab={this} />;
+					break;
+				case "playground":
+					this.title = "Scramjet Playground";
+					this.internalpage = <Playground tab={this} />;
+					break;
 			}
 		} else {
 			this.internalpage = null;
