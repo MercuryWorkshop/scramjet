@@ -1,4 +1,4 @@
-import type { Component } from "dreamland/core";
+import { css, type Component } from "dreamland/core";
 import iconBack from "@ktibow/iconset-ion/arrow-back";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import iconRefresh from "@ktibow/iconset-ion/refresh";
@@ -14,10 +14,10 @@ import { IconButton } from "./IconButton";
 export const Spacer: Component = function (cx) {
 	return <div></div>;
 };
-Spacer.css = `
-  :scope {
-    width: 2em;
-  }
+Spacer.style = css`
+	:scope {
+		width: 2em;
+	}
 `;
 
 export const UrlInput: Component<
@@ -164,70 +164,70 @@ export const UrlInput: Component<
 		</div>
 	);
 };
-UrlInput.css = `
-  :scope {
-    position: relative;
-    flex: 1;
-    display: flex;
-    height: 100%;
-  }
-  .overflow {
-    position: absolute;
-    display: none;
-    background: var(--aboutbrowser-omnibox-bg);
-    width: 100%;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-  .overflow .spacer {
-    display: block;
-    height: 2.5em;
-  }
-  .overflowitem {
-    display: flex;
-    align-items: center;
-    height: 2.5em;
-    cursor: pointer;
-  }
-  .overflowitem.focused {
-    background: blue;
-  }
+UrlInput.style = css`
+	:scope {
+		position: relative;
+		flex: 1;
+		display: flex;
+		height: 100%;
+	}
+	.overflow {
+		position: absolute;
+		display: none;
+		background: var(--aboutbrowser-omnibox-bg);
+		width: 100%;
+		border-radius: 4px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+	.overflow .spacer {
+		display: block;
+		height: 2.5em;
+	}
+	.overflowitem {
+		display: flex;
+		align-items: center;
+		height: 2.5em;
+		cursor: pointer;
+	}
+	.overflowitem.focused {
+		background: blue;
+	}
 
-  .overflow.active {
-    display: block;
-  }
-  .inactivebar {
-    background: white;
-    width: 100%;
-    border: none;
-    outline: none;
-    border-radius: 4px;
-    margin: 0.25em;
-  }
-  input, .inactiveurl {
-    background: none;
-    border: none;
-    outline: none;
+	.overflow.active {
+		display: block;
+	}
+	.inactivebar {
+		background: white;
+		width: 100%;
+		border: none;
+		outline: none;
+		border-radius: 4px;
+		margin: 0.25em;
+	}
+	input,
+	.inactiveurl {
+		background: none;
+		border: none;
+		outline: none;
 
-    font-size: 1.00em;
+		font-size: 1em;
 
-    height: 100%;
-    width: 100%;
-  }
-  .inactiveurl {
-    display: flex;
-    align-items: center;
-  }
+		height: 100%;
+		width: 100%;
+	}
+	.inactiveurl {
+		display: flex;
+		align-items: center;
+	}
 
-
-  .realbar {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    z-index: 1;
-    align-items: center;
-  }
+	.realbar {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		z-index: 1;
+		align-items: center;
+	}
 `;
 
 export const Omnibox: Component<{
@@ -270,13 +270,13 @@ export const Omnibox: Component<{
 		</div>
 	);
 };
-Omnibox.css = `
-  :scope {
-     	background: var(--aboutbrowser-omnibox-bg);
-      display: flex;
-      padding: 0px 7px 0px 7px;
-      height: 2.5em;
-      align-items: center;
-      position: relative;
-    }
+Omnibox.style = css`
+	:scope {
+		background: var(--aboutbrowser-omnibox-bg);
+		display: flex;
+		padding: 0px 7px 0px 7px;
+		height: 2.5em;
+		align-items: center;
+		position: relative;
+	}
 `;

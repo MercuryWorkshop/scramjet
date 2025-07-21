@@ -2,6 +2,7 @@ import iconClose from "@ktibow/iconset-ion/close";
 import iconAdd from "@ktibow/iconset-ion/add";
 import {
 	createState,
+	css,
 	type Component,
 	type ComponentInstance,
 	type Stateful,
@@ -66,7 +67,7 @@ export const DragTab: Component<{
 		</div>
 	);
 };
-DragTab.css = `
+DragTab.style = css`
 	:scope {
 		display: inline-block;
 		user-select: none;
@@ -377,7 +378,7 @@ export const Tabs: Component<
 		</div>
 	);
 };
-Tabs.css = `
+Tabs.style = css`
 	:scope {
 		background: var(--aboutbrowser-frame-bg);
 		padding: 6px 12px;

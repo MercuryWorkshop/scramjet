@@ -1,4 +1,4 @@
-import type { Component } from "dreamland/core";
+import { css, type Component } from "dreamland/core";
 import { browser } from "../main";
 import { popTab, pushTab } from "../browser";
 import type { Tab } from "../Tab";
@@ -31,28 +31,28 @@ export const Shell: Component<{
 
 	return <div class:unfocus={use(browser.unfocusframes)}></div>;
 };
-Shell.css = `
-  :scope {
-    flex: 1;
-  }
-  .unfocus {
-    pointer-events: none;
-  }
-  .container {
-    width: 100%;
-    height: 100%;
-    display: none;
-  }
-  .container.active {
-    display: block;
-  }
-  iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    display: none;
-  }
-  .showframe iframe{
-    display: block;
-  }
+Shell.style = css`
+	:scope {
+		flex: 1;
+	}
+	.unfocus {
+		pointer-events: none;
+	}
+	.container {
+		width: 100%;
+		height: 100%;
+		display: none;
+	}
+	.container.active {
+		display: block;
+	}
+	iframe {
+		width: 100%;
+		height: 100%;
+		border: none;
+		display: none;
+	}
+	.showframe iframe {
+		display: block;
+	}
 `;

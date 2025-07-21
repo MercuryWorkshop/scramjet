@@ -1,5 +1,5 @@
 import type { IconifyIcon } from "@iconify/types";
-import type { Component } from "dreamland/core";
+import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 
 export const IconButton: Component<{
@@ -18,18 +18,18 @@ export const IconButton: Component<{
 		</button>
 	);
 };
-IconButton.css = `
-  :scope {
-    padding: 0.4em;
-    display: flex;
-    outline: none;
-    border: none;
-    font-size: 1.25em;
-    background: none;
-    color: grey;
-  }
-  :scope.active {
-    cursor: pointer;
-    color: var(--aboutbrowser-active-tab-fg);
-  }
+IconButton.style = css`
+	:scope {
+		padding: 0.4em;
+		display: flex;
+		outline: none;
+		border: none;
+		font-size: 1.25em;
+		background: none;
+		color: grey;
+	}
+	:scope.active {
+		cursor: pointer;
+		color: var(--aboutbrowser-active-tab-fg);
+	}
 `;

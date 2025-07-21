@@ -1,4 +1,5 @@
 import type { Component } from "dreamland/core";
+import { css } from "dreamland/core";
 import type { Tab } from "../Tab";
 
 import { editor } from "monaco-editor";
@@ -20,13 +21,12 @@ const Editor: Component<
 
 	return <div></div>;
 };
-Editor.css = `
-:scope {
-  width: 100%;
-  height: 100%;
-}
-
-  `;
+Editor.style = css`
+	:scope {
+		width: 100%;
+		height: 100%;
+	}
+`;
 
 export const Playground: Component<
 	{
@@ -41,9 +41,9 @@ export const Playground: Component<
 		</div>
 	);
 };
-Playground.css = `
-  :scope {
-    width: 100%;
-    height: 100%;
-  }
+Playground.style = css`
+	:scope {
+		width: 100%;
+		height: 100%;
+	}
 `;

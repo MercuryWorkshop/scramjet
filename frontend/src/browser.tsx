@@ -87,7 +87,6 @@ export class Browser extends StatefulClass {
 					canGoBack={use(this.activetab.canGoBack)}
 					canGoForwards={use(this.activetab.canGoForward)}
 					goBack={() => {
-						console.log("WHAT");
 						this.activetab.history.go(-1);
 					}}
 					goForwards={() => {
