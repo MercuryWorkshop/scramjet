@@ -36,7 +36,8 @@ export const UrlInput: Component<
 	}
 > = function (cx) {
 	this.focusindex = 0;
-	this.overflowItems = ["test", "test2", "test3", "test4", "test5"];
+	this.overflowItems = [];
+	this.value = "";
 	const fetchSuggestions = async () => {
 		let resp = await client.fetch(
 			`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(this.input.value)}`
@@ -69,6 +70,11 @@ export const UrlInput: Component<
 	return (
 		<div
 			on:click={(e: MouseEvent) => {
+				if (this.active) {
+					e.preventDefault();
+					e.stopPropagation();
+					return;
+				}
 				this.active = true;
 				browser.unfocusframes = true;
 				document.body.addEventListener("click", (e) => {
@@ -113,7 +119,6 @@ export const UrlInput: Component<
 						on:keydown={(e: KeyboardEvent) => {
 							if (e.key === "ArrowDown") {
 								e.preventDefault();
-								this.active = true;
 								this.focusindex++;
 								if (this.focusindex > this.overflowItems.length) {
 									this.focusindex = 0;
@@ -121,7 +126,6 @@ export const UrlInput: Component<
 							}
 							if (e.key === "ArrowUp") {
 								e.preventDefault();
-								this.active = true;
 								this.focusindex--;
 								if (this.focusindex < 0) {
 									this.focusindex = this.overflowItems.length;

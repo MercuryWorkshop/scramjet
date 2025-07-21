@@ -4,7 +4,6 @@ import { scramjetPath } from "@mercuryworkshop/scramjet";
 import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 
 import { viteStaticCopy } from "vite-plugin-static-copy";
-console.log(epoxyPath, baremuxPath);
 
 export default defineConfig({
 	plugins: [

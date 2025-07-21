@@ -320,6 +320,7 @@ export const Tabs: Component<
 	});
 
 	const mouseDown = (e: MouseEvent, tab: Tab) => {
+		if (e.button != 0) return;
 		this.currentlydragging = tab.id;
 
 		const root = getTabFromIndex(tab.id);

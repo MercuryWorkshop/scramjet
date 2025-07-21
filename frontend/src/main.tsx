@@ -1,5 +1,8 @@
 import "./style.css";
 
+// temp fix for vite not working
+import.meta.hot?.accept(() => location.reload());
+
 import { createBrowser } from "./browser";
 import { createMenu } from "./components/Menu";
 let app = document.getElementById("app")!;
