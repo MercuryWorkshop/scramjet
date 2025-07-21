@@ -1,6 +1,6 @@
 import { createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
-import { scramjet } from "./main";
+import { browser, scramjet } from "./main";
 import {
 	addHistoryListeners,
 	History,
@@ -107,9 +107,44 @@ export class Tab extends StatefulClass {
 	}
 }
 
-function pageContextItems(client: ScramjetClient, tab: Tab) {
-	let frame = tab.frame;
+function copyImageToClipboard(img: HTMLImageElement) {
+	if (!img.complete || !img.naturalWidth) {
+		console.error("Image not loaded yet");
+		return;
+	}
 
+	const canvas = document.createElement("canvas");
+	canvas.width = img.naturalWidth;
+	canvas.height = img.naturalHeight;
+
+	const ctx = canvas.getContext("2d");
+	if (!ctx) {
+		console.error("Failed to get canvas context");
+		return;
+	}
+
+	ctx.drawImage(img, 0, 0);
+
+	canvas.toBlob((blob) => {
+		if (blob) {
+			navigator.clipboard
+				.write([
+					new ClipboardItem({
+						"image/png": blob,
+					}),
+				])
+				.then(() => {
+					console.log("Image copied to clipboard");
+				})
+				.catch((err) => {
+					console.error("Failed to copy image to clipboard", err);
+				});
+		}
+	}, "image/png");
+}
+
+function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
+	console.log(e.target);
 	const selection = client.global.getSelection();
 	if (selection && selection.toString().length > 0) {
 		return [
@@ -130,6 +165,43 @@ function pageContextItems(client: ScramjetClient, tab: Tab) {
 				label: "Copy",
 				action: () => {
 					navigator.clipboard.writeText(selection.toString());
+				},
+			},
+		];
+	}
+
+	let target = e.target;
+	let view = e.view!.window;
+	// need to use e.view here they're different objects
+	if (target && target instanceof view.HTMLImageElement) {
+		return [
+			{
+				label: "Open Image in New Tab",
+				action: () => {
+					// TODO: this is broken lol
+					const imgUrl = scramjet.decodeUrl(target.src);
+					if (imgUrl) {
+						let newTab = browser.newTab();
+						newTab.pushNavigate(new URL(imgUrl));
+					}
+				},
+			},
+			{
+				label: "Copy Image URL",
+				action: () => {
+					navigator.clipboard.writeText(scramjet.decodeUrl(target.src));
+				},
+			},
+			{
+				label: "Copy Image",
+				action: () => {
+					copyImageToClipboard(target);
+				},
+			},
+			{
+				label: "Save Image As...",
+				action: () => {
+					// TODO
 				},
 			},
 		];
@@ -183,7 +255,11 @@ function injectContextMenu(client: ScramjetClient, tab: Tab) {
 		xoff += x;
 		yoff += y;
 
-		createMenu(xoff + e.pageX, yoff + e.pageY, pageContextItems(client, tab));
+		createMenu(
+			xoff + e.pageX,
+			yoff + e.pageY,
+			pageContextItems(client, tab, e)
+		);
 		e.preventDefault();
 	});
 }
