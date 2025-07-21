@@ -220,6 +220,7 @@ export class ScramjetClient {
 					);
 					if (base) {
 						let url = base.getAttribute("href");
+						if (!url) return client.url;
 						const frag = url.indexOf("#");
 						url = url.substring(0, frag === -1 ? undefined : frag);
 						if (!url) return client.url;
