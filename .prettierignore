@@ -4,3 +4,4 @@ tsconfig.json
 tests/
 dist/
 rewriter/
+frontend/public/chi
