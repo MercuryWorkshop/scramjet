@@ -15,6 +15,7 @@ export class Tab extends StatefulClass {
 	id: number;
 	title: string | null;
 	frame: ScramjetFrame;
+	devtoolsFrame: HTMLIFrameElement | null = null;
 	screenshot: string | null = null;
 
 	dragoffset: number;
@@ -56,6 +57,7 @@ export class Tab extends StatefulClass {
 		frame.addEventListener("contextInit", (ctx) => {
 			injectHistoryEmulation(ctx.client, this);
 			injectContextMenu(ctx.client, this);
+			injectDevtools(ctx.client, this);
 		});
 
 		this.frame = frame;
@@ -105,6 +107,27 @@ export class Tab extends StatefulClass {
 			this.frame.reload();
 		}
 	}
+}
+
+function injectDevtools(client: ScramjetClient, tab: Tab) {
+	const devtoolsUrl = "/chi";
+	let devtoolsScript = document.createElement("script");
+	devtoolsScript.setAttribute("embedded", "true");
+	window.addEventListener("message", (event) => {
+		console.log(event);
+		// tab.devtoolsFrame?.contentWindow?.postMessage(event.data, event.origin);
+		// client.natives.call("window.postMessage", client.global, [
+		// 	event.data,
+		// 	event.origin,
+		// ]);
+		client.global.window.postMessage(event.data);
+	});
+
+	// devtoolsScript.setAttribute("cdn", devtoolsUrl);
+	devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
+	//@ts-expect-error i'm not typing this
+	client.global.ChiiDevtoolsIframe = tab.devtoolsFrame;
+	client.global.document.head.appendChild(devtoolsScript);
 }
 
 function copyImageToClipboard(img: HTMLImageElement) {

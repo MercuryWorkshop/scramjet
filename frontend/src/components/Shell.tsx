@@ -10,6 +10,7 @@ export const Shell: Component<{
 }> = function (cx) {
 	pushTab.listen((tab) => {
 		tab.frame.frame.classList.add(cx.id);
+		let devtoolsFrame: HTMLIFrameElement = <iframe class={cx.id}></iframe>;
 		cx.root.appendChild(
 			<div
 				class={`container ${cx.id}`}
@@ -19,8 +20,10 @@ export const Shell: Component<{
 			>
 				{use(tab.internalpage)}
 				{tab.frame.frame}
+				<div class={`devtools ${cx.id}`}>{devtoolsFrame}</div>
 			</div>
 		);
+		tab.devtoolsFrame = devtoolsFrame;
 	});
 	popTab.listen((tab) => {
 		const container = cx.root.querySelector(`[data-tab="${tab.id}"]`);
@@ -54,7 +57,11 @@ Shell.style = css`
 		display: none;
 	}
 	.container.active {
+		display: flex;
+	}
+	.container .devtools {
 		display: block;
+		width: 20em;
 	}
 	iframe {
 		width: 100%;
