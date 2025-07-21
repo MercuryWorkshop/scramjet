@@ -12,6 +12,7 @@ import { memoize } from "../memoize";
 import { IconButton } from "./IconButton";
 import type { Tab } from "../Tab";
 import html2canvas from "html2canvas";
+import { setContextMenu } from "./Menu";
 
 export const DragTab: Component<{
 	active: boolean;
@@ -21,6 +22,23 @@ export const DragTab: Component<{
 	destroy: () => void;
 	transitionend: () => void;
 }> = function (cx) {
+	cx.mount = () => {
+		setContextMenu(cx.root, [
+			{
+				label: "Reload",
+				action: () => {
+					this.tab.frame.reload();
+				},
+			},
+			{
+				label: "Close Tab",
+				action: () => {
+					this.destroy();
+				},
+			},
+			// TODO: mute? duplicate?
+		]);
+	};
 	return (
 		<div
 			style="z-index: 0;"
@@ -314,6 +332,15 @@ export const Tabs: Component<
 	cx.mount = () => {
 		requestAnimationFrame(() => layoutTabs(false));
 		window.addEventListener("resize", () => layoutTabs(false));
+
+		setContextMenu(cx.root, [
+			{
+				label: "New Tab",
+				action: () => {
+					this.addTab();
+				},
+			},
+		]);
 	};
 
 	const getMaxDragPos = () => {

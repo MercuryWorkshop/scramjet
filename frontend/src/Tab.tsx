@@ -8,6 +8,7 @@ import {
 } from "./history";
 import { NewTab } from "./pages/NewTab";
 import { Playground } from "./pages/Playground";
+import { createMenu } from "./components/Menu";
 
 let id = 0;
 export class Tab extends StatefulClass {
@@ -54,6 +55,7 @@ export class Tab extends StatefulClass {
 		addHistoryListeners(frame, this);
 		frame.addEventListener("contextInit", (ctx) => {
 			injectHistoryEmulation(ctx.client, this);
+			injectContextMenu(ctx.client, this);
 		});
 
 		this.frame = frame;
@@ -78,6 +80,54 @@ export class Tab extends StatefulClass {
 			this.frame.go(url);
 		}
 	}
+}
+
+function injectContextMenu(client: ScramjetClient, tab: Tab) {
+	let frame = tab.frame;
+	client.global.document.addEventListener("contextmenu", (e) => {
+		// need to calculate the real position of the frame relative to the top
+		let xoff = 0;
+		let yoff = 0;
+		let currentwin = client.global.window;
+		while (currentwin.parent && currentwin.frameElement) {
+			// this will return true until the end of the scramjet boundary
+			let { x, y } = currentwin.frameElement.getBoundingClientRect();
+			xoff += x;
+			yoff += y;
+			currentwin = currentwin.parent.window;
+		}
+		// parent is trapped, so it won't calculate the topmost iframe. do that manually
+		let { x, y } = frame.frame.getBoundingClientRect();
+		xoff += x;
+		yoff += y;
+		createMenu(xoff + e.pageX, yoff + e.pageY, [
+			{
+				label: "Back",
+				action: () => {
+					frame.back();
+				},
+			},
+			{
+				label: "Forward",
+				action: () => {
+					frame.forward();
+				},
+			},
+			{
+				label: "Reload",
+				action: () => {
+					frame.reload();
+				},
+			},
+			{
+				label: "Bookmark",
+				action: () => {
+					console.log("Bookmarking", tab.title, tab.url);
+				},
+			},
+		]);
+		e.preventDefault();
+	});
 }
 
 // 		frame.frame.addEventListener("load", (e) => {
@@ -105,50 +155,6 @@ export class Tab extends StatefulClass {
 
 // 			const framedoc = ctx.window.document;
 
-// 			framedoc.addEventListener("contextmenu", (e) => {
-// 				// need to calculate the real position of the frame relative to the top
-// 				let xoff = 0;
-// 				let yoff = 0;
-// 				let currentwin = ctx.window;
-// 				while (currentwin.parent && currentwin.frameElement) {
-// 					// this will return true until the end of the scramjet boundary
-// 					let { x, y } = currentwin.frameElement.getBoundingClientRect();
-// 					xoff += x;
-// 					yoff += y;
-// 					currentwin = currentwin.parent;
-// 				}
-// 				// parent is trapped, so it won't calculate the topmost iframe. do that manually
-// 				let { x, y } = frame.frame.getBoundingClientRect();
-// 				xoff += x;
-// 				yoff += y;
-// 				createMenu(xoff + e.pageX, yoff + e.pageY, [
-// 					{
-// 						label: "Back",
-// 						action: () => {
-// 							frame.back();
-// 						},
-// 					},
-// 					{
-// 						label: "Forward",
-// 						action: () => {
-// 							frame.forward();
-// 						},
-// 					},
-// 					{
-// 						label: "Reload",
-// 						action: () => {
-// 							frame.reload();
-// 						},
-// 					},
-// 					{
-// 						label: "Bookmark",
-// 						action: () => {
-// 							console.log("Bookmarking", tab.title, tab.url);
-// 						},
-// 					},
-// 				]);
-// 				e.preventDefault();
-// 			});
 // 			const head = framedoc.querySelector("head")!;
 // 			const observer = new MutationObserver(() => {
 // 				const title = framedoc.querySelector("title");

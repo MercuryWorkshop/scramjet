@@ -71,6 +71,17 @@ Menu.style = css`
 
 let activeMenu: DLElement<typeof Menu> | null = null;
 
+export function setContextMenu(
+	elm: HTMLElement,
+	items: { label: string; action?: () => void }[]
+) {
+	elm.addEventListener("contextmenu", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		createMenu(e.clientX, e.clientY, items);
+	});
+}
+
 export function createMenu(
 	x: number,
 	y: number,

@@ -7,9 +7,10 @@ import iconSettings from "@ktibow/iconset-ion/settings-outline";
 import iconShield from "@ktibow/iconset-ion/shield-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconSearch from "@ktibow/iconset-ion/search";
-import { createMenu } from "./Menu";
+import { createMenu, setContextMenu } from "./Menu";
 import { browser, client } from "../main";
 import { IconButton } from "./IconButton";
+import { createDelegate, type Delegate } from "dreamland/utils";
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -24,6 +25,7 @@ export const UrlInput: Component<
 	{
 		tabUrl: URL;
 		navigate: (url: string) => void;
+		selectContent: Delegate<void>;
 	},
 	{
 		value: string;
@@ -67,6 +69,26 @@ export const UrlInput: Component<
 			fetchSuggestions();
 		}
 	});
+	const activate = () => {
+		this.active = true;
+		browser.unfocusframes = true;
+		document.body.addEventListener("click", (e) => {
+			this.active = false;
+			browser.unfocusframes = false;
+			e.stopPropagation();
+		});
+		this.value = this.tabUrl.href;
+		this.input.focus();
+		this.input.select();
+	};
+
+	this.selectContent.listen(() => {
+		this.active = true;
+		activate();
+
+		this.input.select();
+	});
+
 	return (
 		<div
 			on:click={(e: MouseEvent) => {
@@ -75,16 +97,7 @@ export const UrlInput: Component<
 					e.stopPropagation();
 					return;
 				}
-				this.active = true;
-				browser.unfocusframes = true;
-				document.body.addEventListener("click", (e) => {
-					this.active = false;
-					browser.unfocusframes = false;
-					e.stopPropagation();
-				});
-				this.value = this.tabUrl.href;
-				this.input.focus();
-				this.input.select();
+				activate();
 				e.stopPropagation();
 			}}
 		>
@@ -243,6 +256,17 @@ export const Omnibox: Component<{
 	canGoBack: boolean;
 	canGoForwards: boolean;
 }> = function (cx) {
+	const selectContent = createDelegate<void>();
+	cx.mount = () => {
+		setContextMenu(cx.root, [
+			{
+				label: "Select All",
+				action: () => {
+					selectContent();
+				},
+			},
+		]);
+	};
 	return (
 		<div>
 			<IconButton
@@ -257,7 +281,11 @@ export const Omnibox: Component<{
 			></IconButton>
 			<IconButton click={this.refresh} icon={iconRefresh}></IconButton>
 			<Spacer></Spacer>
-			<UrlInput tabUrl={use(this.tabUrl)} navigate={this.navigate}></UrlInput>
+			<UrlInput
+				selectContent={selectContent}
+				tabUrl={use(this.tabUrl)}
+				navigate={this.navigate}
+			></UrlInput>
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>
 			<IconButton
