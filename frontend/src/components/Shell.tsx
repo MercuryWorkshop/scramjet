@@ -116,6 +116,7 @@ Shell.style = css`
 	iframe {
 		flex: 1;
 		height: 100%;
+		width: 100%;
 		border: none;
 		display: none;
 	}

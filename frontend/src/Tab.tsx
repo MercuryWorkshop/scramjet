@@ -1,4 +1,4 @@
-import { createState } from "dreamland/core";
+import { createDelegate, createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
 import { browser, scramjet } from "./main";
 import {
@@ -9,6 +9,8 @@ import {
 import { NewTab } from "./pages/NewTab";
 import { Playground } from "./pages/Playground";
 import { createMenu } from "./components/Menu";
+
+const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
 let id = 0;
 export class Tab extends StatefulClass {
@@ -33,7 +35,7 @@ export class Tab extends StatefulClass {
 
 	internalpage: HTMLElement | null;
 
-	devtoolsOpen: boolean = true;
+	devtoolsOpen: boolean = false;
 	devtoolsWidth = 200;
 
 	constructor(public url: URL = new URL("puter://newtab")) {
@@ -178,6 +180,17 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 		},
 	};
 	client.global.document.head.appendChild(devtoolsScript);
+	requestInspectElement.listen(([elm, t]) => {
+		if (t != tab) return;
+		// @ts-expect-error
+		client.global.window.connector1.default.trigger(
+			"Overlay.inspectNodeRequested",
+			{
+				// @ts-expect-error
+				backendNodeId: client.global.pushNodesToFrontend(elm),
+			}
+		);
+	});
 
 	// unproxied version
 	// const devtoolsUrl = "/chi";
@@ -323,7 +336,8 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 		{
 			label: "Inspect",
 			action: () => {
-				tab.devtoolsOpen = !tab.devtoolsOpen;
+				tab.devtoolsOpen = true;
+				if (e.target) requestInspectElement([e.target as HTMLElement, tab]);
 			},
 		},
 	];
