@@ -21,6 +21,7 @@ export const scramjet = new ScramjetController({
 	},
 	flags: {
 		rewriterLogs: false,
+		captureErrors: false,
 		naiiveRewriter: false,
 	},
 	siteFlags: {

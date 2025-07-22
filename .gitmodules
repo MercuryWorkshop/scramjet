@@ -1,3 +1,6 @@
 [submodule "dreamlandjs"]
 	path = dreamlandjs
 	url = https://github.com/MercuryWorkshop/dreamlandjs
+[submodule "chii"]
+	path = chii
+	url = https://github.com/liriliri/chii

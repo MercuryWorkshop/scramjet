@@ -113,24 +113,85 @@ export class Tab extends StatefulClass {
 }
 
 function injectDevtools(client: ScramjetClient, tab: Tab) {
-	const devtoolsUrl = "/chi";
-	let devtoolsScript = document.createElement("script");
+	// right here there's three contexts, the main window, the page frame, and the empty devtools frame
+	// chobitsu is injected into the page frame (loaded from https://fake-devtools.invalid/target.js), and then will try and inject
+	// itself into the devtools frame through the `ChiiDevtoolsIframe` global variable
+	// so first we need to make sure that the devtools frame is in a scramjet context so that the page frame will use proxied apis
+	// then we set up communication between the devtools frame and the page frame
+	// then, hand off the devtools frame to the page frame so that it can inject itself into it, but cannot use the globals to escape
+
+	// we're loading the entire bundle through scramjet so that eval() will  be rewritten
+	// to start, apply the same hack as window.open to scramjetify the devtools frame
+	const contentwindow = tab.devtoolsFrame!.contentWindow;
+	const ctor: any = client.constructor;
+	const devtoolsFrameClient: ScramjetClient = new ctor(contentwindow);
+	// TODO: move this to frame creation
+	scramjet.createFrame(tab.devtoolsFrame!);
+	devtoolsFrameClient.hook();
+	// the fake origin is defined in sw.js
+	const devtoolsUrl = "https://fake-devtools.invalid";
+	// make sure to create the element through the proxied document
+	let devtoolsScript = client.global.document.createElement("script");
+	devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
 	devtoolsScript.setAttribute("embedded", "true");
-	window.addEventListener("message", (event) => {
-		console.log(event);
-		// tab.devtoolsFrame?.contentWindow?.postMessage(event.data, event.origin);
-		// client.natives.call("window.postMessage", client.global, [
-		// 	event.data,
-		// 	event.origin,
-		// ]);
-		client.global.window.postMessage(event.data);
+
+	devtoolsFrameClient.frame!.addEventListener("contextInit", () => {
+		// devtools frontend will try to access the parent window's postMessage
+		// this won't work, i manually patched it to use this global instead
+		//@ts-expect-error
+		tab.devtoolsFrame.contentWindow.parentPostMessage = (
+			data: any,
+			origin: string
+		) => {
+			if (!JSON.parse(data).method) {
+				console.error("ignoring some data");
+				return;
+			}
+
+			// oh god
+			// i will fix this later
+			// we're not supposed to be postmessaging from a non-scramjet context into a scramjet one
+			// so we need to trick the page content's scramjetclient into thinking this window is also a scramjet context
+			//@ts-expect-error
+			window[Symbol.for("scramjet client global")] = {
+				// for our fake scramjet client in the main window, set the origin to the fake devtools url so that the event origin check will suceed
+				url: { origin: devtoolsUrl },
+			};
+			//@ts-expect-error
+			client.global.window.$scramjet$setrealm({}).postMessage(data);
+			//@ts-expect-error
+			delete window[Symbol.for("scramjet client global")];
+		};
 	});
 
-	// devtoolsScript.setAttribute("cdn", devtoolsUrl);
-	devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
-	//@ts-expect-error i'm not typing this
-	client.global.ChiiDevtoolsIframe = tab.devtoolsFrame;
+	// VERY IMPORTANT: GIVE CHII THE *PROXIED* VERSION OF THE DEVTOOLS FRAME, AND NO REAL CTORS
+	// this is needed for the interceptors to work - but also stops sbx
+	//@ts-expect-error
+	client.global.ChiiDevtoolsIframe = {
+		contentWindow: devtoolsFrameClient.global,
+		// TODO this is STILL sbx annoyingly because the functions don't have their ctors intercepted
+		set src(value) {
+			devtoolsFrameClient.url = value;
+		},
+		get src() {
+			return devtoolsFrameClient.url;
+		},
+	};
 	client.global.document.head.appendChild(devtoolsScript);
+
+	// unproxied version
+	// const devtoolsUrl = "/chi";
+	// let devtoolsScript = document.createElement("script");
+	// devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
+	// devtoolsScript.setAttribute("embedded", "true");
+
+	// window.addEventListener("message", (event) => {
+	// 	console.log(event.data);
+	// 	client.global.window.postMessage(event.data, event.origin);
+	// });
+
+	// client.global.ChiiDevtoolsIframe = tab.devtoolsFrame;
+	// client.global.document.head.appendChild(devtoolsScript);
 }
 
 function copyImageToClipboard(img: HTMLImageElement) {
