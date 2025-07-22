@@ -33,6 +33,9 @@ export class Tab extends StatefulClass {
 
 	internalpage: HTMLElement | null;
 
+	devtoolsOpen: boolean = true;
+	devtoolsWidth = 200;
+
 	constructor(public url: URL = new URL("puter://newtab")) {
 		super(createState(Object.create(Tab.prototype)));
 
@@ -254,6 +257,12 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 			action: () => {
 				// TODO:
 				console.log("Bookmarking", tab.title, tab.url);
+			},
+		},
+		{
+			label: "Inspect",
+			action: () => {
+				tab.devtoolsOpen = !tab.devtoolsOpen;
 			},
 		},
 	];

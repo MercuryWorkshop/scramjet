@@ -8,7 +8,7 @@ import { Shell } from "./components/Shell";
 import { createMenu } from "./components/Menu";
 import { StatefulClass } from "./StatefulClass";
 import { Tab } from "./Tab";
-import { createDelegate } from "dreamland/utils";
+import { createDelegate } from "dreamland/core";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();

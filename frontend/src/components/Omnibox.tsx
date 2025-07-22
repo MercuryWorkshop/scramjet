@@ -10,7 +10,7 @@ import iconSearch from "@ktibow/iconset-ion/search";
 import { createMenu, setContextMenu } from "./Menu";
 import { browser, client } from "../main";
 import { IconButton } from "./IconButton";
-import { createDelegate, type Delegate } from "dreamland/utils";
+import { createDelegate, type Delegate } from "dreamland/core";
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
