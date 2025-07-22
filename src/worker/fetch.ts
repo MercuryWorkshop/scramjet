@@ -55,25 +55,45 @@ export async function handleFetch(
 		}
 
 		let workerType = "";
-		if (requestUrl.searchParams.has("type")) {
-			workerType = requestUrl.searchParams.get("type") as string;
-			requestUrl.searchParams.delete("type");
+		let topFrameName;
+		let parentFrameName;
+
+		let extraParams: Record<string, string> = {};
+		for (const [param, value] of requestUrl.searchParams.entries()) {
+			switch (param) {
+				case "type":
+					workerType = value;
+					break;
+				case "dest":
+					break;
+				case "topFrame":
+					topFrameName = value;
+					break;
+				case "parentFrame":
+					parentFrameName = value;
+					break;
+				default:
+					dbg.warn(
+						`${requestUrl.href} extraneous query parameter ${param}. Assuming <form> element`
+					);
+					extraParams[param] = value;
+					break;
+			}
+			requestUrl.searchParams.delete(param);
 		}
-		if (requestUrl.searchParams.has("dest")) {
-			requestUrl.searchParams.delete("dest");
-		}
+
 		const url = new URL(unrewriteUrl(requestUrl));
+		// now that we're past unrewriting it's safe to add back the params
+		for (const [param, value] of Object.entries(extraParams)) {
+			url.searchParams.set(param, value);
+		}
 
 		const meta: URLMeta = {
 			origin: url,
 			base: url,
+			topFrameName,
+			parentFrameName,
 		};
-		if (requestUrl.searchParams.has("topFrame")) {
-			meta.topFrameName = requestUrl.searchParams.get("topFrame");
-		}
-		if (requestUrl.searchParams.has("parentFrame")) {
-			meta.parentFrameName = requestUrl.searchParams.get("parentFrame");
-		}
 
 		if (
 			requestUrl.pathname.startsWith(`${this.config.prefix}blob:`) ||
