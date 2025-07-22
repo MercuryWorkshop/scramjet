@@ -46,7 +46,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 					if (prop in Object.prototype || typeof prop === "symbol") {
 						return Reflect.get(target, prop);
 					}
-					console.log("GET", prop, target == realLocalStorage);
 
 					return target.getItem(client.url.host + "@" + (prop as string));
 			}
