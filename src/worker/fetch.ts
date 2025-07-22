@@ -254,7 +254,7 @@ export async function handleFetch(
 		this.dispatchEvent(ev);
 
 		const response: BareResponseFetch =
-			ev.response ||
+			(await ev.response) ||
 			(await this.client.fetch(ev.url, {
 				method: ev.method,
 				body: ev.body,
@@ -558,5 +558,5 @@ export class ScramjetRequestEvent extends Event {
 	) {
 		super("request");
 	}
-	public response?: BareResponseFetch;
+	public response?: BareResponseFetch | Promise<BareResponseFetch>;
 }
