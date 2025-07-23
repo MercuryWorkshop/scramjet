@@ -9,10 +9,10 @@ export const Shell: Component<{
 	activetab: Tab;
 }> = function (cx) {
 	pushTab.listen((tab) => {
+		// paint the iframes
 		tab.frame.frame.classList.add(cx.id);
-		let devtoolsFrame: HTMLIFrameElement = (
-			<iframe class:unfocus={use(browser.unfocusframes)}></iframe>
-		);
+		tab.devtoolsFrame.frame.classList.add(cx.id);
+
 		let mouseMoveListen = (e: MouseEvent) => {
 			tab.devtoolsWidth = window.innerWidth - e.clientX;
 		};
@@ -48,11 +48,15 @@ export const Shell: Component<{
 						}}
 						class="divider"
 					></div>
-					{devtoolsFrame}
+					<div
+						class="devtoolsframecontainer"
+						class:unfocus={use(browser.unfocusframes)}
+					>
+						{tab.devtoolsFrame.frame}
+					</div>
 				</div>
 			</div>
 		);
-		tab.devtoolsFrame = devtoolsFrame;
 	});
 	popTab.listen((tab) => {
 		const container = cx.root.querySelector(`[data-tab="${tab.id}"]`);

@@ -17,7 +17,7 @@ export class Tab extends StatefulClass {
 	id: number;
 	title: string | null;
 	frame: ScramjetFrame;
-	devtoolsFrame: HTMLIFrameElement | null = null;
+	devtoolsFrame: ScramjetFrame;
 	screenshot: string | null = null;
 
 	dragoffset: number;
@@ -60,12 +60,17 @@ export class Tab extends StatefulClass {
 		const frame = scramjet.createFrame();
 		addHistoryListeners(frame, this);
 		frame.addEventListener("contextInit", (ctx) => {
-			injectHistoryEmulation(ctx.client, this);
 			injectContextMenu(ctx.client, this);
-			injectDevtools(ctx.client, this);
+
+			// make sure it's top level, ctxInit calls for all frames too
+			if (ctx.window == frame.frame.contentWindow) {
+				injectHistoryEmulation(ctx.client, this);
+				injectDevtools(ctx.client, this);
+			}
 		});
 
 		this.frame = frame;
+		this.devtoolsFrame = scramjet.createFrame();
 	}
 
 	// only caller should be history.ts for this
@@ -122,14 +127,22 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 	// then we set up communication between the devtools frame and the page frame
 	// then, hand off the devtools frame to the page frame so that it can inject itself into it, but cannot use the globals to escape
 
+	let devtoolsFrameClient: ScramjetClient;
+
+	// listen to the *page's* beforeunload, so we can get rid of the previous scramjet client (and associated devtools frame) in time for the new site to load
+	client.global.addEventListener("beforeunload", () => {
+		console.log("before unload");
+		tab.devtoolsFrame.frame.src = "about:blank";
+	});
 	// we're loading the entire bundle through scramjet so that eval() will  be rewritten
+	// if the frame is about:blank it won't have a client yet, so we need to create one
 	// to start, apply the same hack as window.open to scramjetify the devtools frame
-	const contentwindow = tab.devtoolsFrame!.contentWindow;
+	const contentwindow = tab.devtoolsFrame.frame.contentWindow;
 	const ctor: any = client.constructor;
-	const devtoolsFrameClient: ScramjetClient = new ctor(contentwindow);
-	// TODO: move this to frame creation
-	scramjet.createFrame(tab.devtoolsFrame!);
+	devtoolsFrameClient = new ctor(contentwindow);
+	// TODO i should probably put this in core
 	devtoolsFrameClient.hook();
+
 	// the fake origin is defined in sw.js
 	const devtoolsUrl = "https://fake-devtools.invalid";
 	// make sure to create the element through the proxied document
@@ -137,19 +150,11 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 	devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
 	devtoolsScript.setAttribute("embedded", "true");
 
-	devtoolsFrameClient.frame!.addEventListener("contextInit", () => {
+	tab.devtoolsFrame.addEventListener("contextInit", (e) => {
 		// devtools frontend will try to access the parent window's postMessage
 		// this won't work, i manually patched it to use this global instead
 		//@ts-expect-error
-		tab.devtoolsFrame.contentWindow.parentPostMessage = (
-			data: any,
-			origin: string
-		) => {
-			if (!JSON.parse(data).method) {
-				console.error("ignoring some data");
-				return;
-			}
-
+		e.window.parentPostMessage = (data: any, origin: string) => {
 			// oh god
 			// i will fix this later
 			// we're not supposed to be postmessaging from a non-scramjet context into a scramjet one
