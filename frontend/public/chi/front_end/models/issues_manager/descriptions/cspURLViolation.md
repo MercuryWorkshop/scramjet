@@ -6,5 +6,5 @@ A site's Content Security Policy is set either via an HTTP header (recommended),
 
 To fix this issue do one of the following:
 
-- (Recommended) If you're using an allowlist for `'script-src'`, consider switching from an allowlist CSP to a strict CSP, because strict CSPs are [more robust against XSS](issuesCSPWhyStrictOverAllowlist). [See how to set a strict CSP](issuesCSPSetStrict).
-- Or carefully check that all of the blocked resources are trustworthy; if they are, include their sources in the CSP of your site. ⚠️Never add a source you don't trust to your site's CSP. If you don't trust the source, consider hosting resources on your own site instead.
+* (Recommended) If you're using an allowlist for `'script-src'`, consider switching from an allowlist CSP to a strict CSP, because strict CSPs are [more robust against XSS](issuesCSPWhyStrictOverAllowlist). [See how to set a strict CSP](issuesCSPSetStrict).
+* Or carefully check that all of the blocked resources are trustworthy; if they are, include their sources in the CSP of your site. ⚠️Never add a source you don't trust to your site's CSP. If you don't trust the source, consider hosting resources on your own site instead.

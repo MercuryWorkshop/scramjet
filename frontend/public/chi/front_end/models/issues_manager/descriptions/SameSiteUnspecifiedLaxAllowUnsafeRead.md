@@ -5,6 +5,5 @@ which will prevent the cookie from being sent in a cross-site request in a futur
 This behavior protects user data from accidentally leaking to third parties and cross-site request forgery.
 
 Resolve this issue by updating the attributes of the cookie:
-
-- Specify `SameSite=None` and `Secure` if the cookie should be sent in cross-site requests. This enables third-party use.
-- Specify `SameSite=Strict` or `SameSite=Lax` if the cookie should not be sent in cross-site requests.
+* Specify `SameSite=None` and `Secure` if the cookie should be sent in cross-site requests. This enables third-party use.
+* Specify `SameSite=Strict` or `SameSite=Lax` if the cookie should not be sent in cross-site requests.

@@ -1,44 +1,4 @@
-import * as e from "../../../models/emulation/emulation.js";
-import * as t from "../../../ui/components/helpers/helpers.js";
-import * as i from "../../../ui/legacy/legacy.js";
-import * as s from "../../../ui/lit-html/lit-html.js";
-import * as o from "../../../ui/visual_logging/visual_logging.js";
-class l extends Event {
-	size;
-	static eventName = "sizechanged";
-	constructor(e) {
-		(super(l.eventName), (this.size = e));
-	}
-}
-function n(e) {
-	return Number(e.target.value);
-}
-class a extends HTMLElement {
-	#e = this.attachShadow({ mode: "open" });
-	#t = !1;
-	#i = "0";
-	#s = "";
-	#o;
-	#l;
-	static litTagName = s.literal`device-mode-emulation-size-input`;
-	constructor(e, { jslogContext: t }) {
-		(super(), (this.#o = e), (this.#l = t));
-	}
-	connectedCallback() {
-		this.render();
-	}
-	set disabled(e) {
-		((this.#t = e), this.render());
-	}
-	set size(e) {
-		((this.#i = e), this.render());
-	}
-	set placeholder(e) {
-		((this.#s = e), this.render());
-	}
-	render() {
-		s.render(
-			s.html`
+import*as e from"../../../models/emulation/emulation.js";import*as t from"../../../ui/components/helpers/helpers.js";import*as i from"../../../ui/legacy/legacy.js";import*as s from"../../../ui/lit-html/lit-html.js";import*as o from"../../../ui/visual_logging/visual_logging.js";class l extends Event{size;static eventName="sizechanged";constructor(e){super(l.eventName),this.size=e}}function n(e){return Number(e.target.value)}class a extends HTMLElement{#e=this.attachShadow({mode:"open"});#t=!1;#i="0";#s="";#o;#l;static litTagName=s.literal`device-mode-emulation-size-input`;constructor(e,{jslogContext:t}){super(),this.#o=e,this.#l=t}connectedCallback(){this.render()}set disabled(e){this.#t=e,this.render()}set size(e){this.#i=e,this.render()}set placeholder(e){this.#s=e,this.render()}render(){s.render(s.html`
       <style>
         input {
           /*
@@ -68,7 +28,7 @@ class a extends HTMLElement {
       <input type="number"
              max=${e.DeviceModeModel.MaxDeviceSize}
              min=${e.DeviceModeModel.MinDeviceSize}
-             jslog=${o.textField().track({ change: !0 }).context(this.#l)}
+             jslog=${o.textField().track({change:!0}).context(this.#l)}
              maxlength="4"
              title=${this.#o}
              placeholder=${this.#s}
@@ -76,24 +36,4 @@ class a extends HTMLElement {
              .value=${this.#i}
              @change=${this.#n}
              @keydown=${this.#a} />
-    `,
-			this.#e,
-			{ host: this }
-		);
-	}
-	#n(e) {
-		this.dispatchEvent(new l(n(e)));
-	}
-	#a(t) {
-		let s = i.UIUtils.modifiedFloatNumber(n(t), t);
-		null !== s &&
-			((s = Math.min(s, e.DeviceModeModel.MaxDeviceSize)),
-			(s = Math.max(s, e.DeviceModeModel.MinDeviceSize)),
-			t.preventDefault(),
-			(t.target.value = String(s)),
-			this.dispatchEvent(new l(s)));
-	}
-}
-t.CustomElements.defineComponent("device-mode-emulation-size-input", a);
-var r = Object.freeze({ __proto__: null, SizeInputElement: a });
-export { r as DeviceSizeInputElement };
+    `,this.#e,{host:this})}#n(e){this.dispatchEvent(new l(n(e)))}#a(t){let s=i.UIUtils.modifiedFloatNumber(n(t),t);null!==s&&(s=Math.min(s,e.DeviceModeModel.MaxDeviceSize),s=Math.max(s,e.DeviceModeModel.MinDeviceSize),t.preventDefault(),t.target.value=String(s),this.dispatchEvent(new l(s)))}}t.CustomElements.defineComponent("device-mode-emulation-size-input",a);var r=Object.freeze({__proto__:null,SizeInputElement:a});export{r as DeviceSizeInputElement};

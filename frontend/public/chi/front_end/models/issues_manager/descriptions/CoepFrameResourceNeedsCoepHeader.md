@@ -6,6 +6,5 @@ data from being exposed to untrusted third party sites.
 
 To solve this, add one of following to the embedded frame’s HTML response
 header:
-
-- `Cross-Origin-Embedder-Policy: require-corp`
-- `Cross-Origin-Embedder-Policy: credentialless` (Chrome > 96)
+* `Cross-Origin-Embedder-Policy: require-corp`
+* `Cross-Origin-Embedder-Policy: credentialless` (Chrome > 96)
