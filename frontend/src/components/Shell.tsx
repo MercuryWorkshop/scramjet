@@ -2,7 +2,7 @@ import { css, type Component } from "dreamland/core";
 import { browser } from "../main";
 import { forceScreenshot, popTab, pushTab } from "../browser";
 import type { Tab } from "../Tab";
-import html2canvas from "html2canvas";
+import { toBlob } from "html-to-image";
 
 export const Shell: Component<{
 	tabs: Tab[];
@@ -20,6 +20,7 @@ export const Shell: Component<{
 			<div
 				class="container"
 				data-tab={tab.id}
+				id={"tab" + tab.id}
 				class:active={use(this.activetab).map((t) => t === tab)}
 				class:showframe={use(tab.internalpage).map((t) => !t)}
 			>
@@ -57,6 +58,8 @@ export const Shell: Component<{
 				</div>
 			</div>
 		);
+
+		setInterval(() => forceScreenshot(tab), 1000);
 	});
 	popTab.listen((tab) => {
 		const container = cx.root.querySelector(`[data-tab="${tab.id}"]`);
@@ -69,10 +72,7 @@ export const Shell: Component<{
 		) as HTMLElement;
 		if (!container) throw new Error(`No container found for tab ${tab.id}`);
 
-		const canvas = await html2canvas(
-			container.children[0].contentDocument.body
-		);
-		tab.screenshot = canvas.toDataURL();
+		tab.screenshot = URL.createObjectURL(await toBlob(container));
 	});
 
 	return <div></div>;

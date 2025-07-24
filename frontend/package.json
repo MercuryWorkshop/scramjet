@@ -18,6 +18,7 @@
 		"@mercuryworkshop/epoxy-transport": "^2.1.27",
 		"@mercuryworkshop/scramjet": "workspace:scramjet",
 		"dreamland": "workspace:dreamland",
+		"html-to-image": "^1.11.13",
 		"html2canvas": "^1.4.1",
 		"monaco-editor": "^0.52.2",
 		"vite-plugin-static-copy": "^3.1.0"

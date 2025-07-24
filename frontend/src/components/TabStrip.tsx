@@ -70,7 +70,11 @@ export const DragTab: Component<{
 		>
 			<div class="tooltip">
 				<span>{use(this.tab.title)}</span>
-				<img src={use(this.tab.screenshot)} />
+				<img src={use(this.tab.screenshot)} class="img" />
+				{/* <div
+					style={use`background: -moz-element(#tab${this.tab.id})`}
+					class="img"
+				></div> */}
 			</div>
 			<div
 				class="dragroot"
@@ -117,7 +121,8 @@ DragTab.style = css`
 		top: 5em;
 		left: 0;
 		z-index: 1000;
-		background: var(--aboutbrowser-tooltip-bg);
+		background: white;
+		border: 5px solid red;
 		width: 20em;
 		/* height: 10em; */
 		flex-direction: column;
@@ -127,8 +132,9 @@ DragTab.style = css`
 	:scope:hover .tooltip {
 		display: flex;
 	}
-	.tooltip img {
+	.tooltip .img {
 		width: 100%;
+		/* height: 5em; */
 	}
 
 	.main {

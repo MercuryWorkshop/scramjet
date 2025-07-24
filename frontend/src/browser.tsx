@@ -69,7 +69,8 @@ export class Browser extends StatefulClass {
 			console.log(tab);
 			tab.deserialize(detab);
 		}
-		this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
+		this.activetab = this.tabs[0]; // TODO
+		// this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
 		console.log(this.activetab, this.activetab.url);
 	}
 

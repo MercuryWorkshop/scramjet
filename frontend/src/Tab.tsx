@@ -91,8 +91,8 @@ export class Tab extends StatefulClass {
 		};
 	}
 	deserialize(de: SerializedTab) {
-		if (de.id >= id) id = de.id + 1;
-		this.id = de.id;
+		// if (de.id >= id) id = de.id + 1;
+		// this.id = de.id;
 		this.title = de.title;
 		this.history.deserialize(de.history);
 		console.log(this.history.states[this.history.index].url);
