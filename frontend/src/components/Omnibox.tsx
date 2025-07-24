@@ -3,7 +3,7 @@ import iconBack from "@ktibow/iconset-ion/arrow-back";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
-import iconSettings from "@ktibow/iconset-ion/settings-outline";
+import iconMore from "@ktibow/iconset-ion/more";
 import iconShield from "@ktibow/iconset-ion/shield-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconSearch from "@ktibow/iconset-ion/search";
@@ -289,11 +289,35 @@ export const Omnibox: Component<{
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>
 			<IconButton
-				icon={iconSettings}
+				icon={iconMore}
 				click={(e: MouseEvent) => {
-					createMenu(e.x, e.y, [
+					createMenu(e.x, cx.root.clientTop + cx.root.clientHeight * 2, [
+						{
+							label: "New Tab",
+							action: () => {
+								browser.newTab();
+							},
+						},
+						{
+							label: "History",
+							action: () => {
+								let t = browser.newTab();
+								t.replaceNavigate(new URL("puter://history"));
+							},
+						},
 						{
 							label: "Settings",
+							action: () => {
+								let t = browser.newTab();
+								t.replaceNavigate(new URL("puter://settings"));
+							},
+						},
+						{
+							label: "About",
+							action: () => {
+								let t = browser.newTab();
+								t.replaceNavigate(new URL("puter://version"));
+							},
 						},
 					]);
 					e.stopPropagation();

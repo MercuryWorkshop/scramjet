@@ -9,6 +9,7 @@ import {
 import { NewTab } from "./pages/NewTab";
 import { Playground } from "./pages/Playground";
 import { createMenu } from "./components/Menu";
+import { About } from "./pages/About";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
@@ -86,6 +87,9 @@ export class Tab extends StatefulClass {
 					this.title = "Scramjet Playground";
 					this.internalpage = <Playground tab={this} />;
 					break;
+				case "version":
+					this.title = "About Version";
+					this.internalpage = <About tab={this} />;
 			}
 		} else {
 			this.internalpage = null;
