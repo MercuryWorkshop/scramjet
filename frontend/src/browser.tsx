@@ -93,10 +93,14 @@ export class Browser extends StatefulClass {
 	build(): HTMLElement {
 		let shell = <Shell tabs={use(this.tabs)} activetab={use(this.activetab)} />;
 
-		if (!this.activetab) {
+		let de = localStorage["browserstate"];
+		if (de) {
+			browser.deserialize(JSON.parse(de));
+		} else {
 			let tab = this.newTab();
 			this.activetab = tab;
 		}
+
 		if (this.built) throw new Error("already built");
 		this.built = true;
 
@@ -141,10 +145,6 @@ export class Browser extends StatefulClass {
 export function createBrowser(): Browser {
 	let browser = new Browser(createState({}));
 	Object.setPrototypeOf(browser, Browser.prototype);
-	let de = localStorage["browserstate"];
-	if (de) {
-		browser.deserialize(JSON.parse(de));
-	}
 
 	return browser;
 }
