@@ -5,6 +5,7 @@ import {
 	addHistoryListeners,
 	History,
 	injectHistoryEmulation,
+	type SerializedHistory,
 } from "./history";
 import { NewTab } from "./pages/NewTab";
 import { Playground } from "./pages/Playground";
@@ -12,6 +13,12 @@ import { createMenu } from "./components/Menu";
 import { About } from "./pages/About";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
+
+export type SerializedTab = {
+	id: number;
+	title: string | null;
+	history: SerializedHistory;
+};
 
 let id = 0;
 export class Tab extends StatefulClass {
@@ -72,6 +79,21 @@ export class Tab extends StatefulClass {
 
 		this.frame = frame;
 		this.devtoolsFrame = scramjet.createFrame();
+	}
+
+	serialize(): SerializedTab {
+		return {
+			id: this.id,
+			title: this.title,
+			history: this.history.serialize(),
+		};
+	}
+	deserialize(de: SerializedTab) {
+		this.id = de.id;
+		this.title = de.title;
+		this.history.deserialize(de.history);
+		console.log(this.history.states[this.history.index].url);
+		this._directnavigate(this.history.states[this.history.index].url);
 	}
 
 	// only caller should be history.ts for this

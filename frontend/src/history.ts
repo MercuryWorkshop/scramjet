@@ -6,11 +6,33 @@ export type HistoryState = {
 	url: URL;
 };
 
+export type SerializedHistory = {
+	index: number;
+	states: {
+		state: any;
+		url: string;
+	}[];
+};
+
 export class History {
 	index: number = -1;
 	states: HistoryState[] = [];
 
 	constructor(private tab: Tab) {}
+
+	serialize(): SerializedHistory {
+		return {
+			index: this.index,
+			states: this.states.map((s) => ({ state: s.state, url: s.url.href })),
+		};
+	}
+	deserialize(de: SerializedHistory) {
+		this.index = de.index;
+		this.states = de.states.map((s) => ({
+			state: s.state,
+			url: new URL(s.url),
+		}));
+	}
 
 	push(url: URL, state: any = null, navigate: boolean = true): HistoryState {
 		this.states.push({ url, state });

@@ -2,17 +2,24 @@ import { createState, type Stateful } from "dreamland/core";
 import { ThemeVars, type Theme } from "./theme";
 import { Tabs } from "./components/TabStrip";
 import { Omnibox } from "./components/Omnibox";
-import { scramjet } from "./main";
+import { browser, scramjet } from "./main";
 import iconAdd from "@ktibow/iconset-ion/add";
 import { Shell } from "./components/Shell";
 import { createMenu } from "./components/Menu";
 import { StatefulClass } from "./StatefulClass";
-import { Tab } from "./Tab";
+import { Tab, type SerializedTab } from "./Tab";
 import { createDelegate } from "dreamland/core";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
+
+export const saveBrowserState = createDelegate<void>();
+
+export type SerializedBrowser = {
+	tabs: SerializedTab[];
+	activetab: number;
+};
 
 export class Browser extends StatefulClass {
 	built: boolean = false;
@@ -49,6 +56,23 @@ export class Browser extends StatefulClass {
 		};
 	}
 
+	serialize(): SerializedBrowser {
+		return {
+			tabs: this.tabs.map((t) => t.serialize()),
+			activetab: this.activetab.id,
+		};
+	}
+	deserialize(de: SerializedBrowser) {
+		this.tabs = [];
+		for (let detab of de.tabs) {
+			let tab = this.newTab();
+			console.log(tab);
+			tab.deserialize(detab);
+		}
+		this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
+		console.log(this.activetab, this.activetab.url);
+	}
+
 	newTab() {
 		let tab = new Tab();
 		pushTab(tab);
@@ -69,8 +93,10 @@ export class Browser extends StatefulClass {
 	build(): HTMLElement {
 		let shell = <Shell tabs={use(this.tabs)} activetab={use(this.activetab)} />;
 
-		let tab = this.newTab();
-		this.activetab = tab;
+		if (!this.activetab) {
+			let tab = this.newTab();
+			this.activetab = tab;
+		}
 		if (this.built) throw new Error("already built");
 		this.built = true;
 
@@ -115,5 +141,16 @@ export class Browser extends StatefulClass {
 export function createBrowser(): Browser {
 	let browser = new Browser(createState({}));
 	Object.setPrototypeOf(browser, Browser.prototype);
+	let de = localStorage["browserstate"];
+	if (de) {
+		browser.deserialize(JSON.parse(de));
+	}
+
 	return browser;
 }
+
+saveBrowserState.listen(() => {
+	let ser = browser.serialize();
+	localStorage["browserstate"] = JSON.stringify(ser);
+});
+setInterval(saveBrowserState, 1000);
