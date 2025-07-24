@@ -13,6 +13,7 @@ import { IconButton } from "./IconButton";
 import type { Tab } from "../Tab";
 import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
+import { browser } from "../main";
 
 export const DragTab: Component<{
 	active: boolean;
@@ -25,9 +26,21 @@ export const DragTab: Component<{
 	cx.mount = () => {
 		setContextMenu(cx.root, [
 			{
+				label: "New tab to the right",
+				action: () => {
+					browser.newTabRight(this.tab);
+				},
+			},
+			{
 				label: "Reload",
 				action: () => {
 					this.tab.frame.reload();
+				},
+			},
+			{
+				label: "Duplicate",
+				action: () => {
+					browser.newTabRight(this.tab, this.tab.url);
 				},
 			},
 			{
@@ -36,7 +49,6 @@ export const DragTab: Component<{
 					this.destroy();
 				},
 			},
-			// TODO: mute? duplicate?
 		]);
 	};
 	return (

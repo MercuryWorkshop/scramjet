@@ -20,7 +20,7 @@ export type SerializedTab = {
 	history: SerializedHistory;
 };
 
-let id = 0;
+let id = 100;
 export class Tab extends StatefulClass {
 	id: number;
 	title: string | null;
@@ -54,6 +54,9 @@ export class Tab extends StatefulClass {
 		this.title = null;
 		this.internalpage = null;
 
+		const frame = scramjet.createFrame();
+		this.frame = frame;
+
 		this.history = new History(this);
 		this.history.push(this.url, undefined);
 
@@ -65,7 +68,6 @@ export class Tab extends StatefulClass {
 		this.width = 0;
 		this.pos = 0;
 
-		const frame = scramjet.createFrame();
 		addHistoryListeners(frame, this);
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
@@ -77,7 +79,6 @@ export class Tab extends StatefulClass {
 			}
 		});
 
-		this.frame = frame;
 		this.devtoolsFrame = scramjet.createFrame();
 	}
 
@@ -89,7 +90,7 @@ export class Tab extends StatefulClass {
 		};
 	}
 	deserialize(de: SerializedTab) {
-		if (id >= de.id) id = de.id + 1;
+		if (de.id >= id) id = de.id + 1;
 		this.id = de.id;
 		this.title = de.title;
 		this.history.deserialize(de.history);

@@ -73,10 +73,20 @@ export class Browser extends StatefulClass {
 		console.log(this.activetab, this.activetab.url);
 	}
 
-	newTab() {
-		let tab = new Tab();
+	newTab(url?: URL) {
+		let tab = new Tab(url);
 		pushTab(tab);
 		this.tabs = [...this.tabs, tab];
+		this.activetab = tab;
+		return tab;
+	}
+
+	newTabRight(ref: Tab, url?: URL) {
+		let tab = new Tab(url);
+		pushTab(tab);
+		let index = this.tabs.indexOf(ref);
+		this.tabs.splice(index + 1, 0, tab);
+		this.tabs = this.tabs;
 		this.activetab = tab;
 		return tab;
 	}
