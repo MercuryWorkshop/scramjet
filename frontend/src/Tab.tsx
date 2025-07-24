@@ -74,6 +74,7 @@ export class Tab extends StatefulClass {
 
 			// make sure it's top level, ctxInit calls for all frames too
 			if (ctx.window == frame.frame.contentWindow) {
+				injectTitleWatcher(ctx.client, this);
 				injectHistoryEmulation(ctx.client, this);
 				injectDevtools(ctx.client, this);
 			}
@@ -117,6 +118,8 @@ export class Tab extends StatefulClass {
 			}
 		} else {
 			this.internalpage = null;
+			// placeholder title until the page fills in
+			this.title = url.href;
 			this.frame.go(url);
 		}
 	}
@@ -404,6 +407,37 @@ function injectContextMenu(client: ScramjetClient, tab: Tab) {
 	});
 }
 
+function injectTitleWatcher(client: ScramjetClient, tab: Tab) {
+	const framedoc = client.global.document;
+	const head = framedoc.querySelector("head")!;
+	const observer = new MutationObserver(() => {
+		const title = framedoc.querySelector("title");
+		if (title) {
+			tab.title = title.textContent || "New Tab";
+		} else {
+			tab.title = "New Tab";
+		}
+		const favicon = framedoc.querySelector(
+			"link[rel='icon'], link[rel='shortcut icon']"
+		);
+		if (favicon) {
+			const iconhref = favicon.getAttribute("href");
+			if (iconhref) {
+				const rewritten = scramjet.encodeUrl(new URL(iconhref, client.url));
+				tab.icon = rewritten;
+			} else {
+				tab.icon = "/vite.svg";
+			}
+		} else {
+			tab.icon = scramjet.encodeUrl(new URL("/favicon.ico", client.url));
+		}
+	});
+	observer.observe(head, {
+		childList: true,
+		subtree: true,
+	});
+}
+
 // 		frame.frame.addEventListener("load", (e) => {
 // 			tab.url = frame.client.url.href;
 // 		});
@@ -427,39 +461,6 @@ function injectContextMenu(client: ScramjetClient, tab: Tab) {
 // 				},
 // 			});
 
-// 			const framedoc = ctx.window.document;
-
-// 			const head = framedoc.querySelector("head")!;
-// 			const observer = new MutationObserver(() => {
-// 				const title = framedoc.querySelector("title");
-// 				if (title) {
-// 					tab.title = title.textContent || "New Tab";
-// 				} else {
-// 					tab.title = "New Tab";
-// 				}
-// 				const favicon = framedoc.querySelector(
-// 					"link[rel='icon'], link[rel='shortcut icon']"
-// 				);
-// 				if (favicon) {
-// 					const iconhref = favicon.getAttribute("href");
-// 					if (iconhref) {
-// 						const rewritten = scramjet.encodeUrl(
-// 							new URL(iconhref, frame.client.url)
-// 						);
-// 						tab.icon = rewritten;
-// 					} else {
-// 						tab.icon = "/vite.svg";
-// 					}
-// 				} else {
-// 					tab.icon = scramjet.encodeUrl(
-// 						new URL("/favicon.ico", frame.client.url)
-// 					);
-// 				}
-// 			});
-// 			observer.observe(head, {
-// 				childList: true,
-// 				subtree: true,
-// 			});
 // 			const anchorObserver = new MutationObserver((mutations) => {
 // 				mutations.forEach((mutation) => {
 // 					mutation.addedNodes.forEach((node) => {
