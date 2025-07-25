@@ -1,15 +1,11 @@
 import { createState, type Stateful } from "dreamland/core";
-import { ThemeVars, type Theme } from "./theme";
-import { Tabs } from "./components/TabStrip";
-import { Omnibox } from "./components/Omnibox";
 import { browser, scramjet } from "./main";
-import iconAdd from "@ktibow/iconset-ion/add";
-import { Shell } from "./components/Shell";
-import { createMenu } from "./components/Menu";
 import { StatefulClass } from "./StatefulClass";
 import { Tab, type SerializedTab } from "./Tab";
 import { createDelegate } from "dreamland/core";
 import tlds from "tlds";
+import type { SerializedHistoryState } from "./History";
+import { HistoryState } from "./History";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
@@ -43,6 +39,7 @@ export const config = createState({
 
 export type SerializedBrowser = {
 	tabs: SerializedTab[];
+	globalhistory: SerializedHistoryState[];
 	activetab: number;
 };
 
@@ -59,7 +56,7 @@ export class Browser extends StatefulClass {
 	tabs: Tab[] = [];
 	activetab: Tab;
 
-	globalhistory: string[];
+	globalhistory: HistoryState[];
 
 	unfocusframes: boolean = false;
 
@@ -71,13 +68,18 @@ export class Browser extends StatefulClass {
 		return {
 			tabs: this.tabs.map((t) => t.serialize()),
 			activetab: this.activetab.id,
+			globalhistory: this.globalhistory.map((s) => s.serialize()),
 		};
 	}
 	deserialize(de: SerializedBrowser) {
 		this.tabs = [];
+		this.globalhistory = de.globalhistory.map((s) => {
+			const state = new HistoryState();
+			state.deserialize(s);
+			return state;
+		});
 		for (let detab of de.tabs) {
 			let tab = this.newTab();
-			console.log(tab);
 			tab.deserialize(detab);
 		}
 		this.activetab = this.tabs[0]; // TODO

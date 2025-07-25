@@ -1,17 +1,46 @@
+import { browser } from "./main";
 import type { Tab } from "./Tab";
 
 // history api emulation
-export type HistoryState = {
-	state: any;
+export class HistoryState {
 	url: URL;
+	tab: Tab;
+	state: any;
+	title?: string;
+	favicon?: string;
+
+	constructor(partial?: Partial<HistoryState>) {
+		Object.assign(this, partial);
+	}
+
+	serialize(): SerializedHistoryState {
+		return {
+			state: this.state,
+			url: this.url.href,
+			tab: this.tab.id,
+			title: this.title,
+			favicon: this.favicon,
+		};
+	}
+	deserialize(de: SerializedHistoryState) {
+		this.state = de.state;
+		this.url = new URL(de.url);
+		this.tab = browser.tabs.find((t) => t.id === de.tab) || this.tab;
+		this.title = de.title;
+		this.favicon = de.favicon;
+	}
+}
+export type SerializedHistoryState = {
+	state: any;
+	url: string;
+	tab: number;
+	title?: string;
+	favicon?: string;
 };
 
 export type SerializedHistory = {
 	index: number;
-	states: {
-		state: any;
-		url: string;
-	}[];
+	states: SerializedHistoryState[];
 };
 
 export class History {
@@ -23,19 +52,30 @@ export class History {
 	serialize(): SerializedHistory {
 		return {
 			index: this.index,
-			states: this.states.map((s) => ({ state: s.state, url: s.url.href })),
+			states: this.states.map((s) => s.serialize()),
 		};
 	}
 	deserialize(de: SerializedHistory) {
 		this.index = de.index;
-		this.states = de.states.map((s) => ({
-			state: s.state,
-			url: new URL(s.url),
-		}));
+		this.states = de.states.map((s) => {
+			const state = new HistoryState();
+			state.deserialize(s);
+
+			return state;
+		});
+	}
+	current(): HistoryState {
+		if (this.index < 0 || this.index >= this.states.length) {
+			throw new Error("No current history state");
+		}
+
+		return this.states[this.index];
 	}
 
 	push(url: URL, state: any = null, navigate: boolean = true): HistoryState {
-		this.states.push({ url, state });
+		const hstate = new HistoryState({ url, state, tab: this.tab });
+		browser.globalhistory.push(hstate);
+		this.states.push(hstate);
 		this.index++;
 
 		if (navigate) this.tab._directnavigate(url);
@@ -47,9 +87,13 @@ export class History {
 	}
 	replace(url: URL, state: any, navigate: boolean = true): HistoryState {
 		if (this.index < this.states.length) {
-			this.states[this.index] = { url, state };
+			this.current().url = url;
+			this.current().state = state;
+			this.current().tab = this.tab;
+			this.current().title = undefined;
+			this.current().favicon = undefined;
 		} else {
-			this.push(url, state);
+			return this.push(url, state);
 		}
 
 		if (navigate) this.tab._directnavigate(url);
