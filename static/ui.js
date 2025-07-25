@@ -25,6 +25,12 @@ scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
 const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+const flex = css`
+	display: flex;
+`;
+const col = css`
+	flex-direction: column;
+`;
 
 connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
