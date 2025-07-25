@@ -1,5 +1,6 @@
 import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
+import { browser } from "../main";
 
 export const NewTab: Component<
 	{
@@ -15,7 +16,7 @@ export const NewTab: Component<
 					on:keydown={(e: KeyboardEvent) => {
 						if (e.key === "Enter") {
 							e.preventDefault();
-							this.tab.history.push(new URL(e.target!.value));
+							browser.searchNavigate(e.target!.value);
 						}
 					}}
 					placeholder="Search Google or type A URL"

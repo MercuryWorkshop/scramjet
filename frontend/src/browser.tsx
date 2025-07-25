@@ -9,6 +9,7 @@ import { createMenu } from "./components/Menu";
 import { StatefulClass } from "./StatefulClass";
 import { Tab, type SerializedTab } from "./Tab";
 import { createDelegate } from "dreamland/core";
+import tlds from "tlds";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
@@ -101,6 +102,31 @@ export class Browser extends StatefulClass {
 		popTab(tab);
 	}
 
+	searchNavigate(url: string) {
+		function validTld(hostname: string) {
+			for (const tld of tlds) {
+				if (hostname.endsWith("." + tld)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// TODO: dejank
+		if (URL.canParse(url)) {
+			this.activetab.pushNavigate(new URL(url));
+		} else if (
+			URL.canParse("https://" + url) &&
+			validTld(new URL("https://" + url).hostname)
+		) {
+			let fullurl = new URL("https://" + url);
+			this.activetab.pushNavigate(fullurl);
+		} else {
+			const search = `https://google.com/search?q=${encodeURIComponent(url)}`;
+			this.activetab.pushNavigate(new URL(search));
+		}
+	}
+
 	build(): HTMLElement {
 		let shell = <Shell tabs={use(this.tabs)} activetab={use(this.activetab)} />;
 
@@ -136,15 +162,6 @@ export class Browser extends StatefulClass {
 					}}
 					refresh={() => {
 						this.activetab.frame.reload();
-					}}
-					navigate={(url: string) => {
-						// TODO: dejank
-						if (URL.canParse(url)) {
-							this.activetab.pushNavigate(new URL(url));
-						} else {
-							const search = `https://google.com/search?q=${encodeURIComponent(url)}`;
-							this.activetab.pushNavigate(new URL(search));
-						}
 					}}
 				/>
 				{shell}

@@ -24,7 +24,6 @@ Spacer.style = css`
 export const UrlInput: Component<
 	{
 		tabUrl: URL;
-		navigate: (url: string) => void;
 		selectContent: Delegate<void>;
 	},
 	{
@@ -112,7 +111,7 @@ export const UrlInput: Component<
 							this.active = false;
 							this.input.blur();
 
-							this.navigate(this.value);
+							browser.searchNavigate(this.value);
 						}}
 						class:focused={use(this.focusindex).map(
 							(i) => i - 1 === this.overflowItems.indexOf(item)
@@ -249,7 +248,6 @@ UrlInput.style = css`
 
 export const Omnibox: Component<{
 	tabUrl: URL;
-	navigate: (url: string) => void;
 	goBack: () => void;
 	goForwards: () => void;
 	refresh: () => void;
@@ -284,7 +282,6 @@ export const Omnibox: Component<{
 			<UrlInput
 				selectContent={selectContent}
 				tabUrl={use(this.tabUrl)}
-				navigate={this.navigate}
 			></UrlInput>
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>

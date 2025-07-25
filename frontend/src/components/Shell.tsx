@@ -72,7 +72,7 @@ export const Shell: Component<{
 		) as HTMLElement;
 		if (!container) throw new Error(`No container found for tab ${tab.id}`);
 
-		tab.screenshot = URL.createObjectURL(await toBlob(container));
+		// tab.screenshot = URL.createObjectURL(await toBlob(container));
 	});
 
 	return <div></div>;
