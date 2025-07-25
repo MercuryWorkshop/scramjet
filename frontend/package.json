@@ -21,6 +21,7 @@
 		"html-to-image": "^1.11.13",
 		"html2canvas": "^1.4.1",
 		"monaco-editor": "^0.52.2",
+		"tlds": "^1.259.0",
 		"vite-plugin-static-copy": "^3.1.0"
 	}
 }

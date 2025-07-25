@@ -6,7 +6,7 @@ import {
 	History,
 	injectHistoryEmulation,
 	type SerializedHistory,
-} from "./history";
+} from "./History";
 import { NewTab } from "./pages/NewTab";
 import { Playground } from "./pages/Playground";
 import { createMenu } from "./components/Menu";

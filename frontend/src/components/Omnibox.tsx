@@ -11,6 +11,7 @@ import { createMenu, setContextMenu } from "./Menu";
 import { browser, client } from "../main";
 import { IconButton } from "./IconButton";
 import { createDelegate, type Delegate } from "dreamland/core";
+import type { Tab } from "../Tab";
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -247,12 +248,7 @@ UrlInput.style = css`
 `;
 
 export const Omnibox: Component<{
-	tabUrl: URL;
-	goBack: () => void;
-	goForwards: () => void;
-	refresh: () => void;
-	canGoBack: boolean;
-	canGoForwards: boolean;
+	tab: Tab;
 }> = function (cx) {
 	const selectContent = createDelegate<void>();
 	cx.mount = () => {
@@ -268,20 +264,23 @@ export const Omnibox: Component<{
 	return (
 		<div>
 			<IconButton
-				active={use(this.canGoBack)}
-				click={this.goBack}
+				active={use(this.tab.canGoBack)}
+				click={() => this.tab.back()}
 				icon={iconBack}
 			></IconButton>
 			<IconButton
-				active={use(this.canGoForwards)}
-				click={this.goForwards}
+				active={use(this.tab.canGoForward)}
+				click={() => this.tab.forward()}
 				icon={iconForwards}
 			></IconButton>
-			<IconButton click={this.refresh} icon={iconRefresh}></IconButton>
+			<IconButton
+				click={() => this.tab.reload()}
+				icon={iconRefresh}
+			></IconButton>
 			<Spacer></Spacer>
 			<UrlInput
 				selectContent={selectContent}
-				tabUrl={use(this.tabUrl)}
+				tabUrl={use(this.tab.url)}
 			></UrlInput>
 			<Spacer></Spacer>
 			<IconButton icon={iconExtension}></IconButton>

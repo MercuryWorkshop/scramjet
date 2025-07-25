@@ -1,13 +1,10 @@
 import { css, type Component } from "dreamland/core";
 import { browser } from "../main";
-import { forceScreenshot, popTab, pushTab } from "../browser";
+import { forceScreenshot, popTab, pushTab } from "../Browser";
 import type { Tab } from "../Tab";
 import { toBlob } from "html-to-image";
 
-export const Shell: Component<{
-	tabs: Tab[];
-	activetab: Tab;
-}> = function (cx) {
+export const Shell: Component = function (cx) {
 	pushTab.listen((tab) => {
 		// paint the iframes
 		tab.frame.frame.classList.add(cx.id);
@@ -21,7 +18,7 @@ export const Shell: Component<{
 				class="container"
 				data-tab={tab.id}
 				id={"tab" + tab.id}
-				class:active={use(this.activetab).map((t) => t === tab)}
+				class:active={use(browser.activetab).map((t) => t === tab)}
 				class:showframe={use(tab.internalpage).map((t) => !t)}
 			>
 				<div

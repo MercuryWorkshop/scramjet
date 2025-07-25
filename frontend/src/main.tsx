@@ -3,10 +3,12 @@ import "./style.css";
 // temp fix for vite not working
 import.meta.hot?.accept(() => location.reload());
 
-import { createBrowser } from "./browser";
+import { Browser } from "./Browser";
 import { createMenu } from "./components/Menu";
 let app = document.getElementById("app")!;
 import { BareMuxConnection, BareClient } from "@mercuryworkshop/bare-mux";
+import { Shell } from "./components/Shell";
+import { App } from "./App";
 
 let connection = new BareMuxConnection("/baremux/worker.js");
 connection.setTransport("/epoxy/index.mjs", [{ wisp: "wss://anura.pro" }]);
@@ -37,13 +39,21 @@ export const scramjet = new ScramjetController({
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
-export let browser = createBrowser();
-(self as any).browser = browser;
+export let browser: Browser;
 
 try {
-	let built = browser.build();
-	built.id = "app";
+	let shell = <Shell></Shell>;
+	browser = new Browser();
+	let de = localStorage["browserstate"];
+	if (de) {
+		browser.deserialize(JSON.parse(de));
+	} else {
+		let tab = browser.newTab();
+		browser.activetab = tab;
+	}
 
+	(self as any).browser = browser;
+	let built = <App>{shell}</App>;
 	app.replaceWith(built);
 	built.addEventListener("contextmenu", (e) => {
 		e.preventDefault();
