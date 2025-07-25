@@ -30,12 +30,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			self.HTMLScriptElement,
 			self.HTMLSourceElement,
 		],
-		href: [
-			self.HTMLAnchorElement,
-			self.HTMLLinkElement,
-			self.SVGUseElement,
-			self.SVGImageElement,
-		],
+		href: [self.HTMLAnchorElement, self.HTMLLinkElement],
 		data: [self.HTMLObjectElement],
 		action: [self.HTMLFormElement],
 		formaction: [self.HTMLButtonElement, self.HTMLInputElement],
@@ -217,6 +212,28 @@ export default function (client: ScramjetClient, self: typeof window) {
 				);
 			}
 		},
+	});
+
+	// this is separate from the regular href handlers because it returns an SVGAnimatedString
+	client.Trap("SVGAnimatedString.prototype.baseVal", {
+		get(ctx) {
+			const href = ctx.get() as string;
+			if (!href) return href;
+
+			return unrewriteUrl(href);
+		},
+		set(ctx, val: string) {
+			ctx.set(rewriteUrl(val, client.meta));
+		},
+	});
+	client.Trap("SVGAnimatedString.prototype.animVal", {
+		get(ctx) {
+			const href = ctx.get() as string;
+			if (!href) return href;
+
+			return unrewriteUrl(href);
+		},
+		// it has no setter
 	});
 
 	client.Proxy("Element.prototype.removeAttribute", {
