@@ -323,6 +323,7 @@ export const Omnibox: Component<{
 };
 Omnibox.style = css`
 	:scope {
+		z-index: 1;
 		background: var(--aboutbrowser-omnibox-bg);
 		display: flex;
 		padding: 0px 7px 0px 7px;

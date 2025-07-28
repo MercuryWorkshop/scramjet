@@ -91,7 +91,7 @@ export const DragTab: Component<
 				<span class="hostname">{use(this.tab.url.hostname)}</span>
 				{/*<img src={use(this.tab.screenshot)} class="img" />*/}
 				<div
-					style={use`background: -moz-element(#tab${this.tab.id})`}
+					style={use`background-image: -moz-element(#tab${this.tab.id})`}
 					class="img"
 				></div>
 			</div>
@@ -158,7 +158,8 @@ DragTab.style = css`
 
 	.tooltip .img {
 		width: 100%;
-		height: 5em;
+		height: 10em;
+		background-size: cover;
 	}
 
 	.main {
@@ -482,6 +483,7 @@ Tabs.style = css`
 		background: var(--aboutbrowser-frame-bg);
 		padding: 6px 12px;
 		height: calc(28px + 12px);
+		z-index: 2;
 
 		position: relative;
 	}
