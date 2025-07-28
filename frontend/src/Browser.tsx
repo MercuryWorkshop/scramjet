@@ -62,6 +62,8 @@ export class Browser extends StatefulClass {
 
 	constructor() {
 		super(createState(Object.create(Browser.prototype)));
+
+		setInterval(saveBrowserState, 1000);
 	}
 
 	serialize(): SerializedBrowser {
@@ -143,4 +145,3 @@ saveBrowserState.listen(() => {
 	let ser = browser.serialize();
 	localStorage["browserstate"] = JSON.stringify(ser);
 });
-setInterval(saveBrowserState, 1000);
