@@ -63,14 +63,14 @@ export const Shell: Component = function (cx) {
 		if (!container) throw new Error(`No container found for tab ${tab.id}`);
 		container.remove();
 	});
-	forceScreenshot.listen(async (tab) => {
-		const container = cx.root.querySelector(
-			`[data-tab="${tab.id}"]`
-		) as HTMLElement;
-		if (!container) throw new Error(`No container found for tab ${tab.id}`);
+	// forceScreenshot.listen(async (tab) => {
+	// 	const container = cx.root.querySelector(
+	// 		`[data-tab="${tab.id}"]`
+	// 	) as HTMLElement;
+	// 	if (!container) throw new Error(`No container found for tab ${tab.id}`);
 
-		// tab.screenshot = URL.createObjectURL(await toBlob(container));
-	});
+	// 	// tab.screenshot = URL.createObjectURL(await toBlob(container));
+	// });
 
 	return <div></div>;
 };

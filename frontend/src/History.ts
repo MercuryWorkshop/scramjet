@@ -4,38 +4,39 @@ import type { Tab } from "./Tab";
 // history api emulation
 export class HistoryState {
 	url: URL;
-	tab: Tab;
 	state: any;
-	title?: string;
-	favicon?: string;
+	title: string | null;
+	favicon: string | null;
+	timestamp: number;
 
 	constructor(partial?: Partial<HistoryState>) {
 		Object.assign(this, partial);
+		this.timestamp = Date.now();
 	}
 
 	serialize(): SerializedHistoryState {
 		return {
 			state: this.state,
 			url: this.url.href,
-			tab: this.tab.id,
 			title: this.title,
 			favicon: this.favicon,
+			timestamp: this.timestamp,
 		};
 	}
 	deserialize(de: SerializedHistoryState) {
 		this.state = de.state;
 		this.url = new URL(de.url);
-		this.tab = browser.tabs.find((t) => t.id === de.tab) || this.tab;
 		this.title = de.title;
 		this.favicon = de.favicon;
+		this.timestamp = de.timestamp;
 	}
 }
 export type SerializedHistoryState = {
 	state: any;
 	url: string;
-	tab: number;
-	title?: string;
-	favicon?: string;
+	title: string | null;
+	favicon: string | null;
+	timestamp: number;
 };
 
 export type SerializedHistory = {
@@ -73,8 +74,8 @@ export class History {
 	}
 
 	push(url: URL, state: any = null, navigate: boolean = true): HistoryState {
-		const hstate = new HistoryState({ url, state, tab: this.tab });
-		browser.globalhistory.push(hstate);
+		const hstate = new HistoryState({ url, state });
+		if (url.href != "puter://newtab") browser.globalhistory.push(hstate);
 		this.states.push(hstate);
 		this.index++;
 
@@ -89,9 +90,8 @@ export class History {
 		if (this.index < this.states.length) {
 			this.current().url = url;
 			this.current().state = state;
-			this.current().tab = this.tab;
-			this.current().title = undefined;
-			this.current().favicon = undefined;
+			this.current().title = null;
+			this.current().favicon = null;
 		} else {
 			return this.push(url, state);
 		}

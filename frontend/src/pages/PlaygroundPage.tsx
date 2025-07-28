@@ -28,7 +28,7 @@ Editor.style = css`
 	}
 `;
 
-export const Playground: Component<
+export const PlaygroundPage: Component<
 	{
 		tab: Tab;
 	},
@@ -41,7 +41,7 @@ export const Playground: Component<
 		</div>
 	);
 };
-Playground.style = css`
+PlaygroundPage.style = css`
 	:scope {
 		width: 100%;
 		height: 100%;

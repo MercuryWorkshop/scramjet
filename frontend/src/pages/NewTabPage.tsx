@@ -2,7 +2,7 @@ import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { browser } from "../main";
 
-export const NewTab: Component<
+export const NewTabPage: Component<
 	{
 		tab: Tab;
 	},
@@ -25,7 +25,7 @@ export const NewTab: Component<
 		</div>
 	);
 };
-NewTab.style = css`
+NewTabPage.style = css`
 	:scope {
 		width: 100%;
 		height: 100%;

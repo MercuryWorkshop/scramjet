@@ -2,7 +2,7 @@ import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { scramjet } from "../main";
 
-export const About: Component<
+export const AboutPage: Component<
 	{
 		tab: Tab;
 	},
@@ -17,7 +17,7 @@ export const About: Component<
 		</div>
 	);
 };
-About.style = css`
+AboutPage.style = css`
 	:scope {
 		width: 100%;
 		height: 100%;

@@ -152,7 +152,7 @@ export const UrlInput: Component<
 									this.active = false;
 									this.input.blur();
 								} else {
-									this.navigate(this.value);
+									browser.searchNavigate(this.value);
 								}
 							}
 						}}
@@ -297,8 +297,7 @@ export const Omnibox: Component<{
 						{
 							label: "History",
 							action: () => {
-								let t = browser.newTab();
-								t.replaceNavigate(new URL("puter://history"));
+								let t = browser.newTab(new URL("puter://history"));
 							},
 						},
 						{
