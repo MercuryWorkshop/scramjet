@@ -1,90 +1,101 @@
 // delete all chrome specific apis, or apis that are not supported by any browser other than chrome
 // these are not worth emulating and typically cause issues
 
-import { isemulatedsw } from "@client/entry";
+import { isemulatedsw, iswindow } from "@client/entry";
 import { ScramjetClient } from "@client/index";
 
 // type self as any here, most of these are not defined in the types
 export default function (client: ScramjetClient, self: any) {
+	const del = (name: string) => {
+		const split = name.split(".");
+		const prop = split.pop();
+		const target = split.reduce((a, b) => a?.[b], self);
+		if (!target) return;
+		if (prop && prop in target) {
+			delete target[prop];
+		} else {
+		}
+	};
+
 	// obviously
-	delete self.chrome;
+	del("chrome");
 
 	// ShapeDetector https://developer.chrome.com/docs/capabilities/shape-detection
-	delete self.BarcodeDetector;
-	delete self.FaceDetector;
-	delete self.TextDetector;
+	del("BarcodeDetector");
+	del("FaceDetector");
+	del("TextDetector");
 
 	// background synchronization api
-	if (window) {
-		delete self.ServiceWorkerRegistration.prototype.sync;
+	if (iswindow) {
+		del("ServiceWorkerRegistration.prototype.sync");
 	}
 	if (isemulatedsw) {
-		delete self.SyncManager;
-		delete self.SyncEvent;
+		del("SyncManager");
+		del("SyncEvent");
 	}
 
 	// trustedtypes
-	delete self.TrustedHTML;
-	delete self.TrustedScript;
-	delete self.TrustedScriptURL;
-	delete self.TrustedTypePolicy;
-	delete self.TrustedTypePolicyFactory;
+	del("TrustedHTML");
+	del("TrustedScript");
+	del("TrustedScriptURL");
+	del("TrustedTypePolicy");
+	del("TrustedTypePolicyFactory");
 	self.__defineGetter__("trustedTypes", () => undefined);
 
 	// whatever this is
-	delete self.Navigator.prototype.joinAdInterestGroup;
+	del("Navigator.prototype.joinAdInterestGroup");
 
-	if (!window) return;
+	if (!iswindow) return;
 	// DOM specific ones below here
 
-	delete self.MediaDevices.prototype.setCaptureHandleConfig;
+	del("MediaDevices.prototype.setCaptureHandleConfig");
 
 	// web bluetooth api
-	delete self.Navigator.prototype.bluetooth;
-	delete self.Bluetooth;
-	delete self.BluetoothDevice;
-	delete self.BluetoothRemoteGATTServer;
-	delete self.BluetoothRemoteGATTCharacteristic;
-	delete self.BluetoothRemoteGATTDescriptor;
-	delete self.BluetoothUUID;
+	del("Navigator.prototype.bluetooth");
+	del("Bluetooth");
+	del("BluetoothDevice");
+	del("BluetoothRemoteGATTServer");
+	del("BluetoothRemoteGATTCharacteristic");
+	del("BluetoothRemoteGATTDescriptor");
+	del("BluetoothUUID");
 
 	// contact picker api
-	delete self.Navigator.prototype.contacts;
-	delete self.ContactAddress;
-	delete self.ContactManager;
+	del("Navigator.prototype.contacts");
+	del("ContactAddress");
+	del("ContactManager");
 
 	// Idle Detection API
-	delete self.IdleDetector;
+	del("IdleDetector");
 
 	// Presentation API
-	delete self.Navigator.prototype.presentation;
-	delete self.Presentation;
-	delete self.PresentationConnection;
-	delete self.PresentationReceiver;
-	delete self.PresentationRequest;
-	delete self.PresentationAvailability;
-	delete self.PresentationConnectionAvailableEvent;
-	delete self.PresentationConnectionCloseEvent;
-	delete self.PresentationConnectionList;
+	del("Navigator.prototype.presentation");
+	del("Presentation");
+	del("PresentationConnection");
+	del("PresentationReceiver");
+	del("PresentationRequest");
+	del("PresentationAvailability");
+	del("PresentationConnectionAvailableEvent");
+	del("PresentationConnectionCloseEvent");
+	del("PresentationConnectionList");
 
 	// Window Controls Overlay API
-	delete self.WindowControlsOverlay;
-	delete self.WindowControlsOverlayGeometryChangeEvent;
-	delete self.Navigator.prototype.windowControlsOverlay;
+	del("WindowControlsOverlay");
+	del("WindowControlsOverlayGeometryChangeEvent");
+	del("Navigator.prototype.windowControlsOverlay");
 
 	// WebHID API
-	delete self.Navigator.prototype.hid;
-	delete self.HID;
-	delete self.HIDDevice;
-	delete self.HIDConnectionEvent;
-	delete self.HIDInputReportEvent;
+	del("Navigator.prototype.hid");
+	del("HID");
+	del("HIDDevice");
+	del("HIDConnectionEvent");
+	del("HIDInputReportEvent");
 
 	// Navigation API (not chrome only but it's really annoying to implement)
-	delete self.navigation;
-	delete self.NavigateEvent;
-	delete self.NavigationActivation;
-	delete self.NavigationCurrentEntryChangeEvent;
-	delete self.NavigationDestination;
-	delete self.NavigationHistoryEntry;
-	delete self.NavigationTransition;
+	del("navigation");
+	del("NavigateEvent");
+	del("NavigationActivation");
+	del("NavigationCurrentEntryChangeEvent");
+	del("NavigationDestination");
+	del("NavigationHistoryEntry");
+	del("NavigationTransition");
 }
