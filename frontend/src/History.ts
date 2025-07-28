@@ -159,6 +159,27 @@ export function injectHistoryEmulation(client: ScramjetClient, tab: Tab) {
 			ctx.return(undefined);
 		},
 	});
+	client.Proxy("History.prototype.back", {
+		apply(ctx) {
+			console.log("HISTORY BACK", ctx);
+			tab.history.go(-1);
+			ctx.return(undefined);
+		},
+	});
+	client.Proxy("History.prototype.forward", {
+		apply(ctx) {
+			console.log("HISTORY FORWARD", ctx);
+			tab.history.go(1);
+			ctx.return(undefined);
+		},
+	});
+	client.Proxy("History.prototype.go", {
+		apply(ctx) {
+			console.log("HISTORY GO", ctx);
+			tab.history.go(ctx.args[0]);
+			ctx.return(undefined);
+		},
+	});
 }
 
 export function handleNavigate() {}
