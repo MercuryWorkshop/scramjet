@@ -15,14 +15,20 @@ import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
 import { browser } from "../main";
 
-export const DragTab: Component<{
-	active: boolean;
-	id: number;
-	tab: Tab;
-	mousedown: (e: MouseEvent) => void;
-	destroy: () => void;
-	transitionend: () => void;
-}> = function (cx) {
+export const DragTab: Component<
+	{
+		active: boolean;
+		id: number;
+		tab: Tab;
+		mousedown: (e: MouseEvent) => void;
+		destroy: () => void;
+		transitionend: () => void;
+	},
+	{
+		tooltipActive: boolean;
+	}
+> = function (cx) {
+	this.tooltipActive = false;
 	cx.mount = () => {
 		setContextMenu(cx.root, [
 			{
@@ -51,6 +57,9 @@ export const DragTab: Component<{
 			},
 		]);
 	};
+
+	let hoverTimeout: number;
+
 	return (
 		<div
 			style="z-index: 0;"
@@ -62,19 +71,29 @@ export const DragTab: Component<{
 				e.preventDefault();
 			}}
 			on:transitionend={() => {
-				console.log("tr end");
 				cx.root.style.transition = "";
 				cx.root.style.zIndex = "0";
 				this.transitionend();
 			}}
+			on:mouseenter={() => {
+				if (hoverTimeout) clearTimeout(hoverTimeout);
+				hoverTimeout = window.setTimeout(() => {
+					this.tooltipActive = true;
+				}, 500);
+			}}
+			on:mouseleave={() => {
+				if (hoverTimeout) clearTimeout(hoverTimeout);
+				this.tooltipActive = false;
+			}}
 		>
-			<div class="tooltip">
-				<span>{use(this.tab.title)}</span>
-				<img src={use(this.tab.screenshot)} class="img" />
-				{/* <div
+			<div class="tooltip" class:active={use(this.tooltipActive)}>
+				<span class="title">{use(this.tab.title)}</span>
+				<span class="hostname">{use(this.tab.url.hostname)}</span>
+				{/*<img src={use(this.tab.screenshot)} class="img" />*/}
+				<div
 					style={use`background: -moz-element(#tab${this.tab.id})`}
 					class="img"
-				></div> */}
+				></div>
 			</div>
 			<div
 				class="dragroot"
@@ -121,20 +140,25 @@ DragTab.style = css`
 		top: 5em;
 		left: 0;
 		z-index: 1000;
-		background: white;
-		border: 5px solid red;
+		background: var(--aboutbrowser-frame-bg);
+		border-radius: 4px;
 		width: 20em;
 		/* height: 10em; */
 		flex-direction: column;
 		display: none;
 		border-radius: 4px;
+		padding: 0.5em;
 	}
-	:scope:hover .tooltip {
+	.tooltip .hostname {
+		font-size: 12px;
+	}
+	.tooltip.active {
 		display: flex;
 	}
+
 	.tooltip .img {
 		width: 100%;
-		/* height: 5em; */
+		height: 5em;
 	}
 
 	.main {
