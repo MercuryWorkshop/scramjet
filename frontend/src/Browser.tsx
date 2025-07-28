@@ -53,15 +53,17 @@ export type GlobalHistoryEntry = {
 export class Browser extends StatefulClass {
 	built: boolean = false;
 
-	tabs: Tab[] = [];
+	tabs: Tab[];
 	activetab: Tab;
 
-	globalhistory: HistoryState[] = [];
+	globalhistory: HistoryState[];
 
 	unfocusframes: boolean = false;
 
 	constructor() {
 		super(createState(Object.create(Browser.prototype)));
+		this.tabs = [];
+		this.globalhistory = [];
 
 		setInterval(saveBrowserState, 1000);
 	}
