@@ -62,9 +62,9 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 export function unrewriteUrl(url: string | URL) {
 	if (url instanceof URL) url = url.toString();
 	// remove query string
-	if (url.includes("?")) {
-		url = url.split("?")[0];
-	}
+	// if (url.includes("?")) {
+	// 	url = url.split("?")[0];
+	// }
 
 	const prefixed = location.origin + config.prefix;
 
