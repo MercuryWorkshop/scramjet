@@ -21,6 +21,16 @@ export const NewTabPage: Component<
 					}}
 					placeholder="Search Google or type A URL"
 				></input>
+				<div class="suggestions">
+					{browser.globalhistory.slice(0, 5).map((entry) => (
+						<div class="suggestion" on:click={() => browser.newTab()}>
+							<div class="circle">
+								<img src={entry.favicon || "/vite.svg"} alt="favicon" />
+							</div>
+							<span class="title">{entry.title || entry.url.href}</span>
+						</div>
+					))}
+				</div>
 			</div>
 		</div>
 	);
@@ -34,11 +44,41 @@ NewTabPage.style = css`
 		font-family: sans-serif;
 	}
 
+	.suggestions {
+		width: 100%;
+
+		grid-template-columns: repeat(5, 1fr);
+		grid-template-rows: repeat(2, 1fr);
+		display: grid;
+	}
+
+	.suggestion {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5em;
+	}
+	.circle {
+		width: 64px;
+		height: 64px;
+
+		border-radius: 50%;
+		background-color: #f0f0f0;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.suggestion img {
+		width: 32px;
+		height: 32px;
+	}
+
 	.main {
 		width: 70%;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		gap: 1em;
 	}
 
 	input {

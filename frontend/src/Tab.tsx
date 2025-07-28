@@ -77,7 +77,7 @@ export class Tab extends StatefulClass {
 			if (ctx.window == frame.frame.contentWindow) {
 				injectTitleWatcher(ctx.client, this);
 				injectHistoryEmulation(ctx.client, this);
-				injectDevtools(ctx.client, this);
+				// injectDevtools(ctx.client, this);
 			}
 		});
 
