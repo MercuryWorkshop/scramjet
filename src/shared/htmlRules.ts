@@ -24,8 +24,8 @@ export const htmlRules: {
 	{
 		fn: (value: string, meta: URLMeta) => {
 			let url = rewriteUrl(value, meta);
-			if (meta.topFrameName)
-				url += `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`;
+			// if (meta.topFrameName)
+			// 	url += `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`;
 
 			return url;
 		},
