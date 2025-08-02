@@ -12,7 +12,7 @@ import { rewriteJs } from "@rewriters/js";
 import { getInjectScripts } from "@rewriters/html";
 import { CookieStore } from "@/shared/cookie";
 
-let wasm_u8: Uint8Array;
+let wasm_u8: Uint8Array<ArrayBuffer>;
 if (self.WASM)
 	wasm_u8 = Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0));
 
