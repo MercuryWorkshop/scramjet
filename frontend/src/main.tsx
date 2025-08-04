@@ -6,16 +6,12 @@ import.meta.hot?.accept(() => location.reload());
 import { Browser } from "./Browser";
 import { createMenu } from "./components/Menu";
 let app = document.getElementById("app")!;
-import { BareMuxConnection, BareClient } from "@mercuryworkshop/bare-mux";
 import { Shell } from "./components/Shell";
 import { App } from "./App";
 
-let connection = new BareMuxConnection("/baremux/worker.js");
-connection.setTransport("/epoxy/index.mjs", [{ wisp: "wss://anura.pro" }]);
-export let client = new BareClient();
-
 const { ScramjetController } = $scramjetLoadController();
 export const scramjet = new ScramjetController({
+	wisp: "ws://localhost:1337/",
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
 		all: "/scram/scramjet.all.js",

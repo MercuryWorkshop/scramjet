@@ -8,7 +8,7 @@ import iconShield from "@ktibow/iconset-ion/shield-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconSearch from "@ktibow/iconset-ion/search";
 import { createMenu, setContextMenu } from "./Menu";
-import { browser, client } from "../main";
+import { browser, scramjet } from "../main";
 import { IconButton } from "./IconButton";
 import { createDelegate, type Delegate } from "dreamland/core";
 import type { Tab } from "../Tab";
@@ -41,8 +41,10 @@ export const UrlInput: Component<
 	this.overflowItems = [];
 	this.value = "";
 	const fetchSuggestions = async () => {
-		let resp = await client.fetch(
-			`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(this.input.value)}`
+		let resp = await fetch(
+			scramjet.encodeUrl(
+				`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(this.input.value)}`
+			)
 		);
 		let json = await resp.json();
 		console.log(json);
