@@ -8,9 +8,20 @@ export default function (client: ScramjetClient, self: Self) {
 	self[config.globals.importfn] = function (base: string, url: string) {
 		const resolved = new URL(url, base).href;
 
-		return Function(
-			`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
-		)();
+		if (
+			url.includes(":") ||
+			url.startsWith("/") ||
+			url.startsWith(".") ||
+			url.startsWith("..")
+		) {
+			// this is a url
+			return Function(
+				`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
+			)();
+		} else {
+			// this is a specifier handled by importmaps
+			return Function(`return import("${url}")`)();
+		}
 	};
 
 	self[config.globals.metafn] = function (base: string) {

@@ -185,7 +185,7 @@ where
 
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
     	let str = it.source.to_string();
-	    if str.contains(":") || str.starts_with("/") || str.starts_with("./") || str.starts_with("../") {
+	    if str.contains(":") || str.starts_with("/") || str.starts_with(".") || str.starts_with("..") {
 	    	self.rewrite_url(&it.source,true);
 		}
 		walk::walk_import_declaration(self, it);
