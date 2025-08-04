@@ -1,6 +1,7 @@
 import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { browser } from "../main";
+import { trimUrl } from "../components/Omnibox";
 
 export const NewTabPage: Component<
 	{
@@ -27,7 +28,7 @@ export const NewTabPage: Component<
 							<div class="circle">
 								<img src={entry.favicon || "/vite.svg"} alt="favicon" />
 							</div>
-							<span class="title">{entry.title || entry.url.href}</span>
+							<span class="title">{entry.title || trimUrl(entry.url)}</span>
 						</div>
 					))}
 				</div>
@@ -53,10 +54,12 @@ NewTabPage.style = css`
 	}
 
 	.suggestion {
+		cursor: pointer;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 0.5em;
+		width: 6em;
 	}
 	.circle {
 		width: 64px;
@@ -67,6 +70,13 @@ NewTabPage.style = css`
 		display: flex;
 		justify-content: center;
 		align-items: center;
+	}
+	.title {
+		width: 100%;
+		text-overflow: ellipsis;
+		text-align: center;
+		overflow: hidden;
+		white-space: nowrap;
 	}
 	.suggestion img {
 		width: 32px;

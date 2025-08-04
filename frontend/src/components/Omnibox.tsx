@@ -30,8 +30,8 @@ Spacer.style = css`
 
 type OmniboxResult = {
 	kind: "search" | "history" | "bookmark" | "direct";
-	title?: string;
-	url: string;
+	title?: string | null;
+	url: URL;
 	favicon?: string | null;
 };
 
@@ -61,26 +61,23 @@ export const UrlInput: Component<
 		for (const entry of browser.globalhistory) {
 			if (!entry.url.href.includes(search) && !entry.title?.includes(search))
 				continue;
-			if (this.overflowItems.some((i) => i.url === entry.url.href)) continue;
+			if (this.overflowItems.some((i) => i.url.href === entry.url.href))
+				continue;
 
 			this.overflowItems.push({
 				kind: "history",
 				title: entry.title,
-				url: entry.url.href,
+				url: entry.url,
 				favicon: entry.favicon,
 			});
 		}
 		this.overflowItems = this.overflowItems.slice(0, 5);
 
-		if (
-			search.startsWith("http:") ||
-			search.startsWith("https:") ||
-			search.startsWith("puter:")
-		) {
+		if (URL.canParse(search)) {
 			this.overflowItems = [
 				{
 					kind: "direct",
-					url: search,
+					url: new URL(search),
 				},
 				...this.overflowItems,
 			];
@@ -101,7 +98,9 @@ export const UrlInput: Component<
 			this.overflowItems.push({
 				kind: "search",
 				title: item,
-				url: `https://www.google.com/search?q=${encodeURIComponent(item)}`,
+				url: new URL(
+					`https://www.google.com/search?q=${encodeURIComponent(item)}`
+				),
 				favicon: scramjet.encodeUrl("https://www.google.com/favicon.ico"),
 			});
 		}
@@ -118,7 +117,6 @@ export const UrlInput: Component<
 		}
 		if (ratelimiting) {
 			if (currentTimeout) return;
-			// TODO: why is it using the node types here
 			currentTimeout = setTimeout(() => {
 				ratelimiting = false;
 				fetchSuggestions();
@@ -171,7 +169,7 @@ export const UrlInput: Component<
 							this.active = false;
 							this.input.blur();
 
-							browser.activetab.pushNavigate(new URL(item.url));
+							browser.activetab.pushNavigate(item.url);
 						}}
 						class:focused={use(this.focusindex).map(
 							(i) => i - 1 === this.overflowItems.indexOf(item)
@@ -184,7 +182,7 @@ export const UrlInput: Component<
 						/>
 						{(item.title && <span class="description">{item.title} - </span>) ||
 							""}
-						<span class="url">{item.url}</span>
+						<span class="url">{trimUrl(item.url)}</span>
 					</div>
 				))}
 			</div>
@@ -212,9 +210,8 @@ export const UrlInput: Component<
 							if (e.key === "Enter") {
 								e.preventDefault();
 								if (this.focusindex > 0) {
-									// this.value = this.overflowItems[this.focusindex - 1].;
 									browser.activetab.pushNavigate(
-										new URL(this.overflowItems[this.focusindex - 1].url)
+										this.overflowItems[this.focusindex - 1].url
 									);
 									this.active = false;
 									this.input.blur();
