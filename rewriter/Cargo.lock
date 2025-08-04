@@ -451,16 +451,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "html"
-version = "0.1.0"
-dependencies = [
- "oxc",
- "thiserror",
- "tl",
- "transform",
-]
-
-[[package]]
 name = "icu_collections"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -802,7 +792,6 @@ dependencies = [
  "boa_engine",
  "bytes",
  "clap",
- "html",
  "js",
  "oxc",
  "url",
@@ -1563,11 +1552,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tl"
-version = "0.7.8"
-source = "git+https://github.com/r58playz/tl#3d1785832995f6d37ee53c42dbe79f6c8ddf2e39"
-
-[[package]]
 name = "toml_datetime"
 version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1663,7 +1647,6 @@ checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 name = "wasm"
 version = "0.1.0"
 dependencies = [
- "html",
  "js",
  "js-sys",
  "oxc",

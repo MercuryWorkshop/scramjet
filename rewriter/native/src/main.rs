@@ -9,7 +9,6 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use html::{Rewriter, attrmap, rule::RewriteRule};
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	diagnostics::NamedSource,
@@ -77,9 +76,6 @@ pub enum Cli {
 		#[clap(flatten)]
 		config: RewriterOptions,
 	},
-	Html {
-		file: PathBuf,
-	},
 }
 
 fn main() -> Result<()> {
@@ -146,33 +142,6 @@ fn main() -> Result<()> {
 			println!("iterations: {cnt}");
 			println!("total time: {duration:?}");
 			println!("avg time: {:?}", duration / cnt);
-		}
-		Cli::Html { file } => {
-			let data = fs::read_to_string(file).context("failed to read file")?;
-
-			let mut alloc = Allocator::new();
-
-			let rules = vec![RewriteRule {
-				attrs: attrmap!({
-					"href": ["a", "link"]
-				}),
-				func: Box::new(|alloc, x, ()| {
-					let mut build = StringBuilder::from_str_in(x, alloc);
-					build.push_str(" :3");
-					Ok(Some(build.into_str()))
-				}),
-			}];
-
-			let rewriter = Rewriter::new(
-				rules,
-				Box::new(|_, _, ()| Ok(Some("__EXTERNAL_TOOL_VAL__"))),
-			)?;
-
-			let ret = rewriter.rewrite(&alloc, &data, &(), true)?;
-
-			println!("{}", str::from_utf8(&ret)?);
-
-			alloc.reset();
 		}
 	}
 

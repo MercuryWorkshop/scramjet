@@ -5,7 +5,6 @@ import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { CookieStore } from "@/shared/cookie";
-import { getRewriter, textDecoder } from "@rewriters/wasm";
 import { config } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 
@@ -76,22 +75,6 @@ function rewriteHtmlInner(
 	});
 }
 
-function rewriteHtmlWasm(
-	html: string,
-	cookieStore: CookieStore,
-	meta: URLMeta,
-	fromTop: boolean = false
-): string {
-	const [rewriter, ret] = getRewriter(meta);
-
-	try {
-		const rewritten = rewriter.rewrite_html(html, meta, cookieStore, fromTop);
-		return textDecoder.decode(rewritten.html);
-	} finally {
-		ret();
-	}
-}
-
 export function rewriteHtml(
 	html: string,
 	cookieStore: CookieStore,
@@ -99,7 +82,6 @@ export function rewriteHtml(
 	fromTop: boolean = false
 ) {
 	const before = performance.now();
-	// const ret = rewriteHtmlWasm(html, cookieStore, meta, fromTop);
 	const ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
 	dbg.time(meta, before, "html rewrite");
 

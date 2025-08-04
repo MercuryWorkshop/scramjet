@@ -1,6 +1,5 @@
 use std::cell::BorrowMutError;
 
-use html::RewriterError as HtmlRewriterError;
 use js::RewriterError as JsRewriterError;
 use js_sys::Error;
 use thiserror::Error;
@@ -12,8 +11,6 @@ pub enum RewriterError {
 	Js(String),
 	#[error("JS Rewriter: {0}")]
 	JsRewriter(#[from] JsRewriterError),
-	#[error("HTML Rewriter: {0}")]
-	HtmlRewriter(#[from] HtmlRewriterError),
 
 	#[error("str fromutf8 error: {0}")]
 	Str(#[from] std::str::Utf8Error),
