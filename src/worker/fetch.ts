@@ -286,6 +286,7 @@ export async function handleFetch(
 				// @ts-ignore why the fuck is this not typed microsoft
 				duplex: "half",
 			}));
+		response.finalURL = ev.url.href;
 
 		return await handleResponse(
 			url,
