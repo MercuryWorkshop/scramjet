@@ -13,6 +13,12 @@ import { IconButton } from "./IconButton";
 import { createDelegate, type Delegate } from "dreamland/core";
 import type { Tab } from "../Tab";
 
+export function trimUrl(v: URL) {
+	return (
+		(v.protocol === "puter:" ? v.protocol : "") + v.host + v.pathname + v.search
+	);
+}
+
 export const Spacer: Component = function (cx) {
 	return <div></div>;
 };
@@ -21,6 +27,13 @@ Spacer.style = css`
 		width: 2em;
 	}
 `;
+
+type OmniboxResult = {
+	kind: "search" | "history" | "bookmark" | "direct";
+	title?: string;
+	url: string;
+	favicon?: string | null;
+};
 
 export const UrlInput: Component<
 	{
@@ -34,21 +47,66 @@ export const UrlInput: Component<
 
 		focusindex: number;
 
-		overflowItems: string[];
+		overflowItems: OmniboxResult[];
 	}
 > = function (cx) {
 	this.focusindex = 0;
 	this.overflowItems = [];
 	this.value = "";
 	const fetchSuggestions = async () => {
+		let search = this.input.value;
+
+		this.overflowItems = [];
+
+		for (const entry of browser.globalhistory) {
+			if (!entry.url.href.includes(search) && !entry.title?.includes(search))
+				continue;
+			if (this.overflowItems.some((i) => i.url === entry.url.href)) continue;
+
+			this.overflowItems.push({
+				kind: "history",
+				title: entry.title,
+				url: entry.url.href,
+				favicon: entry.favicon,
+			});
+		}
+		this.overflowItems = this.overflowItems.slice(0, 5);
+
+		if (
+			search.startsWith("http:") ||
+			search.startsWith("https:") ||
+			search.startsWith("puter:")
+		) {
+			this.overflowItems = [
+				{
+					kind: "direct",
+					url: search,
+				},
+				...this.overflowItems,
+			];
+			return;
+		}
+
 		let resp = await fetch(
 			scramjet.encodeUrl(
-				`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(this.input.value)}`
+				`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(search)}`
 			)
 		);
 		let json = await resp.json();
-		console.log(json);
-		this.overflowItems = json[1].slice(0, 5);
+		for (const item of json[1].slice(0, 5)) {
+			// it's gonna be stuff like "http //fortnite.com/2fa ps5"
+			// these results are generally useless
+			if (item.startsWith("http")) continue;
+
+			this.overflowItems.push({
+				kind: "search",
+				title: item,
+				url: `https://www.google.com/search?q=${encodeURIComponent(item)}`,
+				favicon: scramjet.encodeUrl("https://www.google.com/favicon.ico"),
+			});
+		}
+
+		this.overflowItems = this.overflowItems;
 	};
 	let currentTimeout: number | null = null;
 	let ratelimiting = false;
@@ -110,18 +168,23 @@ export const UrlInput: Component<
 					<div
 						class="overflowitem"
 						on:click={() => {
-							this.value = item;
 							this.active = false;
 							this.input.blur();
 
-							browser.searchNavigate(this.value);
+							browser.activetab.pushNavigate(new URL(item.url));
 						}}
 						class:focused={use(this.focusindex).map(
 							(i) => i - 1 === this.overflowItems.indexOf(item)
 						)}
 					>
-						<IconButton icon={iconSearch}></IconButton>
-						<span>{item}</span>
+						<img
+							class="favicon"
+							src={item.favicon || "/vite.svg"}
+							alt="favicon"
+						/>
+						{(item.title && <span class="description">{item.title} - </span>) ||
+							""}
+						<span class="url">{item.url}</span>
 					</div>
 				))}
 			</div>
@@ -149,8 +212,10 @@ export const UrlInput: Component<
 							if (e.key === "Enter") {
 								e.preventDefault();
 								if (this.focusindex > 0) {
-									this.value = this.overflowItems[this.focusindex - 1];
-									this.navigate(this.value);
+									// this.value = this.overflowItems[this.focusindex - 1].;
+									browser.activetab.pushNavigate(
+										new URL(this.overflowItems[this.focusindex - 1].url)
+									);
 									this.active = false;
 									this.input.blur();
 								} else {
@@ -167,15 +232,7 @@ export const UrlInput: Component<
 				{use(this.active)
 					.map((a) => !a)
 					.andThen(
-						<span class="inactiveurl">
-							{use(this.tabUrl).map(
-								(v) =>
-									(v.protocol === "puter:" ? v.protocol : "") +
-									v.host +
-									v.pathname +
-									v.search
-							)}
-						</span>
+						<span class="inactiveurl">{use(this.tabUrl).map(trimUrl)}</span>
 					)}
 
 				<IconButton icon={iconStar}></IconButton>
@@ -190,6 +247,12 @@ UrlInput.style = css`
 		display: flex;
 		height: 100%;
 	}
+
+	.favicon {
+		width: 16px;
+		height: 16px;
+	}
+
 	.overflow {
 		position: absolute;
 		display: none;
@@ -207,6 +270,20 @@ UrlInput.style = css`
 		align-items: center;
 		height: 2.5em;
 		cursor: pointer;
+		gap: 0.5em;
+		padding-left: 0.5em;
+		white-space: nowrap;
+	}
+	.overflowitem .url,
+	.overflowitem .description {
+		text-overflow: ellipsis;
+		text-wrap: nowrap;
+		word-wrap: nowrap;
+		overflow: hidden;
+	}
+
+	.overflowitem .url {
+		color: grey;
 	}
 	.overflowitem.focused {
 		background: blue;
