@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@mercuryworkshop/bare-mux':
-        specifier: ^2.1.7
-        version: 2.1.7
+      '@mercuryworkshop/epoxy-tls':
+        specifier: 2.1.18-1
+        version: 2.1.18-1
       dom-serializer:
         specifier: ^2.0.0
         version: 2.0.0
@@ -175,12 +175,18 @@ importers:
       dreamland:
         specifier: workspace:dreamland
         version: link:../dreamlandjs
+      html-to-image:
+        specifier: ^1.11.13
+        version: 1.11.13
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
       monaco-editor:
         specifier: ^0.52.2
         version: 0.52.2
+      tlds:
+        specifier: ^1.259.0
+        version: 1.259.0
       vite-plugin-static-copy:
         specifier: ^3.1.0
         version: 3.1.0(vite@6.3.5(@types/node@24.0.14)(terser@5.43.1))
@@ -521,9 +527,6 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.4':
     resolution: {integrity: sha512-VT2+G1VQs/9oz078bLrYbecdZKs912zQlkelYpuf+SXF+QvZDYJlbx/LSx+meSAwdDFnF8FVXW92AVjjkVmgFw==}
 
-  '@jridgewell/trace-mapping@0.3.25':
-    resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
-
   '@jridgewell/trace-mapping@0.3.29':
     resolution: {integrity: sha512-uw6guiW/gcAGPDhLmd77/6lW8QLeiV5RUTsAX46Db6oLhGaVj4lhnPwb184s1bkc8kdVg/+h988dro8GRDpmYQ==}
 
@@ -558,11 +561,11 @@ packages:
   '@mercuryworkshop/bare-as-module3@2.2.5':
     resolution: {integrity: sha512-KWlMVJoJ3h1ya3chlpzIyQrt01rSU21AU1vBsGUrhZngCVTs9SIMGMqBx61TM0gWtEUogYFfU5U0UF1XCYeUHQ==}
 
-  '@mercuryworkshop/bare-mux@2.1.7':
-    resolution: {integrity: sha512-BUamyc7jsIFbWQVVWjVjaD+Wot77EPwolkrbP3UuIs6QeHR1RY52+IR2fq3GkRAbOOrAZNT7EgZSsupkh1NowQ==}
-
   '@mercuryworkshop/epoxy-tls@2.1.16-1':
     resolution: {integrity: sha512-tyiFvbpt/qf7KyAYVyY0GdFmf/OJvIW1U96dOKsN/k/zbP+xErsCvKJGYK2J27xSyRjpK1N4mkz39wnKkWuibA==}
+
+  '@mercuryworkshop/epoxy-tls@2.1.18-1':
+    resolution: {integrity: sha512-2N1BYn/+FJxIbRw+sipbl3mQPinRflqQDB9HGAXJEVj4Ok4FIlTlS4fO2cpXKEq5yoD3oaKb8GyNaQfndNui9w==}
 
   '@mercuryworkshop/epoxy-transport@2.1.27':
     resolution: {integrity: sha512-jvlJbNbqokU2YRfNYUCqSX+m4/T5Jx659Zn0/AgV2ZfB0S67FK7z9ZMstuxrZHog2AmBdOFaYUjLnI6cAboiaw==}
@@ -1878,6 +1881,9 @@ packages:
   html-escaper@2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
 
+  html-to-image@1.11.13:
+    resolution: {integrity: sha512-cuOPoI7WApyhBElTTb9oqsawRvZ0rHhaHwghRLlTuffoD1B2aDemlCruLeZrUIIdvG7gs9xeELEPm6PhuASqrg==}
+
   html2canvas@1.4.1:
     resolution: {integrity: sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA==}
     engines: {node: '>=8.0.0'}
@@ -2758,6 +2764,10 @@ packages:
     resolution: {integrity: sha512-tX5e7OM1HnYr2+a2C/4V0htOcSQcoSTH9KgJnVvNm5zm/cyEWKJ7j7YutsH9CxMdtOkkLFy2AHrMci9IM8IPZQ==}
     engines: {node: '>=12.0.0'}
 
+  tlds@1.259.0:
+    resolution: {integrity: sha512-AldGGlDP0PNgwppe2quAvuBl18UcjuNtOnDuUkqhd6ipPqrYYBt3aTxK1QTsBVknk97lS2JcafWMghjGWFtunw==}
+    hasBin: true
+
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
@@ -3293,8 +3303,8 @@ snapshots:
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:
       '@jridgewell/set-array': 1.2.1
-      '@jridgewell/sourcemap-codec': 1.5.0
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/sourcemap-codec': 1.5.4
+      '@jridgewell/trace-mapping': 0.3.29
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
@@ -3303,23 +3313,16 @@ snapshots:
   '@jridgewell/source-map@0.3.6':
     dependencies:
       '@jridgewell/gen-mapping': 0.3.8
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/trace-mapping': 0.3.29
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
 
-  '@jridgewell/sourcemap-codec@1.5.4':
-    optional: true
-
-  '@jridgewell/trace-mapping@0.3.25':
-    dependencies:
-      '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.0
+  '@jridgewell/sourcemap-codec@1.5.4': {}
 
   '@jridgewell/trace-mapping@0.3.29':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.4
-    optional: true
 
   '@jsonjoy.com/base64@1.1.2(tslib@2.8.1)':
     dependencies:
@@ -3349,9 +3352,9 @@ snapshots:
     dependencies:
       typescript: 5.8.3
 
-  '@mercuryworkshop/bare-mux@2.1.7': {}
-
   '@mercuryworkshop/epoxy-tls@2.1.16-1': {}
+
+  '@mercuryworkshop/epoxy-tls@2.1.18-1': {}
 
   '@mercuryworkshop/epoxy-transport@2.1.27':
     dependencies:
@@ -4901,6 +4904,8 @@ snapshots:
 
   html-escaper@2.0.2: {}
 
+  html-to-image@1.11.13: {}
+
   html2canvas@1.4.1:
     dependencies:
       css-line-break: 2.1.0
@@ -5768,6 +5773,8 @@ snapshots:
     dependencies:
       fdir: 6.4.6(picomatch@4.0.2)
       picomatch: 4.0.2
+
+  tlds@1.259.0: {}
 
   to-regex-range@5.0.1:
     dependencies:
