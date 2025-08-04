@@ -1,14 +1,16 @@
 import { ScramjetFrame } from "@/controller/frame";
+import initEpoxy, {
+	EpoxyClient,
+	EpoxyClientOptions,
+	EpoxyHandlers,
+	info as epoxyInfo,
+} from "@mercuryworkshop/epoxy-tls";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { createDocumentProxy } from "@client/document";
 import { createGlobalProxy } from "@client/global";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { nativeGetOwnPropertyDescriptor } from "@client/natives";
-import {
-	BareClient,
-	type BareClient as BareClientType,
-} from "@mercuryworkshop/bare-mux";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
@@ -72,7 +74,7 @@ export class ScramjetClient {
 	globalProxy: any;
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
-	bare: BareClientType;
+	epoxy: EpoxyClient;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
@@ -102,22 +104,29 @@ export class ScramjetClient {
 			throw new Error();
 		}
 
+		initEpoxy().then(() => {
+			let options = new EpoxyClientOptions();
+			options.user_agent = navigator.userAgent;
+			this.epoxy = new EpoxyClient(config.wisp, options);
+		});
+
 		if (iswindow) {
-			this.bare = new BareClient();
+			// this.bare = new EpoxyClient();
+			// this.bare = new BareClient();
 		} else {
-			this.bare = new BareClient(
-				new Promise((resolve) => {
-					addEventListener("message", ({ data }) => {
-						if (typeof data !== "object") return;
-						if (
-							"$scramjet$type" in data &&
-							data.$scramjet$type === "baremuxinit"
-						) {
-							resolve(data.port);
-						}
-					});
-				})
-			);
+			// this.bare = new BareClient(
+			// 	new Promise((resolve) => {
+			// 		addEventListener("message", ({ data }) => {
+			// 			if (typeof data !== "object") return;
+			// 			if (
+			// 				"$scramjet$type" in data &&
+			// 				data.$scramjet$type === "baremuxinit"
+			// 			) {
+			// 				resolve(data.port);
+			// 			}
+			// 		});
+			// 	})
+			// );
 		}
 
 		this.serviceWorker = this.global.navigator.serviceWorker;

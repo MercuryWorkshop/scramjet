@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 
 //transports
-import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
+// import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 import { epoxyPath } from "@mercuryworkshop/epoxy-transport";
 import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
 import { bareModulePath } from "@mercuryworkshop/bare-as-module3";
@@ -62,11 +62,11 @@ fastify.register(fastifyStatic, {
 	prefix: "/assets/",
 	decorateReply: false,
 });
-fastify.register(fastifyStatic, {
-	root: baremuxPath,
-	prefix: "/baremux/",
-	decorateReply: false,
-});
+// fastify.register(fastifyStatic, {
+// 	root: baremuxPath,
+// 	prefix: "/baremux/",
+// 	decorateReply: false,
+// });
 fastify.register(fastifyStatic, {
 	root: epoxyPath,
 	prefix: "/epoxy/",

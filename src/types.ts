@@ -16,6 +16,7 @@ export type ScramjetFlags = {
 };
 
 export interface ScramjetConfig {
+	wisp: string;
 	prefix: string;
 	globals: {
 		wrapfn: string;

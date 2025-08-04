@@ -14,6 +14,7 @@ export class ScramjetController {
 	constructor(config: Partial<ScramjetInitConfig>) {
 		// sane ish defaults
 		const defaultConfig: ScramjetInitConfig = {
+			wisp: "/wisp/",
 			prefix: "/scramjet/",
 			globals: {
 				wrapfn: "$scramjet$wrap",

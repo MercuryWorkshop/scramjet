@@ -61,7 +61,7 @@
 		"typescript": "^5.8.3"
 	},
 	"dependencies": {
-		"@mercuryworkshop/bare-mux": "^2.1.7",
+		"@mercuryworkshop/epoxy-tls": "2.1.18-1",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.2.2",

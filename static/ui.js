@@ -6,6 +6,7 @@ const scramjet = new ScramjetController({
 		all: "/scram/scramjet.all.js",
 		sync: "/scram/scramjet.sync.js",
 	},
+	wisp: "ws://localhost:1337/",
 	flags: {
 		rewriterLogs: false,
 		naiiveRewriter: false,
@@ -24,15 +25,12 @@ const scramjet = new ScramjetController({
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
 	display: flex;
 `;
 const col = css`
 	flex-direction: column;
 `;
-
-connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
 function Config() {
 	this.css = `

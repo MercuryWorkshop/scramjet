@@ -1,9 +1,5 @@
+import { EpoxyClient } from "@mercuryworkshop/epoxy-tls";
 import { type URLMeta } from "@rewriters/url";
-
-import type {
-	default as BareClient,
-	BareResponseFetch,
-} from "@mercuryworkshop/bare-mux";
 
 // Cache every hour
 const CACHE_DURATION_MINUTES = 60;
@@ -72,7 +68,7 @@ async function setCachedSuffixList(data: string[]): Promise<void> {
 export async function getSiteDirective(
 	meta: URLMeta,
 	referrerURL: URL,
-	client: BareClient
+	client: EpoxyClient
 ): Promise<string> {
 	if (!referrerURL) {
 		return "none";
@@ -107,7 +103,7 @@ export async function getSiteDirective(
 export async function isSameSite(
 	url1: URL,
 	url2: URL,
-	client: BareClient
+	client: EpoxyClient
 ): Promise<boolean> {
 	const registrableDomain1 = await getRegistrableDomain(url1, client);
 	const registrableDomain2 = await getRegistrableDomain(url2, client);
@@ -123,7 +119,7 @@ export async function isSameSite(
  */
 async function getRegistrableDomain(
 	url: URL,
-	client: BareClient
+	client: EpoxyClient
 ): Promise<string> {
 	const publicSuffixes = await getPublicSuffixList(client);
 
@@ -203,17 +199,18 @@ function matchesSuffix(
  * @throws {Error} If an error occurs while fetching from the Public Suffix List
  */
 export async function getPublicSuffixList(
-	client: BareClient
+	client: EpoxyClient
 ): Promise<string[]> {
 	const cached = await getCachedSuffixList();
 	if (cached && Date.now() < cached.expiry) {
 		return cached.data;
 	}
 
-	let publicSuffixesResponse: BareResponseFetch;
+	let publicSuffixesResponse: any;
 	try {
 		publicSuffixesResponse = await client.fetch(
-			"https://publicsuffix.org/list/public_suffix_list.dat"
+			"https://publicsuffix.org/list/public_suffix_list.dat",
+			{}
 		);
 	} catch (err) {
 		throw new Error(`Failed to fetch public suffix list: ${err}`);

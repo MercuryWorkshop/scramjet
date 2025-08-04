@@ -1,4 +1,7 @@
-import BareClient, { BareResponseFetch } from "@mercuryworkshop/bare-mux";
+type BareResponseFetch = any;
+type BareClient = any;
+import { EpoxyClient } from "@mercuryworkshop/epoxy-tls";
+
 import { ScramjetServiceWorker } from "@/worker";
 import { renderError } from "@/worker/error";
 import { FakeServiceWorker } from "@/worker/fakesw";
@@ -243,11 +246,7 @@ export async function handleFetch(
 				const unrewrittenReferrer = unrewriteUrl(request.referrer);
 				if (unrewrittenReferrer) {
 					const referrerUrl = new URL(unrewrittenReferrer);
-					siteDirective = await getSiteDirective(
-						meta,
-						referrerUrl,
-						this.client
-					);
+					siteDirective = await getSiteDirective(meta, referrerUrl, this.epoxy);
 				}
 			}
 		}
@@ -275,7 +274,7 @@ export async function handleFetch(
 
 		const response: BareResponseFetch =
 			(await ev.response) ||
-			(await this.client.fetch(ev.url, {
+			(await this.epoxy.fetch(ev.url, {
 				method: ev.method,
 				body: ev.body,
 				headers: ev.requestHeaders,
@@ -286,6 +285,7 @@ export async function handleFetch(
 				// @ts-ignore why the fuck is this not typed microsoft
 				duplex: "half",
 			}));
+		response.finalURL = ev.url;
 
 		return await handleResponse(
 			url,
@@ -296,7 +296,7 @@ export async function handleFetch(
 			response,
 			this.cookieStore,
 			client,
-			this.client,
+			this.epoxy,
 			this,
 			request.referrer
 		);
@@ -336,7 +336,7 @@ async function handleResponse(
 	response: BareResponseFetch,
 	cookieStore: CookieStore,
 	client: Client,
-	bareClient: BareClient,
+	bareClient: EpoxyClient,
 	swtarget: ScramjetServiceWorker,
 	referrer: string
 ): Promise<Response> {

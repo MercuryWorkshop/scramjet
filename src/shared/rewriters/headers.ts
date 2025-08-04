@@ -1,9 +1,6 @@
-import type {
-	default as BareClient,
-	BareHeaders,
-} from "@mercuryworkshop/bare-mux";
 import { rewriteUrl, type URLMeta } from "@rewriters/url";
 import { getSiteDirective } from "@/shared/security/siteTests";
+import { EpoxyClient } from "@mercuryworkshop/epoxy-tls";
 
 interface StoredReferrerPolicies {
 	get(url: string): Promise<{ policy: string; referrer: string } | null>;
@@ -52,9 +49,9 @@ function rewriteLinkHeader(link: string, meta: URLMeta) {
  * @param isNavigationRequest Whether the request is a navigation request
  */
 export async function rewriteHeaders(
-	rawHeaders: BareHeaders,
+	rawHeaders: any,
 	meta: URLMeta,
-	client: BareClient,
+	client: EpoxyClient,
 	storedReferrerPolicies: StoredReferrerPolicies
 ) {
 	const headers = {};
