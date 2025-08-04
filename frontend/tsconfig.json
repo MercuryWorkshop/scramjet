@@ -8,6 +8,7 @@
 			"DOM",
 			"DOM.Iterable"
 		],
+		"types": [],
 		"skipLibCheck": true,
 		/* Bundler mode */
 		"moduleResolution": "bundler",
