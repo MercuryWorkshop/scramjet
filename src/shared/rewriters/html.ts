@@ -204,9 +204,30 @@ function traverseParsedHtml(
 
 	if (
 		node.name === "script" &&
-		/(application|text)\/javascript|module|importmap|undefined/.test(
-			node.attribs.type
-		) &&
+		node.attribs.type === "importmap" &&
+		node.children[0] !== undefined
+	) {
+		let json = node.children[0].data;
+		try {
+			const map = JSON.parse(json);
+			if (map.imports) {
+				for (const key in map.imports) {
+					let url = map.imports[key];
+					if (typeof url === "string") {
+						url = rewriteUrl(url, meta);
+						map.imports[key] = url;
+					}
+				}
+			}
+
+			node.children[0].data = JSON.stringify(map);
+		} catch (e) {
+			console.error("Failed to parse importmap JSON:", e);
+		}
+	}
+	if (
+		node.name === "script" &&
+		/(application|text)\/javascript|module|undefined/.test(node.attribs.type) &&
 		node.children[0] !== undefined
 	) {
 		let js = node.children[0].data;
