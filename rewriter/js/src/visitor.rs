@@ -184,7 +184,10 @@ where
 	}
 
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
-		self.rewrite_url(&it.source, true);
+    	let str = it.source.to_string();
+	    if str.contains(":") || str.starts_with("/") || str.starts_with("./") || str.starts_with("../") {
+	    	self.rewrite_url(&it.source,true);
+		}
 		walk::walk_import_declaration(self, it);
 	}
 	fn visit_import_expression(&mut self, it: &ImportExpression<'data>) {
