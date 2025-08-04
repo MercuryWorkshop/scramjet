@@ -1,5 +1,6 @@
 const { ScramjetController } = $scramjetLoadController();
 const scramjet = new ScramjetController({
+	wisp: "ws://localhost:1337/",
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
 		all: "/scram/scramjet.all.js",
@@ -15,15 +16,12 @@ const scramjet = new ScramjetController({
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const flex = css`
 	display: flex;
 `;
 const col = css`
 	flex-direction: column;
 `;
-
-connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
 
 function PlaygroundApp() {
 	this.css = `
