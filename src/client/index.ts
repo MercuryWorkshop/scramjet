@@ -6,8 +6,6 @@ import initEpoxy, {
 	info as epoxyInfo,
 } from "@mercuryworkshop/epoxy-tls";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
-import { createDocumentProxy } from "@client/document";
-import { createGlobalProxy } from "@client/global";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { nativeGetOwnPropertyDescriptor } from "@client/natives";
@@ -70,8 +68,6 @@ export type Trap<T> = {
 };
 
 export class ScramjetClient {
-	documentProxy: any;
-	globalProxy: any;
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
 	epoxy: EpoxyClient;
@@ -132,13 +128,10 @@ export class ScramjetClient {
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
 		if (iswindow) {
-			this.documentProxy = createDocumentProxy(this, global);
-
 			global.document[SCRAMJETCLIENT] = this;
 		}
 
 		this.locationProxy = createLocationProxy(this, global);
-		this.globalProxy = createGlobalProxy(this, global);
 		this.wrapfn = createWrapFn(this, global);
 		this.sourcemaps = {};
 		this.natives = {

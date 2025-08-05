@@ -7,7 +7,6 @@ import { indirectEval } from "@client/shared/eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any, strict: boolean) {
-		if (identifier === self) return client.globalProxy;
 		if (identifier === self.location) return client.locationProxy;
 		if (identifier === eval) return indirectEval.bind(client, strict);
 
@@ -15,13 +14,11 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 			if (identifier === self.parent) {
 				if (SCRAMJETCLIENT in self.parent) {
 					// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
-					return self.parent[SCRAMJETCLIENT].globalProxy;
+					return self.parent;
 				} else {
 					// ... then we should pretend we aren't nested and return the current window
-					return client.globalProxy;
+					return self;
 				}
-			} else if (identifier === self.document) {
-				return client.documentProxy;
 			} else if (identifier === self.top) {
 				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
 				let current = self;
@@ -37,7 +34,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 					current = test;
 				}
 
-				return current[SCRAMJETCLIENT].globalProxy;
+				return current;
 			}
 		}
 
@@ -47,23 +44,98 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 
 export const order = 4;
 export default function (client: ScramjetClient, self: typeof globalThis) {
-	// the main magic of the proxy. all attempts to access any "banned objects" will be redirected here, and instead served a proxy object
-	// this contrasts from how other proxies will leave the root object alone and instead attempt to catch every member access
-	// this presents some issues (see element.ts), but makes us a good bit faster at runtime!
 	Object.defineProperty(self, config.globals.wrapfn, {
 		value: client.wrapfn,
 		writable: false,
 		configurable: false,
+		enumerable: false,
 	});
-	Object.defineProperty(self, config.globals.wrapthisfn, {
-		value: function (i) {
-			if (i === self) return client.globalProxy;
+	Object.defineProperty(self, config.globals.wrappropertyfn, {
+		value: function (str) {
+			if (
+				str === "location" ||
+				str === "parent" ||
+				str === "top" ||
+				str === "eval"
+			)
+				return config.globals.wrappropertybase + str;
 
-			return i;
+			return str;
 		},
 		writable: false,
 		configurable: false,
+		enumerable: false,
 	});
+	console.log(config.globals.wrappropertybase);
+
+	Object.defineProperty(
+		self.Object.prototype,
+		config.globals.wrappropertybase + "location",
+		{
+			get: function () {
+				// if (this.location.constructor.toString().includes("Location")) {
+
+				if (this === self || this === self.document) {
+					return client.locationProxy;
+				}
+
+				return this.location;
+			},
+			set(value: any) {
+				if (this === self || this === self.document) {
+					client.url = value;
+
+					return;
+				}
+				this.location = value;
+			},
+			configurable: false,
+			enumerable: false,
+		}
+	);
+	Object.defineProperty(
+		self.Object.prototype,
+		config.globals.wrappropertybase + "parent",
+		{
+			get: function () {
+				return client.wrapfn(this.parent, false);
+			},
+			set(value: any) {
+				// i guess??
+				this.parent = value;
+			},
+			configurable: false,
+			enumerable: false,
+		}
+	);
+	Object.defineProperty(
+		self.Object.prototype,
+		config.globals.wrappropertybase + "top",
+		{
+			get: function () {
+				return client.wrapfn(this.top, false);
+			},
+			set(value: any) {
+				this.top = value;
+			},
+			configurable: false,
+			enumerable: false,
+		}
+	);
+	Object.defineProperty(
+		self.Object.prototype,
+		config.globals.wrappropertybase + "eval",
+		{
+			get: function () {
+				return client.wrapfn(this.eval, true);
+			},
+			set(value: any) {
+				this.eval = value;
+			},
+			configurable: false,
+			enumerable: false,
+		}
+	);
 
 	self.$scramitize = function (v) {
 		if (v === self) debugger;

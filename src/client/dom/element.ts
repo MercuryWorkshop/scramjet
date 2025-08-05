@@ -410,15 +410,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 				const realwin = ctx.get() as Window;
 				if (!realwin) return realwin;
 
-				if (SCRAMJETCLIENT in realwin) {
-					return realwin[SCRAMJETCLIENT].globalProxy;
-				} else {
-					// hook the iframe
+				if (!(SCRAMJETCLIENT in realwin)) {
+					// hook the iframe before the client can start to steal globals out of it
 					const newclient = new ScramjetClient(realwin);
 					newclient.hook();
-
-					return newclient.globalProxy;
 				}
+
+				return realwin;
 			},
 		}
 	);
@@ -438,14 +436,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 				);
 				if (!realwin) return realwin;
 
-				if (SCRAMJETCLIENT in realwin) {
-					return realwin[SCRAMJETCLIENT].documentProxy;
-				} else {
+				if (!(SCRAMJETCLIENT in realwin)) {
 					const newclient = new ScramjetClient(realwin);
 					newclient.hook();
-
-					return newclient.documentProxy;
 				}
+
+				return realwin.document;
 			},
 		}
 	);
@@ -466,76 +462,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 			},
 		}
 	);
-
-	client.Trap("TreeWalker.prototype.currentNode", {
-		get(ctx) {
-			return ctx.get();
-		},
-		set(ctx, value) {
-			if (value === client.documentProxy) {
-				return ctx.set(self.document);
-			}
-
-			return ctx.set(value);
-		},
-	});
-
-	client.Proxy("Document.prototype.open", {
-		apply(ctx) {
-			const doc = ctx.call() as Document;
-
-			const scram: ScramjetClient = doc[SCRAMJETCLIENT];
-			if (!scram) return ctx.return(doc); // ??
-
-			return ctx.return(scram.documentProxy);
-		},
-	});
-
-	client.Trap("Node.prototype.ownerDocument", {
-		get(ctx) {
-			const doc = ctx.get() as Document | null;
-			if (!doc) return null;
-
-			const scram: ScramjetClient = doc[SCRAMJETCLIENT];
-			if (!scram) return doc; // ??
-
-			return scram.documentProxy;
-		},
-	});
-
-	client.Trap(
-		[
-			"Node.prototype.parentNode",
-			"Node.prototype.parentElement",
-			"Node.prototype.previousSibling",
-			"Node.prototype.nextSibling",
-			"Range.prototype.commonAncestorContainer",
-			"AbstractRange.prototype.endContainer",
-			"AbstractRange.prototype.startContainer",
-		],
-		{
-			get(ctx) {
-				const n = ctx.get() as Node;
-				if (!(n instanceof Document)) return n;
-
-				const scram: ScramjetClient = n[SCRAMJETCLIENT];
-				if (!scram) return n; // ??
-
-				return scram.documentProxy;
-			},
-		}
-	);
-	client.Proxy("Node.prototype.getRootNode", {
-		apply(ctx) {
-			const n = ctx.call() as Node;
-			if (!(n instanceof Document)) return ctx.return(n);
-
-			const scram: ScramjetClient = n[SCRAMJETCLIENT];
-			if (!scram) return ctx.return(n); // ??
-
-			return ctx.return(scram.documentProxy);
-		},
-	});
 
 	client.Proxy("DOMParser.prototype.parseFromString", {
 		apply(ctx) {

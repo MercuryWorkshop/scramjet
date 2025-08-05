@@ -18,7 +18,8 @@ export class ScramjetController {
 			prefix: "/scramjet/",
 			globals: {
 				wrapfn: "$scramjet$wrap",
-				wrapthisfn: "$scramjet$wrapthis",
+				wrappropertybase: "$scramjet__",
+				wrappropertyfn: "$scramjet$prop",
 				trysetfn: "$scramjet$tryset",
 				importfn: "$scramjet$import",
 				rewritefn: "$scramjet$rewrite",

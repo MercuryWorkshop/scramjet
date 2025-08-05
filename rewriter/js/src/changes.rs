@@ -17,9 +17,6 @@ use crate::{
 	rewrite::Rewrite,
 };
 
-// const STRICTCHECKER: &str = "(function(a){arguments[0]=false;return a})(true)";
-const STRICTCHECKER: &str = "(function(){return!this;})()";
-
 macro_rules! change {
     ($span:expr, $($ty:tt)*) => {
 		$crate::changes::JsChange::new($span, $crate::changes::JsChangeType::$($ty)*)
@@ -30,21 +27,34 @@ pub(crate) use change;
 #[derive(Debug, PartialEq, Eq)]
 pub enum JsChangeType<'alloc: 'data, 'data> {
 	/// insert `${cfg.wrapfn}(`
-	WrapFnLeft { wrap: bool },
-	/// insert `,strictchecker)`
-	WrapFnRight { wrap: bool },
+	WrapFnLeft {
+		enclose: bool,
+	},
+	/// insert `)`
+	WrapFnRight {
+		enclose: bool,
+	},
+
+	WrapPropertyLeft,
+	WrapPropertyRight,
+	RewriteProperty {
+        ident: Atom<'data>,
+    },
+
 	/// insert `${cfg.setrealmfn}({}).`
 	SetRealmFn,
-	/// insert `${cfg.wrapthis}(`
-	WrapThisFn,
 	/// insert `$scramerr(ident);`
-	ScramErrFn { ident: Atom<'data> },
+	ScramErrFn {
+		ident: Atom<'data>,
+	},
 	/// insert `$scramitize(`
 	ScramitizeFn,
 	/// insert `eval(${cfg.rewritefn}(`
 	EvalRewriteFn,
 	/// insert `: ${cfg.wrapfn}(ident)`
-	ShorthandObj { ident: Atom<'data> },
+	ShorthandObj {
+		ident: Atom<'data>,
+	},
 	/// insert scramtag
 	SourceTag,
 
@@ -59,10 +69,15 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 
 	/// insert `)`
-	ClosingParen { semi: bool, replace: bool },
+	ClosingParen {
+		semi: bool,
+		replace: bool,
+	},
 
 	/// replace span with text
-	Replace { text: &'alloc str },
+	Replace {
+		text: &'alloc str,
+	},
 	/// replace span with ""
 	Delete,
 }
@@ -91,24 +106,28 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		(cfg, flags): &Self::ToLowLevelData,
 		offset: i32,
 	) -> TransformLL<'data> {
+    	dbg!(&&self);
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
-			Ty::WrapFnLeft { wrap } => LL::insert(if wrap {
+			Ty::WrapFnLeft { enclose } => LL::insert(if enclose {
 				transforms!["(", &cfg.wrapfn, "("]
 			} else {
 				transforms![&cfg.wrapfn, "("]
 			}),
-			Ty::WrapFnRight { wrap } => LL::insert(if wrap {
-				transforms![",", STRICTCHECKER, "))"]
+			Ty::WrapFnRight { enclose } => LL::insert(if enclose {
+				transforms!["))"]
 			} else {
-				transforms![",", STRICTCHECKER, ")"]
+				transforms![")"]
 			}),
+			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(("]),
+			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
+			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase,ident]),
+
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
-			Ty::WrapThisFn => LL::insert(transforms![&cfg.wrapthisfn, "("]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
 			Ty::ScramitizeFn => LL::insert(transforms![" $scramitize("]),
-			Ty::EvalRewriteFn => LL::replace(transforms!["eval(", &cfg.rewritefn, "("]),
+			Ty::EvalRewriteFn => LL::insert(transforms![&cfg.rewritefn, "("]),
 			Ty::ShorthandObj { ident } => {
 				LL::insert(transforms![":", &cfg.wrapfn, "(", ident, ")"])
 			}
@@ -164,6 +183,8 @@ impl Ord for JsChange<'_, '_> {
 			Ordering::Equal => match (&self.ty, &other.ty) {
 				(Ty::ScramErrFn { .. }, _) => Ordering::Less,
 				(_, Ty::ScramErrFn { .. }) => Ordering::Greater,
+                (Ty::WrapFnRight { .. }, _) => Ordering::Less,
+                (_, Ty::WrapFnRight { .. }) => Ordering::Greater,
 				_ => Ordering::Equal,
 			},
 			x => x,
