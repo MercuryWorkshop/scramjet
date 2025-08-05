@@ -102,5 +102,4 @@ impl Rewriter {
 
 		self.rewrite_js(js, base, url, module)
 	}
-
 }

@@ -38,8 +38,8 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	WrapPropertyLeft,
 	WrapPropertyRight,
 	RewriteProperty {
-        ident: Atom<'data>,
-    },
+		ident: Atom<'data>,
+	},
 
 	/// insert `${cfg.setrealmfn}({}).`
 	SetRealmFn,
@@ -106,7 +106,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		(cfg, flags): &Self::ToLowLevelData,
 		offset: i32,
 	) -> TransformLL<'data> {
-    	dbg!(&&self);
+		dbg!(&&self);
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
@@ -122,7 +122,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			}),
 			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(("]),
 			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
-			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase,ident]),
+			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
 
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
@@ -183,8 +183,8 @@ impl Ord for JsChange<'_, '_> {
 			Ordering::Equal => match (&self.ty, &other.ty) {
 				(Ty::ScramErrFn { .. }, _) => Ordering::Less,
 				(_, Ty::ScramErrFn { .. }) => Ordering::Greater,
-                (Ty::WrapFnRight { .. }, _) => Ordering::Less,
-                (_, Ty::WrapFnRight { .. }) => Ordering::Greater,
+				(Ty::WrapFnRight { .. }, _) => Ordering::Less,
+				(_, Ty::WrapFnRight { .. }) => Ordering::Greater,
 				_ => Ordering::Equal,
 			},
 			x => x,
