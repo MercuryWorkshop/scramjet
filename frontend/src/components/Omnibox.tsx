@@ -12,6 +12,7 @@ import { browser, scramjet } from "../main";
 import { IconButton } from "./IconButton";
 import { createDelegate, type Delegate } from "dreamland/core";
 import type { Tab } from "../Tab";
+import { Icon } from "./Icon";
 
 export const focusOmnibox = createDelegate<void>();
 
@@ -115,7 +116,6 @@ export const UrlInput: Component<
 				url: new URL(
 					`https://www.google.com/search?q=${encodeURIComponent(item)}`
 				),
-				favicon: scramjet.encodeUrl("https://www.google.com/favicon.ico"),
 			});
 		}
 
@@ -189,11 +189,15 @@ export const UrlInput: Component<
 							(i) => i - 1 === this.overflowItems.indexOf(item)
 						)}
 					>
-						<img
-							class="favicon"
-							src={item.favicon || "/vite.svg"}
-							alt="favicon"
-						/>
+						{item.kind === "search" ? (
+							<Icon icon={iconSearch}></Icon>
+						) : (
+							<img
+								class="favicon"
+								src={item.favicon || "/vite.svg"}
+								alt="favicon"
+							/>
+						)}
 						{(item.title && (
 							<span class="description">
 								{item.title.startsWith(this.input.value) ? (
@@ -404,21 +408,19 @@ export const Omnibox: Component<{
 						{
 							label: "History",
 							action: () => {
-								let t = browser.newTab(new URL("puter://history"));
+								browser.newTab(new URL("puter://history"));
 							},
 						},
 						{
 							label: "Settings",
 							action: () => {
-								let t = browser.newTab();
-								t.replaceNavigate(new URL("puter://settings"));
+								browser.newTab(new URL("puter://settings"));
 							},
 						},
 						{
 							label: "About",
 							action: () => {
-								let t = browser.newTab();
-								t.replaceNavigate(new URL("puter://version"));
+								browser.newTab(new URL("puter://version"));
 							},
 						},
 					]);

@@ -87,7 +87,8 @@ export class Browser extends StatefulClass {
 			let tab = this.newTab();
 			tab.deserialize(detab);
 		}
-		this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
+		this.activetab = this.tabs[0];
+		// this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
 		console.log(this.activetab, this.activetab.url);
 	}
 
@@ -114,7 +115,8 @@ export class Browser extends StatefulClass {
 		this.tabs = this.tabs.filter((t) => t !== tab);
 		console.log(this.tabs);
 		if (this.activetab === tab) {
-			this.activetab = this.tabs[0] || this.newTab();
+			this.activetab =
+				this.tabs[0] || browser.newTab(new URL("puter://newtab"), true);
 		}
 		popTab(tab);
 	}
