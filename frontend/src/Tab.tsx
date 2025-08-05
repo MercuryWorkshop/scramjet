@@ -70,6 +70,7 @@ export class Tab extends StatefulClass {
 		this.pos = 0;
 
 		addHistoryListeners(frame, this);
+		let injected = false;
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
 
@@ -77,7 +78,12 @@ export class Tab extends StatefulClass {
 			if (ctx.window == frame.frame.contentWindow) {
 				injectTitleWatcher(ctx.client, this);
 				injectHistoryEmulation(ctx.client, this);
-				// injectDevtools(ctx.client, this);
+
+				use(this.devtoolsOpen).listen((open) => {
+					if (!open || injected) return;
+					injected = true;
+					injectDevtools(ctx.client, this);
+				});
 			}
 		});
 

@@ -98,6 +98,10 @@ Shell.style = css`
 		display: flex;
 	}
 
+	.devtoolsframecontainer {
+		width: 100%;
+	}
+
 	.mainframecontainer {
 		display: flex;
 		flex: 1;
