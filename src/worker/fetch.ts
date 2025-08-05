@@ -62,7 +62,7 @@ export async function handleFetch(
 		let parentFrameName;
 
 		let extraParams: Record<string, string> = {};
-		for (const [param, value] of requestUrl.searchParams.entries()) {
+		for (const [param, value] of [...requestUrl.searchParams.entries()]) {
 			switch (param) {
 				case "type":
 					workerType = value;
