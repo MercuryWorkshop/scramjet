@@ -63,25 +63,29 @@ export const UrlInput: Component<
 		}, 10);
 	});
 
+	let lastgooglesuggestions: OmniboxResult[] = [];
 	const fetchSuggestions = async () => {
 		let search = this.input.value;
 
-		this.overflowItems = [];
+		this.overflowItems = lastgooglesuggestions;
+
+		let googlesuggestions: OmniboxResult[] = [];
 
 		for (const entry of browser.globalhistory) {
 			if (!entry.url.href.includes(search) && !entry.title?.includes(search))
 				continue;
-			if (this.overflowItems.some((i) => i.url.href === entry.url.href))
+			if (googlesuggestions.some((i) => i.url.href === entry.url.href))
 				continue;
 
-			this.overflowItems.push({
+			googlesuggestions.push({
 				kind: "history",
 				title: entry.title,
 				url: entry.url,
 				favicon: entry.favicon,
 			});
 		}
-		this.overflowItems = this.overflowItems.slice(0, 5);
+		lastgooglesuggestions = googlesuggestions.slice(0, 5);
+		this.overflowItems = googlesuggestions.slice(0, 5);
 
 		if (URL.canParse(search)) {
 			this.overflowItems = [
@@ -194,15 +198,15 @@ export const UrlInput: Component<
 							<span class="description">
 								{item.title.startsWith(this.input.value) ? (
 									<>
-										<span>
+										<span style="font-weight: normal; opacity: 0.7;">
 											{item.title.substring(0, this.input.value.length)}
 										</span>
-										<span style="font-weight: normal; opacity: 0.7;">
-											{item.title.substring(this.input.value.length)}
-										</span>
+										<span>{item.title.substring(this.input.value.length)}</span>
 									</>
 								) : (
-									<span>item.title</span>
+									<span style="font-weight: normal; opacity: 0.7;">
+										{item.title}
+									</span>
 								)}
 								<span>{" - "}</span>
 							</span>
