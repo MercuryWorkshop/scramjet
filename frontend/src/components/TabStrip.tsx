@@ -451,8 +451,8 @@ export const Tabs: Component<
 	let tabcache = {};
 
 	return (
-		<div this={use(this.container).bind()}>
-			<div class="extra left" this={use(this.leftEl).bind()}></div>
+		<div this={use(this.container)}>
+			<div class="extra left" this={use(this.leftEl)}></div>
 			{use(this.tabs).mapEach((tab) =>
 				memoize(
 					() => (
@@ -471,10 +471,10 @@ export const Tabs: Component<
 					tabcache
 				)
 			)}
-			<div class="extra after" this={use(this.afterEl).bind()}>
+			<div class="extra after" this={use(this.afterEl)}>
 				<IconButton icon={iconAdd} click={this.addTab}></IconButton>
 			</div>
-			<div class="extra right" this={use(this.rightEl).bind()}></div>
+			<div class="extra right" this={use(this.rightEl)}></div>
 		</div>
 	);
 };

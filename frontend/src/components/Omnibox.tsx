@@ -190,7 +190,23 @@ export const UrlInput: Component<
 							src={item.favicon || "/vite.svg"}
 							alt="favicon"
 						/>
-						{(item.title && <span class="description">{item.title} - </span>) ||
+						{(item.title && (
+							<span class="description">
+								{item.title.startsWith(this.input.value) ? (
+									<>
+										<span>
+											{item.title.substring(0, this.input.value.length)}
+										</span>
+										<span style="font-weight: normal; opacity: 0.7;">
+											{item.title.substring(this.input.value.length)}
+										</span>
+									</>
+								) : (
+									<span>item.title</span>
+								)}
+								<span>{" - "}</span>
+							</span>
+						)) ||
 							""}
 						<span class="url">{trimUrl(item.url)}</span>
 					</div>
@@ -200,8 +216,8 @@ export const UrlInput: Component<
 				<IconButton icon={iconShield}></IconButton>
 				{use(this.active).andThen(
 					<input
-						this={use(this.input).bind()}
-						value={use(this.value).bind()}
+						this={use(this.input)}
+						value={use(this.value)}
 						on:keydown={(e: KeyboardEvent) => {
 							if (e.key === "ArrowDown") {
 								e.preventDefault();

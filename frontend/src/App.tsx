@@ -11,8 +11,8 @@ export const App: Component = function (cx) {
 		<div id="app">
 			<ThemeVars colors={use(config.theme)} />
 			<Tabs
-				tabs={use(browser.tabs).bind()}
-				activetab={use(browser.activetab).bind()}
+				tabs={use(browser.tabs)}
+				activetab={use(browser.activetab)}
 				addTab={() => {
 					browser.newTab(new URL("puter://newtab"), true);
 				}}
@@ -20,7 +20,7 @@ export const App: Component = function (cx) {
 					browser.destroyTab(tab);
 				}}
 			/>
-			<Omnibox tab={use(browser.activetab).bind()} />
+			<Omnibox tab={use(browser.activetab)} />
 			{cx.children}
 		</div>
 	);
