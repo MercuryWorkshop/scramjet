@@ -54,15 +54,15 @@ export async function handleFetch(
 			});
 		}
 
-		let workerType = "";
+		let scriptType = "";
 		let topFrameName;
 		let parentFrameName;
 
-		let extraParams: Record<string, string> = {};
+		const extraParams: Record<string, string> = {};
 		for (const [param, value] of [...requestUrl.searchParams.entries()]) {
 			switch (param) {
 				case "type":
-					workerType = value;
+					scriptType = value;
 					break;
 				case "dest":
 					break;
@@ -114,7 +114,7 @@ export async function handleFetch(
 					response as BareResponseFetch,
 					meta,
 					request.destination,
-					workerType,
+					scriptType,
 					this.cookieStore
 				);
 			}
@@ -273,9 +273,9 @@ export async function handleFetch(
 		);
 		this.dispatchEvent(ev);
 
-		const response: BareResponseFetch =
+		const response =
 			(await ev.response) ||
-			(await this.client.fetch(ev.url, {
+			((await this.client.fetch(ev.url, {
 				method: ev.method,
 				body: ev.body,
 				headers: ev.requestHeaders,
@@ -285,13 +285,13 @@ export async function handleFetch(
 				redirect: "manual",
 				// @ts-ignore why the fuck is this not typed microsoft
 				duplex: "half",
-			}));
+			})) as BareResponseFetch);
 		response.finalURL = ev.url.href;
 
 		return await handleResponse(
 			url,
 			meta,
-			workerType,
+			scriptType,
 			request.destination,
 			request.mode,
 			response,
@@ -331,7 +331,7 @@ export async function handleFetch(
 async function handleResponse(
 	url: URL,
 	meta: URLMeta,
-	workertype: string,
+	scriptType: string,
 	destination: RequestDestination,
 	mode: RequestMode,
 	response: BareResponseFetch,
@@ -383,6 +383,13 @@ async function handleResponse(
 			bareClient
 		);
 		await getMostRestrictiveSite(redirectUrl.toString(), newSiteDirective);
+
+		// ensure that ?type=module is not lost in a redirect
+		if (scriptType) {
+			const url = new URL(responseHeaders["location"]);
+			url.searchParams.set("type", scriptType);
+			responseHeaders["location"] = url.href;
+		}
 	}
 
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
@@ -415,7 +422,7 @@ async function handleResponse(
 			response,
 			meta,
 			destination,
-			workertype,
+			scriptType,
 			cookieStore
 		);
 	}
