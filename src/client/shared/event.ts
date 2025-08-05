@@ -4,7 +4,6 @@ import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { nativeGetOwnPropertyDescriptor } from "@client/natives";
-import { unproxy } from "@client/shared/unproxy";
 
 const realOnEvent = Symbol.for("scramjet original onevent function");
 
@@ -26,9 +25,9 @@ export default function (client: ScramjetClient, self: Self) {
 			source() {
 				if (this.source === null) return null;
 
-				const scram: ScramjetClient = this.source[SCRAMJETCLIENT];
+				// const scram: ScramjetClient = this.source[SCRAMJETCLIENT];
 
-				if (scram) return scram.globalProxy;
+				// if (scram) return scram.globalProxy;
 
 				return this.source;
 			},
@@ -127,7 +126,6 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
-			unproxy(ctx, client);
 			if (typeof ctx.args[1] !== "function") return;
 
 			const origlistener = ctx.args[1];
@@ -148,7 +146,6 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("EventTarget.prototype.removeEventListener", {
 		apply(ctx) {
-			unproxy(ctx, client);
 			if (typeof ctx.args[1] !== "function") return;
 
 			const arr = client.eventcallbacks.get(ctx.this);
@@ -163,12 +160,6 @@ export default function (client: ScramjetClient, self: Self) {
 			client.eventcallbacks.set(ctx.this, arr);
 
 			ctx.args[1] = r[0].proxiedCallback;
-		},
-	});
-
-	client.Proxy("EventTarget.prototype.dispatchEvent", {
-		apply(ctx) {
-			unproxy(ctx, client);
 		},
 	});
 

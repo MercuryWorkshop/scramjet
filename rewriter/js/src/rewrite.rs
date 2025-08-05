@@ -15,18 +15,22 @@ pub(crate) use rewrite;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum RewriteType<'alloc: 'data, 'data> {
-	/// `(cfg.wrapfn(ident,strictchecker))` | `cfg.wrapfn(ident,strictchecker)`
+	/// `(cfg.wrapfn(ident))` | `cfg.wrapfn(ident)`
 	WrapFn {
-		wrap: bool,
+		enclose: bool,
 	},
 	/// `cfg.setrealmfn({}).ident`
 	SetRealmFn,
-	/// `cfg.wrapthis(this)`
-	WrapThisFn,
+
 	/// `(cfg.importfn("cfg.base"))`
 	ImportFn,
 	/// `cfg.metafn("cfg.base")`
 	MetaFn,
+
+	RewriteProperty {
+	    ident: Atom<'data>,
+	},
+	WrapProperty,
 
 	// dead code only if debug is disabled
 	#[allow(dead_code)]
@@ -60,6 +64,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	Delete,
 }
 
+#[derive(Debug)]
 pub(crate) struct Rewrite<'alloc, 'data> {
 	span: Span,
 	ty: RewriteType<'alloc, 'data>,
@@ -77,6 +82,8 @@ impl<'alloc: 'data, 'data> Rewrite<'alloc, 'data> {
 
 impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 	fn into_inner(self, span: Span) -> SmallVec<[JsChange<'alloc, 'data>; 2]> {
+
+	dbg!(&self);
 		macro_rules! span {
 			(start) => {
 				Span::new(span.start, span.start)
@@ -90,24 +97,24 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			($span1:ident $span2:ident end) => {
 				Span::new($span1.end, $span2.end)
 			};
+			($span1:ident $span2:ident between) => {
+				Span::new($span1.end, $span2.start)
+			};
 		}
 
 		match self {
-			Self::WrapFn { wrap } => smallvec![
-				change!(span!(start), WrapFnLeft { wrap }),
-				change!(span!(end), WrapFnRight { wrap }),
+			Self::WrapFn { enclose } => smallvec![
+				change!(span!(start), WrapFnLeft { enclose }),
+				change!(span!(end), WrapFnRight { enclose }),
 			],
+			Self::RewriteProperty { ident } => smallvec![
+                change!(span, RewriteProperty { ident }),
+            ],
+            Self::WrapProperty => smallvec![
+                change!(span!(start), WrapPropertyLeft),
+                change!(span!(end), WrapPropertyRight),
+            ],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
-			Self::WrapThisFn => smallvec![
-				change!(span!(start), WrapThisFn),
-				change!(
-					span!(end),
-					ClosingParen {
-						semi: false,
-						replace: false
-					}
-				),
-			],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
 			Self::ScramErr { ident } => smallvec![change!(span!(end), ScramErrFn { ident })],
@@ -122,12 +129,12 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				)
 			],
 			Self::Eval { inner } => smallvec![
-				change!(span!(span inner start), EvalRewriteFn),
+				change!(Span::new(inner.start, inner.start), EvalRewriteFn),
 				change!(
-					span!(inner span end),
+					Span::new(inner.end, inner.end),
 					ClosingParen {
 						semi: false,
-						replace: true
+						replace: false,
 					}
 				)
 			],

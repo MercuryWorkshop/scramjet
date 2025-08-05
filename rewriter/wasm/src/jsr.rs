@@ -28,7 +28,7 @@ extern "C" {
 
 #[wasm_bindgen(typescript_custom_section)]
 const REWRITER_OUTPUT: &'static str = r#"
-export type JsRewriterOutput = { 
+export type JsRewriterOutput = {
 	js: Uint8Array,
 	map: Uint8Array,
 	scramtag: string,
@@ -49,8 +49,9 @@ fn get_config(scramjet: &Object) -> Result<Config> {
 	Ok(Config {
 		prefix: get_str(config, "prefix")?,
 
+        wrappropertybase: get_str(globals, "wrappropertybase")?,
+        wrappropertyfn: get_str(globals, "wrappropertyfn")?,
 		wrapfn: get_str(globals, "wrapfn")?,
-		wrapthisfn: get_str(globals, "wrapthisfn")?,
 		importfn: get_str(globals, "importfn")?,
 		rewritefn: get_str(globals, "rewritefn")?,
 		metafn: get_str(globals, "metafn")?,

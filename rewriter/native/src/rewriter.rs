@@ -52,7 +52,8 @@ impl NativeRewriter {
 			Config {
 				prefix: cfg.prefix.clone(),
 				wrapfn: cfg.wrapfn.clone(),
-				wrapthisfn: cfg.wrapthisfn.clone(),
+				wrappropertybase: cfg.wrappropertybase.clone(),
+				wrappropertyfn: cfg.wrappropertyfn.clone(),
 				importfn: cfg.importfn.clone(),
 				rewritefn: cfg.rewritefn.clone(),
 				metafn: cfg.metafn.clone(),
