@@ -12,6 +12,7 @@ import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { createMenu } from "./components/Menu";
 import { AboutPage } from "./pages/AboutPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
@@ -126,6 +127,11 @@ export class Tab extends StatefulClass {
 				case "version":
 					this.title = "About Version";
 					this.internalpage = <AboutPage tab={this} />;
+					break;
+				case "settings":
+					this.title = "Settings";
+					this.internalpage = <SettingsPage tab={this} />;
+					break;
 			}
 		} else {
 			this.internalpage = null;
