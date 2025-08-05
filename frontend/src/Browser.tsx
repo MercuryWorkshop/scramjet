@@ -6,6 +6,7 @@ import { createDelegate } from "dreamland/core";
 import tlds from "tlds";
 import type { SerializedHistoryState } from "./History";
 import { HistoryState } from "./History";
+import { focusOmnibox } from "./components/Omnibox";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
@@ -90,11 +91,12 @@ export class Browser extends StatefulClass {
 		console.log(this.activetab, this.activetab.url);
 	}
 
-	newTab(url?: URL) {
+	newTab(url?: URL, focusomnibox: boolean = false) {
 		let tab = new Tab(url);
 		pushTab(tab);
 		this.tabs = [...this.tabs, tab];
 		this.activetab = tab;
+		if (focusomnibox) focusOmnibox();
 		return tab;
 	}
 

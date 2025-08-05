@@ -14,7 +14,7 @@ export const App: Component = function (cx) {
 				tabs={use(browser.tabs).bind()}
 				activetab={use(browser.activetab).bind()}
 				addTab={() => {
-					browser.newTab();
+					browser.newTab(new URL("puter://newtab"), true);
 				}}
 				destroyTab={(tab: Tab) => {
 					browser.destroyTab(tab);

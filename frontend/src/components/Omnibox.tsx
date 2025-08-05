@@ -13,6 +13,8 @@ import { IconButton } from "./IconButton";
 import { createDelegate, type Delegate } from "dreamland/core";
 import type { Tab } from "../Tab";
 
+export const focusOmnibox = createDelegate<void>();
+
 export function trimUrl(v: URL) {
 	return (
 		(v.protocol === "puter:" ? v.protocol : "") + v.host + v.pathname + v.search
@@ -53,6 +55,14 @@ export const UrlInput: Component<
 	this.focusindex = 0;
 	this.overflowItems = [];
 	this.value = "";
+
+	focusOmnibox.listen(() => {
+		console.log("WH");
+		setTimeout(() => {
+			activate();
+		}, 10);
+	});
+
 	const fetchSuggestions = async () => {
 		let search = this.input.value;
 
@@ -213,11 +223,12 @@ export const UrlInput: Component<
 									browser.activetab.pushNavigate(
 										this.overflowItems[this.focusindex - 1].url
 									);
-									this.active = false;
-									this.input.blur();
 								} else {
 									browser.searchNavigate(this.value);
 								}
+
+								this.active = false;
+								this.input.blur();
 							}
 						}}
 						on:input={(e: InputEvent) => {
@@ -367,7 +378,7 @@ export const Omnibox: Component<{
 						{
 							label: "New Tab",
 							action: () => {
-								browser.newTab();
+								browser.newTab(new URL("puter://newtab"), true);
 							},
 						},
 						{

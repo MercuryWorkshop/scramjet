@@ -24,7 +24,7 @@ export const NewTabPage: Component<
 				></input>
 				<div class="suggestions">
 					{browser.globalhistory.slice(0, 5).map((entry) => (
-						<div class="suggestion" on:click={() => browser.newTab()}>
+						<div class="suggestion" on:click={() => browser.newTab(entry.url)}>
 							<div class="circle">
 								<img src={entry.favicon || "/vite.svg"} alt="favicon" />
 							</div>
