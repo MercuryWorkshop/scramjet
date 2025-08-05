@@ -52,8 +52,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 
 		set(target, prop, value) {
-			if (target == realLocalStorage)
-				console.log("SET", prop, value, target === realLocalStorage);
 			target.setItem(client.url.host + "@" + (prop as string), value);
 
 			return true;
