@@ -27,9 +27,17 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `cfg.metafn("cfg.base")`
 	MetaFn,
 
+	/// `location` -> `$sj_location`
 	RewriteProperty {
 		ident: Atom<'data>,
 	},
+
+	/// `location` -> `$sj_location: location`
+	RebindProperty {
+		ident: Atom<'data>,
+	},
+
+	/// `cfg.wrapprop({})`
 	WrapProperty,
 
 	// dead code only if debug is disabled
@@ -107,6 +115,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				change!(span!(end), WrapFnRight { enclose }),
 			],
 			Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
+			Self::RebindProperty { ident } => smallvec![change!(span, RebindProperty { ident })],
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
 				change!(span!(end), WrapPropertyRight),
