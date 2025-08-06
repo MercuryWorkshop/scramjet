@@ -40,6 +40,9 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	RewriteProperty {
 		ident: Atom<'data>,
 	},
+	RebindProperty {
+		ident: Atom<'data>,
+	},
 
 	/// insert `${cfg.setrealmfn}({}).`
 	SetRealmFn,
@@ -106,7 +109,6 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		(cfg, flags): &Self::ToLowLevelData,
 		offset: i32,
 	) -> TransformLL<'data> {
-		dbg!(&&self);
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
@@ -123,6 +125,9 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(("]),
 			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
 			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
+			Ty::RebindProperty { ident } => {
+				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
+			}
 
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
