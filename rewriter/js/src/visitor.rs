@@ -7,10 +7,10 @@ use oxc::{
 		AssignmentTargetProperty, BindingPattern, BindingPatternKind, BindingProperty,
 		CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration,
 		ExportNamedDeclaration, Expression, FunctionBody, IdentifierReference, ImportDeclaration,
-		ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectExpression,
-		ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement,
-		SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator,
-		UpdateExpression,
+		ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget,
+		ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey,
+		ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression,
+		UnaryOperator, UpdateExpression,
 	},
 	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
@@ -100,6 +100,79 @@ where
 			_ => {
 				self.jschanges
 					.add(rewrite!(it.expression.span(), WrapProperty,));
+			}
+		}
+	}
+
+	fn recurse_object_assignment_target(&mut self, s: &ObjectAssignmentTarget<'data>) {
+		if s.rest.is_some() {
+			// infeasible to rewrite :(
+			eprintln!("cannot rewrite rest parameters");
+			return;
+		}
+		for prop in &s.properties {
+			match prop {
+				AssignmentTargetProperty::AssignmentTargetPropertyIdentifier(p) => {
+					// { location } = self;
+					// correct thing to do here is to change it into an AsignmentTargetPropertyProperty
+					// { $sj_location: location } = self;
+					if UNSAFE_GLOBALS.contains(&p.binding.name.to_string().as_str()) {
+						self.jschanges.add(rewrite!(
+							p.binding.span(),
+							RebindProperty {
+								ident: p.binding.name.clone()
+							}
+						));
+					}
+
+					if let Some(d) = &p.init {
+						// { location = parent } = {};
+						// we still need to rewrite whatever stuff might be in the default expression
+						walk::walk_expression(self, &d);
+					}
+				}
+				AssignmentTargetProperty::AssignmentTargetPropertyProperty(p) => {
+					// { location: x } = self;
+					// { location: x = "..."} = self;
+					// { location: { href } } = self;
+					// { location: { href: x } } = self;
+					// { ["location"]: x } = self;
+
+					match &p.name {
+						PropertyKey::StaticIdentifier(id) => {
+							// { location: x } = self;
+							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
+								self.jschanges.add(rewrite!(
+									p.name.span(),
+									RewriteProperty { ident: id.name }
+								));
+							}
+						}
+						PropertyKey::PrivateIdentifier(_) => {
+							// doesn't matter
+						}
+						// (expression variant)
+						_ => {
+							// { ["location"]: x } = self;
+
+							// TODO: check literals
+							self.jschanges.add(rewrite!(p.name.span(), WrapProperty));
+						}
+					}
+
+					match &p.binding {
+						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
+							// { location: x = parent } = {};
+
+							// we still need to rewrite whatever stuff might be in the default expression
+							walk::walk_expression(self, &d.init);
+						}
+						AssignmentTargetMaybeDefault::ObjectAssignmentTarget(p) => {
+							self.recurse_object_assignment_target(p);
+						}
+						_ => {}
+					}
+				}
 			}
 		}
 	}
@@ -376,106 +449,6 @@ where
 		}
 	}
 
-	fn visit_assignment_target(&mut self, it: &AssignmentTarget<'data>) {
-		match &it {
-			AssignmentTarget::StaticMemberExpression(s) => {
-				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
-					self.jschanges.add(rewrite!(
-						s.property.span(),
-						RewriteProperty {
-							ident: s.property.name
-						}
-					));
-				}
-
-				// more to walk
-				walk::walk_expression(self, &s.object);
-			}
-			AssignmentTarget::ComputedMemberExpression(s) => {
-				self.walk_computed_member_expression(s);
-				walk::walk_expression(self, &s.object);
-				walk::walk_expression(self, &s.expression);
-			}
-			AssignmentTarget::ObjectAssignmentTarget(s) => {
-				if s.rest.is_some() {
-					// infeasible to rewrite :(
-					eprintln!("cannot rewrite rest parameters");
-					return;
-				}
-				for prop in &s.properties {
-					match prop {
-						AssignmentTargetProperty::AssignmentTargetPropertyIdentifier(p) => {
-							// { location } = self;
-							// correct thing to do here is to change it into an AsignmentTargetPropertyProperty
-							// { $sj_location: location } = self;
-							if UNSAFE_GLOBALS.contains(&p.binding.name.to_string().as_str()) {
-								self.jschanges.add(rewrite!(
-									p.binding.span(),
-									RebindProperty {
-										ident: p.binding.name.clone()
-									}
-								));
-							}
-						}
-						AssignmentTargetProperty::AssignmentTargetPropertyProperty(p) => {
-							// { location: x } = self;
-							// { location: x = "..."} = self;
-							// { location: { href } } = self;
-							// { location: { href: x } } = self;
-							// { ["location"]: x } = self;
-
-							match &p.name {
-								PropertyKey::StaticIdentifier(id) => {
-									// { location: x } = self;
-									if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
-										self.jschanges.add(rewrite!(
-											p.name.span(),
-											RewriteProperty { ident: id.name }
-										));
-									}
-								}
-								PropertyKey::PrivateIdentifier(_) => {
-									// doesn't matter
-								}
-								// (expression variant)
-								_ => {
-									// { ["location"]: x } = self;
-
-									// TODO: check literals
-									self.jschanges.add(rewrite!(p.name.span(), WrapProperty));
-								}
-							}
-
-							match &p.binding {
-								AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
-									// { location: x = parent } = {};
-									// { location = parent } = {};
-
-									// we still need to rewrite whatever stuff might be in the default expression
-									walk::walk_expression(self, &d.init);
-								}
-								_ => {
-									// { location: { href } } = {};
-									walk::walk_assignment_target_maybe_default(self, &p.binding);
-								}
-							}
-						}
-					}
-				}
-			}
-			AssignmentTarget::ArrayAssignmentTarget(_) => {
-				// [location] = ["https://example.com"]
-				// this is such a ridiculously specific edge case. just ignore it
-				return;
-			}
-			_ => {
-				// only walk the left side if it isn't an identifier, we can't replace the
-				// identifier with a function obviously
-				walk::walk_assignment_target(self, &it);
-			}
-		}
-	}
-
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
 		// location = "https://example.com"
 		match &it.left {
@@ -495,9 +468,29 @@ where
 					return;
 				}
 			}
-			_ => {
-				// gets handled by visit_assignment_target
+			AssignmentTarget::StaticMemberExpression(s) => {
+				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+					self.jschanges.add(rewrite!(
+						s.property.span(),
+						RewriteProperty {
+							ident: s.property.name
+						}
+					));
+				}
+
+				// more to walk
+				walk::walk_expression(self, &s.object);
 			}
+			AssignmentTarget::ComputedMemberExpression(s) => {
+				self.walk_computed_member_expression(s);
+				walk::walk_expression(self, &s.object);
+				walk::walk_expression(self, &s.expression);
+			}
+			AssignmentTarget::ObjectAssignmentTarget(o) => {
+				self.recurse_object_assignment_target(o);
+				return;
+			}
+			_ => {}
 		}
 		walk::walk_assignment_expression(self, it);
 	}
