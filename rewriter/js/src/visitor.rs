@@ -3,7 +3,7 @@ use std::error::Error;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
-		AssignmentExpression, AssignmentTarget, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectExpression, ObjectPropertyKind, ReturnStatement, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression
+		AssignmentExpression, AssignmentTarget, BindingPattern, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectExpression, ObjectPattern, ObjectPropertyKind, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression
 	},
 	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
@@ -291,9 +291,24 @@ where
 		walk::walk_unary_expression(self, it);
 	}
 
-	// fn visit_update_expression(&mut self, _it: &UpdateExpression<'data>) {
-	// 	// this is like a ++ or -- operator
-	// }
+	fn visit_update_expression(&mut self, it: &UpdateExpression<'data>) {
+		// this is like a ++ or -- operator
+		match it.argument {
+    		SimpleAssignmentTarget::AssignmentTargetIdentifier(_) => {
+    		    // if it's an identifier we cannot rewrite it
+    		    // $wrap(location)++ is invalid syntax
+
+    			// so it's safer to assume that this "location" is a local
+    			// even if it's real location you can't escape with it anyway
+    			// unless you consider navigating to "https://proxy.com/NaN" escaping
+    			return;
+            }
+            _=>{}
+		}
+
+		// if it's not a simple identifier it's probably a member expression which is safe
+		walk::walk_update_expression(self, it);
+	}
 
 	fn visit_meta_property(&mut self, it: &MetaProperty<'data>) {
 		if it.meta.name == "import" {
