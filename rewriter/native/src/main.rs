@@ -29,6 +29,8 @@ pub struct RewriterOptions {
 	wrappropertybase: String,
 	#[clap(long, default_value = "$prop")]
 	wrappropertyfn: String,
+	#[clap(long, default_value = "$clean")]
+	cleanrestfn: String,
 	#[clap(long, default_value = "$import")]
 	importfn: String,
 	#[clap(long, default_value = "$rewrite")]

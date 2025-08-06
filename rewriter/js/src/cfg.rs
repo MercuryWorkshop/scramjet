@@ -19,6 +19,7 @@ pub struct Config {
 	pub wrapfn: String,
 	pub wrappropertybase: String,
 	pub wrappropertyfn: String,
+	pub cleanrestfn: String,
 	pub importfn: String,
 	pub rewritefn: String,
 	pub setrealmfn: String,

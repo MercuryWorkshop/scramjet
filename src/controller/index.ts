@@ -20,6 +20,7 @@ export class ScramjetController {
 				wrapfn: "$scramjet$wrap",
 				wrappropertybase: "$scramjet__",
 				wrappropertyfn: "$scramjet$prop",
+				cleanrestfn: "$scramjet$clean",
 				trysetfn: "$scramjet$tryset",
 				importfn: "$scramjet$import",
 				rewritefn: "$scramjet$rewrite",

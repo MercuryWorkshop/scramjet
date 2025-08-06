@@ -44,6 +44,10 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		ident: Atom<'data>,
 	},
 
+	WrapObjectAssignmentLeft {
+		restids: Vec<Atom<'data>>,
+	},
+
 	/// insert `${cfg.setrealmfn}({}).`
 	SetRealmFn,
 	/// insert `$scramerr(ident);`
@@ -128,7 +132,14 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::RebindProperty { ident } => {
 				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
 			}
-
+			Ty::WrapObjectAssignmentLeft { restids } => {
+				let mut steps = String::new();
+				for id in restids {
+					steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
+				}
+				let steps: &'static str = Box::leak(steps.into_boxed_str());
+				LL::insert(transforms!["((t)=>(", &steps, "t))("])
+			}
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
 			Ty::ScramitizeFn => LL::insert(transforms![" $scramitize("]),

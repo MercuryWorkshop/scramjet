@@ -37,6 +37,10 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		ident: Atom<'data>,
 	},
 
+	WrapObjectAssignment {
+		restids: Vec<Atom<'data>>,
+	},
+
 	/// `cfg.wrapprop({})`
 	WrapProperty,
 
@@ -118,6 +122,16 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
 				change!(span!(end), WrapPropertyRight),
+			],
+			Self::WrapObjectAssignment { restids } => smallvec![
+				change!(span!(start), WrapObjectAssignmentLeft { restids }),
+				change!(
+					span!(end),
+					ClosingParen {
+						semi: false,
+						replace: false
+					}
+				)
 			],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
