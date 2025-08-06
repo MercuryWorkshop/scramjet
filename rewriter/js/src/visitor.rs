@@ -3,9 +3,14 @@ use std::error::Error;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
-		AssignmentExpression, AssignmentTarget, BindingPattern, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectExpression, ObjectPattern, ObjectPropertyKind, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression
+		AssignmentExpression, AssignmentTarget, BindingPattern, CallExpression,
+		ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration,
+		Expression, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression,
+		MemberExpression, MetaProperty, NewExpression, ObjectExpression, ObjectPattern,
+		ObjectPropertyKind, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression,
+		UnaryExpression, UnaryOperator, UpdateExpression,
 	},
-	ast_visit::{walk, Visit},
+	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
 };
 
@@ -78,24 +83,24 @@ where
 	// 	}
 	// }
 	fn walk_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
-    	match &it.expression{
-            Expression::NullLiteral(_) | Expression::BigIntLiteral(_) | Expression::NumericLiteral(_) | Expression::RegExpLiteral(_) | Expression::BooleanLiteral(_) => {},
-            Expression::StringLiteral(lit) =>{
-                if UNSAFE_GLOBALS.contains(&lit.value.as_str()) {
-    				self.jschanges.add(rewrite!(
-       					it.expression.span(),
-       					WrapProperty,
-    				));
-                }
-            },
-            _=> {
-                self.jschanges.add(rewrite!(
-   					it.expression.span(),
-   					WrapProperty,
-				));
-            }
-        }
-    }
+		match &it.expression {
+			Expression::NullLiteral(_)
+			| Expression::BigIntLiteral(_)
+			| Expression::NumericLiteral(_)
+			| Expression::RegExpLiteral(_)
+			| Expression::BooleanLiteral(_) => {}
+			Expression::StringLiteral(lit) => {
+				if UNSAFE_GLOBALS.contains(&lit.value.as_str()) {
+					self.jschanges
+						.add(rewrite!(it.expression.span(), WrapProperty,));
+				}
+			}
+			_ => {
+				self.jschanges
+					.add(rewrite!(it.expression.span(), WrapProperty,));
+			}
+		}
+	}
 
 	fn scramitize(&mut self, span: Span) {
 		self.jschanges.add(rewrite!(span, Scramitize));
@@ -125,7 +130,7 @@ where
 	}
 
 	fn visit_new_expression(&mut self, it: &NewExpression<'data>) {
-	// ??
+		// ??
 		// self.walk_member_expression(&it.callee);
 		walk::walk_arguments(self, &it.arguments);
 	}
@@ -147,7 +152,9 @@ where
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
 					self.jschanges.add(rewrite!(
 						s.property.span(),
-						RewriteProperty { ident: s.property.name }
+						RewriteProperty {
+							ident: s.property.name
+						}
 					));
 				}
 			}
@@ -203,9 +210,13 @@ where
 	}
 
 	fn visit_import_declaration(&mut self, it: &ImportDeclaration<'data>) {
-    	let str = it.source.to_string();
-	    if str.contains(":") || str.starts_with("/") || str.starts_with(".") || str.starts_with("..") {
-	    	self.rewrite_url(&it.source,true);
+		let str = it.source.to_string();
+		if str.contains(":")
+			|| str.starts_with("/")
+			|| str.starts_with(".")
+			|| str.starts_with("..")
+		{
+			self.rewrite_url(&it.source, true);
 		}
 		walk::walk_import_declaration(self, it);
 	}
@@ -294,16 +305,16 @@ where
 	fn visit_update_expression(&mut self, it: &UpdateExpression<'data>) {
 		// this is like a ++ or -- operator
 		match it.argument {
-    		SimpleAssignmentTarget::AssignmentTargetIdentifier(_) => {
-    		    // if it's an identifier we cannot rewrite it
-    		    // $wrap(location)++ is invalid syntax
+			SimpleAssignmentTarget::AssignmentTargetIdentifier(_) => {
+				// if it's an identifier we cannot rewrite it
+				// $wrap(location)++ is invalid syntax
 
-    			// so it's safer to assume that this "location" is a local
-    			// even if it's real location you can't escape with it anyway
-    			// unless you consider navigating to "https://proxy.com/NaN" escaping
-    			return;
-            }
-            _=>{}
+				// so it's safer to assume that this "location" is a local
+				// even if it's real location you can't escape with it anyway
+				// unless you consider navigating to "https://proxy.com/NaN" escaping
+				return;
+			}
+			_ => {}
 		}
 
 		// if it's not a simple identifier it's probably a member expression which is safe
@@ -338,7 +349,9 @@ where
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
 					self.jschanges.add(rewrite!(
 						s.property.span(),
-						RewriteProperty { ident: s.property.name }
+						RewriteProperty {
+							ident: s.property.name
+						}
 					));
 				}
 
@@ -346,7 +359,7 @@ where
 				walk::walk_expression(self, &s.object);
 			}
 			AssignmentTarget::ComputedMemberExpression(s) => {
-     			self.walk_computed_member_expression(s);
+				self.walk_computed_member_expression(s);
 				walk::walk_expression(self, &s.object);
 				walk::walk_expression(self, &s.expression);
 			}
