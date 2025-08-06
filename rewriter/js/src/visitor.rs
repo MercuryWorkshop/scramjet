@@ -4,13 +4,13 @@ use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
 		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault,
-		AssignmentTargetProperty, BindingPattern, BindingPatternKind, BindingProperty,
-		CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration,
-		ExportNamedDeclaration, Expression, FunctionBody, IdentifierReference, ImportDeclaration,
-		ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget,
-		ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey,
-		ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression,
-		UnaryOperator, UpdateExpression,
+		AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern,
+		BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression,
+		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
+		IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty,
+		NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind,
+		PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral,
+		ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
 	},
 	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
@@ -104,10 +104,21 @@ where
 		}
 	}
 
-	fn recurse_object_assignment_target(&mut self, s: &ObjectAssignmentTarget<'data>) {
-		if s.rest.is_some() {
-			// infeasible to rewrite :(
-			eprintln!("cannot rewrite rest parameters");
+	fn recurse_object_assignment_target(
+		&mut self,
+		s: &ObjectAssignmentTarget<'data>,
+		restids: &mut Vec<Atom<'data>>,
+	) {
+		if let Some(r) = &s.rest {
+			// { ...rest } = self;
+			match &r.target {
+				AssignmentTarget::AssignmentTargetIdentifier(i) => {
+					// keep track of the name so we can clean it later
+					// i don't really care about the rest being `location` here, if someone wants to redirect to `https://proxy.com/[Object object]` they can
+					restids.push(i.name);
+				}
+				_ => panic!("what?"),
+			}
 			return;
 		}
 		for prop in &s.properties {
@@ -168,7 +179,7 @@ where
 							walk::walk_expression(self, &d.init);
 						}
 						AssignmentTargetMaybeDefault::ObjectAssignmentTarget(p) => {
-							self.recurse_object_assignment_target(p);
+							self.recurse_object_assignment_target(p, restids);
 						}
 						_ => {}
 					}
@@ -487,7 +498,13 @@ where
 				walk::walk_expression(self, &s.expression);
 			}
 			AssignmentTarget::ObjectAssignmentTarget(o) => {
-				self.recurse_object_assignment_target(o);
+				let mut restids: Vec<Atom<'data>> = Vec::new();
+				self.recurse_object_assignment_target(o, &mut restids);
+
+				if restids.len() > 0 {
+					self.jschanges
+						.add(rewrite!(it.span, WrapObjectAssignment { restids }));
+				}
 				return;
 			}
 			_ => {}

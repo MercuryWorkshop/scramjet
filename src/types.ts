@@ -21,6 +21,7 @@ export interface ScramjetConfig {
 		wrapfn: string;
 		wrappropertybase: string;
 		wrappropertyfn: string;
+		cleanrestfn: string;
 		trysetfn: string;
 		importfn: string;
 		rewritefn: string;

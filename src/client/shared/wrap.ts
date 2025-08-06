@@ -66,7 +66,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		configurable: false,
 		enumerable: false,
 	});
-	console.log(config.globals.wrappropertybase);
+	Object.defineProperty(self, config.globals.cleanrestfn, {
+		value: function (obj) {
+			// TODO
+		},
+		writable: false,
+		configurable: false,
+		enumerable: false,
+	});
 
 	Object.defineProperty(
 		self.Object.prototype,
