@@ -4,12 +4,13 @@ use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
 		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault,
-		AssignmentTargetProperty, BindingPattern, CallExpression, ComputedMemberExpression,
-		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
-		IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty,
-		NewExpression, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier,
-		PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression,
-		UnaryExpression, UnaryOperator, UpdateExpression,
+		AssignmentTargetProperty, BindingPattern, BindingPatternKind, BindingProperty,
+		CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration,
+		ExportNamedDeclaration, Expression, FunctionBody, IdentifierReference, ImportDeclaration,
+		ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectExpression,
+		ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement,
+		SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator,
+		UpdateExpression,
 	},
 	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
@@ -325,6 +326,53 @@ where
 	fn visit_meta_property(&mut self, it: &MetaProperty<'data>) {
 		if it.meta.name == "import" {
 			self.jschanges.add(rewrite!(it.span, MetaFn));
+		}
+	}
+
+	fn visit_binding_pattern(&mut self, it: &BindingPattern<'data>) {
+		match &it.kind {
+			BindingPatternKind::BindingIdentifier(p) => {
+				// let a = 0;
+				dbg!(&p);
+				walk::walk_binding_identifier(self, p);
+			}
+			BindingPatternKind::AssignmentPattern(p) => {
+				walk::walk_binding_pattern(self, &p.left);
+				walk::walk_expression(self, &p.right);
+				dbg!(&p);
+			}
+			BindingPatternKind::ObjectPattern(p) => {
+				for prop in &p.properties {
+					match &prop.key {
+						PropertyKey::StaticIdentifier(id) => {
+							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
+								if prop.shorthand {
+									// const { location } = self;
+									self.jschanges.add(rewrite!(
+										id.span(),
+										RebindProperty { ident: id.name }
+									));
+								} else {
+									// const { location: a } = self;
+									self.jschanges.add(rewrite!(
+										id.span(),
+										RewriteProperty { ident: id.name }
+									));
+								}
+							}
+						}
+						PropertyKey::PrivateIdentifier(_) => {
+							// doesn't matter
+						}
+						_ => {
+							// const { ["location"]: x } = self;
+							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
+						}
+					}
+					walk::walk_binding_pattern(self, &prop.value);
+				}
+			}
+			_ => {}
 		}
 	}
 
