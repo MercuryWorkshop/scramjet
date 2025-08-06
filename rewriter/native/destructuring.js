@@ -1,8 +1,11 @@
+({ eval } = self);
+({ eval: a } = self);
+({ eval = parent } = self);
+({ ["eval"]: a } = self);
+({ ["eval"]: a = parent } = self);
+({ parent: { eval: x } } = self);
+({ parent: { eval: x = parent } } = self);
+({ parent: { eval} } = self);
+
+
 ({ location } = self);
-({ location: a } = self);
-({ location = parent } = self);
-({ ["location"]: a } = self);
-({ ["location"]: a = parent } = self);
-({ parent: { location: x } } = self);
-({ parent: { location: x = parent } } = self);
-({ parent: { location } } = self);
