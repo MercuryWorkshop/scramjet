@@ -49,8 +49,8 @@ fn get_config(scramjet: &Object) -> Result<Config> {
 	Ok(Config {
 		prefix: get_str(config, "prefix")?,
 
-        wrappropertybase: get_str(globals, "wrappropertybase")?,
-        wrappropertyfn: get_str(globals, "wrappropertyfn")?,
+		wrappropertybase: get_str(globals, "wrappropertybase")?,
+		wrappropertyfn: get_str(globals, "wrappropertyfn")?,
 		wrapfn: get_str(globals, "wrapfn")?,
 		importfn: get_str(globals, "importfn")?,
 		rewritefn: get_str(globals, "rewritefn")?,

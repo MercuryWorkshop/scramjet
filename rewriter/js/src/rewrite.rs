@@ -28,7 +28,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	MetaFn,
 
 	RewriteProperty {
-	    ident: Atom<'data>,
+		ident: Atom<'data>,
 	},
 	WrapProperty,
 
@@ -82,8 +82,7 @@ impl<'alloc: 'data, 'data> Rewrite<'alloc, 'data> {
 
 impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 	fn into_inner(self, span: Span) -> SmallVec<[JsChange<'alloc, 'data>; 2]> {
-
-	dbg!(&self);
+		dbg!(&self);
 		macro_rules! span {
 			(start) => {
 				Span::new(span.start, span.start)
@@ -107,13 +106,11 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				change!(span!(start), WrapFnLeft { enclose }),
 				change!(span!(end), WrapFnRight { enclose }),
 			],
-			Self::RewriteProperty { ident } => smallvec![
-                change!(span, RewriteProperty { ident }),
-            ],
-            Self::WrapProperty => smallvec![
-                change!(span!(start), WrapPropertyLeft),
-                change!(span!(end), WrapPropertyRight),
-            ],
+			Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
+			Self::WrapProperty => smallvec![
+				change!(span!(start), WrapPropertyLeft),
+				change!(span!(end), WrapPropertyRight),
+			],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
