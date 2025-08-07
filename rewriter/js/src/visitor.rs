@@ -414,6 +414,10 @@ where
 	}
 
 	fn visit_binding_pattern(&mut self, it: &BindingPattern<'data>) {
+	    if !self.flags.destructure_rewrites {
+			return;
+		}
+
 		match &it.kind {
 			BindingPatternKind::BindingIdentifier(p) => {
 				// let a = 0;
@@ -498,6 +502,10 @@ where
 				walk::walk_expression(self, &s.expression);
 			}
 			AssignmentTarget::ObjectAssignmentTarget(o) => {
+			    if !self.flags.destructure_rewrites {
+					return;
+				}
+
 				let mut restids: Vec<Atom<'data>> = Vec::new();
 				self.recurse_object_assignment_target(o, &mut restids);
 

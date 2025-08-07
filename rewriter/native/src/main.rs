@@ -57,6 +57,8 @@ pub struct RewriterOptions {
 	scramitize: bool,
 	#[clap(long, default_value_t = false)]
 	strict_rewrites: bool,
+	#[clap(long, default_value_t = false)]
+	destructure_rewrites: bool,
 }
 
 impl Default for RewriterOptions {

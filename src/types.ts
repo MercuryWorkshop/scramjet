@@ -13,6 +13,7 @@ export type ScramjetFlags = {
 	cleanErrors: boolean;
 	scramitize: boolean;
 	sourcemaps: boolean;
+	destructureRewrites: boolean;
 };
 
 export interface ScramjetConfig {
