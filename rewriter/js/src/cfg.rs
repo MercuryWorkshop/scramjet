@@ -37,4 +37,5 @@ pub struct Flags {
 	pub scramitize: bool,
 	pub do_sourcemaps: bool,
 	pub strict_rewrites: bool,
+	pub destructure_rewrites: bool,
 }

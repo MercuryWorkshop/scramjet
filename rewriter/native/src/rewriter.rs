@@ -90,6 +90,7 @@ impl NativeRewriter {
 					do_sourcemaps: cfg.do_sourcemaps,
 					scramitize: cfg.scramitize,
 					strict_rewrites: cfg.strict_rewrites,
+					destructure_rewrites: cfg.destructure_rewrites,
 				},
 			)
 			.context("failed to rewrite file")
