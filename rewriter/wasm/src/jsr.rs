@@ -120,6 +120,7 @@ pub fn get_js_flags(scramjet: &Object, base: String, is_module: bool) -> Result<
 		capture_errors: get_flag(scramjet, &base, "captureErrors")?,
 		scramitize: get_flag(scramjet, &base, "scramitize")?,
 		strict_rewrites: get_flag(scramjet, &base, "strictRewrites")?,
+		destructure_rewrites: get_flag(scramjet, &base, "destructureRewrites")?,
 
 		base,
 	})
