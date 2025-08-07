@@ -386,6 +386,7 @@ where
           		Expression::Identifier(_) =>{
 			        // `typeof location` -> `typeof $wrap(location)` seems like a sane rewrite but it's incorrect
 					// typeof has the special property of not caring whether the identifier is undefined
+					// and this won't escape anyway, so don't rewrite
          			return;
           		}
                 _=>{
@@ -486,10 +487,6 @@ where
 							op: it.operator,
 						}
 					));
-
-					// avoid walking rest of tree, i would need to figure out nested rewrites
-					// somehow
-					return;
 				}
 			}
 			AssignmentTarget::StaticMemberExpression(s) => {
