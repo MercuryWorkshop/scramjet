@@ -5,3 +5,6 @@ packages:
   - "./"
   - "frontend"
   - "dreamlandjs"
+  - "chii"
+  - "chobitsu"
+  - "playwright"

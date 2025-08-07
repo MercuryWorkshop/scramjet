@@ -7,3 +7,6 @@
 [submodule "chobitsu"]
 	path = chobitsu
 	url = https://github.com/HeyPuter/chobitsu
+[submodule "chii"]
+	path = chii
+	url = https://github.com/HeyPuter/chii
