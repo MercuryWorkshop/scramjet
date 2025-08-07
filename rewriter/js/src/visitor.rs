@@ -517,6 +517,5 @@ where
 			}
 			_ => {}
 		}
-		walk::walk_assignment_expression(self, it);
 	}
 }
