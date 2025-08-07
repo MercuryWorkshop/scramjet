@@ -382,8 +382,17 @@ where
 
 	fn visit_unary_expression(&mut self, it: &UnaryExpression<'data>) {
 		if matches!(it.operator, UnaryOperator::Typeof) {
-			// don't walk to identifier rewrites since it won't matter
-			return;
+	    	match it.argument {
+          		Expression::Identifier(_) =>{
+			        // `typeof location` -> `typeof $wrap(location)` seems like a sane rewrite but it's incorrect
+					// typeof has the special property of not caring whether the identifier is undefined
+         			return;
+          		}
+                _=>{
+                    // `typeof (location)` / `typeof location.href` / `typeof function()`
+                    // this is safe to rewrite
+                }
+	    	}
 		}
 		walk::walk_unary_expression(self, it);
 	}
@@ -517,5 +526,6 @@ where
 			}
 			_ => {}
 		}
+		walk::walk_expression(self, &it.right);
 	}
 }
