@@ -12,6 +12,10 @@ export default defineConfig({
 					src: scramjetPath + "/*",
 					dest: "scram/",
 				},
+				{
+					src: "../chobitsu_inject/output/chobitsu_inject.js",
+					dest: ".",
+				},
 			],
 		}),
 	],

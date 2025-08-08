@@ -27,6 +27,7 @@ class CDPServer {
 		const resultMsg: any = {
 			id: msg.id,
 		};
+		console.log(msg);
 
 		try {
 			resultMsg.result = await this.callMethod(msg.method, msg.params);
@@ -63,6 +64,9 @@ class CDPServer {
 			if (domain[methodName]) {
 				return domain[methodName](params) || {};
 			}
+		}
+
+		if (params.sessionId) {
 		}
 
 		throw Error(`${method} unimplemented`);
@@ -103,7 +107,7 @@ const Scopes = {
 			server.emit<Protocol.Target.AttachedToTargetEvent>(
 				"Target.attachedToTarget",
 				{
-					sessionId: "0",
+					sessionId: String(tab.id),
 					waitingForDebugger: false,
 					targetInfo: {
 						browserContextId: "0",

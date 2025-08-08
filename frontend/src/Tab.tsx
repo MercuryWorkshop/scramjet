@@ -48,6 +48,9 @@ export class Tab extends StatefulClass {
 	devtoolsOpen: boolean = false;
 	devtoolsWidth = 200;
 
+	sendToChobitsu: ((message: string) => void) | null = null;
+	onChobitsuMessage: ((message: string) => void) | null = null;
+
 	constructor(public url: URL = new URL("puter://newtab")) {
 		super(createState(Object.create(Tab.prototype)));
 
@@ -74,6 +77,7 @@ export class Tab extends StatefulClass {
 		let injected = false;
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
+			injectChobitsu(ctx.client, this);
 
 			// make sure it's top level, ctxInit calls for all frames too
 			if (ctx.window == frame.frame.contentWindow) {
@@ -165,6 +169,23 @@ export class Tab extends StatefulClass {
 			this.frame.reload();
 		}
 	}
+}
+
+function injectChobitsu(client: ScramjetClient, tab: Tab) {
+	// the fake origin is defined in sw.js
+	const devtoolsUrl = "https://fake-devtools.invalid";
+	// make sure to create the element through the proxied document
+	let devtoolsScript = client.global.document.createElement("script");
+	devtoolsScript.setAttribute("src", devtoolsUrl + "/chobitsu_inject.js");
+
+	// @ts-expect-error
+	client.global.$onChobitsuMessage = (message: string) => {
+		tab.onChobitsuMessage(message);
+	};
+	tab.sendToChobitsu = (message: string) => {
+		// @ts-expect-error
+		client.global.$sendToChobitsu(message);
+	};
 }
 
 function injectDevtools(client: ScramjetClient, tab: Tab) {

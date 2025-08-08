@@ -1,0 +1,21 @@
+{
+	"name": "chobitsu_inject",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"type": "module",
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"packageManager": "pnpm@10.12.1",
+	"dependencies": {
+		"chobitsu": "workspace:*"
+	},
+	"devDependencies": {
+		"@rollup/plugin-node-resolve": "^16.0.1",
+		"rollup": "^4.44.2"
+	}
+}
