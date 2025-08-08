@@ -27,6 +27,7 @@ class CDPServer {
 		const msg = JSON.parse(message);
 		const resultMsg: any = {
 			id: msg.id,
+			sessionId: msg.sessionId,
 		};
 		console.log(msg);
 
@@ -132,6 +133,17 @@ class CDPServer {
 		}
 
 		if (sessionId) {
+			console.log("Routing " + method + " to session " + sessionId);
+
+			const result: any = await this.callTabMethod(sessionId, method, params);
+
+			if (result.result) {
+				return result.result;
+			} else if (result.error) {
+				throw new Error(result.error.message);
+			} else {
+				throw new Error("Bad message from subcdp");
+			}
 		}
 
 		throw Error(`${method} unimplemented`);
@@ -194,8 +206,10 @@ const Scopes = {
 			};
 		},
 
-		setAutoAttach(params: Protocol.Target.SetAutoAttachRequest) {
+		async setAutoAttach(params: Protocol.Target.SetAutoAttachRequest) {
 			console.log("Target.setAutoAttach", params);
+
+			return {};
 		},
 		getTargetInfo(
 			params: Protocol.Target.GetTargetInfoRequest
