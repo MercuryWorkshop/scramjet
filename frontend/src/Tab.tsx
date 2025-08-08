@@ -172,17 +172,20 @@ export class Tab extends StatefulClass {
 }
 
 function injectChobitsu(client: ScramjetClient, tab: Tab) {
+	console.log("injecting chobitsu");
 	// the fake origin is defined in sw.js
 	const devtoolsUrl = "https://fake-devtools.invalid";
 	// make sure to create the element through the proxied document
 	let devtoolsScript = client.global.document.createElement("script");
 	devtoolsScript.setAttribute("src", devtoolsUrl + "/chobitsu_inject.js");
+	client.global.document.head.appendChild(devtoolsScript);
 
 	// @ts-expect-error
 	client.global.$onChobitsuMessage = (message: string) => {
-		tab.onChobitsuMessage(message);
+		if (tab.onChobitsuMessage) tab.onChobitsuMessage(message);
 	};
 	tab.sendToChobitsu = (message: string) => {
+		console.warn(message);
 		// @ts-expect-error
 		client.global.$sendToChobitsu(message);
 	};

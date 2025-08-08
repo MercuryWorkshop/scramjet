@@ -31,7 +31,7 @@ scramjet.addEventListener("request", (e) => {
 	if (e.url.href.startsWith("https://fake-devtools.invalid")) {
 		// route the fake origin devtools requests to the local static files
 		e.response = (async () => {
-			let response = await fetch("/" + e.url.pathname);
+			let response = await fetch(e.url.pathname);
 
 			let rawHeaders = {};
 			for (const [key, value] of response.headers.entries()) {

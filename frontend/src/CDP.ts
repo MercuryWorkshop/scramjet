@@ -17,6 +17,7 @@ export class ErrorWithCode extends Error {
 let server: CDPServer;
 class CDPServer {
 	id = 0;
+
 	constructor(public sendMessage: (message: string) => void) {
 		console.log("starting cdp server");
 		server = this;
@@ -30,7 +31,11 @@ class CDPServer {
 		console.log(msg);
 
 		try {
-			resultMsg.result = await this.callMethod(msg.method, msg.params);
+			resultMsg.result = await this.callMethod(
+				msg.method,
+				msg.params,
+				msg.sessionId
+			);
 		} catch (e) {
 			console.error("CDP error", e);
 			if (e instanceof ErrorWithCode) {
@@ -49,6 +54,66 @@ class CDPServer {
 		this.sendMessage(JSON.stringify(resultMsg));
 	}
 
+	sessionid = 0;
+
+	sessions = new Map<
+		string,
+		{
+			tab: Tab;
+			callbacks: Map<number, (result: any) => void>;
+			messageid: number;
+		}
+	>();
+	initSession(tab: Tab): string {
+		const sid = String(this.sessionid++);
+
+		const callbacks = new Map<number, (result: any) => void>();
+		const session = {
+			tab,
+			callbacks,
+			messageid: 1,
+		};
+		this.sessions.set(sid, session);
+		tab.onChobitsuMessage = (message: string) => {
+			let msg = JSON.parse(message);
+			if (callbacks.has(msg.id)) {
+				const callback = callbacks.get(msg.id)!;
+				callback(msg);
+				callbacks.delete(session.messageid);
+			}
+		};
+
+		return sid;
+	}
+
+	async callTabMethod(
+		sessionid: string,
+		method: string,
+		params: object
+	): Promise<object> {
+		const session = this.sessions.get(sessionid);
+		if (!session) {
+			throw new ErrorWithCode(-32001, `Session ${sessionid} not found`);
+		}
+		const msgid = session.messageid++;
+
+		const msg = {
+			id: msgid,
+			method,
+			params,
+		};
+		if (!session.tab.sendToChobitsu) {
+			throw new ErrorWithCode(-32001, `Session ${sessionid} not found`);
+		}
+		session.tab.sendToChobitsu(JSON.stringify(msg));
+
+		return await new Promise((resolve) => {
+			session.callbacks.set(msgid, (result: any) => {
+				resolve(result);
+			});
+		});
+	}
+
 	emit<T>(method: string, params: T) {
 		const msg = JSON.stringify({
 			method,
@@ -57,7 +122,7 @@ class CDPServer {
 		this.sendMessage(msg);
 	}
 
-	async callMethod(method: string, params: any) {
+	async callMethod(method: string, params: any, sessionId?: string) {
 		const [domainName, methodName] = method.split(".");
 		const domain: any = (Scopes as any)[domainName];
 		if (domain) {
@@ -66,7 +131,7 @@ class CDPServer {
 			}
 		}
 
-		if (params.sessionId) {
+		if (sessionId) {
 		}
 
 		throw Error(`${method} unimplemented`);
@@ -75,6 +140,7 @@ class CDPServer {
 
 import type Protocol from "devtools-protocol";
 import { browser } from "./main";
+import type { Tab } from "./Tab";
 const Scopes = {
 	Browser: {
 		getVersion(): Protocol.Browser.GetVersionResponse {
@@ -102,12 +168,14 @@ const Scopes = {
 			params: Protocol.Target.CreateTargetRequest
 		): Promise<Protocol.Target.CreateTargetResponse> {
 			console.log("creating new target");
-			const tab = browser.newTab(new URL("https://example.com"));
+			const tab = browser.newTab(new URL("http://127.0.0.1:5014/"));
+			const sessionid = server.initSession(tab);
 
+			await new Promise((resolve) => setTimeout(resolve, 1000));
 			server.emit<Protocol.Target.AttachedToTargetEvent>(
 				"Target.attachedToTarget",
 				{
-					sessionId: String(tab.id),
+					sessionId: sessionid,
 					waitingForDebugger: false,
 					targetInfo: {
 						browserContextId: "0",
@@ -120,8 +188,6 @@ const Scopes = {
 					},
 				}
 			);
-
-			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			return {
 				targetId: String(tab.id),
