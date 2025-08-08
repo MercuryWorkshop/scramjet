@@ -153,6 +153,19 @@ class CDPServer {
 import type Protocol from "devtools-protocol";
 import { browser } from "./main";
 import type { Tab } from "./Tab";
+
+function createTargetInfo(tab: Tab): Protocol.Target.TargetInfo {
+	return {
+		browserContextId: "0",
+		targetId: String(tab.id),
+		type: "page",
+		title: tab.title || "New Tab",
+		url: tab.url.href,
+		attached: true,
+		canAccessOpener: false,
+	};
+}
+
 const Scopes = {
 	Browser: {
 		getVersion(): Protocol.Browser.GetVersionResponse {
@@ -189,15 +202,7 @@ const Scopes = {
 				{
 					sessionId: sessionid,
 					waitingForDebugger: false,
-					targetInfo: {
-						browserContextId: "0",
-						targetId: String(tab.id),
-						type: "page",
-						title: "test",
-						url: "https://google.com",
-						attached: false,
-						canAccessOpener: false,
-					},
+					targetInfo: createTargetInfo(tab),
 				}
 			);
 
@@ -206,9 +211,21 @@ const Scopes = {
 			};
 		},
 
-		async setAutoAttach(params: Protocol.Target.SetAutoAttachRequest) {
-			console.log("Target.setAutoAttach", params);
+		async closeTarget(params: Protocol.Target.CloseTargetRequest) {
+			let tab = browser.tabs.find((x) => x.id === Number(params.targetId));
+			if (!tab) {
+				throw new Error(`Target ${params.targetId} not found`);
+			}
+			browser.destroyTab(tab);
+			server.emit<Protocol.Target.TargetDestroyedEvent>(
+				"Target.targetDestroyed",
+				{
+					targetId: String(tab.id),
+				}
+			);
+		},
 
+		async setAutoAttach(params: Protocol.Target.SetAutoAttachRequest) {
 			return {};
 		},
 		getTargetInfo(
