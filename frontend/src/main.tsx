@@ -8,6 +8,7 @@ import { createMenu } from "./components/Menu";
 let app = document.getElementById("app")!;
 import { Shell } from "./components/Shell";
 import { App } from "./App";
+import { startCDP } from "./CDP";
 
 const { ScramjetController } = $scramjetLoadController();
 export const scramjet = new ScramjetController({
@@ -51,6 +52,30 @@ function mount() {
 		app.replaceWith(built);
 		built.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
+		});
+
+		let playwrightWindow = window.open(
+			"http://localhost:5013",
+			"playwright",
+			"width=400,height=300,left=100,top=100,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no"
+		)!;
+		let server = startCDP((message: string) => {
+			playwrightWindow.postMessage(
+				{
+					type: "scramjet$playwrightcdp",
+					message: message,
+				},
+				"*"
+			);
+		});
+		window.addEventListener("message", (event: MessageEvent) => {
+			if (!event.data || !event.data.type) return;
+			if (event.data.type != "scramjet$playwrightcdp") return;
+
+			server.message(event.data.message);
+		});
+		window.addEventListener("beforeunload", () => {
+			playwrightWindow.close();
 		});
 	} catch (e) {
 		let err = e as any;

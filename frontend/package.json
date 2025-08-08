@@ -17,6 +17,7 @@
 		"@ktibow/iconset-ion": "^8.0.13",
 		"@mercuryworkshop/epoxy-transport": "^2.1.27",
 		"@mercuryworkshop/scramjet": "workspace:scramjet",
+		"devtools-protocol": "^0.0.1339468",
 		"dreamland": "workspace:dreamland",
 		"html-to-image": "^1.11.13",
 		"html2canvas": "^1.4.1",
