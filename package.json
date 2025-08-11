@@ -1,0 +1,73 @@
+{
+  "name": "chobitsu",
+  "version": "1.8.4",
+  "description": "Chrome devtools protocol JavaScript implementation",
+  "main": "dist/chobitsu.js",
+  "exports": {
+    ".": "./dist/chobitsu.js",
+    "./Chobitsu": "./dist/cjs/Chobitsu.js",
+    "./domains/*": "./dist/cjs/domains/*"
+  },
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "ci": "npm run lint && npm test && npm run build && npm run es5",
+    "dev": "node script/build.js && concurrently \"tsc -w --inlineSourceMap\" \"webpack-dev-server --mode=development\"",
+    "build": "rm -rf dist && tsc && webpack --mode=production && node script/build.js",
+    "build:front_end": "cd devtools/devtools-frontend && gn gen out/Default --args=\"is_debug=false\" && autoninja -C out/Default",
+    "lint": "eslint src/**/*.ts",
+    "test": "karma start",
+    "es5": "es-check es5 dist/**/*.js",
+    "format": "lsla prettier \"src/**/*.ts\" \"*.{js,json}\" \"devtools/*.{js,html}\" \"test/*.js\" \"script/*.js\" --write",
+    "init:front_end": "cd devtools && rm -rf devtools-frontend && gclient sync --with_branch_heads --verbose"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liriliri/chobitsu.git"
+  },
+  "keywords": [
+    "devtools"
+  ],
+  "author": "redhoodsu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/liriliri/chobitsu/issues"
+  },
+  "homepage": "https://github.com/liriliri/chobitsu#readme",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "core-js": "^3.26.1",
+    "devtools-protocol": "^0.0.1339468",
+    "html2canvas": "^1.4.1",
+    "licia": "^1.41.1",
+    "luna-dom-highlighter": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.10",
+    "@babel/preset-env": "^7.17.10",
+    "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
+    "@types/node": "^20.14.12",
+    "@typescript-eslint/eslint-plugin": "^8.9.0",
+    "@typescript-eslint/parser": "^8.9.0",
+    "babel-loader": "^8.2.5",
+    "concurrently": "^7.6.0",
+    "es-check": "^7.2.1",
+    "eslint": "^8.21.0",
+    "eslint-config-prettier": "^8.5.0",
+    "karma": "^6.3.19",
+    "karma-chai-plugins": "^0.9.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-coverage-istanbul-reporter": "^3.0.3",
+    "karma-mocha": "^2.0.1",
+    "karma-webpack": "^5.0.1",
+    "mocha": "^8.0.1",
+    "raw-loader": "^4.0.2",
+    "ts-loader": "^7.0.5",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^5.2.2",
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.4"
+  }
+}

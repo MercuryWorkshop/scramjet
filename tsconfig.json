@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "outDir": "./dist/cjs",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strictPropertyInitialization": false,
+    "removeComments": true,
+    "noUnusedLocals": true,
+    "target": "ES5",
+    "declaration": true,
+    "esModuleInterop": true,
+    "lib": ["DOM", "ES2015"]
+  },
+  "include": ["src/**/*"]
+}
