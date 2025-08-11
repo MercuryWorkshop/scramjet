@@ -1,0 +1,52 @@
+.motto {
+  display: inline-block;
+}
+
+.scroll {
+  margin-top: 15px;
+  border: 1px solid black;
+  width: 400px;
+  height: 200px;
+  overflow: auto;
+}
+
+.big {
+  width: 300px;
+  height: 300px;
+  margin-top: 15px;
+  background-color: red;
+}
+
+.small {
+  width: 100px;
+  height: 100px;
+  margin-top: 15px;
+  background-color: blue;
+}
+
+.image {
+  margin-top: 15px;
+}
+
+#priority.priority {
+  background: orange;
+}
+
+#priority.priority {
+  background: silver;
+}
+
+#priority.priority, .priority {
+  background: tomato;
+}
+
+.priority {
+  background: purple;
+}
+
+#priority {
+  margin-top: 15px;
+  width: 50px;
+  height: 50px;
+  background: green;
+}
