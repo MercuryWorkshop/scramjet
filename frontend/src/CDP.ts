@@ -81,7 +81,23 @@ class CDPServer {
 				const callback = callbacks.get(msg.id)!;
 				callback(msg);
 				callbacks.delete(session.messageid);
+
+				return;
 			}
+			console.log("Forwawrding Evvent", msg);
+			if (msg.params?.context) {
+				msg.params.context.auxData = {
+					frameId: String(tab.id),
+					isDefault: true,
+				};
+			}
+			this.sendMessage(
+				JSON.stringify({
+					method: msg.method,
+					params: msg.params,
+					sessionId: sid,
+				})
+			);
 		};
 
 		return sid;

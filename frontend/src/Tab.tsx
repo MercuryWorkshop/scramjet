@@ -180,6 +180,10 @@ function injectChobitsu(client: ScramjetClient, tab: Tab) {
 	devtoolsScript.setAttribute("src", devtoolsUrl + "/chobitsu_inject.js");
 	client.global.document.head.appendChild(devtoolsScript);
 
+	// page needs to know what its id is so it can send to playwright properly
+	// @ts-expect-error
+	client.global.$chobitsuPageId = String(tab.id);
+
 	// @ts-expect-error
 	client.global.$onChobitsuMessage = (message: string) => {
 		if (tab.onChobitsuMessage) tab.onChobitsuMessage(message);
