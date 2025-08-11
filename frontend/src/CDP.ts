@@ -209,10 +209,10 @@ const Scopes = {
 			params: Protocol.Target.CreateTargetRequest
 		): Promise<Protocol.Target.CreateTargetResponse> {
 			console.log("creating new target");
-			const tab = browser.newTab(new URL("http://127.0.0.1:5014/"));
+			const tab = browser.newTab(new URL("https://google.com/"));
 			const sessionid = server.initSession(tab);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await tab.waitForChobitsuInit;
 			server.emit<Protocol.Target.AttachedToTargetEvent>(
 				"Target.attachedToTarget",
 				{

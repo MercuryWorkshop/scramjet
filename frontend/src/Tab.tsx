@@ -50,6 +50,7 @@ export class Tab extends StatefulClass {
 
 	sendToChobitsu: ((message: string) => void) | null = null;
 	onChobitsuMessage: ((message: string) => void) | null = null;
+	waitForChobitsuInit: Promise<void>;
 
 	constructor(public url: URL = new URL("puter://newtab")) {
 		super(createState(Object.create(Tab.prototype)));
@@ -73,11 +74,16 @@ export class Tab extends StatefulClass {
 		this.width = 0;
 		this.pos = 0;
 
+		let resolver: () => void;
+		this.waitForChobitsuInit = new Promise((resolve) => {
+			resolver = resolve;
+		});
+
 		addHistoryListeners(frame, this);
 		let injected = false;
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
-			injectChobitsu(ctx.client, this);
+			injectChobitsu(ctx.client, this, resolver);
 
 			// make sure it's top level, ctxInit calls for all frames too
 			if (ctx.window == frame.frame.contentWindow) {
@@ -171,7 +177,11 @@ export class Tab extends StatefulClass {
 	}
 }
 
-function injectChobitsu(client: ScramjetClient, tab: Tab) {
+function injectChobitsu(
+	client: ScramjetClient,
+	tab: Tab,
+	resolver: () => void
+) {
 	console.log("injecting chobitsu");
 	// the fake origin is defined in sw.js
 	const devtoolsUrl = "https://fake-devtools.invalid";
@@ -187,6 +197,11 @@ function injectChobitsu(client: ScramjetClient, tab: Tab) {
 	// @ts-expect-error
 	client.global.$onChobitsuMessage = (message: string) => {
 		if (tab.onChobitsuMessage) tab.onChobitsuMessage(message);
+	};
+
+	// @ts-expect-error
+	client.global.$onChobitsuInit = () => {
+		resolver();
 	};
 	tab.sendToChobitsu = (message: string) => {
 		console.warn(message);
