@@ -11,6 +11,7 @@ rewriter/target
 rewriter/wasm/out
 static/wasm.js
 rewriter/*.js
+chobitsu_inject/output
 pnpm-lock.yaml
 playwright-report
 test-results
