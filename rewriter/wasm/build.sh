@@ -21,6 +21,22 @@ else
 	: "${FEATURES:=}"
 fi
 
+# ----------------------------------------------------------------------------------
+# Build cache short‑circuit: if sources & build parameters unchanged, skip heavy work
+# We rely on CI (and local dev optional) to restore rewriter/wasm/out + dist/ wasm file.
+# Hash includes Rust source files, manifest, this script, and release/debug mode.
+# ----------------------------------------------------------------------------------
+MODE="release"
+if [ "${RELEASE:-0}" != "1" ]; then MODE="debug"; fi
+HASH_INPUT_FILES=(src/**/*.rs Cargo.toml build.sh)
+# shellcheck disable=SC2046
+SRC_HASH=$( (echo "MODE=${MODE}"; sha256sum $(git ls-files -z -- "src" | tr '\0' ' ' 2>/dev/null || find src -type f -name '*.rs'; echo Cargo.toml; echo build.sh) 2>/dev/null | sort -k2 | sha256sum ) | sha256sum | cut -d' ' -f1 ) || SRC_HASH="unknown"
+
+if [ -f out/.build-hash ] && [ -f ../../dist/scramjet.wasm.wasm ] && [ "$SRC_HASH" != "unknown" ] && grep -q "$SRC_HASH" out/.build-hash; then
+  echo "Rewriter sources unchanged (hash $SRC_HASH); skipping rebuild."
+  exit 0
+fi
+
 (
 	export RUSTFLAGS='-Zlocation-detail=none -Zfmt-debug=none'
 	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
@@ -112,4 +128,5 @@ fi
 mkdir -p dist/
 
 cp rewriter/wasm/out/optimized.wasm dist/scramjet.wasm.wasm
+echo "$SRC_HASH" > rewriter/wasm/out/.build-hash || true
 echo "Rewriter Build Complete!"

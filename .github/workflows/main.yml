@@ -57,6 +57,17 @@ jobs:
       - name: Setup wasm-snip
         run: "cargo install --git https://github.com/r58playz/wasm-snip"
 
+      - name: Cache rewriter build artifacts
+        uses: actions/cache@v4
+        id: rewriter-cache
+        with:
+          path: |
+            rewriter/wasm/out
+            dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('rewriter/wasm/Cargo.toml', 'rewriter/wasm/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          restore-keys: |
+            rewriter-release-
+
       - name: Pack Scramjet
         run: pnpm pack
 
