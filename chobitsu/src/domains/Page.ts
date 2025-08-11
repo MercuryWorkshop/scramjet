@@ -19,6 +19,58 @@ import * as resources from '../lib/resources'
 import Protocol from 'devtools-protocol'
 import Page = Protocol.Page
 
+
+declare var $chobitsuPageId: string;
+export function getFrameTree(): Page.GetFrameTreeResponse {
+  return {
+    frameTree: {
+      frame: {
+        id: $chobitsuPageId,
+        mimeType: 'text/html',
+        securityOrigin: getOrigin(),
+        url: getUrl(),
+        loaderId: $chobitsuPageId,
+        domainAndRegistry: getOrigin(),
+        secureContextType: 'Secure',
+        crossOriginIsolatedContextType: 'NotIsolated',
+        gatedAPIFeatures: [],
+      },
+      childFrames: [],
+    }
+  }
+}
+export function createIsolatedWorld(params: Page.CreateIsolatedWorldRequest): Page.CreateIsolatedWorldResponse {
+  console.log(params);
+
+  // fake context
+  connector.trigger('Runtime.executionContextCreated', {
+    context: {
+      id: 2,
+      origin: getOrigin(),
+      name: params.worldName,
+      auxData: {
+        isDefault: false,
+        type: 'isolated',
+        frameId: params.frameId,
+      },
+    },
+  })
+  return {
+    executionContextId: 1, // This should be a unique identifier for the execution context
+  }
+}
+
+export function setLifecycleEventsEnabled(params: Page.SetLifecycleEventsEnabledRequest) {
+  return {}
+}
+
+export function addScriptToEvaluateOnNewDocument(params: Page.AddScriptToEvaluateOnNewDocumentRequest): Page.AddScriptToEvaluateOnNewDocumentResponse{
+  console.log(params);
+  return {
+    identifier: '1', // This should be a unique identifier for the script
+  }
+}
+
 let proxy = ''
 
 export function setProxy(params: any) {

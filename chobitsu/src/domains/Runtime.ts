@@ -41,13 +41,23 @@ export async function callFunctionOn(
     ctx = objManager.getObj(objectId)
   }
 
+  let object = await callFn(functionDeclaration, args, ctx);
+  let result = objManager.wrap(object, {
+    generatePreview: true,
+  });
+  if (params.returnByValue) {
+    result.value  = structuredClone(object);
+  }
+
   return {
-    result: objManager.wrap(await callFn(functionDeclaration, args, ctx)),
+    result,
   }
 }
 
 let isEnable = false
 
+
+declare var $chobitsuPageId: string;
 export function enable() {
   isEnable = true
   each(triggers, trigger => trigger())
@@ -55,6 +65,11 @@ export function enable() {
 
   trigger('Runtime.executionContextCreated', {
     context: executionContext,
+    auxData: {
+      isDefault: true,
+      type: 'default',
+      frameId: $chobitsuPageId,
+    },
   })
 }
 

@@ -67,6 +67,7 @@ export default class Chobitsu {
     try {
       resultMsg.result = await this.callMethod(method, params)
     } catch (e) {
+      console.error(e);
       if (e instanceof ErrorWithCode) {
         resultMsg.error = {
           message: e.message,

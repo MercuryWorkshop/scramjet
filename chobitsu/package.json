@@ -14,7 +14,7 @@
   "scripts": {
     "ci": "npm run lint && npm test && npm run build && npm run es5",
     "dev": "node script/build.js && concurrently \"tsc -w --inlineSourceMap\" \"webpack-dev-server --mode=development\"",
-    "build": "rm -rf dist && tsc && webpack --mode=production && node script/build.js",
+    "build": "rm -rf dist && webpack --mode=development && node script/build.js",
     "build:front_end": "cd devtools/devtools-frontend && gn gen out/Default --args=\"is_debug=false\" && autoninja -C out/Default",
     "lint": "eslint src/**/*.ts",
     "test": "karma start",

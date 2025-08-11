@@ -65,6 +65,51 @@ export function dispatchMouseEvent(params: Input.DispatchMouseEventRequest) {
   }
 }
 
+export function dispatchKeyEvent(params: Input.DispatchKeyEventRequest) {
+  let { type, text, key, code, modifiers } = params
+  modifiers ??= 0
+
+  const event = new KeyboardEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    key,
+    code,
+    altKey: !!(modifiers & 1),
+    ctrlKey: !!(modifiers & 2),
+    metaKey: !!(modifiers & 4),
+    shiftKey: !!(modifiers & 8),
+  })
+
+  if (text) {
+    Object.defineProperty(event, 'data', {
+      get() {
+        return text
+      },
+    })
+  }
+  if (params.type == "keyDown") {
+    let active = document.activeElement as HTMLInputElement | HTMLTextAreaElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+      if (key === "Enter") {
+        if (active.form) {
+          active.form.requestSubmit();
+        }
+      }
+
+
+
+      // If the active element is an input or textarea, set the value
+      if (text) {
+        active.value += text;
+        active.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }
+
+  document.dispatchEvent(event)
+}
+
 function triggerMouseEvent(type: string, el: Element, x: number, y: number) {
   el.dispatchEvent(
     new MouseEvent(type, {

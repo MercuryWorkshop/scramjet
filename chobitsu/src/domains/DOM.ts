@@ -18,6 +18,7 @@ import xpath from 'licia/xpath'
 import concat from 'licia/concat'
 import { setGlobal } from '../lib/evaluate'
 import { createId } from '../lib/util'
+import { getObj } from '../lib/objManager'
 import Protocol from 'devtools-protocol'
 import DOM = Protocol.DOM
 
@@ -92,6 +93,19 @@ function hookAttachShadow() {
 }
 
 hookAttachShadow()
+
+
+export function describeNode(params: DOM.DescribeNodeRequest): DOM.DescribeNodeResponse {
+  let domnode = getObj(params.objectId!);
+
+  let node = nodeManager.wrap(domnode);
+  console.error(node);
+  console.error(getNode(node.nodeId));
+
+  return {
+    node,
+  }
+}
 
 export function getDocument() {
   return {
@@ -258,6 +272,35 @@ export function requestChildNodes(params: DOM.RequestChildNodesRequest) {
   })
 }
 
+export function scrollIntoViewIfNeeded(
+  params: DOM.ScrollIntoViewIfNeededRequest
+){
+  let node = getObj(params.objectId!);
+  node.scrollIntoViewIfNeeded();
+}
+export function getContentQuads(
+  params: DOM.GetContentQuadsRequest
+): DOM.GetContentQuadsResponse {
+  const node = getObj(params.objectId!);
+  const rect = node.getBoundingClientRect()
+  const { x, y, width, height } = rect
+
+  const quads = [
+    x,
+    y,
+    x + width,
+    y,
+    x + width,
+    y + height,
+    x,
+    y + height,
+  ]
+
+  return {
+    quads: [quads],
+  }
+}
+
 export function requestNode(
   params: DOM.RequestNodeRequest
 ): DOM.RequestNodeResponse {
@@ -271,7 +314,7 @@ export function requestNode(
 export function resolveNode(
   params: DOM.ResolveNodeRequest
 ): DOM.ResolveNodeResponse {
-  const node = getNode(params.nodeId as number)
+  const node = getNode(params.nodeId || params.backendNodeId as number)
 
   return {
     object: objManager.wrap(node),
