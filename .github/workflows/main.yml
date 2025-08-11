@@ -117,7 +117,7 @@ jobs:
       - name: Build Frontend
         run: |
           cd frontend
-          pnpm build
+          pnpm vite build
   tests:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
