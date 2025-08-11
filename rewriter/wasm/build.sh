@@ -2,16 +2,6 @@
 set -euo pipefail
 shopt -s inherit_errexit
 
-which cargo wasm-bindgen wasm-opt wasm-snip &> /dev/null || {
-	echo "Please install cargo, wasm-bindgen, wasm-opt from https://github.com/WebAssembly/binaryen, and wasm-snip from https://github.com/r58playz/wasm-snip!"
-	exit 1
-}
-
-WBG="wasm-bindgen 0.2.100"
-if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
-	echo "Incorrect wasm-bindgen-cli version: '$(wasm-bindgen -V)' != '$WBG'"
-	exit 1
-fi
 
 if ! [ "${RELEASE:-0}" = "1" ]; then
 	WASMOPTFLAGS="${WASMOPTFLAGS:-} -g"
