@@ -85,7 +85,7 @@ class CDPServer {
 				return;
 			}
 			console.log("Forwawrding Evvent", msg);
-			if (msg.params?.context) {
+			if (msg.params?.context && !msg.params.context.auxData) {
 				msg.params.context.auxData = {
 					frameId: String(tab.id),
 					isDefault: true,
