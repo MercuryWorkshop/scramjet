@@ -9,3 +9,4 @@
 
 
 ({ location } = self);
+console.log({ ...rest  } = self);

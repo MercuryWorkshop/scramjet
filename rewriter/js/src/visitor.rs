@@ -475,9 +475,9 @@ where
 	}
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
-		// location = "https://example.com"
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
+		        // location = ...
 				if ["location"].contains(&s.name.to_string().as_str()) {
 					self.jschanges.add(rewrite!(
 						it.span,
@@ -490,6 +490,7 @@ where
 				}
 			}
 			AssignmentTarget::StaticMemberExpression(s) => {
+			    // window.location = ...
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
 					self.jschanges.add(rewrite!(
 						s.property.span(),
@@ -499,12 +500,15 @@ where
 					));
 				}
 
-				// more to walk
+				// walk the left hand side of the member expression (`window` for the `window.location = ...` case)
 				walk::walk_expression(self, &s.object);
 			}
 			AssignmentTarget::ComputedMemberExpression(s) => {
+			    // window["location"] = ...
 				self.walk_computed_member_expression(s);
+				// `window`
 				walk::walk_expression(self, &s.object);
+				// `"location"`
 				walk::walk_expression(self, &s.expression);
 			}
 			AssignmentTarget::ObjectAssignmentTarget(o) => {
