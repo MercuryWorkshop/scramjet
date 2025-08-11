@@ -101,7 +101,7 @@ jobs:
 
       - name: Build Dreamland
         run: |
-          cd dreamland
+          cd dreamlandjs
           pnpm build
 
       - name: Build Chobitsu
