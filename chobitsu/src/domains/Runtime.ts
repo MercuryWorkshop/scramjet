@@ -41,17 +41,41 @@ export async function callFunctionOn(
     ctx = objManager.getObj(objectId)
   }
 
-  let object = await callFn(functionDeclaration, args, ctx);
-  let result = objManager.wrap(object, {
-    generatePreview: true,
-  });
-  if (params.returnByValue) {
-    result.value  = structuredClone(object);
+  let object;
+  let exception;
+  let threw = false;
+  try {
+    object = await callFn(functionDeclaration, args, ctx);
+  } catch (e) {
+    exception = e;
+    threw = true;
   }
 
-  return {
-    result,
+  const ret: any = {};
+
+  if (threw) {
+    ret.exceptionDetails = {
+      exceptionId: 1,
+      text: "Uncaught",
+      lineNumber: 0, // TODO
+      columnNumber: 0, // TODO
+      stackTrace: { callFrames: [] }, // TODO
+      exception: objManager.wrap(exception, {
+        generatePreview: true,
+      })
+    };
+  } else {
+    const result = objManager.wrap(object, {
+      generatePreview: true,
+    });
+    if (params.returnByValue) {
+      result.value  = structuredClone(object);
+    }
+
+    ret.result = result;
   }
+
+  return ret
 }
 
 let isEnable = false

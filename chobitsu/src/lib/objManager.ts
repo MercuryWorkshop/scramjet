@@ -333,7 +333,7 @@ function getDescription(obj: any, self: any = obj) {
   } else if (subtype === 'regexp') {
     description = toStr(obj)
   } else if (subtype === 'error') {
-    description = obj.stack
+    description = obj.message + obj.stack;
   } else if (subtype === 'internal#entry') {
     if (obj.name) {
       description = `{"${toStr(obj.name)}" => "${toStr(obj.value)}"}`
