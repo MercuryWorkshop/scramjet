@@ -41,6 +41,7 @@
 		"@mercuryworkshop/libcurl-transport": "^1.5.0",
 		"@mercuryworkshop/wisp-js": "^0.3.3",
 		"@nebula-services/bare-server-node": "^2.0.4",
+		"@playwright/test": "^1.54.2",
 		"@rsdoctor/rspack-plugin": "^1.1.5",
 		"@rspack/cli": "^1.4.8",
 		"@rspack/core": "^1.4.8",
