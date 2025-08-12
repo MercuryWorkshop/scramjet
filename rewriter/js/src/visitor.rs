@@ -174,7 +174,10 @@ where
 					match &p.binding {
 						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
 							// { location: x = parent } = {};
-
+							// if let Some(name) = p.binding.iden && name == "location" {
+							//     self.jschanges.add(rewrite!(p.span(), TempVar));
+       //                          *location_assigned = true;
+    			// 			}
 							// we still need to rewrite whatever stuff might be in the default expression
 							walk::walk_expression(self, &d.init);
 						}
@@ -188,12 +191,49 @@ where
                                 *location_assigned = true;
     						}
 						}
+						AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
+                            self.recurse_array_assignment_target(a, restids, location_assigned);
+						}
 						_ => {}
 					}
 				}
 			}
 		}
 	}
+	fn recurse_array_assignment_target(
+        &mut self,
+        s: &oxc::ast::ast::ArrayAssignmentTarget<'data>,
+        restids: &mut Vec<Atom<'data>>,
+        location_assigned: &mut bool,
+    ) {
+        // note that i don't actually have to care about the rest param here since it wont have dangerous props. i still need to keep track of the object destructure rests though
+        for elem in &s.elements {
+            if let Some(elem) = elem {
+            match elem {
+                AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(p) => {
+                    if let Some(name) = p.binding.get_identifier_name() && name == "location" {
+                        self.jschanges.add(rewrite!(p.span(), TempVar));
+                        *location_assigned = true;
+                    }
+                    walk::walk_expression(self, &p.init);
+                }
+                AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p) => {
+                    if p.name == "location" {
+                        self.jschanges.add(rewrite!(p.span(), TempVar));
+                        *location_assigned = true;
+                    }
+                }
+                AssignmentTargetMaybeDefault::ObjectAssignmentTarget(o) => {
+                    self.recurse_object_assignment_target(o, restids, location_assigned);
+                }
+                AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
+                    self.recurse_array_assignment_target(a, restids, location_assigned);
+                }
+                _ => {}
+            }
+            }
+        }
+    }
 
 	fn scramitize(&mut self, span: Span) {
 		self.jschanges.add(rewrite!(span, Scramitize));
@@ -438,13 +478,11 @@ where
 		match &it.kind {
 			BindingPatternKind::BindingIdentifier(p) => {
 				// let a = 0;
-				dbg!(&p);
 				walk::walk_binding_identifier(self, p);
 			}
 			BindingPatternKind::AssignmentPattern(p) => {
 				walk::walk_binding_pattern(self, &p.left);
 				walk::walk_expression(self, &p.right);
-				dbg!(&p);
 			}
 			BindingPatternKind::ObjectPattern(p) => {
 				for prop in &p.properties {
@@ -532,6 +570,19 @@ where
 						.add(rewrite!(it.span, WrapObjectAssignment { restids, location_assigned }));
 				}
 				return;
+			}
+			AssignmentTarget::ArrayAssignmentTarget(a) => {
+			    if !self.flags.destructure_rewrites {
+					return;
+				}
+
+		    	let mut restids: Vec<Atom<'data>> = Vec::new();
+			   let mut location_assigned: bool = false;
+			   self.recurse_array_assignment_target(a, &mut restids, &mut location_assigned);
+			    if restids.len() > 0 || location_assigned {
+					self.jschanges
+                        .add(rewrite!(it.span, WrapObjectAssignment { restids, location_assigned }));
+				}
 			}
 			_ => {}
 		}
