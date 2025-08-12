@@ -135,14 +135,20 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
 			}
 			Ty::TempVar => LL::replace(transforms![&cfg.templocid]),
-			Ty::WrapObjectAssignmentLeft { restids, location_assigned } => {
+			Ty::WrapObjectAssignmentLeft {
+				restids,
+				location_assigned,
+			} => {
 				let mut steps = String::new();
 				for id in restids {
 					steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
 				}
 				if location_assigned {
-                    steps.push_str(&format!("{}(location,\"=\",{})||(location={}),", &cfg.trysetfn, &cfg.templocid, &cfg.templocid));
-                }
+					steps.push_str(&format!(
+						"{}(location,\"=\",{})||(location={}),",
+						&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+					));
+				}
 				let steps: &'static str = Box::leak(steps.into_boxed_str());
 				LL::insert(transforms!["((t)=>(", &steps, "t))("])
 			}

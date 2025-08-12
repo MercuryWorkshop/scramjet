@@ -37,7 +37,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		ident: Atom<'data>,
 	},
 	// `location` -> `cfg.templocid`
- 	TempVar,
+	TempVar,
 
 	WrapObjectAssignment {
 		restids: Vec<Atom<'data>>,
@@ -127,8 +127,17 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				change!(span!(start), WrapPropertyLeft),
 				change!(span!(end), WrapPropertyRight),
 			],
-			Self::WrapObjectAssignment { restids, location_assigned } => smallvec![
-				change!(span!(start), WrapObjectAssignmentLeft { restids, location_assigned }),
+			Self::WrapObjectAssignment {
+				restids,
+				location_assigned,
+			} => smallvec![
+				change!(
+					span!(start),
+					WrapObjectAssignmentLeft {
+						restids,
+						location_assigned
+					}
+				),
 				change!(
 					span!(end),
 					ClosingParen {

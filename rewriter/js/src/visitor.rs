@@ -176,23 +176,22 @@ where
 							// { location: x = parent } = {};
 							// if let Some(name) = p.binding.iden && name == "location" {
 							//     self.jschanges.add(rewrite!(p.span(), TempVar));
-       //                          *location_assigned = true;
-    			// 			}
+							//                          *location_assigned = true;
+							// 			}
 							// we still need to rewrite whatever stuff might be in the default expression
 							walk::walk_expression(self, &d.init);
 						}
 						AssignmentTargetMaybeDefault::ObjectAssignmentTarget(p) => {
-
 							self.recurse_object_assignment_target(p, restids, location_assigned);
 						}
-						AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p)=>{
-    						if p.name == "location" {
-		                        self.jschanges.add(rewrite!(p.span(), TempVar));
-                                *location_assigned = true;
-    						}
+						AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p) => {
+							if p.name == "location" {
+								self.jschanges.add(rewrite!(p.span(), TempVar));
+								*location_assigned = true;
+							}
 						}
 						AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
-                            self.recurse_array_assignment_target(a, restids, location_assigned);
+							self.recurse_array_assignment_target(a, restids, location_assigned);
 						}
 						_ => {}
 					}
@@ -201,39 +200,41 @@ where
 		}
 	}
 	fn recurse_array_assignment_target(
-        &mut self,
-        s: &oxc::ast::ast::ArrayAssignmentTarget<'data>,
-        restids: &mut Vec<Atom<'data>>,
-        location_assigned: &mut bool,
-    ) {
-        // note that i don't actually have to care about the rest param here since it wont have dangerous props. i still need to keep track of the object destructure rests though
-        for elem in &s.elements {
-            if let Some(elem) = elem {
-            match elem {
-                AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(p) => {
-                    if let Some(name) = p.binding.get_identifier_name() && name == "location" {
-                        self.jschanges.add(rewrite!(p.span(), TempVar));
-                        *location_assigned = true;
-                    }
-                    walk::walk_expression(self, &p.init);
-                }
-                AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p) => {
-                    if p.name == "location" {
-                        self.jschanges.add(rewrite!(p.span(), TempVar));
-                        *location_assigned = true;
-                    }
-                }
-                AssignmentTargetMaybeDefault::ObjectAssignmentTarget(o) => {
-                    self.recurse_object_assignment_target(o, restids, location_assigned);
-                }
-                AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
-                    self.recurse_array_assignment_target(a, restids, location_assigned);
-                }
-                _ => {}
-            }
-            }
-        }
-    }
+		&mut self,
+		s: &oxc::ast::ast::ArrayAssignmentTarget<'data>,
+		restids: &mut Vec<Atom<'data>>,
+		location_assigned: &mut bool,
+	) {
+		// note that i don't actually have to care about the rest param here since it wont have dangerous props. i still need to keep track of the object destructure rests though
+		for elem in &s.elements {
+			if let Some(elem) = elem {
+				match elem {
+					AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(p) => {
+						if let Some(name) = p.binding.get_identifier_name()
+							&& name == "location"
+						{
+							self.jschanges.add(rewrite!(p.span(), TempVar));
+							*location_assigned = true;
+						}
+						walk::walk_expression(self, &p.init);
+					}
+					AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p) => {
+						if p.name == "location" {
+							self.jschanges.add(rewrite!(p.span(), TempVar));
+							*location_assigned = true;
+						}
+					}
+					AssignmentTargetMaybeDefault::ObjectAssignmentTarget(o) => {
+						self.recurse_object_assignment_target(o, restids, location_assigned);
+					}
+					AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
+						self.recurse_array_assignment_target(a, restids, location_assigned);
+					}
+					_ => {}
+				}
+			}
+		}
+	}
 
 	fn scramitize(&mut self, span: Span) {
 		self.jschanges.add(rewrite!(span, Scramitize));
@@ -429,18 +430,18 @@ where
 
 	fn visit_unary_expression(&mut self, it: &UnaryExpression<'data>) {
 		if matches!(it.operator, UnaryOperator::Typeof) {
-	    	match it.argument {
-          		Expression::Identifier(_) =>{
-			        // `typeof location` -> `typeof $wrap(location)` seems like a sane rewrite but it's incorrect
+			match it.argument {
+				Expression::Identifier(_) => {
+					// `typeof location` -> `typeof $wrap(location)` seems like a sane rewrite but it's incorrect
 					// typeof has the special property of not caring whether the identifier is undefined
 					// and this won't escape anyway, so don't rewrite
-         			return;
-          		}
-                _=>{
-                    // `typeof (location)` / `typeof location.href` / `typeof function()`
-                    // this is safe to rewrite
-                }
-	    	}
+					return;
+				}
+				_ => {
+					// `typeof (location)` / `typeof location.href` / `typeof function()`
+					// this is safe to rewrite
+				}
+			}
 		}
 		walk::walk_unary_expression(self, it);
 	}
@@ -471,7 +472,7 @@ where
 	}
 
 	fn visit_binding_pattern(&mut self, it: &BindingPattern<'data>) {
-	    if !self.flags.destructure_rewrites {
+		if !self.flags.destructure_rewrites {
 			return;
 		}
 
@@ -522,7 +523,7 @@ where
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
-		        // location = ...
+				// location = ...
 				if ["location"].contains(&s.name.to_string().as_str()) {
 					self.jschanges.add(rewrite!(
 						it.span,
@@ -535,7 +536,7 @@ where
 				}
 			}
 			AssignmentTarget::StaticMemberExpression(s) => {
-			    // window.location = ...
+				// window.location = ...
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
 					self.jschanges.add(rewrite!(
 						s.property.span(),
@@ -549,7 +550,7 @@ where
 				walk::walk_expression(self, &s.object);
 			}
 			AssignmentTarget::ComputedMemberExpression(s) => {
-			    // window["location"] = ...
+				// window["location"] = ...
 				self.walk_computed_member_expression(s);
 				// `window`
 				walk::walk_expression(self, &s.object);
@@ -557,7 +558,7 @@ where
 				walk::walk_expression(self, &s.expression);
 			}
 			AssignmentTarget::ObjectAssignmentTarget(o) => {
-			    if !self.flags.destructure_rewrites {
+				if !self.flags.destructure_rewrites {
 					return;
 				}
 
@@ -566,22 +567,32 @@ where
 				self.recurse_object_assignment_target(o, &mut restids, &mut location_assigned);
 
 				if restids.len() > 0 || location_assigned {
-					self.jschanges
-						.add(rewrite!(it.span, WrapObjectAssignment { restids, location_assigned }));
+					self.jschanges.add(rewrite!(
+						it.span,
+						WrapObjectAssignment {
+							restids,
+							location_assigned
+						}
+					));
 				}
 				return;
 			}
 			AssignmentTarget::ArrayAssignmentTarget(a) => {
-			    if !self.flags.destructure_rewrites {
+				if !self.flags.destructure_rewrites {
 					return;
 				}
 
-		    	let mut restids: Vec<Atom<'data>> = Vec::new();
-			   let mut location_assigned: bool = false;
-			   self.recurse_array_assignment_target(a, &mut restids, &mut location_assigned);
-			    if restids.len() > 0 || location_assigned {
-					self.jschanges
-                        .add(rewrite!(it.span, WrapObjectAssignment { restids, location_assigned }));
+				let mut restids: Vec<Atom<'data>> = Vec::new();
+				let mut location_assigned: bool = false;
+				self.recurse_array_assignment_target(a, &mut restids, &mut location_assigned);
+				if restids.len() > 0 || location_assigned {
+					self.jschanges.add(rewrite!(
+						it.span,
+						WrapObjectAssignment {
+							restids,
+							location_assigned
+						}
+					));
 				}
 			}
 			_ => {}
