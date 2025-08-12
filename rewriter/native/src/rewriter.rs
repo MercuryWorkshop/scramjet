@@ -60,6 +60,8 @@ impl NativeRewriter {
 				metafn: cfg.metafn.clone(),
 				setrealmfn: cfg.setrealmfn.clone(),
 				pushsourcemapfn: cfg.pushsourcemapfn.clone(),
+				trysetfn: cfg.trysetfn.clone(),
+				templocid: cfg.templocid.clone(),
 			},
 			NativeUrlRewriter,
 		);
