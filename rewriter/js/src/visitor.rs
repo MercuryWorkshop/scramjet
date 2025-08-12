@@ -108,6 +108,7 @@ where
 		&mut self,
 		s: &ObjectAssignmentTarget<'data>,
 		restids: &mut Vec<Atom<'data>>,
+		location_assigned: &mut bool,
 	) {
 		if let Some(r) = &s.rest {
 			// { ...rest } = self;
@@ -119,7 +120,6 @@ where
 				}
 				_ => panic!("what?"),
 			}
-			return;
 		}
 		for prop in &s.properties {
 			match prop {
@@ -179,7 +179,14 @@ where
 							walk::walk_expression(self, &d.init);
 						}
 						AssignmentTargetMaybeDefault::ObjectAssignmentTarget(p) => {
-							self.recurse_object_assignment_target(p, restids);
+
+							self.recurse_object_assignment_target(p, restids, location_assigned);
+						}
+						AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p)=>{
+    						if p.name == "location" {
+		                        self.jschanges.add(rewrite!(p.span(), TempVar));
+                                *location_assigned = true;
+    						}
 						}
 						_ => {}
 					}
@@ -517,11 +524,12 @@ where
 				}
 
 				let mut restids: Vec<Atom<'data>> = Vec::new();
-				self.recurse_object_assignment_target(o, &mut restids);
+				let mut location_assigned: bool = false;
+				self.recurse_object_assignment_target(o, &mut restids, &mut location_assigned);
 
-				if restids.len() > 0 {
+				if restids.len() > 0 || location_assigned {
 					self.jschanges
-						.add(rewrite!(it.span, WrapObjectAssignment { restids }));
+						.add(rewrite!(it.span, WrapObjectAssignment { restids, location_assigned }));
 				}
 				return;
 			}

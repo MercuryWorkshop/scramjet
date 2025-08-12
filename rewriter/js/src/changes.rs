@@ -43,9 +43,11 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	RebindProperty {
 		ident: Atom<'data>,
 	},
+	TempVar,
 
 	WrapObjectAssignmentLeft {
 		restids: Vec<Atom<'data>>,
+		location_assigned: bool,
 	},
 
 	/// insert `${cfg.setrealmfn}({}).`
@@ -132,11 +134,15 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::RebindProperty { ident } => {
 				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
 			}
-			Ty::WrapObjectAssignmentLeft { restids } => {
+			Ty::TempVar => LL::replace(transforms![&cfg.templocid]),
+			Ty::WrapObjectAssignmentLeft { restids, location_assigned } => {
 				let mut steps = String::new();
 				for id in restids {
 					steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
 				}
+				if location_assigned {
+                    steps.push_str(&format!("{}(location,\"=\",{})||(location={}),", &cfg.trysetfn, &cfg.templocid, &cfg.templocid));
+                }
 				let steps: &'static str = Box::leak(steps.into_boxed_str());
 				LL::insert(transforms!["((t)=>(", &steps, "t))("])
 			}
@@ -157,7 +163,9 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::ImportFn => LL::replace(transforms![&cfg.importfn, "(\"", &flags.base, "\","]),
 			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(\"", &flags.base, "\")"]),
 			Ty::AssignmentLeft { name, op } => LL::replace(transforms![
-				"((t)=>$scramjet$tryset(",
+				"((t)=>",
+				&cfg.trysetfn,
+				"(",
 				name,
 				",\"",
 				op,

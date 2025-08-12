@@ -24,12 +24,13 @@ export interface ScramjetConfig {
 		wrappropertybase: string;
 		wrappropertyfn: string;
 		cleanrestfn: string;
-		trysetfn: string;
 		importfn: string;
 		rewritefn: string;
 		metafn: string;
 		setrealmfn: string;
 		pushsourcemapfn: string;
+		trysetfn: string;
+		templocid: string;
 	};
 	files: {
 		wasm: string;

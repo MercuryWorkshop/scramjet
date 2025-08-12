@@ -25,6 +25,9 @@ pub struct Config {
 	pub setrealmfn: String,
 	pub metafn: String,
 	pub pushsourcemapfn: String,
+
+	pub trysetfn: String,
+	pub templocid: String,
 }
 
 #[derive(Debug)]

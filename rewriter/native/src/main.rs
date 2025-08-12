@@ -42,6 +42,11 @@ pub struct RewriterOptions {
 	#[clap(long, default_value = "$pushsourcemap")]
 	pushsourcemapfn: String,
 
+	#[clap(long, default_value = "$tryset")]
+	trysetfn: String,
+	#[clap(long, default_value = "$temploc")]
+    templocid: String,
+
 	#[clap(long, default_value = "https://google.com/glorngle/si.js")]
 	base: String,
 	#[clap(long, default_value = "glongle1")]

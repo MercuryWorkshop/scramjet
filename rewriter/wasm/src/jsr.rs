@@ -58,6 +58,8 @@ fn get_config(scramjet: &Object) -> Result<Config> {
 		metafn: get_str(globals, "metafn")?,
 		setrealmfn: get_str(globals, "setrealmfn")?,
 		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
+		trysetfn: get_str(globals, "trysetfn")?,
+		templocid: get_str(globals, "templocid")?,
 	})
 }
 
