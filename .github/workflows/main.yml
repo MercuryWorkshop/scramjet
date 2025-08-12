@@ -142,6 +142,8 @@ jobs:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
     needs: build
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: .playwright-browsers
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -168,8 +170,18 @@ jobs:
           name: scramjet
           path: dist
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+      - name: Cache Playwright browsers
+        id: pw-browsers-cache
+        uses: actions/cache@v4
+        with:
+          path: .playwright-browsers
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Chromium
+        if: steps.pw-browsers-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         run: pnpm test
