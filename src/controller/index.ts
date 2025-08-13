@@ -97,9 +97,17 @@ export class ScramjetController {
 	}
 
 	encodeUrl(url: string | URL): string {
-		if (url instanceof URL) url = url.toString();
+		if (typeof url === "string") url = new URL(url);
 
-		return config.prefix + codecEncode(url);
+		if (url.protocol != "http:" && url.protocol != "https:") {
+			return url.href;
+		}
+
+		const encodedHash = codecEncode(url.hash.slice(1));
+		const realHash = encodedHash ? "#" + encodedHash : "";
+		url.hash = "";
+
+		return config.prefix + codecEncode(url.href) + realHash;
 	}
 
 	decodeUrl(url: string | URL) {
