@@ -16,7 +16,7 @@ export default function (client: ScramjetClient) {
 			if (!realwin) return ctx.return(realwin);
 
 			if (SCRAMJETCLIENT in realwin) {
-				return ctx.return(realwin[SCRAMJETCLIENT].globalProxy);
+				return ctx.return(realwin[SCRAMJETCLIENT].global);
 			} else {
 				const newclient = new ScramjetClient(realwin);
 				// hook the opened window
