@@ -13,7 +13,17 @@ export default function (client: ScramjetClient) {
 
 			const realwin = ctx.call();
 
-			return ctx.return(realwin);
+			if (!realwin) return ctx.return(realwin);
+
+			if (SCRAMJETCLIENT in realwin) {
+				return ctx.return(realwin[SCRAMJETCLIENT].globalProxy);
+			} else {
+				const newclient = new ScramjetClient(realwin);
+				// hook the opened window
+				newclient.hook();
+
+				return ctx.return(newclient.global);
+			}
 		},
 	});
 
