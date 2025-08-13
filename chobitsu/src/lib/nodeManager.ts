@@ -39,6 +39,8 @@ export function wrap(node: any, { depth = 1 } = {}) {
     localName: node.localName || '',
     nodeValue: node.nodeValue || '',
     attributes: [],
+    childNodes: [],
+    children: [],
     nodeId,
     backendNodeId: nodeId,
   }

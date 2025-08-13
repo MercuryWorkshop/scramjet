@@ -54,6 +54,7 @@ export async function callFunctionOn(
   const ret: any = {};
 
   if (threw) {
+    console.error(exception);
     ret.exceptionDetails = {
       exceptionId: 1,
       text: "Uncaught",

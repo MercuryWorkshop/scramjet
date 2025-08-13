@@ -83,10 +83,10 @@ export class Tab extends StatefulClass {
 		let injected = false;
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
-			injectChobitsu(ctx.client, this, resolver);
 
 			// make sure it's top level, ctxInit calls for all frames too
 			if (ctx.window == frame.frame.contentWindow) {
+				injectChobitsu(ctx.client, this, resolver);
 				injectTitleWatcher(ctx.client, this);
 				injectHistoryEmulation(ctx.client, this);
 
