@@ -152,13 +152,12 @@ export const UrlInput: Component<
 		this.value = this.tabUrl.href;
 		this.input.focus();
 		this.input.select();
+
+		this.input.scrollLeft = 0;
 	};
 
 	this.selectContent.listen(() => {
-		this.active = true;
 		activate();
-
-		this.input.select();
 	});
 
 	return (
@@ -342,6 +341,9 @@ UrlInput.style = css`
 
 		height: 100%;
 		width: 100%;
+
+		text-wrap: nowrap;
+		overflow: hidden;
 	}
 	.inactiveurl {
 		display: flex;
