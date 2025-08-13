@@ -32,6 +32,13 @@ export const htmlRules: {
 		src: ["iframe"],
 	},
 	{
+		// is this a good idea?
+		fn: (value: string, meta: URLMeta) => {
+			return null;
+		},
+		sandbox: ["iframe"],
+	},
+	{
 		fn: (value: string, meta: URLMeta) => {
 			if (value.startsWith("blob:")) {
 				// for media elements specifically they must take the original blob

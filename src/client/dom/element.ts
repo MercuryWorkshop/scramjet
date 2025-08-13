@@ -178,7 +178,18 @@ export default function (client: ScramjetClient, self: typeof window) {
 			});
 
 			if (ruleList) {
-				ctx.args[1] = ruleList.fn(value, client.meta, client.cookieStore);
+				const ret = ruleList.fn(value, client.meta, client.cookieStore);
+				if (ret == null) {
+					client.natives.call(
+						"Element.prototype.removeAttribute",
+						ctx.this,
+						name
+					);
+					ctx.return(undefined);
+
+					return;
+				}
+				ctx.args[1] = ret;
 				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`, value);
 			}
 		},
