@@ -80,6 +80,7 @@ export class History {
 		this.index++;
 
 		if (navigate) this.tab._directnavigate(url);
+		else this.tab.url = url;
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();

@@ -83,9 +83,14 @@ export class Tab extends StatefulClass {
 		let injected = false;
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
+			injectWindowFill(ctx.client, this);
 
 			// make sure it's top level, ctxInit calls for all frames too
 			if (ctx.window == frame.frame.contentWindow) {
+				// this was a navigation so update history
+				// make sure not to do this if it was replaceState that triggered it
+				this.history.push(ctx.client.url, undefined, false);
+
 				injectChobitsu(ctx.client, this, resolver);
 				injectTitleWatcher(ctx.client, this);
 				injectHistoryEmulation(ctx.client, this);
@@ -175,6 +180,27 @@ export class Tab extends StatefulClass {
 			this.frame.reload();
 		}
 	}
+}
+
+function injectWindowFill(client: ScramjetClient, tab: Tab) {
+	client.Proxy("window.open", {
+		apply(ctx) {
+			let tab = browser.newTab();
+			if (ctx.args[0]) {
+				tab.frame.go(ctx.args[0]);
+			}
+
+			// this is a bit jank: we need the global proxy NOW, but it will only load naturally after a few seconds
+			const realContentWindow = tab.frame.frame.contentWindow;
+			// :(
+			const ctor: any = client.constructor;
+			// see open.ts
+			const newclient = new ctor(realContentWindow);
+			newclient.hook();
+
+			ctx.return(newclient.globalProxy);
+		},
+	});
 }
 
 function injectChobitsu(
