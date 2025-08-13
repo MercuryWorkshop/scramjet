@@ -185,10 +185,7 @@ export class Tab extends StatefulClass {
 function injectWindowFill(client: ScramjetClient, tab: Tab) {
 	client.Proxy("window.open", {
 		apply(ctx) {
-			let tab = browser.newTab();
-			if (ctx.args[0]) {
-				tab.frame.go(ctx.args[0]);
-			}
+			let tab = browser.newTab(ctx.args[0] || new URL("about:blank"));
 
 			// this is a bit jank: we need the global proxy NOW, but it will only load naturally after a few seconds
 			const realContentWindow = tab.frame.frame.contentWindow;
@@ -198,7 +195,7 @@ function injectWindowFill(client: ScramjetClient, tab: Tab) {
 			const newclient = new ctor(realContentWindow);
 			newclient.hook();
 
-			ctx.return(newclient.globalProxy);
+			ctx.return(newclient.global);
 		},
 	});
 }
