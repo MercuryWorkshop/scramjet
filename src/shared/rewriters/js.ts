@@ -69,41 +69,12 @@ function rewriteJsWasm(
 	}
 }
 
-// 1. does not work with modules
-// 2. cannot proxy import()
-// 3. disables "use strict" optimizations
-// 4. i think the global state can get clobbered somehow
-//
-// if you can ensure all the preconditions are met this is faster than full rewrites
-function rewriteJsNaiive(js: string | ArrayBuffer) {
-	if (typeof js !== "string") {
-		js = textDecoder.decode(js);
-	}
-
-	return `
-		with (${config.globals.wrapfn}(globalThis)) {
-
-			${js}
-
-		}
-	`;
-}
-
 function rewriteJsInner(
 	js: string | Uint8Array,
 	url: string | null,
 	meta: URLMeta,
 	module = false
 ) {
-	if (flagEnabled("naiiveRewriter", meta.origin)) {
-		const text = typeof js === "string" ? js : new TextDecoder().decode(js);
-		let out: any = rewriteJsNaiive(text);
-		if (typeof js === "string") out = out;
-		else out = new TextEncoder().encode(out);
-
-		return { js: out, tag: "", map: null };
-	}
-
 	return rewriteJsWasm(js, url, meta, module);
 }
 
