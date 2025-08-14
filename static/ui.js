@@ -9,13 +9,11 @@ const scramjet = new ScramjetController({
 	wisp: "ws://localhost:1337/",
 	flags: {
 		rewriterLogs: false,
-		naiiveRewriter: false,
 		scramitize: false,
+		cleanErrors: true,
+		// sourcemaps: true,
 	},
 	siteFlags: {
-		"https://www.google.com/(search|sorry).*": {
-			naiiveRewriter: true,
-		},
 		"https://worker-playground.glitch.me/.*": {
 			serviceworkers: true,
 		},

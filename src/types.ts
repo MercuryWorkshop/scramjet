@@ -6,7 +6,6 @@ import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 export type ScramjetFlags = {
 	serviceworkers: boolean;
 	syncxhr: boolean;
-	naiiveRewriter: boolean;
 	strictRewrites: boolean;
 	rewriterLogs: boolean;
 	captureErrors: boolean;
