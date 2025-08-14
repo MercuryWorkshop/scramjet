@@ -72,6 +72,9 @@ BookmarksStrip.style = css`
 		padding-right: 0.25em;
 		background: none;
 		border-radius: 0.5em;
+		cursor: pointer;
+
+		font-family: "Noto Sans";
 	}
 	button:hover {
 		background: gray;

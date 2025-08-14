@@ -12,7 +12,6 @@ export const NewTabPage: Component<
 	return (
 		<div>
 			<div class="main">
-				<h1>Puter Browser</h1>
 				<input
 					on:keydown={(e: KeyboardEvent) => {
 						if (e.key === "Enter") {
@@ -25,10 +24,12 @@ export const NewTabPage: Component<
 				<div class="suggestions">
 					{browser.globalhistory.slice(0, 5).map((entry) => (
 						<div class="suggestion" on:click={() => browser.newTab(entry.url)}>
-							<div class="circle">
-								<img src={entry.favicon || "/vite.svg"} alt="favicon" />
+							<div class="suggestioninner">
+								<div class="circle">
+									<img src={entry.favicon || "/vite.svg"} alt="favicon" />
+								</div>
+								<span class="title">{entry.title || trimUrl(entry.url)}</span>
 							</div>
-							<span class="title">{entry.title || trimUrl(entry.url)}</span>
 						</div>
 					))}
 				</div>
@@ -42,7 +43,7 @@ NewTabPage.style = css`
 		height: 100%;
 		display: flex;
 		justify-content: center;
-		font-family: sans-serif;
+		font-family: "Noto Sans";
 	}
 
 	.suggestions {
@@ -55,11 +56,20 @@ NewTabPage.style = css`
 
 	.suggestion {
 		cursor: pointer;
+		aspect-ratio: 1/1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 2em;
+	}
+	.suggestion:hover {
+		background: gray;
+	}
+	.suggestioninner {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 0.5em;
-		width: 6em;
 	}
 	.circle {
 		width: 64px;
@@ -75,7 +85,6 @@ NewTabPage.style = css`
 		width: 100%;
 		text-overflow: ellipsis;
 		text-align: center;
-		overflow: hidden;
 		white-space: nowrap;
 	}
 	.suggestion img {
@@ -97,7 +106,8 @@ NewTabPage.style = css`
 		font-size: 1.5em;
 		border: 2px solid #ccc;
 		outline: none;
-		border-radius: 4px;
+		border-radius: 1em;
+		padding: 1em;
 	}
 
 	.main {
