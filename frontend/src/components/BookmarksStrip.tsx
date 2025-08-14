@@ -2,6 +2,7 @@ import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 import iconAdd from "@ktibow/iconset-ion/add";
 import { browser } from "../main";
+import { createMenu } from "./Menu";
 
 export const BookmarksStrip: Component = function () {
 	return (
@@ -12,8 +13,32 @@ export const BookmarksStrip: Component = function () {
 			</button>
 			{use(browser.bookmarks).mapEach((b) => (
 				<button
-					on:auxclick={() => {
+					on:auxclick={(e: MouseEvent) => {
+						if (e.button != 1) return;
 						browser.newTab(new URL(b.url));
+					}}
+					on:contextmenu={(e: MouseEvent) => {
+						createMenu(e.clientX, e.clientY, [
+							{
+								label: "Open",
+								action: () => browser.activetab.pushNavigate(new URL(b.url)),
+							},
+							{
+								label: "Open in New Tab",
+								action: () => browser.newTab(new URL(b.url)),
+							},
+							{
+								label: "Edit Bookmark",
+							},
+							{
+								label: "Delete Bookmark",
+								action: () => {
+									browser.bookmarks = browser.bookmarks.filter((br) => br != b);
+								},
+							},
+						]);
+						e.preventDefault();
+						e.stopPropagation();
 					}}
 					on:click={() => {
 						browser.activetab.pushNavigate(new URL(b.url));
