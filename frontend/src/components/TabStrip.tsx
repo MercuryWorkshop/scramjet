@@ -65,10 +65,14 @@ export const DragTab: Component<
 			style="z-index: 0;"
 			class="tab"
 			data-id={this.id}
-			on:mousedown={(e) => {
+			on:mousedown={(e: MouseEvent) => {
 				this.mousedown(e);
 				e.stopPropagation();
 				e.preventDefault();
+			}}
+			on:contextmenu={() => {
+				if (hoverTimeout) clearTimeout(hoverTimeout);
+				this.tooltipActive = false;
 			}}
 			on:transitionend={() => {
 				cx.root.style.transition = "";
