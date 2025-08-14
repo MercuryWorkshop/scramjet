@@ -16,7 +16,7 @@ export const IconButton: Component<{
 			on:click={(e) => this.click?.(e)}
 			title={this.tooltip}
 		>
-			<Icon icon={this.icon} />
+			<Icon icon={use(this.icon)} />
 		</button>
 	);
 };

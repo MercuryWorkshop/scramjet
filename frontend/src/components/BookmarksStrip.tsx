@@ -10,10 +10,17 @@ export const BookmarksStrip: Component = function () {
 				<Icon icon={iconAdd}></Icon>
 				<span>create bookmark</span>
 			</button>
-			{use(browser.globalhistory).mapEach((g) => (
-				<button on:click={() => {}}>
-					<img src={g.favicon}></img>
-					<span>{g.title}</span>
+			{use(browser.bookmarks).mapEach((b) => (
+				<button
+					on:auxclick={() => {
+						browser.newTab(new URL(b.url));
+					}}
+					on:click={() => {
+						browser.activetab.pushNavigate(new URL(b.url));
+					}}
+				>
+					<img src={b.favicon}></img>
+					<span>{b.title}</span>
 				</button>
 			))}
 		</div>

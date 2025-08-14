@@ -6,6 +6,7 @@ import {
 } from "dreamland/core";
 import iconOptions from "@ktibow/iconset-ion/options-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
+import iconStarFilled from "@ktibow/iconset-ion/star";
 import iconSearch from "@ktibow/iconset-ion/search";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import { Icon } from "./Icon";
@@ -348,7 +349,38 @@ export const UrlInput: Component<
 
 				{use(this.active)
 					.map((a) => !a)
-					.andThen(<IconButton icon={iconStar}></IconButton>)}
+					.andThen(
+						<IconButton
+							click={(e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								let bookmark = browser.bookmarks.find(
+									(b) => b.url == this.tabUrl.href
+								);
+								if (bookmark) {
+									browser.bookmarks = browser.bookmarks.filter(
+										(b) => b.url !== this.tabUrl.href
+									);
+								} else {
+									browser.bookmarks = [
+										{
+											url: browser.activetab.url.href,
+											favicon: browser.activetab.icon,
+											title:
+												browser.activetab.title ||
+												browser.activetab.url.hostname,
+										},
+										...browser.bookmarks,
+									];
+								}
+							}}
+							icon={use(browser.bookmarks, this.tabUrl).map(() =>
+								browser.bookmarks.some((b) => b.url == this.tabUrl.href)
+									? iconStarFilled
+									: iconStar
+							)}
+						></IconButton>
+					)}
 				{use(this.active).andThen(
 					<IconButton
 						click={(e: MouseEvent) => {
