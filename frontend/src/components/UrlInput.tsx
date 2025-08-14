@@ -58,6 +58,8 @@ export const UrlInput: Component<
 		value: string;
 		active: boolean;
 		justselected: boolean;
+		subtleinput: boolean;
+
 		input: HTMLInputElement;
 
 		focusindex: number;
@@ -72,6 +74,7 @@ export const UrlInput: Component<
 	focusOmnibox.listen(() => {
 		setTimeout(() => {
 			activate();
+			this.subtleinput = true;
 		}, 10);
 	});
 
@@ -153,6 +156,7 @@ export const UrlInput: Component<
 		}
 	});
 	const activate = () => {
+		this.subtleinput = false;
 		this.active = true;
 		browser.unfocusframes = true;
 		document.body.addEventListener("click", (e) => {
@@ -207,7 +211,12 @@ export const UrlInput: Component<
 			}}
 		>
 			<div class="inactivebar"></div>
-			<div class="overflow" class:active={use(this.active)}>
+			<div
+				class="overflow"
+				class:active={use(this.active, this.subtleinput).map(
+					([a, s]) => a && !s
+				)}
+			>
 				<div class="spacer"></div>
 				{use(this.overflowItems).mapEach((item) => (
 					<div
@@ -323,6 +332,7 @@ export const UrlInput: Component<
 						on:input={(e: InputEvent) => {
 							this.value = this.input.value;
 							this.focusindex = 0;
+							this.subtleinput = false;
 						}}
 					></input>
 				)}
