@@ -22,7 +22,9 @@ export const App: Component = function (cx) {
 				}}
 			/>
 			<Omnibox tab={use(browser.activetab)} />
-			<BookmarksStrip />
+			{use(browser.activetab.url)
+				.map((u) => u.href === "puter://newtab")
+				.andThen(<BookmarksStrip />)}
 			{cx.children}
 		</div>
 	);

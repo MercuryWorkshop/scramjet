@@ -6,10 +6,18 @@ export const Menu: Component<{
 	y: number;
 	items: { label: string; action?: () => void }[];
 }> = function (cx) {
-	const close = (e: MouseEvent) => {
+	const close = () => {
 		cx.root.remove();
 		browser.unfocusframes = false;
+	};
 
+	const ev = (e: MouseEvent) => {
+		// Don't close if the click is over the menu
+		if (cx.root.contains(e.target as Node)) {
+			return;
+		}
+
+		close();
 		e.stopImmediatePropagation();
 		e.preventDefault();
 	};
@@ -23,8 +31,8 @@ export const Menu: Component<{
 		if (this.x > maxX) this.x = maxX;
 		if (this.y > maxY) this.y = maxY;
 
-		window.addEventListener("click", close, { once: true, capture: true });
-		window.addEventListener("contextmenu", close, {
+		window.addEventListener("click", ev, { once: true, capture: true });
+		window.addEventListener("contextmenu", ev, {
 			once: true,
 			capture: true,
 		});
@@ -39,7 +47,7 @@ export const Menu: Component<{
 				<button
 					on:click={(e: MouseEvent) => {
 						item.action?.();
-						close(e);
+						close();
 						e.stopPropagation();
 					}}
 				>
