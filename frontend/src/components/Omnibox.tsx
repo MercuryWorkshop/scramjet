@@ -18,7 +18,10 @@ export const focusOmnibox = createDelegate<void>();
 
 export function trimUrl(v: URL) {
 	return (
-		(v.protocol === "puter:" ? v.protocol : "") + v.host + v.pathname + v.search
+		(v.protocol === "puter:" ? v.protocol : "") +
+		v.host +
+		(v.search ? v.pathname : v.pathname.replace(/\/$/, "")) +
+		v.search
 	);
 }
 
@@ -58,7 +61,6 @@ export const UrlInput: Component<
 	this.value = "";
 
 	focusOmnibox.listen(() => {
-		console.log("WH");
 		setTimeout(() => {
 			activate();
 		}, 10);
@@ -149,7 +151,11 @@ export const UrlInput: Component<
 			browser.unfocusframes = false;
 			e.stopPropagation();
 		});
-		this.value = this.tabUrl.href;
+		if (this.tabUrl.href == "puter://newtab") {
+			this.value = "";
+		} else {
+			this.value = trimUrl(this.tabUrl);
+		}
 		this.input.focus();
 		this.input.select();
 
@@ -254,16 +260,39 @@ export const UrlInput: Component<
 								this.input.blur();
 							}
 						}}
+						// keyup, we want this to happen after the input has been processed (so the user can delete the whole thing)
+						on:keyup={(e: KeyboardEvent) => {
+							// if the user didn't modify anything
+							if (this.input.value == trimUrl(this.tabUrl)) {
+								// insert the untrimmed version
+								this.input.value = this.tabUrl.href;
+							}
+
+							if (e.key == "ArrowLeft") {
+								// move the cursor to the start
+								if (this.tabUrl.protocol == "puter:") {
+									this.input.setSelectionRange(0, 0);
+								} else {
+									let schemelen = this.tabUrl.protocol.length + 2;
+									this.input.setSelectionRange(schemelen, schemelen);
+								}
+							}
+						}}
 						on:input={(e: InputEvent) => {
 							this.value = this.input.value;
 							this.focusindex = 0;
 						}}
 					></input>
 				)}
-				{use(this.active)
-					.map((a) => !a)
+				{use(this.active, this.tabUrl)
+					.map(([active, url]) => !active && url.href != "puter://newtab")
 					.andThen(
 						<span class="inactiveurl">{use(this.tabUrl).map(trimUrl)}</span>
+					)}
+				{use(this.active, this.tabUrl)
+					.map(([active, url]) => !active && url.href == "puter://newtab")
+					.andThen(
+						<span class="placeholder">Search with Google or enter address</span>
 					)}
 
 				<IconButton icon={iconStar}></IconButton>
@@ -332,7 +361,8 @@ UrlInput.style = css`
 		margin: 0.25em;
 	}
 	input,
-	.inactiveurl {
+	.inactiveurl,
+	.placeholder {
 		background: none;
 		border: none;
 		outline: none;
@@ -344,8 +374,14 @@ UrlInput.style = css`
 
 		text-wrap: nowrap;
 		overflow: hidden;
+		font-family: Noto Sans;
 	}
 	.inactiveurl {
+		display: flex;
+		align-items: center;
+	}
+	.placeholder {
+		color: grey;
 		display: flex;
 		align-items: center;
 	}
