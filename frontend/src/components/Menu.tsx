@@ -6,9 +6,12 @@ export const Menu: Component<{
 	y: number;
 	items: { label: string; action?: () => void }[];
 }> = function (cx) {
-	const close = () => {
+	const close = (e: MouseEvent) => {
 		cx.root.remove();
 		browser.unfocusframes = false;
+
+		e.stopImmediatePropagation();
+		e.preventDefault();
 	};
 
 	cx.mount = () => {
@@ -20,8 +23,11 @@ export const Menu: Component<{
 		if (this.x > maxX) this.x = maxX;
 		if (this.y > maxY) this.y = maxY;
 
-		document.body.addEventListener("click", close, { once: true });
-		document.body.addEventListener("contextmenu", close, { once: true });
+		window.addEventListener("click", close, { once: true, capture: true });
+		window.addEventListener("contextmenu", close, {
+			once: true,
+			capture: true,
+		});
 
 		cx.root.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -33,7 +39,7 @@ export const Menu: Component<{
 				<button
 					on:click={(e: MouseEvent) => {
 						item.action?.();
-						close();
+						close(e);
 						e.stopPropagation();
 					}}
 				>

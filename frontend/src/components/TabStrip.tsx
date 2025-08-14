@@ -117,6 +117,10 @@ export const DragTab: Component<
 							e.stopPropagation();
 							this.destroy();
 						}}
+						on:contextmenu={(e: MouseEvent) => {
+							e.preventDefault();
+							e.stopPropagation();
+						}}
 					>
 						<Icon icon={iconClose} />
 					</button>
@@ -208,6 +212,10 @@ DragTab.style = css`
 
 		padding: 0;
 		margin-left: 8px;
+	}
+	.close:hover {
+		background: grey;
+		border-radius: 0.5em;
 	}
 
 	.main:not(.active):hover {
@@ -475,7 +483,14 @@ export const Tabs: Component<
 					tabcache
 				)
 			)}
-			<div class="extra after" this={use(this.afterEl)}>
+			<div
+				class="extra after"
+				this={use(this.afterEl)}
+				on:contextmenu={(e: MouseEvent) => {
+					e.preventDefault();
+					e.stopPropagation();
+				}}
+			>
 				<IconButton icon={iconAdd} click={this.addTab}></IconButton>
 			</div>
 			<div class="extra right" this={use(this.rightEl)}></div>
