@@ -148,7 +148,7 @@ DragTab.style = css`
 
 	.tooltip {
 		position: absolute;
-		top: 5em;
+		top: 2.25em;
 		left: 0;
 		z-index: 1000;
 		background: var(--aboutbrowser-frame-bg);

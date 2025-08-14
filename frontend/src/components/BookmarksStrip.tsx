@@ -1,0 +1,55 @@
+import { css, type Component } from "dreamland/core";
+import { Icon } from "./Icon";
+import iconAdd from "@ktibow/iconset-ion/add";
+import { browser } from "../main";
+
+export const BookmarksStrip: Component = function () {
+	return (
+		<div>
+			<button on:click={() => {}}>
+				<Icon icon={iconAdd}></Icon>
+				<span>create bookmark</span>
+			</button>
+			{use(browser.globalhistory).mapEach((g) => (
+				<button on:click={() => {}}>
+					<img src={g.favicon}></img>
+					<span>{g.title}</span>
+				</button>
+			))}
+		</div>
+	);
+};
+BookmarksStrip.style = css`
+	:scope {
+		padding: 0.25em;
+		height: 2em;
+		display: flex;
+		gap: 0.5em;
+		background: var(--aboutbrowser-omnibox-bg);
+	}
+
+	button {
+		padding: 0;
+		border: 0;
+		display: flex;
+		align-items: center;
+		height: 100%;
+		gap: 0.25em;
+
+		padding-left: 0.25em;
+		padding-right: 0.25em;
+		background: none;
+		border-radius: 0.5em;
+	}
+	button:hover {
+		background: gray;
+	}
+	button span {
+		white-space: nowrap;
+	}
+
+	button img {
+		width: 16px;
+		height: 16px;
+	}
+`;

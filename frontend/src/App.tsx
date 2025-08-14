@@ -5,6 +5,7 @@ import { ThemeVars } from "./theme";
 import { config } from "./Browser";
 import { browser } from "./main";
 import type { Tab } from "./Tab";
+import { BookmarksStrip } from "./components/BookmarksStrip";
 
 export const App: Component = function (cx) {
 	return (
@@ -21,6 +22,7 @@ export const App: Component = function (cx) {
 				}}
 			/>
 			<Omnibox tab={use(browser.activetab)} />
+			<BookmarksStrip />
 			{cx.children}
 		</div>
 	);
