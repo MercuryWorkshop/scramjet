@@ -6,6 +6,7 @@ export const IconButton: Component<{
 	icon: IconifyIcon;
 	click?: (e: MouseEvent) => void;
 	active?: boolean;
+	tooltip?: string;
 }> = function (cx) {
 	this.active ??= true;
 	return (
@@ -13,6 +14,7 @@ export const IconButton: Component<{
 			disabled={use(this.active).map((x) => (x ? undefined : true))}
 			class:active={use(this.active)}
 			on:click={(e) => this.click?.(e)}
+			title={this.tooltip}
 		>
 			<Icon icon={this.icon} />
 		</button>

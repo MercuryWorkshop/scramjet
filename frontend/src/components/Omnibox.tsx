@@ -37,16 +37,19 @@ export const Omnibox: Component<{
 	return (
 		<div>
 			<IconButton
+				tooltip="Go back one page (Alt+Left Arrow)"
 				active={use(this.tab.canGoBack)}
 				click={() => this.tab.back()}
 				icon={iconBack}
 			></IconButton>
 			<IconButton
+				tooltip="Go forward one page (Alt+Right Arrow)"
 				active={use(this.tab.canGoForward)}
 				click={() => this.tab.forward()}
 				icon={iconForwards}
 			></IconButton>
 			<IconButton
+				tooltip="Refresh current page (Ctrl+R)"
 				click={() => this.tab.reload()}
 				icon={iconRefresh}
 			></IconButton>
@@ -58,6 +61,7 @@ export const Omnibox: Component<{
 			<Spacer></Spacer>
 			<IconButton active={false} icon={iconExtension}></IconButton>
 			<IconButton
+				tooltip="More Options"
 				icon={iconMore}
 				click={(e: MouseEvent) => {
 					createMenu(e.x, cx.root.clientTop + cx.root.clientHeight * 2, [

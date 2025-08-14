@@ -139,6 +139,11 @@ export const UrlInput: Component<
 			browser.unfocusframes = false;
 			e.stopPropagation();
 		});
+		document.body.addEventListener("auxclick", (e) => {
+			this.active = false;
+			browser.unfocusframes = false;
+			e.stopPropagation();
+		});
 		if (this.tabUrl.href == "puter://newtab") {
 			this.value = "";
 		} else {
