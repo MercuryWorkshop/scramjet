@@ -4,13 +4,14 @@ import {
 	type Component,
 	type Delegate,
 } from "dreamland/core";
-import iconShield from "@ktibow/iconset-ion/shield-outline";
+import iconOptions from "@ktibow/iconset-ion/options-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconSearch from "@ktibow/iconset-ion/search";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import { Icon } from "./Icon";
 import { browser, scramjet } from "../main";
 import { IconButton } from "./IconButton";
+import { parse } from "tldts";
 
 export const focusOmnibox = createDelegate<void>();
 export function trimUrl(v: URL) {
@@ -20,6 +21,24 @@ export function trimUrl(v: URL) {
 		(v.search ? v.pathname : v.pathname.replace(/\/$/, "")) +
 		v.search
 	);
+}
+
+// subdomain, domain+tld+port, path+search+query
+function splitUrl(url: URL): [string, string, string] {
+	let last = url.pathname + url.search + url.hash;
+	if (last == "/") last = "";
+
+	let results = parse(url.href);
+	let domain = results.domain;
+	if (domain && url.port) {
+		domain += ":" + url.port;
+	}
+	let subdomain = results.subdomain;
+	if (subdomain) {
+		subdomain += ".";
+	}
+
+	return [subdomain || "", domain || "", last];
 }
 
 type OmniboxResult = {
@@ -37,6 +56,7 @@ export const UrlInput: Component<
 	{
 		value: string;
 		active: boolean;
+		justselected: boolean;
 		input: HTMLInputElement;
 
 		focusindex: number;
@@ -151,6 +171,7 @@ export const UrlInput: Component<
 		}
 		this.input.focus();
 		this.input.select();
+		this.justselected = true;
 
 		this.input.scrollLeft = 0;
 	};
@@ -232,9 +253,27 @@ export const UrlInput: Component<
 				))}
 			</div>
 			<div class="realbar">
-				<IconButton icon={iconShield}></IconButton>
+				<div class="lefticon">
+					{use(this.active, this.focusindex, this.overflowItems).map(() =>
+						this.active ? (
+							this.focusindex > 0 && this.overflowItems.length > 0 ? (
+								<img
+									src={
+										this.overflowItems[this.focusindex - 1].favicon ||
+										"/vite.svg"
+									}
+								></img>
+							) : (
+								<Icon icon={iconSearch}></Icon>
+							)
+						) : (
+							<Icon icon={iconOptions}></Icon>
+						)
+					)}
+				</div>
 				{use(this.active).andThen(
 					<input
+						spellcheck="false"
 						this={use(this.input)}
 						value={use(this.value)}
 						on:keydown={(e: KeyboardEvent) => {
@@ -260,6 +299,8 @@ export const UrlInput: Component<
 						}}
 						// keyup, we want this to happen after the input has been processed (so the user can delete the whole thing)
 						on:keyup={(e: KeyboardEvent) => {
+							if (!this.justselected) return;
+
 							// if the user didn't modify anything
 							if (this.input.value == trimUrl(this.tabUrl)) {
 								// insert the untrimmed version
@@ -275,6 +316,8 @@ export const UrlInput: Component<
 									this.input.setSelectionRange(schemelen, schemelen);
 								}
 							}
+
+							this.justselected = false;
 						}}
 						on:input={(e: InputEvent) => {
 							this.value = this.input.value;
@@ -285,7 +328,17 @@ export const UrlInput: Component<
 				{use(this.active, this.tabUrl)
 					.map(([active, url]) => !active && url.href != "puter://newtab")
 					.andThen(
-						<span class="inactiveurl">{use(this.tabUrl).map(trimUrl)}</span>
+						<span class="inactiveurl">
+							<span class="subdomain">
+								{use(this.tabUrl).map((t) => splitUrl(t)[0])}
+							</span>
+							<span class="domain">
+								{use(this.tabUrl).map((t) => splitUrl(t)[1])}
+							</span>
+							<span class="rest">
+								{use(this.tabUrl).map((t) => splitUrl(t)[2])}
+							</span>
+						</span>
 					)}
 				{use(this.active, this.tabUrl)
 					.map(([active, url]) => !active && url.href == "puter://newtab")
@@ -316,6 +369,19 @@ UrlInput.style = css`
 		flex: 1;
 		display: flex;
 		height: 100%;
+	}
+
+	.lefticon {
+		font-size: 1.25em;
+		color: grey;
+		display: flex;
+		margin: 0.25em;
+		align-self: stretch;
+		align-items: center;
+	}
+	.lefticon img {
+		width: 20px;
+		height: 20px;
 	}
 
 	.favicon {
@@ -356,7 +422,7 @@ UrlInput.style = css`
 		color: grey;
 	}
 	.overflowitem.focused {
-		background: blue;
+		background: #fff;
 	}
 
 	.overflow.active {
@@ -390,6 +456,12 @@ UrlInput.style = css`
 		display: flex;
 		align-items: center;
 	}
+	.inactiveurl .subdomain,
+	.inactiveurl .rest {
+		opacity: 0.7;
+		color: grey;
+	}
+
 	.placeholder {
 		color: grey;
 		display: flex;
