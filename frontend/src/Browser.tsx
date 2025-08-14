@@ -6,7 +6,7 @@ import { createDelegate } from "dreamland/core";
 import tlds from "tlds";
 import type { SerializedHistoryState } from "./History";
 import { HistoryState } from "./History";
-import { focusOmnibox } from "./components/Omnibox";
+import { focusOmnibox } from "./components/UrlInput";
 
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();

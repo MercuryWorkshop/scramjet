@@ -54,29 +54,29 @@ function mount() {
 			e.preventDefault();
 		});
 
-		let playwrightWindow = window.open(
-			"http://localhost:5013",
-			"playwright",
-			"width=400,height=300,left=100,top=100,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no"
-		)!;
-		let server = startCDP((message: string) => {
-			playwrightWindow.postMessage(
-				{
-					type: "scramjet$playwrightcdp",
-					message: message,
-				},
-				"*"
-			);
-		});
-		window.addEventListener("message", (event: MessageEvent) => {
-			if (!event.data || !event.data.type) return;
-			if (event.data.type != "scramjet$playwrightcdp") return;
+		// let playwrightWindow = window.open(
+		// 	"http://localhost:5013",
+		// 	"playwright",
+		// 	"width=400,height=300,left=100,top=100,resizable=yes,scrollbars=no,menubar=no,toolbar=no,location=no,status=no"
+		// )!;
+		// let server = startCDP((message: string) => {
+		// 	playwrightWindow.postMessage(
+		// 		{
+		// 			type: "scramjet$playwrightcdp",
+		// 			message: message,
+		// 		},
+		// 		"*"
+		// 	);
+		// });
+		// window.addEventListener("message", (event: MessageEvent) => {
+		// 	if (!event.data || !event.data.type) return;
+		// 	if (event.data.type != "scramjet$playwrightcdp") return;
 
-			server.message(event.data.message);
-		});
-		window.addEventListener("beforeunload", () => {
-			playwrightWindow.close();
-		});
+		// 	server.message(event.data.message);
+		// });
+		// window.addEventListener("beforeunload", () => {
+		// 	playwrightWindow.close();
+		// });
 	} catch (e) {
 		let err = e as any;
 		app.replaceWith(
