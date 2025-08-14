@@ -7,6 +7,7 @@ import {
 import iconShield from "@ktibow/iconset-ion/shield-outline";
 import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconSearch from "@ktibow/iconset-ion/search";
+import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import { Icon } from "./Icon";
 import { browser, scramjet } from "../main";
 import { IconButton } from "./IconButton";
@@ -149,6 +150,19 @@ export const UrlInput: Component<
 		this.input.scrollLeft = 0;
 	};
 
+	const doSearch = () => {
+		if (this.focusindex > 0) {
+			browser.activetab.pushNavigate(
+				this.overflowItems[this.focusindex - 1].url
+			);
+		} else {
+			browser.searchNavigate(this.value);
+		}
+
+		this.active = false;
+		this.input.blur();
+	};
+
 	this.selectContent.listen(() => {
 		activate();
 	});
@@ -235,16 +249,8 @@ export const UrlInput: Component<
 							}
 							if (e.key === "Enter") {
 								e.preventDefault();
-								if (this.focusindex > 0) {
-									browser.activetab.pushNavigate(
-										this.overflowItems[this.focusindex - 1].url
-									);
-								} else {
-									browser.searchNavigate(this.value);
-								}
 
-								this.active = false;
-								this.input.blur();
+								doSearch();
 							}
 						}}
 						// keyup, we want this to happen after the input has been processed (so the user can delete the whole thing)
@@ -282,7 +288,19 @@ export const UrlInput: Component<
 						<span class="placeholder">Search with Google or enter address</span>
 					)}
 
-				<IconButton icon={iconStar}></IconButton>
+				{use(this.active)
+					.map((a) => !a)
+					.andThen(<IconButton icon={iconStar}></IconButton>)}
+				{use(this.active).andThen(
+					<IconButton
+						click={(e: MouseEvent) => {
+							doSearch();
+							e.stopPropagation();
+							e.preventDefault();
+						}}
+						icon={iconForwards}
+					></IconButton>
+				)}
 			</div>
 		</div>
 	);
@@ -380,5 +398,8 @@ UrlInput.style = css`
 		display: flex;
 		z-index: 1;
 		align-items: center;
+
+		padding-left: 0.25em;
+		padding-right: 0.25em;
 	}
 `;

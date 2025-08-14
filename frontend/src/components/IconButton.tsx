@@ -20,13 +20,24 @@ export const IconButton: Component<{
 };
 IconButton.style = css`
 	:scope {
-		padding: 0.4em;
+		box-sizing: border-box;
+		aspect-ratio: 1/1;
+		align-items: center;
+		justify-content: center;
+		padding-top: 0.25em;
+
+		padding-bottom: 0.25em;
+
 		display: flex;
 		outline: none;
 		border: none;
 		font-size: 1.25em;
 		background: none;
 		color: grey;
+		border-radius: 0.2em;
+	}
+	:scope.active:hover {
+		background-color: #fff;
 	}
 	:scope.active {
 		cursor: pointer;

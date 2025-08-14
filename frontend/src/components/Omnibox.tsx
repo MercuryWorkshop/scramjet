@@ -56,7 +56,7 @@ export const Omnibox: Component<{
 				tabUrl={use(this.tab.url)}
 			></UrlInput>
 			<Spacer></Spacer>
-			<IconButton icon={iconExtension}></IconButton>
+			<IconButton active={false} icon={iconExtension}></IconButton>
 			<IconButton
 				icon={iconMore}
 				click={(e: MouseEvent) => {
@@ -97,9 +97,10 @@ Omnibox.style = css`
 		z-index: 1;
 		background: var(--aboutbrowser-omnibox-bg);
 		display: flex;
-		padding: 0px 7px 0px 7px;
+		padding: 0 7px 0 7px;
 		height: 2.5em;
 		align-items: center;
 		position: relative;
+		gap: 0.2em;
 	}
 `;
