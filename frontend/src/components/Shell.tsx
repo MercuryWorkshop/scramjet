@@ -77,6 +77,8 @@ export const Shell: Component = function (cx) {
 Shell.style = css`
 	:scope {
 		flex: 1;
+		overflow: hidden;
+		width: 100%;
 	}
 	.unfocus {
 		pointer-events: none;
@@ -104,6 +106,7 @@ Shell.style = css`
 
 	.mainframecontainer {
 		display: flex;
+		width: 100%;
 		flex: 1;
 	}
 

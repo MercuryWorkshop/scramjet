@@ -82,7 +82,8 @@ NewTabPage.style = css`
 		align-items: center;
 	}
 	.title {
-		width: 100%;
+		width: 6em;
+		overflow: hidden;
 		text-overflow: ellipsis;
 		text-align: center;
 		white-space: nowrap;
