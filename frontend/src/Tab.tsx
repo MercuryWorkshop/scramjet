@@ -128,23 +128,23 @@ export class Tab extends StatefulClass {
 		if (url.protocol == "puter:") {
 			switch (url.host) {
 				case "newtab":
-					this.title = "New Tab";
+					this.history.current().title = this.title = "New Tab";
 					this.internalpage = <NewTabPage tab={this} />;
 					break;
 				case "playground":
-					this.title = "Scramjet Playground";
+					this.history.current().title = this.title = "Scramjet Playground";
 					this.internalpage = <PlaygroundPage tab={this} />;
 					break;
 				case "history":
-					this.title = "Browser History";
+					this.history.current().title = this.title = "Browser History";
 					this.internalpage = <HistoryPage tab={this}></HistoryPage>;
 					break;
 				case "version":
-					this.title = "About Version";
+					this.history.current().title = this.title = "About Version";
 					this.internalpage = <AboutPage tab={this} />;
 					break;
 				case "settings":
-					this.title = "Settings";
+					this.history.current().title = this.title = "Settings";
 					this.internalpage = <SettingsPage tab={this} />;
 					break;
 			}
