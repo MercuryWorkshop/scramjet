@@ -13,6 +13,7 @@ import { Icon } from "./Icon";
 import { browser, scramjet } from "../main";
 import { IconButton } from "./IconButton";
 import { parse } from "tldts";
+import { createMenu } from "./Menu";
 
 export const focusOmnibox = createDelegate<void>();
 export function trimUrl(v: URL) {
@@ -277,7 +278,18 @@ export const UrlInput: Component<
 								<Icon icon={iconSearch}></Icon>
 							)
 						) : (
-							<Icon icon={iconOptions}></Icon>
+							<button
+								class="optionsbutton"
+								on:click={(e: MouseEvent) => {
+									createMenu(e.clientX, e.clientY, [
+										{ label: "Clear Site Data" },
+									]);
+									e.preventDefault();
+									e.stopPropagation();
+								}}
+							>
+								<Icon icon={iconOptions}></Icon>
+							</button>
 						)
 					)}
 				</div>
@@ -431,10 +443,32 @@ UrlInput.style = css`
 		height: 16px;
 	}
 
+	.optionsbutton {
+		width: 100%;
+		/*height: 100%;*/
+		cursor: pointer;
+		padding: 0;
+		margin: 0;
+		background: none;
+		outline: none;
+		border: none;
+		color: var(--fg);
+		font-size: 1em;
+		padding: 0.1em;
+		border-radius: 0.2em;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--bg01);
+	}
+	.optionsbutton:hover {
+		background: var(--bg02);
+	}
+
 	.overflow {
 		position: absolute;
 		display: none;
-		background: var(--bg02);
+		background: var(--bg);
 		width: 100%;
 		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -473,7 +507,7 @@ UrlInput.style = css`
 		display: block;
 	}
 	.inactivebar {
-		background: var(--bg02);
+		background: var(--bg);
 		width: 100%;
 		border: none;
 		outline: none;
