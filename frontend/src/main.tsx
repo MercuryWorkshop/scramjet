@@ -40,9 +40,9 @@ export function setWispUrl(wispurl: string) {
 }
 let signedinr: any;
 let signedin = new Promise((resolve) => (signedinr = resolve));
-export const SignIn: Component<{}, { status: string }> = function (cx) {
-	this.status = "";
-
+export const LoadInterstitial: Component<{ status: string }, {}> = function (
+	cx
+) {
 	function handleModalClose(modal: any) {
 		modal.style.opacity = 0;
 		setTimeout(() => {
@@ -50,33 +50,14 @@ export const SignIn: Component<{}, { status: string }> = function (cx) {
 			modal.style.opacity = 1;
 		}, 250);
 	}
-
-	const signin = async () => {
-		this.status = "Signing in...";
-		try {
-			await puter.auth.signIn();
-			this.status = "Signed in successfully!";
-			signedinr();
-			handleModalClose(cx.root);
-		} catch (e: any) {
-			console.log(e);
-			this.status = "Error signing in: " + e.message;
-			return;
-		}
-	};
-
 	return (
 		<dialog class="signin">
-			<h1>Sign In</h1>
-			<br></br>
-			<p>Sign in with Puter</p>
-
-			<button on:click={signin}>Sign In</button>
+			<h1>Loading</h1>
 			<p>{use(this.status)}</p>
 		</dialog>
 	);
 };
-SignIn.style = css`
+LoadInterstitial.style = css`
 	:scope {
 		transition: opacity 0.4s ease;
 		width: 50%;
@@ -112,9 +93,6 @@ async function mount() {
 
 		if (!import.meta.env.VITE_LOCAL) {
 			if (!puter.auth.isSignedIn()) {
-				const signin: any = <SignIn></SignIn>;
-				document.body.append(signin);
-				signin.showModal();
 				await signedin;
 				return;
 			}
@@ -173,24 +151,32 @@ function waitForStateChange(worker: ServiceWorker, targetState: string) {
 		});
 	});
 }
+
+mount();
+
+init();
 async function init() {
+	const signin: any = <LoadInterstitial status={"Loading"}></LoadInterstitial>;
+	document.body.append(signin);
+	signin.showModal();
+
 	try {
 		scramjet.init();
 		let registration = await navigator.serviceWorker.register("./sw.js");
 
 		if (registration.installing) {
-			app.innerText = "Installing service worker...";
+			signin.$.state.status = "Installing service worker...";
 			await waitForStateChange(registration.installing, "installed");
 		}
 
 		if (registration.waiting) {
-			app.innerText = "Service worker installed, activating...";
+			signin.$.state.status = "Service worker installed, activating...";
 			await waitForStateChange(registration.waiting, "activated");
 		}
 
 		if (registration.active) {
-			app.innerText = "";
-			mount();
+			signin.$.state.status = "Service worker activated";
+			signin.close();
 		}
 	} catch (e) {
 		console.error("Error during service worker registration:", e);
@@ -198,4 +184,3 @@ async function init() {
 			"Failed to register service worker. Check console for details.";
 	}
 }
-init();
