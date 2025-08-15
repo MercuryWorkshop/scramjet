@@ -24,6 +24,8 @@ AboutPage.style = css`
 		display: flex;
 		justify-content: center;
 		font-family: sans-serif;
+		background: var(--bg01);
+		color: var(--fg);
 	}
 
 	.main {
@@ -31,15 +33,6 @@ AboutPage.style = css`
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-	}
-
-	input {
-		width: 100%;
-		height: 2em;
-		font-size: 1.5em;
-		border: 2px solid #ccc;
-		outline: none;
-		border-radius: 4px;
 	}
 
 	.main {

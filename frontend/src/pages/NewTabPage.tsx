@@ -43,7 +43,9 @@ NewTabPage.style = css`
 		height: 100%;
 		display: flex;
 		justify-content: center;
-		font-family: "Noto Sans";
+		font-family: var(--font);
+		background: var(--bg01);
+		color: var(--fg);
 	}
 
 	.suggestions {
@@ -63,7 +65,7 @@ NewTabPage.style = css`
 		border-radius: 2em;
 	}
 	.suggestion:hover {
-		background: gray;
+		background: var(--bg03);
 	}
 	.suggestioninner {
 		display: flex;
@@ -76,7 +78,7 @@ NewTabPage.style = css`
 		height: 64px;
 
 		border-radius: 50%;
-		background-color: #f0f0f0;
+		background-color: var(--bg02);
 		display: flex;
 		justify-content: center;
 		align-items: center;
@@ -105,10 +107,12 @@ NewTabPage.style = css`
 		width: 100%;
 		height: 2em;
 		font-size: 1.5em;
-		border: 2px solid #ccc;
+		border: 2px solid var(--bg20);
 		outline: none;
 		border-radius: 1em;
 		padding: 1em;
+		background: var(--bg);
+		color: var(--fg);
 	}
 
 	.main {

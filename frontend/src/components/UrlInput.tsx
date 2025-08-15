@@ -415,7 +415,7 @@ UrlInput.style = css`
 
 	.lefticon {
 		font-size: 1.25em;
-		color: grey;
+		color: var(--fg);
 		display: flex;
 		margin: 0.25em;
 		align-self: stretch;
@@ -434,7 +434,7 @@ UrlInput.style = css`
 	.overflow {
 		position: absolute;
 		display: none;
-		background: var(--aboutbrowser-omnibox-bg);
+		background: var(--bg02);
 		width: 100%;
 		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -451,6 +451,8 @@ UrlInput.style = css`
 		gap: 0.5em;
 		padding-left: 0.5em;
 		white-space: nowrap;
+
+		color: var(--fg);
 	}
 	.overflowitem .url,
 	.overflowitem .description {
@@ -461,17 +463,17 @@ UrlInput.style = css`
 	}
 
 	.overflowitem .url {
-		color: grey;
+		color: var(--fg20);
 	}
 	.overflowitem.focused {
-		background: #fff;
+		background: var(--bg04);
 	}
 
 	.overflow.active {
 		display: block;
 	}
 	.inactivebar {
-		background: white;
+		background: var(--bg02);
 		width: 100%;
 		border: none;
 		outline: none;
@@ -492,20 +494,23 @@ UrlInput.style = css`
 
 		text-wrap: nowrap;
 		overflow: hidden;
-		font-family: Noto Sans;
+		font-family: var(--font);
+
+		color: var(--fg);
 	}
 	.inactiveurl {
 		display: flex;
 		align-items: center;
+		color: var(--fg);
 	}
 	.inactiveurl .subdomain,
 	.inactiveurl .rest {
 		opacity: 0.7;
-		color: grey;
+		color: var(--fg2);
 	}
 
 	.placeholder {
-		color: grey;
+		color: var(--fg4);
 		display: flex;
 		align-items: center;
 	}

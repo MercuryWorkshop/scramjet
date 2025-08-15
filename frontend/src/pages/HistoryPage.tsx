@@ -38,6 +38,9 @@ HistoryPage.style = css`
 		flex-direction: column;
 		align-items: center;
 		font-family: sans-serif;
+
+		background: var(--bg01);
+		color: var(--fg);
 	}
 	.entries {
 		display: flex;

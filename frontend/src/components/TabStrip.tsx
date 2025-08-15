@@ -151,7 +151,7 @@ DragTab.style = css`
 		top: 2.25em;
 		left: 0;
 		z-index: 1000;
-		background: var(--aboutbrowser-frame-bg);
+		background: var(--bg);
 		border-radius: 4px;
 		width: 20em;
 		/* height: 10em; */
@@ -178,7 +178,7 @@ DragTab.style = css`
 		min-width: 0;
 		width: 100%;
 
-		color: var(--aboutbrowser-inactive-tab-fg);
+		color: var(--fg);
 
 		border-radius: 4px;
 		padding: 7px 8px 5px 8px;
@@ -212,25 +212,26 @@ DragTab.style = css`
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		color: var(--fg);
 
 		padding: 0;
 		margin-left: 8px;
 	}
 	.close:hover {
-		background: grey;
+		background: var(--bg20);
 		border-radius: 0.5em;
 	}
 
 	.main:not(.active):hover {
 		transition: background 250ms;
 
-		background: var(--aboutbrowser-hover-tab-bg);
-		color: var(--aboutbrowser-hover-tab-fg);
+		background: var(--bg01);
+		color: var(--fg);
 	}
 
 	.main.active {
-		background: var(--aboutbrowser-active-tab-bg);
-		color: var(--aboutbrowser-active-tab-fg);
+		background: var(--bg02);
+		color: var(--fg);
 	}
 
 	.belowcontainer {
@@ -242,7 +243,7 @@ DragTab.style = css`
 		height: 6px;
 		width: 100%;
 
-		background: var(--aboutbrowser-active-tab-bg);
+		background: var(--bg);
 	}
 	.below::before,
 	.below::after {
@@ -253,23 +254,7 @@ DragTab.style = css`
 		width: var(--tab-active-border-width);
 		height: var(--tab-active-border-radius);
 
-		background: var(--aboutbrowser-active-tab-bg);
-	}
-	.below::before {
-		left: var(--tab-active-border-radius-neg);
-		mask-image: radial-gradient(
-			circle at 0 0,
-			transparent var(--tab-active-border-radius),
-			black 0
-		);
-	}
-	.below::after {
-		right: var(--tab-active-border-radius-neg);
-		mask-image: radial-gradient(
-			circle at var(--tab-active-border-width) 0,
-			transparent var(--tab-active-border-radius),
-			black 0
-		);
+		background: var(--bg01);
 	}
 `;
 
@@ -502,7 +487,7 @@ export const Tabs: Component<
 };
 Tabs.style = css`
 	:scope {
-		background: var(--aboutbrowser-frame-bg);
+		background: var(--bg);
 		padding: 6px 12px;
 		height: calc(28px + 12px);
 		z-index: 2;

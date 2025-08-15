@@ -2,7 +2,7 @@
 /// <reference types="@mercuryworkshop/scramjet" />
 
 interface ImportMetaEnv {
-	readonly LOCAL: boolean;
+	readonly VITE_LOCAL: boolean;
 }
 
 interface ImportMeta {

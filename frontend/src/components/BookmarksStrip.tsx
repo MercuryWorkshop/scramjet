@@ -57,7 +57,8 @@ BookmarksStrip.style = css`
 		height: 2em;
 		display: flex;
 		gap: 0.5em;
-		background: var(--aboutbrowser-omnibox-bg);
+		background: var(--bg);
+		color: var(--fg);
 	}
 
 	button {
@@ -71,13 +72,14 @@ BookmarksStrip.style = css`
 		padding-left: 0.25em;
 		padding-right: 0.25em;
 		background: none;
-		border-radius: 0.5em;
+		border-radius: var(--radius);
 		cursor: pointer;
 
-		font-family: "Noto Sans";
+		color: var(--fg);
+		font-family: var(--font);
 	}
 	button:hover {
-		background: gray;
+		background: var(--bg20);
 	}
 	button span {
 		white-space: nowrap;

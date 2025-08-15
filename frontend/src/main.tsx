@@ -1,3 +1,4 @@
+import "./reset.css";
 import "./style.css";
 
 // temp fix for vite not working
@@ -112,6 +113,7 @@ async function mount() {
 			let tab = browser.newTab();
 			browser.activetab = tab;
 		}
+		console.log(import.meta);
 
 		(self as any).browser = browser;
 		let built = <App>{shell}</App>;
@@ -120,7 +122,7 @@ async function mount() {
 			e.preventDefault();
 		});
 
-		if (!import.meta.env.LOCAL) {
+		if (!import.meta.env.VITE_LOCAL) {
 			if (!puter.auth.isSignedIn()) {
 				const signin: any = <SignIn></SignIn>;
 				document.body.append(signin);

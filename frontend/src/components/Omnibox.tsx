@@ -99,7 +99,7 @@ export const Omnibox: Component<{
 Omnibox.style = css`
 	:scope {
 		z-index: 1;
-		background: var(--aboutbrowser-omnibox-bg);
+		background: var(--bg01);
 		display: flex;
 		padding: 0 7px 0 7px;
 		height: 2.5em;

@@ -35,14 +35,14 @@ IconButton.style = css`
 		border: none;
 		font-size: 1.25em;
 		background: none;
-		color: grey;
+		color: var(--fg4);
 		border-radius: 0.2em;
 	}
 	:scope.active:hover {
-		background-color: #fff;
+		background: var(--bg20);
 	}
 	:scope.active {
 		cursor: pointer;
-		color: var(--aboutbrowser-active-tab-fg);
+		color: var(--fg);
 	}
 `;
