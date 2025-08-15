@@ -9,9 +9,11 @@ let app = document.getElementById("app")!;
 import { Shell } from "./components/Shell";
 import { App } from "./App";
 import { startCDP } from "./CDP";
+import { css, type Component } from "dreamland/core";
 
 const { ScramjetController } = $scramjetLoadController();
-export const scramjet = new ScramjetController({
+
+const scramjetcfg = {
 	wisp: "ws://localhost:1337/",
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
@@ -21,21 +23,85 @@ export const scramjet = new ScramjetController({
 	flags: {
 		rewriterLogs: false,
 		captureErrors: false,
-		naiiveRewriter: false,
 	},
 	siteFlags: {
-		"https://www.google.com/(search|sorry).*": {
-			naiiveRewriter: true,
-		},
 		"https://worker-playground.glitch.me/.*": {
 			serviceworkers: true,
 		},
 	},
-});
+};
+
+export const scramjet = new ScramjetController(scramjetcfg);
+
+export function setWispUrl(wispurl: string) {
+	scramjetcfg.wisp = wispurl;
+	scramjet.modifyConfig(scramjetcfg);
+}
+let signedinr: any;
+let signedin = new Promise((resolve) => (signedinr = resolve));
+export const SignIn: Component<{}, { status: string }> = function (cx) {
+	this.status = "";
+
+	function handleModalClose(modal: any) {
+		modal.style.opacity = 0;
+		setTimeout(() => {
+			modal.close();
+			modal.style.opacity = 1;
+		}, 250);
+	}
+
+	const signin = async () => {
+		this.status = "Signing in...";
+		try {
+			await puter.auth.signIn();
+			this.status = "Signed in successfully!";
+			signedinr();
+			handleModalClose(cx.root);
+		} catch (e: any) {
+			console.log(e);
+			this.status = "Error signing in: " + e.message;
+			return;
+		}
+	};
+
+	return (
+		<dialog class="signin">
+			<h1>Sign In</h1>
+			<br></br>
+			<p>Sign in with Puter</p>
+
+			<button on:click={signin}>Sign In</button>
+			<p>{use(this.status)}</p>
+		</dialog>
+	);
+};
+SignIn.style = css`
+	:scope {
+		transition: opacity 0.4s ease;
+		width: 50%;
+		height: 20%;
+		border: none;
+		border-radius: 1em;
+		text-align: center;
+	}
+	h1 {
+		text-align: center;
+		font-weight: bold;
+		font-size: 2em;
+	}
+	:modal[open] {
+		animation: fade 0.4s ease normal;
+	}
+
+	:modal::backdrop {
+		backdrop-filter: blur(3px);
+	}
+`;
 
 export let browser: Browser;
+declare var puter: any;
 
-function mount() {
+async function mount() {
 	try {
 		let shell = <Shell></Shell>;
 		browser = new Browser();
@@ -53,6 +119,20 @@ function mount() {
 		built.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
 		});
+
+		if (!import.meta.env.LOCAL) {
+			if (!puter.auth.isSignedIn()) {
+				const signin: any = <SignIn></SignIn>;
+				document.body.append(signin);
+				signin.showModal();
+				await signedin;
+				return;
+			}
+
+			let wisp = await puter.net.generateWispV1URL();
+			setWispUrl(wisp);
+			console.log(wisp);
+		}
 
 		// let playwrightWindow = window.open(
 		// 	"http://localhost:5013",
