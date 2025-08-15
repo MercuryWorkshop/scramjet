@@ -34,6 +34,27 @@ export const Omnibox: Component<{
 			},
 		]);
 	};
+
+	const historyMenu = (e: MouseEvent) => {
+		if (browser.activetab.history.states.length > 1) {
+			createMenu(
+				e.clientX,
+				e.clientY,
+				browser.activetab.history.states.map((s) => ({
+					label: s.title || "New Tab",
+					action: () => {
+						let rel =
+							browser.activetab.history.states.indexOf(s) -
+							browser.activetab.history.index;
+						browser.activetab.history.go(rel);
+					},
+				}))
+			);
+		}
+		e.preventDefault();
+		e.stopPropagation();
+	};
+
 	return (
 		<div>
 			<IconButton
@@ -41,12 +62,14 @@ export const Omnibox: Component<{
 				active={use(this.tab.canGoBack)}
 				click={() => this.tab.back()}
 				icon={iconBack}
+				rightclick={historyMenu}
 			></IconButton>
 			<IconButton
 				tooltip="Go forward one page (Alt+Right Arrow)"
 				active={use(this.tab.canGoForward)}
 				click={() => this.tab.forward()}
 				icon={iconForwards}
+				rightclick={historyMenu}
 			></IconButton>
 			<IconButton
 				tooltip="Refresh current page (Ctrl+R)"

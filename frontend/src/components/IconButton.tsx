@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 export const IconButton: Component<{
 	icon: IconifyIcon;
 	click?: (e: MouseEvent) => void;
+	rightclick?: (e: MouseEvent) => void;
 	active?: boolean;
 	tooltip?: string;
 }> = function (cx) {
@@ -14,6 +15,7 @@ export const IconButton: Component<{
 			disabled={use(this.active).map((x) => (x ? undefined : true))}
 			class:active={use(this.active)}
 			on:click={(e) => this.click?.(e)}
+			on:contextmenu={(e) => this.rightclick?.(e)}
 			title={this.tooltip}
 		>
 			<Icon icon={use(this.icon)} />

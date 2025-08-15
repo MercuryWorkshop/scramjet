@@ -57,7 +57,7 @@ BookmarksStrip.style = css`
 		height: 2em;
 		display: flex;
 		gap: 0.5em;
-		background: var(--bg);
+		background: var(--bg01);
 		color: var(--fg);
 	}
 

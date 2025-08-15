@@ -81,6 +81,9 @@ SettingsPage.style = css`
 		height: 100%;
 		display: flex;
 		font-family: sans-serif;
+
+		background: var(--bg01);
+		color: var(--fg);
 	}
 
 	h1,
