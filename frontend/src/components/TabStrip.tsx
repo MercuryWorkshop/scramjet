@@ -13,7 +13,7 @@ import { IconButton } from "./IconButton";
 import type { Tab } from "../Tab";
 import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
-import { browser } from "../main";
+import { browser } from "../Browser";
 
 export const DragTab: Component<
 	{

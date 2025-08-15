@@ -1,3 +1,7 @@
+import type Protocol from "devtools-protocol";
+import { browser } from "./Browser";
+import type { Tab } from "./Tab";
+
 export function startCDP(message: (message: string) => void): CDPServer {
 	const server = new CDPServer(message);
 
@@ -165,10 +169,6 @@ class CDPServer {
 		throw Error(`${method} unimplemented`);
 	}
 }
-
-import type Protocol from "devtools-protocol";
-import { browser } from "./main";
-import type { Tab } from "./Tab";
 
 function createTargetInfo(tab: Tab): Protocol.Target.TargetInfo {
 	return {

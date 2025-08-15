@@ -10,10 +10,11 @@ import iconStarFilled from "@ktibow/iconset-ion/star";
 import iconSearch from "@ktibow/iconset-ion/search";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import { Icon } from "./Icon";
-import { browser, scramjet } from "../main";
+import { scramjet } from "../main";
 import { IconButton } from "./IconButton";
 import { parse } from "tldts";
 import { createMenu } from "./Menu";
+import { browser } from "../Browser";
 
 export const focusOmnibox = createDelegate<void>();
 export function trimUrl(v: URL) {

@@ -1,6 +1,6 @@
 import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
-import { browser } from "../main";
+import { browser } from "../Browser";
 import { trimUrl } from "../components/UrlInput";
 
 export const NewTabPage: Component<

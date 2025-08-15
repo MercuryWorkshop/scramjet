@@ -1,7 +1,7 @@
 import type { Component } from "dreamland/core";
 import { Omnibox } from "./components/Omnibox";
 import { Tabs } from "./components/TabStrip";
-import { browser } from "./main";
+import { browser } from "./Browser";
 import type { Tab } from "./Tab";
 import { BookmarksStrip } from "./components/BookmarksStrip";
 

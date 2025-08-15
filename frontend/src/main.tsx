@@ -4,7 +4,7 @@ import "./style.css";
 // temp fix for vite not working
 import.meta.hot?.accept(() => location.reload());
 
-import { Browser } from "./Browser";
+import { Browser, initBrowser } from "./Browser";
 import { createMenu } from "./components/Menu";
 let app = document.getElementById("app")!;
 import { Shell } from "./components/Shell";
@@ -99,23 +99,11 @@ SignIn.style = css`
 	}
 `;
 
-export let browser: Browser;
-declare var puter: any;
-
 async function mount() {
 	try {
 		let shell = <Shell></Shell>;
-		browser = new Browser();
-		let de = localStorage["browserstate"];
-		if (de) {
-			browser.deserialize(JSON.parse(de));
-		} else {
-			let tab = browser.newTab();
-			browser.activetab = tab;
-		}
-		console.log(import.meta);
+		await initBrowser();
 
-		(self as any).browser = browser;
 		let built = <App>{shell}</App>;
 		app.replaceWith(built);
 		built.addEventListener("contextmenu", (e) => {
@@ -201,7 +189,7 @@ async function init() {
 		}
 
 		if (registration.active) {
-			app.innerText = "Service worker activated, mounting app...";
+			app.innerText = "";
 			mount();
 		}
 	} catch (e) {

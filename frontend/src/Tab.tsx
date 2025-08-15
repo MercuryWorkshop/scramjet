@@ -1,6 +1,6 @@
 import { createDelegate, createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
-import { browser, scramjet } from "./main";
+import { browser } from "./Browser";
 import {
 	addHistoryListeners,
 	History,
@@ -13,6 +13,7 @@ import { createMenu } from "./components/Menu";
 import { AboutPage } from "./pages/AboutPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { scramjet } from "./main";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 

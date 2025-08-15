@@ -1,5 +1,4 @@
 import { createState, type Stateful } from "dreamland/core";
-import { browser, scramjet } from "./main";
 import { StatefulClass } from "./StatefulClass";
 import { Tab, type SerializedTab } from "./Tab";
 import { createDelegate } from "dreamland/core";
@@ -8,12 +7,11 @@ import { HistoryState } from "./History";
 import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
-console.log(tldts);
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
 
-export const saveBrowserState = createDelegate<void>();
+export let browser: Browser;
 
 export const config = createState({
 	theme: {
@@ -154,7 +152,45 @@ export class Browser extends StatefulClass {
 	}
 }
 
-saveBrowserState.listen(() => {
+let loaded = false;
+export function saveBrowserState() {
+	if (!loaded) return;
+
 	let ser = browser.serialize();
-	localStorage["browserstate"] = JSON.stringify(ser);
-});
+
+	if (import.meta.env.VITE_LOCAL) {
+		localStorage["browserstate"] = JSON.stringify(ser);
+	} else {
+		puter.kv.set("browserstate", JSON.stringify(ser));
+	}
+}
+
+export async function initBrowser() {
+	browser = new Browser();
+
+	let de;
+	if (import.meta.env.VITE_LOCAL) {
+		de = localStorage["browserstate"];
+	} else {
+		de = await puter.kv.get("browserstate");
+		console.log(de);
+	}
+	if (de) {
+		try {
+			browser.deserialize(JSON.parse(de));
+		} catch (e) {
+			console.error(e);
+			console.error("Error while loading browser state. Resetting...");
+
+			browser = new Browser();
+			let tab = browser.newTab();
+			browser.activetab = tab;
+		}
+	} else {
+		let tab = browser.newTab();
+		browser.activetab = tab;
+	}
+
+	(self as any).browser = browser;
+	loaded = true;
+}

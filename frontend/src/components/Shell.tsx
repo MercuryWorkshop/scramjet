@@ -1,5 +1,5 @@
 import { css, type Component } from "dreamland/core";
-import { browser } from "../main";
+import { browser } from "../Browser";
 import { forceScreenshot, popTab, pushTab } from "../Browser";
 import type { Tab } from "../Tab";
 import { toBlob } from "html-to-image";

@@ -1,5 +1,5 @@
 import { css, type Component, type DLElement } from "dreamland/core";
-import { browser } from "../main";
+import { browser } from "../Browser";
 
 export const Menu: Component<{
 	x: number;

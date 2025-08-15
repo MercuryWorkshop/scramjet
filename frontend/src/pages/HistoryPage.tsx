@@ -1,6 +1,6 @@
 import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
-import { browser } from "../main";
+import { browser } from "../Browser";
 
 export const HistoryPage: Component<
 	{

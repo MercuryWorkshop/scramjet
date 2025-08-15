@@ -1,7 +1,7 @@
 import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 import iconAdd from "@ktibow/iconset-ion/add";
-import { browser } from "../main";
+import { browser } from "../Browser";
 import { createMenu } from "./Menu";
 
 export const BookmarksStrip: Component = function () {
