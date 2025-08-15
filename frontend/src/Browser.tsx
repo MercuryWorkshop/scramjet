@@ -3,11 +3,12 @@ import { browser, scramjet } from "./main";
 import { StatefulClass } from "./StatefulClass";
 import { Tab, type SerializedTab } from "./Tab";
 import { createDelegate } from "dreamland/core";
-import tlds from "tlds";
 import type { SerializedHistoryState } from "./History";
 import { HistoryState } from "./History";
 import { focusOmnibox } from "./components/UrlInput";
 
+import * as tldts from "tldts";
+console.log(tldts);
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
@@ -131,11 +132,9 @@ export class Browser extends StatefulClass {
 
 	searchNavigate(url: string) {
 		function validTld(hostname: string) {
-			for (const tld of tlds) {
-				if (hostname.endsWith("." + tld)) {
-					return true;
-				}
-			}
+			const res = tldts.parse(url);
+			if (!res.domain) return false;
+			if (res.isIp || res.isIcann) return true;
 			return false;
 		}
 
