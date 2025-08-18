@@ -161,16 +161,17 @@ export const UrlInput: Component<
 		this.subtleinput = false;
 		this.active = true;
 		browser.unfocusframes = true;
-		document.body.addEventListener("click", (e) => {
+		const ev = (e: MouseEvent) => {
 			this.active = false;
 			browser.unfocusframes = false;
-			e.stopPropagation();
-		});
-		document.body.addEventListener("auxclick", (e) => {
-			this.active = false;
-			browser.unfocusframes = false;
-			e.stopPropagation();
-		});
+			e.preventDefault();
+
+			document.body.removeEventListener("click", ev);
+			document.body.removeEventListener("auxclick", ev);
+		};
+		document.body.addEventListener("click", ev);
+		document.body.addEventListener("auxclick", ev);
+
 		if (this.tabUrl.href == "puter://newtab") {
 			this.value = "";
 		} else {
