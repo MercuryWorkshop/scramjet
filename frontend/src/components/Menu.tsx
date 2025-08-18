@@ -17,6 +17,8 @@ export const Menu: Component<{
 			return;
 		}
 
+		window.removeEventListener("click", ev, { capture: true });
+		window.removeEventListener("contextmenu", ev, { capture: true });
 		close();
 		e.stopImmediatePropagation();
 		e.preventDefault();
@@ -31,9 +33,8 @@ export const Menu: Component<{
 		if (this.x > maxX) this.x = maxX;
 		if (this.y > maxY) this.y = maxY;
 
-		window.addEventListener("click", ev, { once: true, capture: true });
+		window.addEventListener("click", ev, { capture: true });
 		window.addEventListener("contextmenu", ev, {
-			once: true,
 			capture: true,
 		});
 
