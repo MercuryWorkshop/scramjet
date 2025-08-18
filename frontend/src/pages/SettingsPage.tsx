@@ -37,6 +37,14 @@ export const SettingsPage: Component<
 		general: (
 			<div>
 				<h2>General Settings</h2>
+
+				<p>Theme</p>
+				<input type="radio" id="dark" name="theme" value="dark" />
+				<label for="dark">Dark</label>
+				<br />
+				<input type="radio" id="light" name="theme" value="light" />
+				<label for="light">Light</label>
+				<br />
 			</div>
 		),
 		search: (
@@ -114,10 +122,10 @@ SettingsPage.style = css`
 		font-size: 1.2em;
 	}
 	.sidebar .button.active {
-		background: rgba(0, 0, 255, 0.1);
+		background: color-mix(in oklab, var(--accent) 20%, transparent);
 	}
 	.sidebar .button:hover {
-		background: rgba(0, 0, 255, 0.05);
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
 	}
 
 	.content {
@@ -136,8 +144,11 @@ SettingsPage.style = css`
 		height: 2.5rem;
 		font-size: 1.2em;
 		padding: 0.5em;
-		border: 1px solid #ccc;
+		border: 1px solid var(--bg20);
 		border-radius: 4px;
 		outline: none;
+
+		background: var(--bg02);
+		color: var(--fg);
 	}
 `;

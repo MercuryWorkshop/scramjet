@@ -78,3 +78,7 @@ body.light-mode {
 * {
 	box-sizing: border-box;
 }
+
+h1 {
+	font-size: 2em;
+}
