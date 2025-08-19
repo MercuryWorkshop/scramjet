@@ -14,7 +14,7 @@
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
 		"dev:debug": "DEBUG=1 node server.js",
-		"prepack": "RELEASE=1 npm run rewriter:build && tsc && npm run build",
+		"prepack": "RELEASE=1 npm run rewriter:build && tsc && tsc-alias && npm run build",
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
@@ -57,6 +57,7 @@
 		"playwright": "^1.54.2",
 		"prettier": "^3.6.2",
 		"ts-checker-rspack-plugin": "^1.1.4",
+		"tsc-alias": "^1.8.16",
 		"tslib": "^2.8.1",
 		"typescript": "^5.8.3"
 	},
