@@ -162,7 +162,7 @@ export class ScramjetController {
 		});
 	}
 
-	async modifyConfig(newconfig: ScramjetConfig) {
+	async modifyConfig(newconfig: Partial<ScramjetConfig>) {
 		setConfig(Object.assign({}, config, newconfig));
 		loadCodecs();
 
