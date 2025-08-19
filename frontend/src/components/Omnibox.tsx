@@ -6,7 +6,7 @@ import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconMore from "@ktibow/iconset-ion/more";
 import { createMenu, setContextMenu } from "./Menu";
 import { IconButton } from "./IconButton";
-import { createDelegate, type Delegate } from "dreamland/core";
+import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { UrlInput } from "./UrlInput";
 import { browser } from "../Browser";

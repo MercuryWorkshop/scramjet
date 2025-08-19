@@ -270,7 +270,6 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 	let hookedPostMessageListener: (data: any) => void;
 	tab.devtoolsFrame.addEventListener("contextInit", (e) => {
 		// instead, overwrite its postMessage, and then forward it directly to the main window
-		//@ts-expect-error
 		e.window.postMessage = (data: any, origin: string) => {
 			client.global.window.postMessage(data);
 		};
@@ -322,13 +321,10 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 	// requestInspectElement.listen(([elm, t]) => {
 	// 	if (t != tab) return;
 	// 	// @ts-expect-error
-	// 	client.global.window.connector1.default.trigger(
-	// 		"Overlay.inspectNodeRequested",
-	// 		{
-	// 			// @ts-expect-error
-	// 			backendNodeId: client.global.pushNodesToFrontend(elm),
-	// 		}
-	// 	);
+	// 	client.global.window.$chiiSendToDevtools("Overlay.inspectNodeRequested", {
+	// 		// @ts-expect-error
+	// 		backendNodeId: client.global.pushNodesToFrontend(elm),
+	// 	});
 	// });
 }
 

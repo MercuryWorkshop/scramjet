@@ -14,8 +14,8 @@ export const IconButton: Component<{
 		<button
 			disabled={use(this.active).map((x) => (x ? undefined : true))}
 			class:active={use(this.active)}
-			on:click={(e) => this.click?.(e)}
-			on:contextmenu={(e) => this.rightclick?.(e)}
+			on:click={(e: MouseEvent) => this.click?.(e)}
+			on:contextmenu={(e: MouseEvent) => this.rightclick?.(e)}
 			title={this.tooltip}
 		>
 			<Icon icon={use(this.icon)} />

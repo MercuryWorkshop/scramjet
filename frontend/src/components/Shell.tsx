@@ -1,14 +1,12 @@
 import { css, type Component } from "dreamland/core";
 import { browser } from "../Browser";
 import { forceScreenshot, popTab, pushTab } from "../Browser";
-import type { Tab } from "../Tab";
-import { toBlob } from "html-to-image";
 
 export const Shell: Component = function (cx) {
 	pushTab.listen((tab) => {
 		// paint the iframes
-		tab.frame.frame.classList.add(cx.id);
-		tab.devtoolsFrame.frame.classList.add(cx.id);
+		tab.frame.frame.classList.add(cx.id!);
+		tab.devtoolsFrame.frame.classList.add(cx.id!);
 
 		let mouseMoveListen = (e: MouseEvent) => {
 			tab.devtoolsWidth = window.innerWidth - e.clientX;

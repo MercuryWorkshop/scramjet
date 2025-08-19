@@ -68,7 +68,7 @@ export const UrlInput: Component<
 
 		overflowItems: OmniboxResult[];
 	}
-> = function (cx) {
+> = function () {
 	this.focusindex = 0;
 	this.overflowItems = [];
 	this.value = "";
@@ -343,7 +343,7 @@ export const UrlInput: Component<
 
 							this.justselected = false;
 						}}
-						on:input={(e: InputEvent) => {
+						on:input={() => {
 							this.value = this.input.value;
 							this.focusindex = 0;
 							this.subtleinput = false;
@@ -516,6 +516,9 @@ UrlInput.style = css`
 		border-radius: 4px;
 		margin: 0.25em;
 	}
+	/*:scope:hover .inactivebar {
+		background: var(--bg20);
+	}*/
 	input,
 	.inactiveurl,
 	.placeholder {

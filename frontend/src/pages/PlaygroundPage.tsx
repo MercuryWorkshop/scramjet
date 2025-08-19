@@ -33,7 +33,7 @@ export const PlaygroundPage: Component<
 		tab: Tab;
 	},
 	{}
-> = function (cx) {
+> = function () {
 	return (
 		<div>
 			<h1>Scramjet Playground</h1>

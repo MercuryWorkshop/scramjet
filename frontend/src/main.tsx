@@ -4,12 +4,10 @@ import "./style.css";
 // temp fix for vite not working
 import.meta.hot?.accept(() => location.reload());
 
-import { Browser, initBrowser } from "./Browser";
-import { createMenu } from "./components/Menu";
+import { initBrowser } from "./Browser";
 let app = document.getElementById("app")!;
 import { Shell } from "./components/Shell";
 import { App } from "./App";
-import { startCDP } from "./CDP";
 import { css, type Component } from "dreamland/core";
 
 const { ScramjetController } = $scramjetLoadController();
@@ -38,18 +36,7 @@ export function setWispUrl(wispurl: string) {
 	scramjetcfg.wisp = wispurl;
 	scramjet.modifyConfig(scramjetcfg);
 }
-let signedinr: any;
-let signedin = new Promise((resolve) => (signedinr = resolve));
-export const LoadInterstitial: Component<{ status: string }, {}> = function (
-	cx
-) {
-	function handleModalClose(modal: any) {
-		modal.style.opacity = 0;
-		setTimeout(() => {
-			modal.close();
-			modal.style.opacity = 1;
-		}, 250);
-	}
+export const LoadInterstitial: Component<{ status: string }, {}> = function () {
 	return (
 		<dialog class="signin">
 			<h1>Loading</h1>
@@ -93,7 +80,7 @@ async function mount() {
 
 		if (!import.meta.env.VITE_LOCAL) {
 			if (!puter.auth.isSignedIn()) {
-				await signedin;
+				await puter.auth.signIn();
 				return;
 			}
 

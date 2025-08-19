@@ -1,6 +1,5 @@
 import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
-import { scramjet } from "../main";
 import type { IconifyIcon } from "@iconify/types";
 import { Icon } from "../components/Icon";
 
@@ -78,7 +77,7 @@ export const SettingsPage: Component<
 				<div class="top">
 					<input type="text" placeholder="Search settings..." />
 				</div>
-				{use(this.selected).map((s) => tabs[s])}
+				{use(this.selected).map((s) => tabs[s as keyof typeof tabs])}
 			</div>
 		</div>
 	);

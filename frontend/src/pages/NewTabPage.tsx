@@ -9,7 +9,7 @@ export const NewTabPage: Component<
 		tab: Tab;
 	},
 	{}
-> = function (cx) {
+> = function () {
 	return (
 		<div>
 			<div class="main">
@@ -17,7 +17,7 @@ export const NewTabPage: Component<
 					on:keydown={(e: KeyboardEvent) => {
 						if (e.key === "Enter") {
 							e.preventDefault();
-							browser.searchNavigate(e.target!.value);
+							browser.searchNavigate((e.target as HTMLInputElement).value);
 						}
 					}}
 					placeholder="Search Google or type A URL"

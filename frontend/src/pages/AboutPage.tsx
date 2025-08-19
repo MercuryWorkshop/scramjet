@@ -1,13 +1,12 @@
 import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
-import { scramjet } from "../main";
 
 export const AboutPage: Component<
 	{
 		tab: Tab;
 	},
 	{}
-> = function (cx) {
+> = function () {
 	return (
 		<div>
 			<div class="main">

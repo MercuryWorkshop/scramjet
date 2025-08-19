@@ -3,10 +3,10 @@ import type { Tab } from "./Tab";
 
 // history api emulation
 export class HistoryState {
-	url: URL;
+	url: URL = null!;
 	state: any;
-	title: string | null;
-	favicon: string | null;
+	title: string | null = null;
+	favicon: string | null = null;
 	timestamp: number;
 
 	constructor(partial?: Partial<HistoryState>) {

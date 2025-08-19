@@ -1,17 +1,11 @@
 import iconClose from "@ktibow/iconset-ion/close";
 import iconAdd from "@ktibow/iconset-ion/add";
-import {
-	createState,
-	css,
-	type Component,
-	type ComponentInstance,
-	type Stateful,
-} from "dreamland/core";
+import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 import { memoize } from "../memoize";
 import { IconButton } from "./IconButton";
 import type { Tab } from "../Tab";
-import html2canvas from "html2canvas";
+// import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
 import { browser } from "../Browser";
 
@@ -102,7 +96,7 @@ export const DragTab: Component<
 			<div
 				class="dragroot"
 				style="position: unset;"
-				on:auxclick={(e) => {
+				on:auxclick={(e: MouseEvent) => {
 					if (e.button === 1) {
 						this.destroy();
 					}
@@ -116,7 +110,7 @@ export const DragTab: Component<
 					<span>{use(this.tab.title)}</span>
 					<button
 						class="close"
-						on:click={(e) => {
+						on:click={(e: MouseEvent) => {
 							e.stopPropagation();
 							this.destroy();
 						}}
@@ -405,7 +399,7 @@ export const Tabs: Component<
 		calcDragPos(e, this.tabs.find((tab) => tab.id === this.currentlydragging)!);
 	});
 
-	window.addEventListener("mouseup", (e) => {
+	window.addEventListener("mouseup", () => {
 		if (this.currentlydragging == -1) return;
 		const tab = this.tabs.find((tab) => tab.id === this.currentlydragging)!;
 		const root = getTabFromIndex(tab.id);

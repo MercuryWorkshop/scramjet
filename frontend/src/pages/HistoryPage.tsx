@@ -7,7 +7,7 @@ export const HistoryPage: Component<
 		tab: Tab;
 	},
 	{}
-> = function (cx) {
+> = function () {
 	return (
 		<div>
 			<h1>History</h1>

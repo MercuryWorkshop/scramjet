@@ -28,7 +28,7 @@ export const Menu: Component<{
 	cx.mount = () => {
 		browser.unfocusframes = true;
 		document.body.appendChild(cx.root);
-		const { top, left, width, height } = cx.root.getBoundingClientRect();
+		const { width, height } = cx.root.getBoundingClientRect();
 		let maxX = document.documentElement.clientWidth - width;
 		let maxY = document.documentElement.clientHeight - height;
 		if (this.x > maxX) this.x = maxX;
@@ -147,8 +147,8 @@ export function createMenu(
 		activeMenu.remove();
 	}
 
-	let menu = <Menu x={x} y={y} items={items} />;
-	activeMenu = menu as DLElement<typeof Menu>;
+	let menu = (<Menu x={x} y={y} items={items} />) as DLElement<typeof Menu>;
+	activeMenu = menu;
 
 	return menu;
 }
