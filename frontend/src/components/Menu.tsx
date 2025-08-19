@@ -1,10 +1,11 @@
-import { css, type Component, type DLElement } from "dreamland/core";
+import { css, Pointer, type Component, type DLElement } from "dreamland/core";
 import { browser } from "../Browser";
+import { Checkbox } from "./Checkbox";
 
 export const Menu: Component<{
 	x: number;
 	y: number;
-	items: { label: string; action?: () => void }[];
+	items: MenuItem[];
 }> = function (cx) {
 	const close = () => {
 		cx.root.remove();
@@ -44,17 +45,35 @@ export const Menu: Component<{
 	};
 	return (
 		<div style={use`--x: ${this.x}px; --y: ${this.y}px;`}>
-			{use(this.items).mapEach((item) => (
-				<button
-					on:click={(e: MouseEvent) => {
-						item.action?.();
-						close();
-						e.stopPropagation();
-					}}
-				>
-					{item.label}
-				</button>
-			))}
+			{use(this.items).mapEach((item) =>
+				item.checkbox ? (
+					<button
+						class="item"
+						on:click={(e: MouseEvent) => {
+							if (!item.checkbox) return;
+							item.checkbox.value = !item.checkbox.value;
+
+							e.preventDefault();
+							e.stopPropagation();
+						}}
+					>
+						<Checkbox value={item.checkbox}></Checkbox>
+						{item.label}
+					</button>
+				) : (
+					<button
+						class="item"
+						on:click={(e: MouseEvent) => {
+							item.action?.();
+							close();
+							e.stopPropagation();
+						}}
+					>
+						<div class="pad" />
+						<span>{item.label}</span>
+					</button>
+				)
+			)}
 		</div>
 	);
 };
@@ -72,25 +91,46 @@ Menu.style = css`
 		flex-direction: column;
 		min-width: 10em;
 	}
-	button {
+	.item {
 		background: none;
 		border: none;
 		font-size: 0.8em;
 		padding: 1em;
 		text-align: left;
 		color: var(--fg);
+
+		display: flex;
+		align-items: center;
+		gap: 1em;
 	}
-	button:hover {
+
+	.pad {
+		width: 1em;
+	}
+
+	input[type="checkbox"] {
+		width: 1em;
+		height: 1em;
+		padding: 0;
+		margin: 0;
+
+		background: var(--bg);
+		border: 1px solid var(--bg20);
+	}
+	.item:hover {
 		background: var(--bg01);
 	}
 `;
 
 let activeMenu: DLElement<typeof Menu> | null = null;
 
-export function setContextMenu(
-	elm: HTMLElement,
-	items: { label: string; action?: () => void }[]
-) {
+type MenuItem = {
+	label: string;
+	action?: () => void;
+	checkbox?: Pointer<boolean>;
+};
+
+export function setContextMenu(elm: HTMLElement, items: MenuItem[]) {
 	elm.addEventListener("contextmenu", (e) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -101,7 +141,7 @@ export function setContextMenu(
 export function createMenu(
 	x: number,
 	y: number,
-	items: { label: string; action?: () => void }[]
+	items: MenuItem[]
 ): DLElement<typeof Menu> {
 	if (activeMenu) {
 		activeMenu.remove();

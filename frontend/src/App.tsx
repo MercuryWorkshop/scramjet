@@ -19,8 +19,8 @@ export const App: Component = function (cx) {
 				}}
 			/>
 			<Omnibox tab={use(browser.activetab)} />
-			{use(browser.activetab.url)
-				.map((u) => u.href === "puter://newtab")
+			{use(browser.activetab.url, browser.settings.bookmarksPinned)
+				.map(([u, pinned]) => pinned || u.href === "puter://newtab")
 				.andThen(<BookmarksStrip />)}
 			{cx.children}
 		</div>

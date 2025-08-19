@@ -2,9 +2,22 @@ import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 import iconAdd from "@ktibow/iconset-ion/add";
 import { browser } from "../Browser";
-import { createMenu } from "./Menu";
+import { createMenu, setContextMenu } from "./Menu";
 
-export const BookmarksStrip: Component = function () {
+export const BookmarksStrip: Component = function (cx) {
+	cx.mount = () => {
+		setContextMenu(cx.root, [
+			{
+				label: "Add Bookmark",
+				action: () => {},
+			},
+			{
+				label: "Pin Bookmarks Strip",
+				checkbox: use(browser.settings.bookmarksPinned),
+			},
+		]);
+	};
+
 	return (
 		<div>
 			<button on:click={() => {}}>

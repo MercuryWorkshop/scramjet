@@ -42,6 +42,7 @@ export type SerializedBrowser = {
 	globalhistory: SerializedHistoryState[];
 	activetab: number;
 	bookmarks: BookmarkEntry[];
+	settings: Settings;
 };
 
 export type GlobalHistoryEntry = {
@@ -57,6 +58,11 @@ export type BookmarkEntry = {
 	favicon?: string;
 };
 
+export type Settings = {
+	theme: "dark" | "light";
+	bookmarksPinned: boolean;
+};
+
 export class Browser extends StatefulClass {
 	built: boolean = false;
 
@@ -67,6 +73,11 @@ export class Browser extends StatefulClass {
 	bookmarks: BookmarkEntry[] = [];
 
 	unfocusframes: boolean = false;
+
+	settings: Stateful<Settings> = createState({
+		theme: "light",
+		bookmarksPinned: false,
+	});
 
 	constructor() {
 		super(createState(Object.create(Browser.prototype)));
@@ -80,6 +91,7 @@ export class Browser extends StatefulClass {
 			activetab: this.activetab.id,
 			globalhistory: this.globalhistory.map((s) => s.serialize()),
 			bookmarks: this.bookmarks,
+			settings: { ...this.settings },
 		};
 	}
 	deserialize(de: SerializedBrowser) {
@@ -95,8 +107,8 @@ export class Browser extends StatefulClass {
 		}
 		this.activetab = this.tabs[0];
 		this.bookmarks = de.bookmarks;
+		this.settings = createState(de.settings);
 		// this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
-		console.log(this.activetab, this.activetab.url);
 	}
 
 	newTab(url?: URL, focusomnibox: boolean = false) {
