@@ -16,7 +16,7 @@
     <a href="https://twitter.com/HeyPuter">X</a>
 </p>
 
-<h3 align="center"><img style="border-radius:5px;" alt="screenshot" src="./screenshot.png"></h3>
+<h3 align="center"><img style="border-radius:5px;" alt="screenshot" src="./assets/screenshot.png"></h3>
 
 <br>
 
