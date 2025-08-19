@@ -10,8 +10,10 @@ export default function (client: ScramjetClient, _self: Self) {
 	const closure = (error, stack) => {
 		let newstack = error.stack;
 
-		for (let i = 0; i < stack.length; i++) {
+		for (const i in stack) {
 			const url = stack[i].getFileName();
+
+			if (!url) continue;
 
 			if (url.endsWith(config.files.all)) {
 				// strip stack frames including scramjet handlers from the trace
