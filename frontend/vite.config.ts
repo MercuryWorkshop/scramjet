@@ -16,6 +16,10 @@ export default defineConfig({
 					src: "../chobitsu_inject/output/chobitsu_inject.js",
 					dest: ".",
 				},
+				{
+					src: "../chii/public/*",
+					dest: "chii",
+				},
 			],
 		}),
 	],

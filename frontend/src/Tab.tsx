@@ -249,7 +249,7 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 		console.log("before unload");
 		tab.devtoolsFrame.frame.src = "about:blank";
 	});
-	// we're loading the entire bundle through scramjet so that eval() will  be rewritten
+	// we're loading the entire bundle through scramjet so that eval() will be rewritten
 	// if the frame is about:blank it won't have a client yet, so we need to create one
 	// to start, apply the same hack as window.open to scramjetify the devtools frame
 	const contentwindow = tab.devtoolsFrame.frame.contentWindow;
@@ -258,39 +258,58 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 	// TODO i should probably put this in core
 	devtoolsFrameClient.hook();
 
-	// the fake origin is defined in sw.js
-	const devtoolsUrl = "https://fake-devtools.invalid";
+	// the fake origin is defined in sw.js, it fetches from /public
+	const devtoolsUrl = "https://fake-devtools.invalid/chii";
 	// make sure to create the element through the proxied document
 	let devtoolsScript = client.global.document.createElement("script");
 	devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
 	devtoolsScript.setAttribute("embedded", "true");
 
+	// the devtools frontend will try to run `window.parent.postMessage` to communicate with the chobitsu server
+	// this will not work since it's being sandboxed, so window.parent is just itself
+	let hookedPostMessageListener: (data: any) => void;
 	tab.devtoolsFrame.addEventListener("contextInit", (e) => {
-		// devtools frontend will try to access the parent window's postMessage
-		// this won't work, i manually patched it to use this global instead
+		// instead, overwrite its postMessage, and then forward it directly to the main window
 		//@ts-expect-error
-		e.window.parentPostMessage = (data: any, origin: string) => {
-			// oh god
-			// i will fix this later
-			// we're not supposed to be postmessaging from a non-scramjet context into a scramjet one
-			// so we need to trick the page content's scramjetclient into thinking this window is also a scramjet context
-			//@ts-expect-error
-			window[Symbol.for("scramjet client global")] = {
-				// for our fake scramjet client in the main window, set the origin to the fake devtools url so that the event origin check will suceed
-				url: { origin: devtoolsUrl },
-			};
-			//@ts-expect-error
-			client.global.window.$scramjet$setrealm({}).postMessage(data);
-			//@ts-expect-error
-			delete window[Symbol.for("scramjet client global")];
+		e.window.postMessage = (data: any, origin: string) => {
+			client.global.window.postMessage(data);
 		};
+
+		// of course since we overwrote postmessage, the main window won't be able to postmessage to it since it will just call that function
+		// so first, manually grab the listener when it tries to register it
+		e.client.Proxy("window.addEventListener", {
+			apply(ctx) {
+				if (ctx.args[0] == "message") {
+					hookedPostMessageListener = ctx.args[1];
+					ctx.return();
+				}
+			},
+		});
 	});
 
 	// VERY IMPORTANT: GIVE CHII THE *PROXIED* VERSION OF THE DEVTOOLS FRAME, AND NO REAL CTORS
 	// this is needed for the interceptors to work - but also stops sbx
 	//@ts-expect-error
 	client.global.ChiiDevtoolsIframe = {
-		contentWindow: devtoolsFrameClient.global,
+		// give the window a copy of the frame window that uses our postmessage instead of the normal one, which was just overwritten previously
+		contentWindow: {
+			...devtoolsFrameClient.global,
+			// this is just some artifacts from rewriting don't worry about it
+			$scramjet$setrealm() {
+				return {
+					postMessage(data: any, origin: string) {
+						// call the function we grabbed earlier
+						hookedPostMessageListener(
+							new MessageEvent("message", {
+								// we also can set origin here so we don't have to patch the check in sdk
+								origin: client.global.origin,
+								data,
+							})
+						);
+					},
+				};
+			},
+		},
 		// TODO this is STILL sbx annoyingly because the functions don't have their ctors intercepted
 		set src(value) {
 			devtoolsFrameClient.url = value;
@@ -300,31 +319,17 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 		},
 	};
 	client.global.document.head.appendChild(devtoolsScript);
-	requestInspectElement.listen(([elm, t]) => {
-		if (t != tab) return;
-		// @ts-expect-error
-		client.global.window.connector1.default.trigger(
-			"Overlay.inspectNodeRequested",
-			{
-				// @ts-expect-error
-				backendNodeId: client.global.pushNodesToFrontend(elm),
-			}
-		);
-	});
-
-	// unproxied version
-	// const devtoolsUrl = "/chi";
-	// let devtoolsScript = document.createElement("script");
-	// devtoolsScript.setAttribute("src", devtoolsUrl + "/target.js");
-	// devtoolsScript.setAttribute("embedded", "true");
-
-	// window.addEventListener("message", (event) => {
-	// 	console.log(event.data);
-	// 	client.global.window.postMessage(event.data, event.origin);
+	// requestInspectElement.listen(([elm, t]) => {
+	// 	if (t != tab) return;
+	// 	// @ts-expect-error
+	// 	client.global.window.connector1.default.trigger(
+	// 		"Overlay.inspectNodeRequested",
+	// 		{
+	// 			// @ts-expect-error
+	// 			backendNodeId: client.global.pushNodesToFrontend(elm),
+	// 		}
+	// 	);
 	// });
-
-	// client.global.ChiiDevtoolsIframe = tab.devtoolsFrame;
-	// client.global.document.head.appendChild(devtoolsScript);
 }
 
 function copyImageToClipboard(img: HTMLImageElement) {
