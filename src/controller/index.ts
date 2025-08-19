@@ -162,10 +162,14 @@ export class ScramjetController {
 		});
 	}
 
-	async modifyConfig(newconfig: Partial<ScramjetConfig>) {
+	async modifyConfig(newconfig: Partial<ScramjetInitConfig>) {
 		setConfig(Object.assign({}, config, newconfig));
 		loadCodecs();
 
 		await this.#saveConfig();
+		navigator.serviceWorker.controller?.postMessage({
+			scramjet$type: "loadConfig",
+			config,
+		});
 	}
 }
