@@ -69,6 +69,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "loadConfig") {
 				this.config = data.config;
+				await this.initEpoxy();
 			}
 		});
 	}
@@ -120,17 +121,17 @@ export class ScramjetServiceWorker extends EventTarget {
 		else return false;
 	}
 
+	async initEpoxy() {
+		await epoxyPromise;
+		const options = new EpoxyClientOptions();
+		options.user_agent = navigator.userAgent;
+		this.epoxy = new EpoxyClient(this.config.wisp, options);
+	}
 	async fetch({ request, clientId }: FetchEvent) {
 		if (!this.config) await this.loadConfig();
 
 		if (!this.epoxy) {
-			await epoxyPromise;
-			console.log("????");
-			let options = new EpoxyClientOptions();
-			options.user_agent = navigator.userAgent;
-			console.log(this);
-			this.epoxy = new EpoxyClient(this.config.wisp, options);
-			// this.client = new BareClient();
+			await this.initEpoxy();
 		}
 
 		const client = await self.clients.get(clientId);
