@@ -1,5 +1,5 @@
 (cd playwright && npm run watch) &
-(cd playwright/web_builder && npx -cw) &
+(cd playwright/web_builder && npx rollup -cw) &
 (pnpm dev) &
 (cd dreamlandjs && pnpm watch) &
 (cd chobitsu && pnpm webpack --watch --mode=development) &

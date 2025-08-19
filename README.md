@@ -1,51 +1,35 @@
-<div align="center">
-  <img src="assets/scramjet.png" height="200" />
-</div>
+<h1>Browser.js</h1>
 
----
+<!--<h3 align="center"><img width="100" alt="Build logo" src="./icon-256.png"></h3>-->
+<h3 align="center">Highly Configurable Browser Environment for the Web</h3>
 
-> [!WARNING]  
-> Scramjet is not currently production ready, DO NOT USE THIS AS THE MAIN OPTION IN YOUR SITE.
+<p align="center">
+    <a href="https://puter.com/app/browser"><strong>« LIVE DEMO »</strong></a>
+    <br />
+    <br />
+    <a href="https://puter.com">Puter.com</a>
+    ·
+    <a href="https://discord.com/invite/PQcx7Teh8u">Discord</a>
+    ·
+    <a href="https://reddit.com/r/puter">Reddit</a>
+    ·
+    <a href="https://twitter.com/HeyPuter">X</a>
+</p>
 
-<a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
+<h3 align="center"><img style="border-radius:5px;" alt="screenshot" src="./screenshot.png"></h3>
 
-Scramjet is an experimental interception based web proxy that aims to be the successor to Ultraviolet. It is designed with security, developer friendliness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
+<br>
 
-## Supported Sites
 
-Some of the popular websites that Scramjet supports include:
+## Getting Started
 
--   [Google](https://google.com)
--   [Youtube](https://www.youtube.com)
--   [Spotify](https://spotify.com)
--   [Discord](https://discord.com)
--   [Reddit](https://reddit.com)
--   [GeForce NOW](https://play.geforcenow.com/)
--   [now.gg](https://now.gg)
+See [CONTRIBUTING.md](/CONTRIBUTING.md) for build instructions
 
-## Development
+<br>
 
-### Dependencies
 
--   Recent versions of `node.js` and `pnpm`
--   `rustup`
--   `wasm-bindgen`
--   [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
--   [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
+## License
 
-#### Building
+This repository, including all its contents, sub-projects, modules, and components, is licensed under [AGPL-3.0](https://github.com/HeyPuter/puter/blob/main/LICENSE.txt) unless explicitly stated otherwise. Third-party libraries included in this repository may be subject to their own licenses.
 
--   Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
--   Install the dependencies with `pnpm i`
--   Build the rewriter with `pnpm rewriter:build`
--   Build Scramjet with `pnpm build`
-
-### Running Scramjet Locally
-
-You can run the Scramjet dev server with the command
-
-```sh
-pnpm dev
-```
-
-Scramjet should now be running at `localhost:1337` and should rebuild upon a file being changed (excluding the rewriter).
+<br/>
