@@ -1,4 +1,4 @@
-<h1>Browser.js</h1>
+<h1 align="center">Browser.js</h1>
 
 <!--<h3 align="center"><img width="100" alt="Build logo" src="./icon-256.png"></h3>-->
 <h3 align="center">Highly Configurable Browser Environment for the Web</h3>
