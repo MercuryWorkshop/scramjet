@@ -185,7 +185,6 @@ export async function initBrowser() {
 		de = localStorage["browserstate"];
 	} else {
 		de = await puter.kv.get("browserstate");
-		console.log(de);
 	}
 	if (de) {
 		try {

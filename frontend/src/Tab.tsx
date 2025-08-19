@@ -119,7 +119,6 @@ export class Tab extends StatefulClass {
 		// this.id = de.id;
 		this.title = de.title;
 		this.history.deserialize(de.history);
-		console.log(this.history.states[this.history.index].url);
 		this._directnavigate(this.history.states[this.history.index].url);
 	}
 
@@ -280,7 +279,7 @@ function injectDevtools(client: ScramjetClient, tab: Tab) {
 			apply(ctx) {
 				if (ctx.args[0] == "message") {
 					hookedPostMessageListener = ctx.args[1];
-					ctx.return();
+					ctx.return(undefined);
 				}
 			},
 		});
