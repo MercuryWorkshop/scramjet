@@ -2,6 +2,7 @@ import { css, type Component } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { browser } from "../Browser";
 import { trimUrl } from "../components/UrlInput";
+import { createMenu } from "../components/Menu";
 
 export const NewTabPage: Component<
 	{
@@ -23,7 +24,24 @@ export const NewTabPage: Component<
 				></input>
 				<div class="suggestions">
 					{browser.globalhistory.slice(0, 5).map((entry) => (
-						<div class="suggestion" on:click={() => browser.newTab(entry.url)}>
+						<div
+							class="suggestion"
+							on:contextmenu={(e: MouseEvent) => {
+								createMenu(e.clientX, e.clientY, [
+									{
+										label: "Open",
+										action: () => browser.activetab.pushNavigate(entry.url),
+									},
+									{
+										label: "Open in New Tab",
+										action: () => browser.newTab(entry.url),
+									},
+								]);
+								e.preventDefault();
+								e.stopPropagation();
+							}}
+							on:click={() => browser.newTab(entry.url)}
+						>
 							<div class="suggestioninner">
 								<div class="circle">
 									<img src={entry.favicon || "/vite.svg"} alt="favicon" />
