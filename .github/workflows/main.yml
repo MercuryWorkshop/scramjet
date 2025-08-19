@@ -124,6 +124,12 @@ jobs:
           cd dreamlandjs
           pnpm build
 
+      - name: Build Chii
+        run: |
+          cd chii
+          pnpm init:front_end
+          pnpm build
+
       - name: Build Chobitsu
         run: |
           cd chobitsu
