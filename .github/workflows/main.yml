@@ -110,6 +110,9 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Install Depot Tools
+        uses: newkdev/setup-depot-tools@v1.0.1
+
       - name: Install dependencies
         run: pnpm install
 
