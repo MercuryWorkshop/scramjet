@@ -86,10 +86,14 @@ export const DragTab: Component<
 			}}
 		>
 			<div class="tooltip" class:active={use(this.tooltipActive)}>
-				<span class="title">{use(this.tab.title)}</span>
-				<span class="hostname">{use(this.tab.url.hostname)}</span>
+				<div class="text">
+					<span class="title">{use(this.tab.title)}</span>
+					<span class="hostname">{use(this.tab.url.hostname)}</span>
+				</div>
 				{window.chrome ? (
-					<img src={use(this.tab.screenshot)} class="img" />
+					use(this.tab.screenshot).andThen(
+						<img src={use(this.tab.screenshot)} class="img" />
+					)
 				) : (
 					<div
 						style={use`background-image: -moz-element(#tab${this.tab.id})`}
@@ -150,13 +154,19 @@ DragTab.style = css`
 		left: 0;
 		z-index: 1000;
 		background: var(--bg);
+		border: 1px solid var(--bg20);
 		border-radius: 4px;
 		width: 20em;
-		/* height: 10em; */
+		gap: 0.25em;
 		flex-direction: column;
 		display: none;
 		border-radius: 4px;
+	}
+	.tooltip .text {
 		padding: 0.5em;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1em;
 	}
 	.tooltip .hostname {
 		font-size: 12px;
@@ -167,7 +177,7 @@ DragTab.style = css`
 
 	.tooltip .img {
 		width: 100%;
-		/*height: 10em;*/
+		aspect-ratio: var(--viewport-ratio);
 		background-size: cover;
 	}
 
@@ -510,3 +520,11 @@ Tabs.style = css`
 		right: 0;
 	}
 `;
+
+function updateAspectRatio() {
+	const ratio = window.innerWidth / window.innerHeight;
+	document.documentElement.style.setProperty("--viewport-ratio", String(ratio));
+}
+
+updateAspectRatio();
+window.addEventListener("resize", updateAspectRatio);
