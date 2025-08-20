@@ -35,7 +35,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 		action: [self.HTMLFormElement],
 		formaction: [self.HTMLButtonElement, self.HTMLInputElement],
 		srcdoc: [self.HTMLIFrameElement],
-		srcset: [self.HTMLImageElement, self.HTMLSourceElement],
 		poster: [self.HTMLVideoElement],
 		imagesrcset: [self.HTMLLinkElement],
 	};
