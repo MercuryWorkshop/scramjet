@@ -120,6 +120,7 @@ Shell.style = css`
 		display: flex;
 		width: 100%;
 		flex: 1;
+		background: white;
 	}
 
 	.divider {
