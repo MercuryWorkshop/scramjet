@@ -15,8 +15,6 @@
     ·
     <a href="https://twitter.com/HeyPuter">X</a>
 </p>
-> [!WARNING]
-> Browser.js does not currently have site isolation! Do not use it for sensitive data!
 <h3 align="center"><img style="border-radius:5px;" alt="screenshot" src="./assets/screenshot.png"></h3>
 
 <br>
@@ -25,6 +23,9 @@
 ## Getting Started
 
 See [CONTRIBUTING.md](/CONTRIBUTING.md) for build instructions
+
+> [!WARNING]
+> Browser.js does not currently have site isolation! Do not use it for sensitive data!
 
 <br>
 
