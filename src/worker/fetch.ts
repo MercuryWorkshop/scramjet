@@ -23,6 +23,10 @@ import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 
+function isRedirect(response: BareResponseFetch) {
+	return response.status >= 300 && response.status < 400;
+}
+
 export async function handleFetch(
 	this: ScramjetServiceWorker,
 	request: Request,
@@ -360,11 +364,7 @@ async function handleResponse(
 		);
 	}
 
-	if (
-		response.status >= 300 &&
-		response.status < 400 &&
-		responseHeaders["location"]
-	) {
+	if (isRedirect(response)) {
 		const redirectUrl = new URL(unrewriteUrl(responseHeaders["location"]));
 
 		await updateTracker(
@@ -417,7 +417,7 @@ async function handleResponse(
 			responseHeaders[header] = responseHeaders[header][0];
 	}
 
-	if (response.body) {
+	if (response.body && !isRedirect(response)) {
 		responseBody = await rewriteBody(
 			response,
 			meta,
@@ -481,7 +481,7 @@ async function handleResponse(
 	swtarget.dispatchEvent(ev);
 
 	// Clean up tracker if not a redirect
-	if (!(response.status >= 300 && response.status < 400)) {
+	if (!isRedirect(response)) {
 		await cleanTracker(url.toString());
 	}
 
