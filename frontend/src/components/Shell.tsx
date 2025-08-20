@@ -1,6 +1,7 @@
 import { css, type Component } from "dreamland/core";
 import { browser } from "../Browser";
 import { forceScreenshot, popTab, pushTab } from "../Browser";
+import { takeScreenshotGDM } from "../screenshot";
 
 export const Shell: Component = function (cx) {
 	pushTab.listen((tab) => {
@@ -53,41 +54,51 @@ export const Shell: Component = function (cx) {
 				</div>
 			</div>
 		);
-
-		setInterval(() => forceScreenshot(tab), 1000);
 	});
 	popTab.listen((tab) => {
 		const container = cx.root.querySelector(`[data-tab="${tab.id}"]`);
 		if (!container) throw new Error(`No container found for tab ${tab.id}`);
 		container.remove();
 	});
-	// forceScreenshot.listen(async (tab) => {
-	// 	const container = cx.root.querySelector(
-	// 		`[data-tab="${tab.id}"]`
-	// 	) as HTMLElement;
-	// 	if (!container) throw new Error(`No container found for tab ${tab.id}`);
+	forceScreenshot.listen(async (tab) => {
+		const container = cx.root.querySelector(
+			`[data-tab="${tab.id}"]`
+		) as HTMLElement;
+		if (!container) throw new Error(`No container found for tab ${tab.id}`);
 
-	// 	// tab.screenshot = URL.createObjectURL(await toBlob(container));
-	// });
+		let blob = await takeScreenshotGDM(container);
+		if (blob) tab.screenshot = URL.createObjectURL(blob);
+	});
 
 	return <div></div>;
 };
+
 Shell.style = css`
 	:scope {
 		flex: 1;
 		overflow: hidden;
 		width: 100%;
+		position: relative;
 	}
 	.unfocus {
 		pointer-events: none;
 	}
 	.container {
+		position: absolute;
 		width: 100%;
 		height: 100%;
-		display: none;
+		display: flex;
+		top: 0;
+		left: 0;
+		z-index: -1;
+		/*display: none;*/
+
+		/*https://screen-share.github.io/element-capture/#elements-eligible-for-restriction*/
+		isolation: isolate;
+		transform-style: flat;
 	}
 	.container.active {
-		display: flex;
+		z-index: 1;
 	}
 	.container .devtools {
 		position: relative;

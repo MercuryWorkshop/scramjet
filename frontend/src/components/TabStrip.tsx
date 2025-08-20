@@ -7,7 +7,7 @@ import { IconButton } from "./IconButton";
 import type { Tab } from "../Tab";
 // import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
-import { browser } from "../Browser";
+import { browser, forceScreenshot } from "../Browser";
 
 export const DragTab: Component<
 	{
@@ -74,6 +74,7 @@ export const DragTab: Component<
 				this.transitionend();
 			}}
 			on:mouseenter={() => {
+				forceScreenshot(this.tab);
 				if (hoverTimeout) clearTimeout(hoverTimeout);
 				hoverTimeout = window.setTimeout(() => {
 					this.tooltipActive = true;
@@ -87,11 +88,14 @@ export const DragTab: Component<
 			<div class="tooltip" class:active={use(this.tooltipActive)}>
 				<span class="title">{use(this.tab.title)}</span>
 				<span class="hostname">{use(this.tab.url.hostname)}</span>
-				{/*<img src={use(this.tab.screenshot)} class="img" />*/}
-				<div
-					style={use`background-image: -moz-element(#tab${this.tab.id})`}
-					class="img"
-				></div>
+				{window.chrome ? (
+					<img src={use(this.tab.screenshot)} class="img" />
+				) : (
+					<div
+						style={use`background-image: -moz-element(#tab${this.tab.id})`}
+						class="img"
+					></div>
+				)}
 			</div>
 			<div
 				class="dragroot"
@@ -430,7 +434,9 @@ export const Tabs: Component<
 
 		calcDragPos(e, tab);
 
-		if (this.activetab != tab) this.activetab = tab;
+		if (this.activetab != tab) {
+			this.activetab = tab;
+		}
 	};
 
 	const transitionend = () => {
