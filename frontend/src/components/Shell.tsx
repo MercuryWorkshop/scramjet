@@ -101,7 +101,7 @@ Shell.style = css`
 		transform-style: flat;
 	}
 	.container.active {
-		z-index: 1;
+		z-index: 0;
 	}
 	.container .devtools {
 		position: relative;
