@@ -1,3 +1,7 @@
+import type { Tab } from "./Tab";
+
+import type HtmlToImage from "html-to-image";
+
 let stream: MediaStream | null;
 let track: MediaStreamTrack | null;
 let video: HTMLVideoElement | null;
@@ -47,4 +51,16 @@ export async function takeScreenshotGDM(
 
 		return null;
 	}
+}
+
+export async function takeScreenshotSvg(tab: Tab): Promise<string | null> {
+	const cw = tab.frame.frame.contentWindow!;
+	const h2: typeof HtmlToImage = (cw as any).h2;
+	const svg = await h2.toSvg(tab.frame.frame.contentDocument!.body, {
+		onImageErrorHandler: (...args) => {
+			console.log(args);
+		},
+	});
+
+	return svg;
 }

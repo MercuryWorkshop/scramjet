@@ -1,7 +1,7 @@
 import { css, type Component } from "dreamland/core";
 import { browser } from "../Browser";
 import { forceScreenshot, popTab, pushTab } from "../Browser";
-import { takeScreenshotGDM } from "../screenshot";
+import { takeScreenshotGDM, takeScreenshotSvg } from "../screenshot";
 
 export const Shell: Component = function (cx) {
 	pushTab.listen((tab) => {
@@ -68,6 +68,9 @@ export const Shell: Component = function (cx) {
 
 		let blob = await takeScreenshotGDM(container);
 		if (blob) tab.screenshot = URL.createObjectURL(blob);
+		else {
+			// tab.screenshot = await takeScreenshotSvg(container);
+		}
 	});
 
 	return <div></div>;

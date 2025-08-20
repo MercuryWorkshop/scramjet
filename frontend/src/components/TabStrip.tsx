@@ -167,7 +167,7 @@ DragTab.style = css`
 
 	.tooltip .img {
 		width: 100%;
-		height: 10em;
+		/*height: 10em;*/
 		background-size: cover;
 	}
 
