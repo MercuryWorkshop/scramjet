@@ -3,5 +3,5 @@
 (pnpm dev) &
 (cd dreamlandjs && pnpm watch) &
 (cd chobitsu && pnpm webpack --watch --mode=development) &
-(cd chobitsu_inject && npx rollup -cw) &
+(cd page_inject && npx rollup -cw) &
 (cd frontend && pnpm dev) &

@@ -4,7 +4,7 @@ import commonjs from "@rollup/plugin-commonjs";
 export default {
 	input: "index.js",
 	output: {
-		file: "output/chobitsu_inject.js",
+		file: "output/page_inject.js",
 		format: "umd",
 	},
 	plugins: [

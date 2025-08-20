@@ -138,9 +138,9 @@ jobs:
           cd chobitsu
           pnpm webpack build --mode development
 
-      - name: Build chobitsu_inject
+      - name: Build page_inject
         run: |
-          cd chobitsu_inject
+          cd page_inject
           npx rollup -c
 
       - name: Build Frontend

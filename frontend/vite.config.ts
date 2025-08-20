@@ -13,7 +13,7 @@ export default defineConfig({
 					dest: "scram/",
 				},
 				{
-					src: "../chobitsu_inject/output/chobitsu_inject.js",
+					src: "../page_inject/output/page_inject.js",
 					dest: ".",
 				},
 				{

@@ -317,6 +317,9 @@ importers:
       chobitsu:
         specifier: workspace:*
         version: link:../chobitsu
+      html-to-image:
+        specifier: ^1.11.13
+        version: 1.11.13
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.6

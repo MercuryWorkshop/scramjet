@@ -31,7 +31,7 @@ cd ../..
 cd chobitsu
 pnpm build
 cd ..
-cd chobitsu_inject
+cd page_inject
 npx rollup -c
 cd ..
 cd frontend
@@ -46,6 +46,6 @@ pnpm vite build
 (pnpm dev) &
 (cd dreamlandjs && pnpm watch) &
 (cd chobitsu && pnpm webpack --watch --mode=development) &
-(cd chobitsu_inject && npx rollup -cw) &
+(cd page_inject && npx rollup -cw) &
 (cd frontend && pnpm dev) &
 ```

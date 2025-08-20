@@ -210,7 +210,7 @@ function injectChobitsu(
 	const devtoolsUrl = "https://fake-devtools.invalid";
 	// make sure to create the element through the proxied document
 	let devtoolsScript = client.global.document.createElement("script");
-	devtoolsScript.setAttribute("src", devtoolsUrl + "/chobitsu_inject.js");
+	devtoolsScript.setAttribute("src", devtoolsUrl + "/page_inject.js");
 	client.global.document.head.appendChild(devtoolsScript);
 
 	// page needs to know what its id is so it can send to playwright properly
