@@ -541,7 +541,6 @@ function copyImageToClipboard(img: HTMLImageElement) {
 }
 
 function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
-	console.log(e.target);
 	const selection = client.global.getSelection();
 	if (selection && selection.toString().length > 0) {
 		return [
@@ -597,6 +596,39 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 			},
 			{
 				label: "Save Image As...",
+				action: () => {
+					// TODO
+				},
+			},
+		];
+	} else if (target && target instanceof view.HTMLAnchorElement) {
+		return [
+			{
+				label: "Open Link",
+				action: () => {
+					const url = scramjet.decodeUrl(target.href);
+					if (url) {
+						browser.activetab.pushNavigate(new URL(url));
+					}
+				},
+			},
+			{
+				label: "Open Link in New Tab",
+				action: () => {
+					const url = scramjet.decodeUrl(target.href);
+					if (url) {
+						browser.newTab(new URL(url));
+					}
+				},
+			},
+			{
+				label: "Copy Link Address",
+				action: () => {
+					navigator.clipboard.writeText(scramjet.decodeUrl(target.href));
+				},
+			},
+			{
+				label: "Save Link As...",
 				action: () => {
 					// TODO
 				},
