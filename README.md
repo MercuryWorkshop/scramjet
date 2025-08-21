@@ -4,7 +4,7 @@
 <h3 align="center">Highly Configurable Browser Environment for the Web</h3>
 
 <p align="center">
-    <a href="https://puter.com/app/browser"><strong>« LIVE DEMO »</strong></a>
+    <a href="https://puter.com/app/puter-browser-beta"><strong>« LIVE DEMO »</strong></a>
     <br />
     <br />
     <a href="https://puter.com">Puter.com</a>
