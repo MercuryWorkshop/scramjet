@@ -391,116 +391,124 @@ function injectAnchorHandler(client: ScramjetClient, tab: Tab) {
 
 	const anchorObserver = new MutationObserver((mutations) => {
 		mutations.forEach((mutation) => {
-			mutation.addedNodes.forEach((node) => {
-				if (node instanceof HTMLAnchorElement) {
-					const openInNewTab = () => {
-						const href = scramjet.decodeUrl(node.href);
-						browser.newTab(new URL(URL.canParse(href) ? href : "about:blank"));
-					};
+			setTimeout(() => {
+				mutation.addedNodes.forEach((node) => {
+					if (node instanceof HTMLAnchorElement) {
+						const openInNewTab = () => {
+							const href = scramjet.decodeUrl(node.href);
+							browser.newTab(
+								new URL(URL.canParse(href) ? href : "about:blank")
+							);
+						};
 
-					const iAmLastListener = (e: MouseEvent) => {
-						if (node.target != "_blank") return;
-						if (e.defaultPrevented) return; // our behavior is what the new "default" is, so we don't want to trigger
-						e.preventDefault();
-						e.stopImmediatePropagation(); // for good measure
-						openInNewTab();
-					};
+						const iAmLastListener = (e: MouseEvent) => {
+							if (node.target != "_blank") return;
+							if (e.defaultPrevented) return; // our behavior is what the new "default" is, so we don't want to trigger
+							e.preventDefault();
+							e.stopImmediatePropagation(); // for good measure
+							openInNewTab();
+						};
 
-					// this event will always run before all other ones, since it was registered at injectHistoryEmulation
-					// * unless you registered the event before appending to the dom
-					// * unless there's something inside of the <a> that has a listener on it
-					// * unless there's a capture listener
-					// TODO fix those cases
+						// this event will always run before all other ones, since it was registered at injectHistoryEmulation
+						// * unless you registered the event before appending to the dom
+						// * unless there's something inside of the <a> that has a listener on it
+						// * unless there's a capture listener
+						// TODO fix those cases
 
-					client.natives.call(
-						"EventTarget.prototype.addEventListener",
-						node,
-						"click",
-						(e) => {
-							let lastlistener;
-							const path = e.composedPath();
+						client.natives.call(
+							"EventTarget.prototype.addEventListener",
+							node,
+							"click",
+							(e) => {
+								let lastlistener;
+								const path = e.composedPath();
 
-							// travel the path, from the <a> all the way to Window
-							for (const elm of path) {
-								let descriptors = eventListeners.get(elm);
-								if (descriptors) {
-									// last descriptor was last added and will be called last
-									lastlistener = descriptors[descriptors.length - 1];
+								// travel the path, from the <a> all the way to Window
+								for (const elm of path) {
+									let descriptors = eventListeners.get(elm);
+									if (descriptors) {
+										// last descriptor was last added and will be called last
+										lastlistener = descriptors[descriptors.length - 1];
+									}
 								}
-							}
 
-							// TODO: if a listener is added to a lower level of the dom inside the listener of a higher level, our lastlistener will not be correct
-							if (!lastlistener) {
-								// there are no other event listeners! great
-								iAmLastListener(e);
-							} else {
-								// we know what the last listener is. run this to inject after it
-								lastlistener.injectafter = (e) => {
+								// TODO: if a listener is added to a lower level of the dom inside the listener of a higher level, our lastlistener will not be correct
+								if (!lastlistener) {
+									// there are no other event listeners! great
 									iAmLastListener(e);
-								};
-							}
-
-							// except, if stopPropagation is called, it never gets to the lastlistener
-							client.RawProxy(e, "stopImmediatePropagation", {
-								apply() {
-									if (!currentlyExecutingDesc)
-										throw new Error(
-											"stopImmediatePropagation called but no desc found?"
-										);
-									// for stopImmediatePropagation this is the last one
-									currentlyExecutingDesc.injectafter = (e) => {
-										// in case preventDefault is called after stopImmediatePropagation(), wait for the event handler to be done
+								} else {
+									// we know what the last listener is. run this to inject after it
+									lastlistener.injectafter = (e) => {
 										iAmLastListener(e);
 									};
-								},
-							});
-							client.RawProxy(e, "stopPropagation", {
-								apply(ctx) {
-									if (!currentlyExecutingDesc)
-										throw new Error(
-											"stopPropagation called but no desc found?"
-										);
-									// stopPropagation means there might still be more listeners on the same element
-									// find whatever the last one is on the this element and then inject after it too
+								}
 
-									let ev: Event = ctx.this;
-									if (!ev.target) throw new Error("no target");
-									let descs = eventListeners.get(ev.target);
-									if (!descs)
-										throw new Error("no descs found in stopPropagation()");
-									let idx = descs.indexOf(currentlyExecutingDesc);
-									if (idx == -1)
-										throw new Error("couldn't find currentlyExecutingDesc");
-									let remaining = descs.slice(idx + 1, descs.length);
-									if (remaining.length > 0) {
-										let last = remaining[remaining.length - 1];
-										// finally we have the last in the chain after propagation is cut off
-										last.injectafter = (e) => {
+								// except, if stopPropagation is called, it never gets to the lastlistener
+								client.RawProxy(e, "stopImmediatePropagation", {
+									apply() {
+										if (!currentlyExecutingDesc)
+											throw new Error(
+												"stopImmediatePropagation called but no desc found?"
+											);
+										// for stopImmediatePropagation this is the last one
+										currentlyExecutingDesc.injectafter = (e) => {
+											// in case preventDefault is called after stopImmediatePropagation(), wait for the event handler to be done
 											iAmLastListener(e);
 										};
-									}
-								},
-							});
-						}
-					);
-					// TODO: jankify this too
-					client.natives.call(
-						"EventTarget.prototype.addEventListener",
-						node,
-						"auxclick",
-						(e: MouseEvent) => {
-							if (e.button !== 1) return; // middle click
-							e.preventDefault();
-							openInNewTab();
-						}
-					);
-				}
-			});
+									},
+								});
+								client.RawProxy(e, "stopPropagation", {
+									apply(ctx) {
+										if (!currentlyExecutingDesc)
+											throw new Error(
+												"stopPropagation called but no desc found?"
+											);
+										// stopPropagation means there might still be more listeners on the same element
+										// find whatever the last one is on the this element and then inject after it too
+
+										let ev: Event = ctx.this;
+										if (!ev.target) throw new Error("no target");
+										let descs = eventListeners.get(ev.target);
+										if (!descs)
+											throw new Error("no descs found in stopPropagation()");
+										let idx = descs.indexOf(currentlyExecutingDesc);
+										if (idx == -1)
+											throw new Error("couldn't find currentlyExecutingDesc");
+										let remaining = descs.slice(idx + 1, descs.length);
+										if (remaining.length > 0) {
+											let last = remaining[remaining.length - 1];
+											// finally we have the last in the chain after propagation is cut off
+											last.injectafter = (e) => {
+												iAmLastListener(e);
+											};
+										}
+									},
+								});
+							}
+						);
+						// TODO: jankify this too
+						client.natives.call(
+							"EventTarget.prototype.addEventListener",
+							node,
+							"auxclick",
+							(e: MouseEvent) => {
+								if (e.button !== 1) return; // middle click
+								e.preventDefault();
+								openInNewTab();
+							}
+						);
+					}
+				});
+			}, 2000);
 		});
 	});
 	anchorObserver.observe(client.global.document, {
 		childList: true,
 		subtree: true,
+	});
+
+	client.global.addEventListener("load", () => {
+		client.global.document.querySelectorAll("*").forEach((e) => e);
 	});
 }
 
