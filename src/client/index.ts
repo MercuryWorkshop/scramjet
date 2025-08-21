@@ -423,8 +423,10 @@ export class ScramjetClient {
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		if (!target) return;
 
-		const original = Reflect.get(target, prop);
-		this.natives.store[name] = original;
+		if (!(name in this.natives.store)) {
+			const original = Reflect.get(target, prop);
+			this.natives.store[name] = original;
+		}
 
 		this.RawProxy(target, prop, handler);
 	}
