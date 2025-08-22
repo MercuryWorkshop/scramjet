@@ -8,6 +8,7 @@ import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
 import { scramjet } from "./main";
+import { animateDownloadFly } from "./components/Omnibox";
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
@@ -99,6 +100,7 @@ export class Browser extends StatefulClass {
 	) {
 		this.downloadProgress = 0.1;
 		let downloaded = 0;
+		animateDownloadFly();
 		await body.pipeTo(
 			new WritableStream({
 				write(chunk) {

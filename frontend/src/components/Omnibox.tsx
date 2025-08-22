@@ -11,6 +11,9 @@ import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { UrlInput } from "./UrlInput";
 import { browser } from "../Browser";
+import { Icon } from "./Icon";
+
+export const animateDownloadFly = createDelegate<void>();
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -116,6 +119,20 @@ export const Omnibox: Component<{
 		]);
 	};
 
+	animateDownloadFly.listen(() => {
+		let fly: HTMLElement = cx.root.querySelector(".downloadfly")!;
+		fly.addEventListener(
+			"transitionend",
+			() => {
+				fly.style.opacity = "0";
+				fly.classList.add("down");
+			},
+			{ once: true }
+		);
+		fly.style.opacity = "1";
+		fly.classList.remove("down");
+	});
+
 	const historyMenu = (e: MouseEvent) => {
 		if (browser.activetab.history.states.length > 1) {
 			createMenu(
@@ -171,6 +188,9 @@ export const Omnibox: Component<{
 					}}
 					icon={iconDownload}
 				></IconButton>
+				<div class="downloadfly down">
+					<Icon icon={iconDownload}></Icon>
+				</div>
 				<CircularProgress
 					progress={use(browser.downloadProgress)}
 				></CircularProgress>
@@ -227,5 +247,38 @@ Omnibox.style = css`
 		align-items: center;
 		position: relative;
 		gap: 0.2em;
+	}
+
+	.downloadfly {
+		position: absolute;
+		top: 0;
+		box-sizing: border-box;
+		aspect-ratio: 1/1;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+
+		display: flex;
+		outline: none;
+		border: none;
+		font-size: 1.25em;
+		background: none;
+		color: var(--fg);
+		border-radius: 0.2em;
+
+		transition: top 0.5s ease;
+	}
+	.downloadfly.down {
+		top: 100vh;
+	}
+	.downloadfly::before {
+		position: absolute;
+		content: "";
+		z-index: -1;
+		height: 2em;
+		width: 2em;
+		border-radius: 50%;
+		opacity: 0.5;
+		background: var(--bg20);
 	}
 `;
