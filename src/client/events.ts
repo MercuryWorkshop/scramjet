@@ -1,5 +1,19 @@
 import { ScramjetClient } from "@client/index";
 
+export type ScramjetGlobalEvent = ScramjetGlobalDownloadEvent;
+export class ScramjetGlobalDownloadEvent extends Event {
+	type = "download";
+	constructor(
+		public filename: string,
+		public body: ArrayBuffer
+	) {
+		super("download");
+	}
+}
+export type ScramjetGlobalEvents = {
+	download: ScramjetGlobalDownloadEvent;
+};
+
 export type ScramjetEvent =
 	| NavigateEvent
 	| UrlChangeEvent
