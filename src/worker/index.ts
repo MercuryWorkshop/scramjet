@@ -64,7 +64,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "loadConfig") {
 				this.config = data.config;
-				await this.initEpoxy();
 			}
 		});
 	}
