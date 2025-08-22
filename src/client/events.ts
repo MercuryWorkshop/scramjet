@@ -5,7 +5,7 @@ export class ScramjetGlobalDownloadEvent extends Event {
 	type = "download";
 	constructor(
 		public filename: string,
-		public body: ArrayBuffer
+		public body: ReadableStream<Uint8Array>
 	) {
 		super("download");
 	}
