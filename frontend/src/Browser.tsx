@@ -7,6 +7,7 @@ import { HistoryState } from "./History";
 import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
+import { scramjet } from "./main";
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
@@ -74,6 +75,8 @@ export class Browser extends StatefulClass {
 
 	unfocusframes: boolean = false;
 
+	downloadProgress = 0;
+
 	settings: Stateful<Settings> = createState({
 		theme: "light",
 		bookmarksPinned: false,
@@ -83,6 +86,31 @@ export class Browser extends StatefulClass {
 		super(createState(Object.create(Browser.prototype)));
 
 		setInterval(saveBrowserState, 1000);
+
+		scramjet.addEventListener("download", (e) => {
+			this.startDownload(e.filename, e.body, e.length);
+		});
+	}
+
+	async startDownload(
+		filename: string,
+		body: ReadableStream<Uint8Array>,
+		length: number
+	) {
+		this.downloadProgress = 0.1;
+		let downloaded = 0;
+		await body.pipeTo(
+			new WritableStream({
+				write(chunk) {
+					downloaded += chunk.byteLength;
+					browser.downloadProgress = Math.min(downloaded / length + 0.1, 1);
+				},
+			})
+		);
+		console.log("downloaded");
+		setTimeout(() => {
+			this.downloadProgress = 0;
+		}, 1000);
 	}
 
 	serialize(): SerializedBrowser {
