@@ -100,9 +100,7 @@ export class ScramjetController extends EventTarget {
 			const data: MessageW2C = e.data;
 
 			if (data.scramjet$type === "download") {
-				this.dispatchEvent(
-					new ScramjetGlobalDownloadEvent(data.filename, data.body)
-				);
+				this.dispatchEvent(new ScramjetGlobalDownloadEvent(data.download));
 			}
 		});
 	}

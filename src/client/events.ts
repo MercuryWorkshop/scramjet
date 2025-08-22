@@ -3,15 +3,19 @@ import { ScramjetClient } from "@client/index";
 export type ScramjetGlobalEvent = ScramjetGlobalDownloadEvent;
 export class ScramjetGlobalDownloadEvent extends Event {
 	type = "download";
-	constructor(
-		public filename: string,
-		public body: ReadableStream<Uint8Array>
-	) {
+	constructor(public download: ScramjetDownload) {
 		super("download");
 	}
 }
 export type ScramjetGlobalEvents = {
 	download: ScramjetGlobalDownloadEvent;
+};
+export type ScramjetDownload = {
+	filename?: string;
+	url: string;
+	type: string;
+	body: ReadableStream<Uint8Array>;
+	length: number;
 };
 
 export type ScramjetEvent =

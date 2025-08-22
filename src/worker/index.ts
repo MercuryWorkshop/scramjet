@@ -9,6 +9,7 @@ import initEpoxy, {
 	EpoxyClient,
 	EpoxyClientOptions,
 } from "@mercuryworkshop/epoxy-tls";
+import { ScramjetDownload } from "@client/events";
 
 let epoxyPromise = initEpoxy();
 
@@ -162,8 +163,7 @@ type ConfigMessage = {
 
 type DownloadMessage = {
 	scramjet$type: "download";
-	filename: string;
-	body: ReadableStream<Uint8Array>;
+	download: ScramjetDownload;
 };
 type MessageCommon = {
 	scramjet$token?: number;

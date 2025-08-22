@@ -28,6 +28,7 @@ import { rewriteHeaders } from "@rewriters/headers";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
+import { ScramjetDownload } from "@client/events";
 
 function isRedirect(response: BareResponseFetch) {
 	return response.status >= 300 && response.status < 400;
@@ -467,10 +468,7 @@ async function handleResponse(
 			if (!client) {
 				throw new Error("cant find client");
 			}
-			let filename = (
-				url.hostname.replaceAll(".", "-") + url.pathname
-			).replaceAll("/", "");
-
+			let filename: string | null = null;
 			const disp = responseHeaders["content-disposition"];
 			if (typeof disp === "string") {
 				const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
@@ -478,6 +476,7 @@ async function handleResponse(
 					filename = filenameMatch[1];
 				}
 			}
+			const length = responseHeaders["content-length"];
 
 			// there's no reliable way of finding the top level client that made the request
 			// just take the first one and hope
@@ -491,11 +490,18 @@ async function handleResponse(
 					"couldn't find a controller client to dispatch download to"
 				);
 			}
+
+			const download: ScramjetDownload = {
+				filename,
+				url: url.href,
+				type: responseHeaders["content-type"],
+				body: response.body,
+				length: Number(length),
+			};
 			clis[0].postMessage(
 				{
 					scramjet$type: "download",
-					filename,
-					body: response.body,
+					download,
 				} as MessageW2C,
 				[response.body]
 			);
