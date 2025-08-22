@@ -1,7 +1,7 @@
 import { css, type Component } from "dreamland/core";
 import { browser } from "../Browser";
 import { forceScreenshot, popTab, pushTab } from "../Browser";
-import { takeScreenshotGDM, takeScreenshotSvg } from "../screenshot";
+import { takeScreenshotGDM } from "../screenshot";
 
 export const Shell: Component = function (cx) {
 	pushTab.listen((tab) => {

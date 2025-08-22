@@ -9,6 +9,10 @@ import type { Tab } from "../Tab";
 import { setContextMenu } from "./Menu";
 import { browser, forceScreenshot } from "../Browser";
 
+const isFirefox =
+	navigator.userAgent.includes("Gecko/") &&
+	!navigator.userAgent.includes("Chrome");
+
 export const DragTab: Component<
 	{
 		active: boolean;
@@ -90,15 +94,15 @@ export const DragTab: Component<
 					<span class="title">{use(this.tab.title)}</span>
 					<span class="hostname">{use(this.tab.url.hostname)}</span>
 				</div>
-				{window.chrome ? (
-					use(this.tab.screenshot).andThen(
-						<img src={use(this.tab.screenshot)} class="img" />
-					)
-				) : (
+				{isFirefox ? (
 					<div
 						style={use`background-image: -moz-element(#tab${this.tab.id})`}
 						class="img"
 					></div>
+				) : (
+					use(this.tab.screenshot).andThen(
+						<img src={use(this.tab.screenshot)} class="img" />
+					)
 				)}
 			</div>
 			<div

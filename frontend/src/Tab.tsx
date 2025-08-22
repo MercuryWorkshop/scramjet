@@ -610,11 +610,15 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 			},
 		];
 	} else if (target && target instanceof view.HTMLAnchorElement) {
+		let href = Object.getOwnPropertyDescriptor(
+			HTMLAnchorElement.prototype,
+			"href"
+		)!.get!.call(target);
+		let url = scramjet.decodeUrl(href);
 		return [
 			{
 				label: "Open Link",
 				action: () => {
-					const url = scramjet.decodeUrl(target.href);
 					if (url) {
 						browser.activetab.pushNavigate(new URL(url));
 					}
@@ -623,7 +627,6 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 			{
 				label: "Open Link in New Tab",
 				action: () => {
-					const url = scramjet.decodeUrl(target.href);
 					if (url) {
 						browser.newTab(new URL(url));
 					}
