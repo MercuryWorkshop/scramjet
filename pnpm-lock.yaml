@@ -312,25 +312,6 @@ importers:
         specifier: ^5.0.4
         version: 5.2.2(bufferutil@4.0.9)(webpack-cli@5.1.4)(webpack@5.101.1)
 
-  chobitsu_inject:
-    dependencies:
-      chobitsu:
-        specifier: workspace:*
-        version: link:../chobitsu
-      html-to-image:
-        specifier: ^1.11.13
-        version: 1.11.13
-    devDependencies:
-      '@rollup/plugin-commonjs':
-        specifier: ^28.0.6
-        version: 28.0.6(rollup@4.46.2)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.1
-        version: 16.0.1(rollup@4.46.2)
-      rollup:
-        specifier: ^4.44.2
-        version: 4.46.2
-
   dreamlandjs:
     dependencies:
       domhandler:
@@ -419,6 +400,25 @@ importers:
       vite:
         specifier: ^6.3.5
         version: 6.3.5(@types/node@24.2.1)(terser@5.43.1)
+
+  page_inject:
+    dependencies:
+      chobitsu:
+        specifier: workspace:*
+        version: link:../chobitsu
+      html-to-image:
+        specifier: ^1.11.13
+        version: 1.11.13
+    devDependencies:
+      '@rollup/plugin-commonjs':
+        specifier: ^28.0.6
+        version: 28.0.6(rollup@4.46.2)
+      '@rollup/plugin-node-resolve':
+        specifier: ^16.0.1
+        version: 16.0.1(rollup@4.46.2)
+      rollup:
+        specifier: ^4.44.2
+        version: 4.46.2
 
 packages:
 
