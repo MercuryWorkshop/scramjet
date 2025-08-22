@@ -479,14 +479,25 @@ async function handleResponse(
 				}
 			}
 
-			const ab = await response.arrayBuffer();
-			client.postMessage(
+			// there's no reliable way of finding the top level client that made the request
+			// just take the first one and hope
+			let clis = await clients.matchAll({
+				type: "window",
+			});
+			// only want controller windows
+			clis = clis.filter((e) => !e.url.includes(config.prefix));
+			if (clis.length < 1) {
+				throw Error(
+					"couldn't find a controller client to dispatch download to"
+				);
+			}
+			clis[0].postMessage(
 				{
 					scramjet$type: "download",
 					filename,
-					body: ab,
+					body: response.body,
 				} as MessageW2C,
-				[ab]
+				[response.body]
 			);
 
 			// endless vortex reference

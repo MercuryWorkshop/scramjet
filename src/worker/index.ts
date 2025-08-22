@@ -161,12 +161,11 @@ type ConfigMessage = {
 };
 
 type DownloadMessage = {
-	$scramjet$type: "download";
+	scramjet$type: "download";
 	filename: string;
-	body: ArrayBuffer;
+	body: ReadableStream<Uint8Array>;
 };
 type MessageCommon = {
-	scramjet$type: string;
 	scramjet$token?: number;
 };
 

@@ -10,6 +10,7 @@ import { ScramjetFrame } from "@/controller/frame";
 import { MessageW2C } from "@/worker";
 import {
 	ScramjetEvents,
+	ScramjetGlobalDownloadEvent,
 	ScramjetGlobalEvent,
 	ScramjetGlobalEvents,
 } from "@client/events";
@@ -94,11 +95,14 @@ export class ScramjetController extends EventTarget {
 		});
 		dbg.log("config loaded");
 
-		serviceWorker.addEventListener("message", (e) => {
+		navigator.serviceWorker.addEventListener("message", (e) => {
 			if (!("scramjet$type" in e.data)) return;
 			const data: MessageW2C = e.data;
 
 			if (data.scramjet$type === "download") {
+				this.dispatchEvent(
+					new ScramjetGlobalDownloadEvent(data.filename, data.body)
+				);
 			}
 		});
 	}
