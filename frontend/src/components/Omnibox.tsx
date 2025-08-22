@@ -13,6 +13,11 @@ import { UrlInput } from "./UrlInput";
 import { browser } from "../Browser";
 import { Icon } from "./Icon";
 
+import iconNew from "@ktibow/iconset-ion/duplicate-outline";
+import iconTime from "@ktibow/iconset-ion/time-outline";
+import iconInfo from "@ktibow/iconset-ion/information-circle-outline";
+import iconSettings from "@ktibow/iconset-ion/settings-outline";
+
 export const animateDownloadFly = createDelegate<void>();
 
 export const Spacer: Component = function (cx) {
@@ -205,30 +210,35 @@ export const Omnibox: Component<{
 							action: () => {
 								browser.newTab(new URL("puter://newtab"), true);
 							},
+							icon: iconNew,
 						},
 						{
 							label: "History",
 							action: () => {
 								browser.newTab(new URL("puter://history"));
 							},
+							icon: iconTime,
 						},
 						{
 							label: "Downloads",
 							action: () => {
 								browser.newTab(new URL("puter://downloads"));
 							},
+							icon: iconDownload,
 						},
 						{
 							label: "Settings",
 							action: () => {
 								browser.newTab(new URL("puter://settings"));
 							},
+							icon: iconSettings,
 						},
 						{
 							label: "About",
 							action: () => {
 								browser.newTab(new URL("puter://version"));
 							},
+							icon: iconInfo,
 						},
 					]);
 					e.stopPropagation();

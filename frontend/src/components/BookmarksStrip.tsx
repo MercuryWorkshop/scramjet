@@ -9,6 +9,7 @@ export const BookmarksStrip: Component = function (cx) {
 		setContextMenu(cx.root, [
 			{
 				label: "Add Bookmark",
+				icon: iconAdd,
 				action: () => {},
 			},
 			{

@@ -15,6 +15,11 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { scramjet } from "./main";
 import { DownloadsPage } from "./pages/DownloadsPage";
+import iconBack from "@ktibow/iconset-ion/arrow-back";
+import iconForwards from "@ktibow/iconset-ion/arrow-forward";
+import iconRefresh from "@ktibow/iconset-ion/refresh";
+import iconBookmark from "@ktibow/iconset-ion/bookmark-outline";
+import iconCode from "@ktibow/iconset-ion/code-outline";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
@@ -657,18 +662,21 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 			action: () => {
 				tab.back();
 			},
+			icon: iconBack,
 		},
 		{
 			label: "Forward",
 			action: () => {
 				tab.forward();
 			},
+			icon: iconForwards,
 		},
 		{
 			label: "Reload",
 			action: () => {
 				tab.reload();
 			},
+			icon: iconRefresh,
 		},
 		{
 			label: "Bookmark",
@@ -676,6 +684,7 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 				// TODO:
 				console.log("Bookmarking", tab.title, tab.url);
 			},
+			icon: iconBookmark,
 		},
 		{
 			label: "Inspect",
@@ -683,6 +692,7 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 				tab.devtoolsOpen = true;
 				if (e.target) requestInspectElement([e.target as HTMLElement, tab]);
 			},
+			icon: iconCode,
 		},
 	];
 }

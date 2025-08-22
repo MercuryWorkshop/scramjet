@@ -1,6 +1,8 @@
 import { css, Pointer, type Component, type DLElement } from "dreamland/core";
 import { browser } from "../Browser";
 import { Checkbox } from "./Checkbox";
+import { Icon } from "./Icon";
+import type { IconifyIcon } from "@iconify/types";
 
 export const Menu: Component<{
 	x: number;
@@ -69,7 +71,7 @@ export const Menu: Component<{
 							e.stopPropagation();
 						}}
 					>
-						<div class="pad" />
+						{item.icon ? <Icon icon={item.icon}></Icon> : <div class="pad" />}
 						<span>{item.label}</span>
 					</button>
 				)
@@ -128,6 +130,7 @@ type MenuItem = {
 	label: string;
 	action?: () => void;
 	checkbox?: Pointer<boolean>;
+	icon?: IconifyIcon;
 };
 
 export function setContextMenu(elm: HTMLElement, items: MenuItem[]) {

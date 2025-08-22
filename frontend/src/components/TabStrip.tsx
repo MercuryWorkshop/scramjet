@@ -1,5 +1,8 @@
 import iconClose from "@ktibow/iconset-ion/close";
 import iconAdd from "@ktibow/iconset-ion/add";
+import iconNew from "@ktibow/iconset-ion/duplicate-outline";
+import iconDuplicate from "@ktibow/iconset-ion/copy-outline";
+import iconRefresh from "@ktibow/iconset-ion/refresh-outline";
 import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 import { memoize } from "../memoize";
@@ -31,24 +34,28 @@ export const DragTab: Component<
 		setContextMenu(cx.root, [
 			{
 				label: "New tab to the right",
+				icon: iconNew,
 				action: () => {
 					browser.newTabRight(this.tab);
 				},
 			},
 			{
 				label: "Reload",
+				icon: iconRefresh,
 				action: () => {
 					this.tab.frame.reload();
 				},
 			},
 			{
 				label: "Duplicate",
+				icon: iconDuplicate,
 				action: () => {
 					browser.newTabRight(this.tab, this.tab.url);
 				},
 			},
 			{
 				label: "Close Tab",
+				icon: iconClose,
 				action: () => {
 					this.destroy();
 				},
@@ -391,6 +398,7 @@ export const Tabs: Component<
 		setContextMenu(cx.root, [
 			{
 				label: "New Tab",
+				icon: iconNew,
 				action: () => {
 					this.addTab();
 				},

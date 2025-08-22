@@ -9,6 +9,7 @@ import iconStar from "@ktibow/iconset-ion/star-outline";
 import iconStarFilled from "@ktibow/iconset-ion/star";
 import iconSearch from "@ktibow/iconset-ion/search";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
+import iconTrash from "@ktibow/iconset-ion/trash-outline";
 import { Icon } from "./Icon";
 import { scramjet } from "../main";
 import { IconButton } from "./IconButton";
@@ -284,7 +285,7 @@ export const UrlInput: Component<
 								class="optionsbutton"
 								on:click={(e: MouseEvent) => {
 									createMenu(e.clientX, e.clientY, [
-										{ label: "Clear Site Data" },
+										{ label: "Clear Site Data", icon: iconTrash },
 									]);
 									e.preventDefault();
 									e.stopPropagation();
