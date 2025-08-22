@@ -5,7 +5,7 @@ type BareResponseFetch = Response & {
 type BareClient = any;
 import { EpoxyClient } from "@mercuryworkshop/epoxy-tls";
 
-import { ScramjetServiceWorker } from "@/worker";
+import { MessageW2C, ScramjetServiceWorker } from "@/worker";
 import { renderError } from "@/worker/error";
 import { FakeServiceWorker } from "@/worker/fakesw";
 import { CookieStore } from "@/shared/cookie";
@@ -31,6 +31,49 @@ import { rewriteWorkers } from "@rewriters/worker";
 
 function isRedirect(response: BareResponseFetch) {
 	return response.status >= 300 && response.status < 400;
+}
+
+function isDownload(responseHeaders: object, destination: string): boolean {
+	if (["document", "iframe"].includes(destination)) {
+		const header = responseHeaders["content-disposition"];
+		if (header) {
+			if (header === "inline") {
+				return false; // force it to show in browser
+			} else {
+				return true;
+			}
+		} else {
+			// check mime type as fallback
+			const displayableMimes = [
+				// Text types
+				"text/html",
+				"text/plain",
+				"text/css",
+				"text/javascript",
+				"text/xml",
+				"application/javascript",
+				"application/json",
+				"application/xml",
+				"application/pdf",
+			];
+			const contentType = responseHeaders["content-type"]
+				?.split(";")[0]
+				.trim()
+				.toLowerCase();
+			if (
+				contentType &&
+				!displayableMimes.includes(contentType) &&
+				!contentType.startsWith("text") &&
+				!contentType.startsWith("image") &&
+				!contentType.startsWith("font") &&
+				!contentType.startsWith("video")
+			) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 export async function handleFetch(
@@ -419,6 +462,56 @@ async function handleResponse(
 			responseHeaders[header] = responseHeaders[header][0];
 	}
 
+	if (isDownload(responseHeaders, destination) && !isRedirect(response)) {
+		if (flagEnabled("interceptDownloads", url)) {
+			if (!client) {
+				throw new Error("cant find client");
+			}
+			let filename = (
+				url.hostname.replaceAll(".", "-") + url.pathname
+			).replaceAll("/", "");
+
+			const disp = responseHeaders["content-disposition"];
+			if (typeof disp === "string") {
+				const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
+				if (filenameMatch && filenameMatch[1]) {
+					filename = filenameMatch[1];
+				}
+			}
+
+			const ab = await response.arrayBuffer();
+			client.postMessage(
+				{
+					scramjet$type: "download",
+					filename,
+					body: ab,
+				} as MessageW2C,
+				[ab]
+			);
+
+			// endless vortex reference
+			await new Promise(() => {});
+		} else {
+			// manually rewrite for regular browser download
+			const header = responseHeaders["content-disposition"];
+
+			// validate header and test for filename
+			if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
+				// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
+				// if it"s invalid then we can still possibly test for the attachment/inline type
+				const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
+
+				// set the filename
+				const [filename] = new URL(response.finalURL).pathname
+					.split("/")
+					.slice(-1);
+
+				responseHeaders["content-disposition"] =
+					`${type}; filename=${JSON.stringify(filename)}`;
+			}
+		}
+	}
+
 	if (response.body && !isRedirect(response)) {
 		responseBody = await rewriteBody(
 			response,
@@ -429,25 +522,6 @@ async function handleResponse(
 		);
 	}
 
-	// downloads
-	if (["document", "iframe"].includes(destination)) {
-		const header = responseHeaders["content-disposition"];
-
-		// validate header and test for filename
-		if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
-			// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
-			// if it"s invalid then we can still possibly test for the attachment/inline type
-			const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
-
-			// set the filename
-			const [filename] = new URL(response.finalURL).pathname
-				.split("/")
-				.slice(-1);
-
-			responseHeaders["content-disposition"] =
-				`${type}; filename=${JSON.stringify(filename)}`;
-		}
-	}
 	if (responseHeaders["accept"] === "text/event-stream") {
 		responseHeaders["content-type"] = "text/event-stream";
 	}
