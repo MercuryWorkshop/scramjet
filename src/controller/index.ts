@@ -7,11 +7,18 @@ import {
 } from "@/shared/index";
 import { ScramjetConfig, ScramjetInitConfig } from "@/types";
 import { ScramjetFrame } from "@/controller/frame";
+import { MessageW2C } from "@/worker";
+import {
+	ScramjetEvents,
+	ScramjetGlobalEvent,
+	ScramjetGlobalEvents,
+} from "@client/events";
 
-export class ScramjetController {
+export class ScramjetController extends EventTarget {
 	private db: IDBDatabase;
 
 	constructor(config: Partial<ScramjetInitConfig>) {
+		super();
 		// sane ish defaults
 		const defaultConfig: ScramjetInitConfig = {
 			wisp: "/wisp/",
@@ -44,6 +51,7 @@ export class ScramjetController {
 				scramitize: false,
 				sourcemaps: true,
 				destructureRewrites: false,
+				interceptDownloads: false,
 			},
 			siteFlags: {},
 			codec: {
@@ -85,6 +93,14 @@ export class ScramjetController {
 			config,
 		});
 		dbg.log("config loaded");
+
+		serviceWorker.addEventListener("message", (e) => {
+			if (!("scramjet$type" in e.data)) return;
+			const data: MessageW2C = e.data;
+
+			if (data.scramjet$type === "download") {
+			}
+		});
 	}
 
 	createFrame(frame?: HTMLIFrameElement): ScramjetFrame {
@@ -172,5 +188,13 @@ export class ScramjetController {
 			scramjet$type: "loadConfig",
 			config,
 		});
+	}
+
+	addEventListener<K extends keyof ScramjetGlobalEvents>(
+		type: K,
+		listener: (event: ScramjetGlobalEvents[K]) => void,
+		options?: boolean | AddEventListenerOptions
+	): void {
+		super.addEventListener(type, listener as EventListener, options);
 	}
 }
