@@ -144,6 +144,11 @@ type ConfigMessage = {
 	config: ScramjetConfig;
 };
 
+type DownloadMessage = {
+	$scramjet$type: "download";
+	filename: string;
+	body: ArrayBuffer;
+};
 type MessageCommon = {
 	scramjet$type: string;
 	scramjet$token?: number;
@@ -153,7 +158,7 @@ type MessageTypeC2W =
 	| RegisterServiceWorkerMessage
 	| CookieMessage
 	| ConfigMessage;
-type MessageTypeW2C = CookieMessage;
+type MessageTypeW2C = CookieMessage | DownloadMessage;
 
 // c2w: client to (service) worker
 export type MessageC2W = MessageCommon & MessageTypeC2W;
