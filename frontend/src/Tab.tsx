@@ -14,6 +14,7 @@ import { AboutPage } from "./pages/AboutPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { scramjet } from "./main";
+import { DownloadsPage } from "./pages/DownloadsPage";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
@@ -148,6 +149,9 @@ export class Tab extends StatefulClass {
 					this.history.current().title = this.title = "Settings";
 					this.internalpage = <SettingsPage tab={this} />;
 					break;
+				case "downloads":
+					this.history.current().title = this.title = "Downloads";
+					this.internalpage = <DownloadsPage tab={this} />;
 			}
 		} else {
 			this.internalpage = null;

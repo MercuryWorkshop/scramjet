@@ -12,7 +12,7 @@ import { css, type Component } from "dreamland/core";
 
 const { ScramjetController } = $scramjetLoadController();
 
-const scramjetcfg = {
+const scramjetcfg: Partial<ScramjetInitConfig> = {
 	wisp: "ws://localhost:1337/",
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
@@ -22,6 +22,7 @@ const scramjetcfg = {
 	flags: {
 		rewriterLogs: false,
 		captureErrors: false,
+		interceptDownloads: true,
 	},
 	siteFlags: {
 		"https://worker-playground.glitch.me/.*": {
@@ -171,3 +172,7 @@ async function init() {
 			"Failed to register service worker. Check console for details.";
 	}
 }
+
+scramjet.addEventListener("download", (e) => {
+	console.log(e.filename, e.body);
+});

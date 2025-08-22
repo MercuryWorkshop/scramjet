@@ -3,6 +3,7 @@ import iconBack from "@ktibow/iconset-ion/arrow-back";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
+import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
 import { createMenu, setContextMenu } from "./Menu";
 import { IconButton } from "./IconButton";
@@ -84,6 +85,12 @@ export const Omnibox: Component<{
 			<Spacer></Spacer>
 			<IconButton active={false} icon={iconExtension}></IconButton>
 			<IconButton
+				click={() => {
+					browser.newTab(new URL("puter://downloads"));
+				}}
+				icon={iconDownload}
+			></IconButton>
+			<IconButton
 				tooltip="More Options"
 				icon={iconMore}
 				click={(e: MouseEvent) => {
@@ -98,6 +105,12 @@ export const Omnibox: Component<{
 							label: "History",
 							action: () => {
 								browser.newTab(new URL("puter://history"));
+							},
+						},
+						{
+							label: "Downloads",
+							action: () => {
+								browser.newTab(new URL("puter://downloads"));
 							},
 						},
 						{
