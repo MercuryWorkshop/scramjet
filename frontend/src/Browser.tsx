@@ -8,7 +8,7 @@ import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
 import { scramjet } from "./main";
-import { animateDownloadFly } from "./components/Omnibox";
+import { animateDownloadFly, showDownloadsPopup } from "./components/Omnibox";
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
@@ -65,6 +65,7 @@ export type DownloadEntry = {
 	url: string;
 	filename: string;
 	timestamp: number;
+	size: number;
 	id: string;
 };
 
@@ -100,36 +101,45 @@ export class Browser extends StatefulClass {
 		setInterval(saveBrowserState, 1000);
 
 		scramjet.addEventListener("download", (e) => {
-			this.startDownload(e.filename, e.body, e.length);
+			this.startDownload(e.download);
 		});
 	}
 
-	async startDownload(
-		filename: string,
-		body: ReadableStream<Uint8Array>,
-		length: number
-	) {
+	async startDownload(download: ScramjetDownload) {
 		this.downloadProgress = 0.1;
 		let downloaded = 0;
 		animateDownloadFly();
 
+		let filename = download.filename;
+		if (!filename) {
+			let url = new URL(download.url);
+			filename =
+				decodeURIComponent(url.pathname.split("/").at(-1) || "") ||
+				url.hostname.replaceAll(".", "-");
+		}
+
 		let entry: DownloadEntry = {
 			filename,
-			url: "https://google.com",
+			url: download.url,
+			size: download.length,
 			timestamp: Date.now(),
 			id: crypto.randomUUID(),
 		};
 		this.globalDownloadHistory = [entry, ...this.globalDownloadHistory];
 		this.sessionDownloadHistory = [entry, ...this.sessionDownloadHistory];
 
-		await body.pipeTo(
+		await download.body.pipeTo(
 			new WritableStream({
 				write(chunk) {
 					downloaded += chunk.byteLength;
-					browser.downloadProgress = Math.min(downloaded / length + 0.1, 1);
+					browser.downloadProgress = Math.min(
+						downloaded / download.length + 0.1,
+						1
+					);
 				},
 			})
 		);
+		showDownloadsPopup();
 		setTimeout(() => {
 			this.downloadProgress = 0;
 		}, 1000);

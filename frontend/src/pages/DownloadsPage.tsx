@@ -7,6 +7,19 @@ import iconClose from "@ktibow/iconset-ion/close-outline";
 import iconFolder from "@ktibow/iconset-ion/folder-outline";
 import { Icon } from "../components/Icon";
 
+// Format bytes into human readable format
+export function formatBytes(bytes: number, decimals: number = 2): string {
+	if (bytes === 0) return "0 Bytes";
+
+	const k = 1024;
+	const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+	return (
+		parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + " " + sizes[i]
+	);
+}
+
 export const DownloadsPage: Component<
 	{
 		tab: Tab;
@@ -23,7 +36,14 @@ export const DownloadsPage: Component<
 							<div class="iconcontainer">
 								<img src="/vite.svg"></img>
 							</div>
-							<span>{e.filename}</span>
+							<div class="content">
+								<a href={e.url}>{e.filename}</a>
+								<span>
+									<span>{formatBytes(e.size)}</span>
+									<span>{new URL(e.url).hostname}</span>
+									<span>{new Date(e.timestamp).toDateString()}</span>
+								</span>
+							</div>
 							<div class="icons">
 								<Icon icon={iconFolder}></Icon>
 								<Icon icon={iconLink}></Icon>
@@ -47,6 +67,11 @@ DownloadsPage.style = css`
 
 		background: var(--bg01);
 		color: var(--fg);
+		overflow-y: scroll;
+	}
+
+	a {
+		color: color-mix(in oklab, var(--fg) 50%, var(--accent));
 	}
 
 	.main {
@@ -73,6 +98,7 @@ DownloadsPage.style = css`
 
 		border-radius: var(--radius);
 		padding: 2em;
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 	}
 	.entry img {
 		width: 16px;
@@ -99,5 +125,17 @@ DownloadsPage.style = css`
 		gap: 0.5em;
 
 		font-size: 1.5em;
+	}
+
+	.content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5em;
+	}
+
+	.content > span {
+		display: flex;
+		gap: 1em;
+		color: var(--fg2);
 	}
 `;

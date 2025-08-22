@@ -7,7 +7,8 @@ import type { IconifyIcon } from "@iconify/types";
 export const Menu: Component<{
 	x: number;
 	y: number;
-	items: MenuItem[];
+	items?: MenuItem[];
+	custom?: HTMLElement;
 }> = function (cx) {
 	const close = () => {
 		cx.root.remove();
@@ -47,35 +48,41 @@ export const Menu: Component<{
 	};
 	return (
 		<div style={use`--x: ${this.x}px; --y: ${this.y}px;`}>
-			{use(this.items).mapEach((item) =>
-				item.checkbox ? (
-					<button
-						class="item"
-						on:click={(e: MouseEvent) => {
-							if (!item.checkbox) return;
-							item.checkbox.value = !item.checkbox.value;
+			{this.items
+				? use(this.items).mapEach((item) =>
+						item.checkbox ? (
+							<button
+								class="item"
+								on:click={(e: MouseEvent) => {
+									if (!item.checkbox) return;
+									item.checkbox.value = !item.checkbox.value;
 
-							e.preventDefault();
-							e.stopPropagation();
-						}}
-					>
-						<Checkbox value={item.checkbox}></Checkbox>
-						{item.label}
-					</button>
-				) : (
-					<button
-						class="item"
-						on:click={(e: MouseEvent) => {
-							item.action?.();
-							close();
-							e.stopPropagation();
-						}}
-					>
-						{item.icon ? <Icon icon={item.icon}></Icon> : <div class="pad" />}
-						<span>{item.label}</span>
-					</button>
-				)
-			)}
+									e.preventDefault();
+									e.stopPropagation();
+								}}
+							>
+								<Checkbox value={item.checkbox}></Checkbox>
+								{item.label}
+							</button>
+						) : (
+							<button
+								class="item"
+								on:click={(e: MouseEvent) => {
+									item.action?.();
+									close();
+									e.stopPropagation();
+								}}
+							>
+								{item.icon ? (
+									<Icon icon={item.icon}></Icon>
+								) : (
+									<div class="pad" />
+								)}
+								<span>{item.label}</span>
+							</button>
+						)
+					)
+				: this.custom}
 		</div>
 	);
 };
@@ -84,9 +91,9 @@ Menu.style = css`
 		position: absolute;
 		top: var(--y);
 		left: var(--x);
-		background: var(--bg);
+		background: var(--bg20);
 		border: 1px solid var(--fg4);
-		border-radius: 4px;
+		border-radius: var(--radius);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 		z-index: 1000;
 		display: flex;
@@ -151,6 +158,21 @@ export function createMenu(
 	}
 
 	let menu = (<Menu x={x} y={y} items={items} />) as DLElement<typeof Menu>;
+	activeMenu = menu;
+
+	return menu;
+}
+
+export function createMenuCustom(
+	x: number,
+	y: number,
+	custom: HTMLElement
+): DLElement<typeof Menu> {
+	if (activeMenu) {
+		activeMenu.remove();
+	}
+
+	let menu = (<Menu x={x} y={y} custom={custom} />) as DLElement<typeof Menu>;
 	activeMenu = menu;
 
 	return menu;

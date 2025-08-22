@@ -5,7 +5,7 @@ import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
-import { createMenu, setContextMenu } from "./Menu";
+import { createMenu, createMenuCustom, setContextMenu } from "./Menu";
 import { IconButton } from "./IconButton";
 import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
@@ -17,6 +17,7 @@ import iconNew from "@ktibow/iconset-ion/duplicate-outline";
 import iconTime from "@ktibow/iconset-ion/time-outline";
 import iconInfo from "@ktibow/iconset-ion/information-circle-outline";
 import iconSettings from "@ktibow/iconset-ion/settings-outline";
+import { formatBytes } from "../pages/DownloadsPage";
 
 export const animateDownloadFly = createDelegate<void>();
 
@@ -109,6 +110,84 @@ CircularProgress.style = css`
 	}
 `;
 
+const DownloadsPopup: Component<{}> = function (cx) {
+	return (
+		<div>
+			<div class="title">
+				<p>Recent Downloads</p>
+			</div>
+			<div class="entries">
+				{use(browser.globalDownloadHistory).mapEach((b) => (
+					<div class="entry">
+						<div class="iconcontainer">
+							<img src="/vite.svg"></img>
+						</div>
+						<div class="contents">
+							<span>{b.filename}</span>
+							<span class="data">{formatBytes(b.size)}</span>
+						</div>
+					</div>
+				))}
+			</div>
+			<div
+				class="footer"
+				on:click={() => {
+					browser.newTab(new URL("puter://downloads"));
+				}}
+			>
+				Full Download History
+			</div>
+		</div>
+	);
+};
+DownloadsPopup.style = css`
+	:scope {
+		width: 20em;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.title {
+		padding: 1em;
+	}
+	.title p {
+		font-size: 1.5em;
+	}
+
+	.entries {
+		max-height: 30em;
+		display: flex;
+		flex-direction: column;
+		overflow-y: scroll;
+		overflow-x: hidden;
+	}
+
+	.entry {
+		padding: 1em;
+		display: flex;
+		gap: 1em;
+	}
+	.contents {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5em;
+	}
+	.contents .data {
+		color: var(--fg2);
+	}
+	.footer {
+		padding: 1em;
+		cursor: pointer;
+	}
+`;
+export function showDownloadsPopup() {
+	createMenuCustom(
+		window.innerWidth - 350,
+		80,
+		<DownloadsPopup></DownloadsPopup>
+	);
+}
+
 export const Omnibox: Component<{
 	tab: Tab;
 }> = function (cx) {
@@ -189,7 +268,7 @@ export const Omnibox: Component<{
 			<div style="position: relative">
 				<IconButton
 					click={() => {
-						browser.newTab(new URL("puter://downloads"));
+						showDownloadsPopup();
 					}}
 					icon={iconDownload}
 				></IconButton>
