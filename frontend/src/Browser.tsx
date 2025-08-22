@@ -42,6 +42,7 @@ export const config = createState({
 export type SerializedBrowser = {
 	tabs: SerializedTab[];
 	globalhistory: SerializedHistoryState[];
+	globalDownloadHistory: DownloadEntry[];
 	activetab: number;
 	bookmarks: BookmarkEntry[];
 	settings: Settings;
@@ -60,6 +61,13 @@ export type BookmarkEntry = {
 	favicon?: string;
 };
 
+export type DownloadEntry = {
+	url: string;
+	filename: string;
+	timestamp: number;
+	id: string;
+};
+
 export type Settings = {
 	theme: "dark" | "light";
 	bookmarksPinned: boolean;
@@ -73,6 +81,9 @@ export class Browser extends StatefulClass {
 
 	globalhistory: HistoryState[] = [];
 	bookmarks: BookmarkEntry[] = [];
+
+	sessionDownloadHistory: DownloadEntry[] = [];
+	globalDownloadHistory: DownloadEntry[] = [];
 
 	unfocusframes: boolean = false;
 
@@ -101,6 +112,16 @@ export class Browser extends StatefulClass {
 		this.downloadProgress = 0.1;
 		let downloaded = 0;
 		animateDownloadFly();
+
+		let entry: DownloadEntry = {
+			filename,
+			url: "https://google.com",
+			timestamp: Date.now(),
+			id: crypto.randomUUID(),
+		};
+		this.globalDownloadHistory = [entry, ...this.globalDownloadHistory];
+		this.sessionDownloadHistory = [entry, ...this.sessionDownloadHistory];
+
 		await body.pipeTo(
 			new WritableStream({
 				write(chunk) {
@@ -109,7 +130,6 @@ export class Browser extends StatefulClass {
 				},
 			})
 		);
-		console.log("downloaded");
 		setTimeout(() => {
 			this.downloadProgress = 0;
 		}, 1000);
@@ -122,6 +142,7 @@ export class Browser extends StatefulClass {
 			globalhistory: this.globalhistory.map((s) => s.serialize()),
 			bookmarks: this.bookmarks,
 			settings: { ...this.settings },
+			globalDownloadHistory: this.globalDownloadHistory,
 		};
 	}
 	deserialize(de: SerializedBrowser) {
@@ -137,6 +158,7 @@ export class Browser extends StatefulClass {
 		}
 		this.activetab = this.tabs[0];
 		this.bookmarks = de.bookmarks;
+		this.globalDownloadHistory = de.globalDownloadHistory;
 		this.settings = createState(de.settings);
 		// this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
 	}
