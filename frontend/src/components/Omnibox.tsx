@@ -5,16 +5,7 @@ import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
-import iconPause from "@ktibow/iconset-ion/pause-outline";
-import iconClose from "@ktibow/iconset-ion/close";
-import iconFolder from "@ktibow/iconset-ion/folder-outline";
-import iconOpen from "@ktibow/iconset-ion/open-outline";
-import {
-	closeMenu,
-	createMenu,
-	createMenuCustom,
-	setContextMenu,
-} from "./Menu";
+import { createMenu, setContextMenu } from "./Menu";
 import { IconButton } from "./IconButton";
 import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
@@ -26,7 +17,7 @@ import iconNew from "@ktibow/iconset-ion/duplicate-outline";
 import iconTime from "@ktibow/iconset-ion/time-outline";
 import iconInfo from "@ktibow/iconset-ion/information-circle-outline";
 import iconSettings from "@ktibow/iconset-ion/settings-outline";
-import { formatBytes } from "../pages/DownloadsPage";
+import { showDownloadsPopup } from "./DownloadsPopup";
 
 export const animateDownloadFly = createDelegate<void>();
 
@@ -119,216 +110,6 @@ CircularProgress.style = css`
 	}
 `;
 
-const DownloadsPopup: Component<{}> = function (cx) {
-	return (
-		<div>
-			<div class="title">
-				<span>Recent Downloads</span>
-				<div class="buttoniconcontainer">
-					<button
-						on:click={() => {
-							closeMenu();
-						}}
-					>
-						<Icon icon={iconClose}></Icon>
-					</button>
-				</div>
-			</div>
-			<div class="entries">
-				{use(browser.globalDownloadHistory).mapEach((b) => (
-					<div class="entry">
-						<div class="iconcontainer">
-							<img src="/defaultfavicon.png"></img>
-						</div>
-						<div class="contents">
-							<span>{b.filename}</span>
-							{use(b.progressbytes).andThen(
-								<span class="data">
-									{use(b.progressbytes).map((s) => formatBytes(s!))}/
-									{formatBytes(b.size)}
-								</span>
-							)}
-							{use(b.progressbytes)
-								.map((b) => !b)
-								.andThen(<span class="data">{formatBytes(b.size)}</span>)}
-							{use(b.progress).andThen(
-								<progress value={use(b.progress).map((p) => p || 0)} max="1">
-									50%
-								</progress>
-							)}
-						</div>
-						<div class="buttoniconcontainer">
-							{use(b.progress)
-								.map((b) => !b)
-								.andThen(
-									<>
-										<button>
-											<Icon icon={iconFolder}></Icon>
-										</button>
-										<button>
-											<Icon icon={iconOpen}></Icon>
-										</button>
-									</>
-								)}
-							{use(b.progress).andThen(
-								<>
-									<button
-										on:click={() => {
-											b.pause!();
-										}}
-									>
-										<Icon icon={iconPause}></Icon>
-									</button>
-									<button
-										on:click={() => {
-											b.cancel!();
-										}}
-									>
-										<Icon icon={iconClose}></Icon>
-									</button>
-								</>
-							)}
-						</div>
-					</div>
-				))}
-			</div>
-			<div
-				class="footer"
-				on:click={() => {
-					browser.newTab(new URL("puter://downloads"));
-					closeMenu();
-				}}
-			>
-				<span>Full Download History</span>
-				<div class="buttoniconcontainer">
-					<Icon icon={iconOpen}></Icon>
-				</div>
-			</div>
-		</div>
-	);
-};
-DownloadsPopup.style = css`
-	:scope {
-		width: 20em;
-		display: flex;
-		flex-direction: column;
-		user-select: none;
-	}
-
-	.title {
-		padding: 1em;
-		display: flex;
-		border-bottom: 1px solid var(--fg4);
-	}
-	.title p {
-		font-size: 1.25em;
-	}
-	.title button {
-		display: flex;
-		align-items: center;
-		font-size: 1em;
-		position: relative;
-	}
-	.title button:hover::before {
-		content: "";
-		z-index: -1;
-		position: absolute;
-		width: 150%;
-		height: 150%;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		background: var(--bg20);
-		border-radius: 50%;
-	}
-
-	.entries {
-		max-height: 30em;
-		display: flex;
-		flex-direction: column;
-		overflow-y: auto;
-		overflow-x: hidden;
-	}
-
-	.entry {
-		padding: 1em;
-		display: flex;
-		gap: 1em;
-		font-size: 0.9em;
-		position: relative;
-	}
-	.entry:hover {
-		background: var(--bg20);
-	}
-	.contents {
-		display: flex;
-		overflow: hidden;
-		flex-direction: column;
-		gap: 0.5em;
-	}
-	.entry .buttoniconcontainer {
-		display: none;
-	}
-	.entry:hover .buttoniconcontainer {
-		display: flex;
-	}
-	.entry .buttoniconcontainer {
-		position: absolute;
-		right: 0;
-		top: 0;
-		padding: 1em;
-		background: var(--bg20);
-		height: 100%;
-		align-items: start;
-		gap: 1em;
-	}
-	.entry .buttoniconcontainer button {
-		font-size: 1.15em;
-		position: relative;
-		z-index: 1;
-		display: flex;
-	}
-	.entry .buttoniconcontainer button:hover::before {
-		content: "";
-		z-index: -1;
-		position: absolute;
-		width: 150%;
-		height: 150%;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		background: var(--fg4);
-		border-radius: 50%;
-	}
-
-	.contents .data {
-		color: var(--fg2);
-	}
-	.footer {
-		border-top: 1px solid var(--fg4);
-		padding: 1em;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-	}
-	.footer:hover {
-		background: var(--bg20);
-	}
-
-	.buttoniconcontainer {
-		flex: 1;
-		display: flex;
-		justify-content: right;
-	}
-`;
-export function showDownloadsPopup() {
-	createMenuCustom(
-		window.innerWidth - 350,
-		80,
-		<DownloadsPopup></DownloadsPopup>
-	);
-}
-
 export const Omnibox: Component<{
 	tab: Tab;
 }> = function (cx) {
@@ -344,7 +125,8 @@ export const Omnibox: Component<{
 		]);
 	};
 
-	animateDownloadFly.listen(() => {
+	animateDownloadFly.listen(async () => {
+		await new Promise((r) => setTimeout(r, 10));
 		let fly: HTMLElement = cx.root.querySelector(".downloadfly")!;
 		fly.addEventListener(
 			"transitionend",
@@ -406,20 +188,25 @@ export const Omnibox: Component<{
 			></UrlInput>
 			<Spacer></Spacer>
 			<IconButton active={false} icon={iconExtension}></IconButton>
-			<div style="position: relative">
-				<IconButton
-					click={() => {
-						showDownloadsPopup();
-					}}
-					icon={iconDownload}
-				></IconButton>
-				<div class="downloadfly down">
-					<Icon icon={iconDownload}></Icon>
-				</div>
-				<CircularProgress
-					progress={use(browser.downloadProgress)}
-				></CircularProgress>
-			</div>
+			{use(browser.sessionDownloadHistory)
+				.map((s) => s.length > 0)
+				.andThen(
+					<div style="position: relative">
+						<IconButton
+							click={() => {
+								showDownloadsPopup();
+							}}
+							icon={iconDownload}
+						></IconButton>
+						<div class="downloadfly down">
+							<Icon icon={iconDownload}></Icon>
+						</div>
+						<CircularProgress
+							progress={use(browser.downloadProgress)}
+						></CircularProgress>
+					</div>
+				)}
+
 			<IconButton
 				tooltip="More Options"
 				icon={iconMore}

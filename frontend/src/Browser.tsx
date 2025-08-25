@@ -8,7 +8,8 @@ import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
 import { scramjet } from "./main";
-import { animateDownloadFly, showDownloadsPopup } from "./components/Omnibox";
+import { animateDownloadFly } from "./components/Omnibox";
+import { showDownloadsPopup } from "./components/DownloadsPopup";
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
