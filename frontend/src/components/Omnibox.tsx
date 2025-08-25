@@ -20,6 +20,7 @@ import iconInfo from "@ktibow/iconset-ion/information-circle-outline";
 import iconSettings from "@ktibow/iconset-ion/settings-outline";
 import { showDownloadsPopup } from "./DownloadsPopup";
 import type { HistoryState } from "../History";
+import { isPuter } from "../main";
 
 export const animateDownloadFly = createDelegate<void>();
 
@@ -263,7 +264,7 @@ export const Omnibox: Component<{
 							},
 							icon: iconSettings,
 						},
-						...(location.ancestorOrigins[0] === "https://puter.com"
+						...(isPuter
 							? [
 									{
 										label: "Exit",

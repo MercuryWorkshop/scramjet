@@ -12,6 +12,8 @@ import { css, type Component } from "dreamland/core";
 
 const { ScramjetController } = $scramjetLoadController();
 
+export const isPuter = !import.meta.env.VITE_LOCAL && puter.env == "app";
+
 const scramjetcfg: Partial<ScramjetInitConfig> = {
 	wisp: "ws://localhost:1337/",
 	files: {

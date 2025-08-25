@@ -7,7 +7,7 @@ import { HistoryState } from "./History";
 import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
-import { scramjet } from "./main";
+import { isPuter, scramjet } from "./main";
 import { animateDownloadFly } from "./components/Omnibox";
 import { showDownloadsPopup } from "./components/DownloadsPopup";
 export const pushTab = createDelegate<Tab>();
@@ -220,10 +220,7 @@ export class Browser extends StatefulClass {
 
 	destroyTab(tab: Tab) {
 		this.tabs = this.tabs.filter((t) => t !== tab);
-		if (
-			this.tabs.length === 0 &&
-			location.ancestorOrigins[0] === "https://puter.com"
-		) {
+		if (this.tabs.length === 0 && isPuter) {
 			puter.exit();
 		}
 

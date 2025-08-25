@@ -10,6 +10,7 @@ import { Checkbox } from "./Checkbox";
 import { Icon } from "./Icon";
 import type { IconifyIcon } from "@iconify/types";
 import { emToPx } from "../utils";
+import { isPuter } from "../main";
 
 export const closeMenu = createDelegate<void>();
 
@@ -206,7 +207,7 @@ export function createMenu(
 	y: number,
 	items: MenuItem[]
 ): DLElement<typeof Menu> {
-	if (location.ancestorOrigins[0] === "https://puter.com") {
+	if (isPuter) {
 		puter.ui.contextMenu({
 			items: items.map((i) =>
 				i == "-"
