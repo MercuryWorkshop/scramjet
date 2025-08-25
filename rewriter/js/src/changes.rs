@@ -131,8 +131,8 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			} else {
 				transforms![")"]
 			}),
-			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(("]),
-			Ty::WrapPropertyRight => LL::insert(transforms!["),",&cfg.templocid,")"]),
+			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(",&cfg.templocid,",("]),
+			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
 			Ty::WrapObjectStart => LL::insert(transforms!["(",&cfg.templocid,"="]),
 			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
 			Ty::RebindProperty { ident } => {

@@ -51,7 +51,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		enumerable: false,
 	});
 	Object.defineProperty(self, config.globals.wrappropertyfn, {
-		value: function (str, object: any = self) {
+		value: function (object,str) {
 			if (
 				str === "location" ||
 				str === "parent" ||
