@@ -735,7 +735,6 @@ function injectContextMenu(client: ScramjetClient, tab: Tab) {
 
 function injectTitleWatcher(client: ScramjetClient, tab: Tab) {
 	const framedoc = client.global.document;
-	const head = framedoc.querySelector("head")!;
 	const observer = new MutationObserver(() => {
 		const title = framedoc.querySelector("title");
 		if (title) {
@@ -760,7 +759,7 @@ function injectTitleWatcher(client: ScramjetClient, tab: Tab) {
 		tab.history.current().title = tab.title;
 		tab.history.current().favicon = tab.icon;
 	});
-	observer.observe(head, {
+	observer.observe(framedoc, {
 		childList: true,
 		subtree: true,
 	});
