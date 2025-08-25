@@ -114,9 +114,15 @@ where
 			// { ...rest } = self;
 			match &r.target {
 				AssignmentTarget::AssignmentTargetIdentifier(i) => {
-					// keep track of the name so we can clean it later
-					// i don't really care about the rest being `location` here, if someone wants to redirect to `https://proxy.com/[Object object]` they can
-					restids.push(i.name);
+    				if i.name == "location" {
+                        self.jschanges.add(rewrite!(i.span, TempVar));
+                        restids.push(
+                            self.alloc.alloc_str(&self.config.templocid).into()
+                        );
+                        *location_assigned = true;
+    				} else {
+    					restids.push(i.name);
+    				}
 				}
 				_ => panic!("what?"),
 			}
