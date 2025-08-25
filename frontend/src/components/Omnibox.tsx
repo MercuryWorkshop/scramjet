@@ -5,7 +5,8 @@ import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
-import { createMenu, setContextMenu } from "./Menu";
+import iconExit from "@ktibow/iconset-ion/exit-outline";
+import { createMenu } from "./Menu";
 import { OmnibarButton } from "./OmnibarButton";
 import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
@@ -232,6 +233,7 @@ export const Omnibox: Component<{
 							},
 							icon: iconNew,
 						},
+						"-",
 						{
 							label: "History",
 							action: () => {
@@ -246,13 +248,7 @@ export const Omnibox: Component<{
 							},
 							icon: iconDownload,
 						},
-						{
-							label: "Settings",
-							action: () => {
-								browser.newTab(new URL("puter://settings"));
-							},
-							icon: iconSettings,
-						},
+						"-",
 						{
 							label: "About",
 							action: () => {
@@ -260,6 +256,24 @@ export const Omnibox: Component<{
 							},
 							icon: iconInfo,
 						},
+						{
+							label: "Settings",
+							action: () => {
+								browser.newTab(new URL("puter://settings"));
+							},
+							icon: iconSettings,
+						},
+						...(location.ancestorOrigins[0] === "https://puter.com"
+							? [
+									{
+										label: "Exit",
+										action: () => {
+											puter.exit();
+										},
+										icon: iconExit,
+									},
+								]
+							: []),
 					]);
 					e.stopPropagation();
 				}}
