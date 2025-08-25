@@ -6,7 +6,7 @@ import iconRefresh from "@ktibow/iconset-ion/refresh-outline";
 import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 import { memoize } from "../memoize";
-import { IconButton } from "./IconButton";
+import { OmnibarButton } from "./OmnibarButton";
 import type { Tab } from "../Tab";
 // import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
@@ -501,7 +501,7 @@ export const Tabs: Component<
 					e.stopPropagation();
 				}}
 			>
-				<IconButton icon={iconAdd} click={this.addTab}></IconButton>
+				<OmnibarButton icon={iconAdd} click={this.addTab}></OmnibarButton>
 			</div>
 			<div class="extra right" this={use(this.rightEl)}></div>
 		</div>

@@ -6,7 +6,7 @@ import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
 import { createMenu, setContextMenu } from "./Menu";
-import { IconButton } from "./IconButton";
+import { OmnibarButton } from "./OmnibarButton";
 import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
 import { UrlInput } from "./UrlInput";
@@ -162,42 +162,42 @@ export const Omnibox: Component<{
 
 	return (
 		<div>
-			<IconButton
+			<OmnibarButton
 				tooltip="Go back one page (Alt+Left Arrow)"
 				active={use(this.tab.canGoBack)}
 				click={() => this.tab.back()}
 				icon={iconBack}
 				rightclick={historyMenu}
-			></IconButton>
-			<IconButton
+			></OmnibarButton>
+			<OmnibarButton
 				tooltip="Go forward one page (Alt+Right Arrow)"
 				active={use(this.tab.canGoForward)}
 				click={() => this.tab.forward()}
 				icon={iconForwards}
 				rightclick={historyMenu}
-			></IconButton>
-			<IconButton
+			></OmnibarButton>
+			<OmnibarButton
 				tooltip="Refresh current page (Ctrl+R)"
 				click={() => this.tab.reload()}
 				icon={iconRefresh}
-			></IconButton>
+			></OmnibarButton>
 			<Spacer></Spacer>
 			<UrlInput
 				selectContent={selectContent}
 				tabUrl={use(this.tab.url)}
 			></UrlInput>
 			<Spacer></Spacer>
-			<IconButton active={false} icon={iconExtension}></IconButton>
+			<OmnibarButton active={false} icon={iconExtension}></OmnibarButton>
 			{use(browser.sessionDownloadHistory)
 				.map((s) => s.length > 0)
 				.andThen(
 					<div style="position: relative">
-						<IconButton
+						<OmnibarButton
 							click={() => {
 								showDownloadsPopup();
 							}}
 							icon={iconDownload}
-						></IconButton>
+						></OmnibarButton>
 						<div class="downloadfly down">
 							<Icon icon={iconDownload}></Icon>
 						</div>
@@ -207,7 +207,7 @@ export const Omnibox: Component<{
 					</div>
 				)}
 
-			<IconButton
+			<OmnibarButton
 				tooltip="More Options"
 				icon={iconMore}
 				click={(e: MouseEvent) => {
@@ -250,7 +250,7 @@ export const Omnibox: Component<{
 					]);
 					e.stopPropagation();
 				}}
-			></IconButton>
+			></OmnibarButton>
 		</div>
 	);
 };

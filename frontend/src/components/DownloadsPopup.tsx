@@ -6,7 +6,7 @@ import iconClose from "@ktibow/iconset-ion/close";
 import iconFolder from "@ktibow/iconset-ion/folder-outline";
 import iconOpen from "@ktibow/iconset-ion/open-outline";
 import iconPause from "@ktibow/iconset-ion/pause-outline";
-import { formatBytes } from "../pages/DownloadsPage";
+import { formatBytes } from "../utils";
 
 export const DownloadsPopup: Component<{}> = function (cx) {
 	return (

@@ -12,10 +12,11 @@ import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import iconTrash from "@ktibow/iconset-ion/trash-outline";
 import { Icon } from "./Icon";
 import { scramjet } from "../main";
-import { IconButton } from "./IconButton";
-import { parse } from "tldts";
-import { createMenu } from "./Menu";
+import { OmnibarButton } from "./OmnibarButton";
+import { createMenu, createMenuCustom } from "./Menu";
 import { browser } from "../Browser";
+import { SiteInformationPopup } from "./SiteInformationPopup";
+import { emToPx, splitUrl } from "../utils";
 
 export const focusOmnibox = createDelegate<void>();
 export function trimUrl(v: URL) {
@@ -25,24 +26,6 @@ export function trimUrl(v: URL) {
 		(v.search ? v.pathname : v.pathname.replace(/\/$/, "")) +
 		v.search
 	);
-}
-
-// subdomain, domain+tld+port, path+search+query
-function splitUrl(url: URL): [string, string, string] {
-	let last = url.pathname + url.search + url.hash;
-	if (last == "/") last = "";
-
-	let results = parse(url.href);
-	let domain = results.domain;
-	if (domain && url.port) {
-		domain += ":" + url.port;
-	}
-	let subdomain = results.subdomain;
-	if (subdomain) {
-		subdomain += ".";
-	}
-
-	return [subdomain || "", domain || "", last];
 }
 
 type OmniboxResult = {
@@ -284,9 +267,13 @@ export const UrlInput: Component<
 							<button
 								class="optionsbutton"
 								on:click={(e: MouseEvent) => {
-									createMenu(e.clientX, e.clientY, [
-										{ label: "Clear Site Data", icon: iconTrash },
-									]);
+									createMenuCustom(
+										(e.target as HTMLElement).getBoundingClientRect().left,
+										emToPx(2.5) + 40,
+										<SiteInformationPopup
+											tab={browser.activetab}
+										></SiteInformationPopup>
+									);
 									e.preventDefault();
 									e.stopPropagation();
 								}}
@@ -375,7 +362,7 @@ export const UrlInput: Component<
 				{use(this.active)
 					.map((a) => !a)
 					.andThen(
-						<IconButton
+						<OmnibarButton
 							click={(e) => {
 								e.stopPropagation();
 								e.preventDefault();
@@ -404,17 +391,17 @@ export const UrlInput: Component<
 									? iconStarFilled
 									: iconStar
 							)}
-						></IconButton>
+						></OmnibarButton>
 					)}
 				{use(this.active).andThen(
-					<IconButton
+					<OmnibarButton
 						click={(e: MouseEvent) => {
 							doSearch();
 							e.stopPropagation();
 							e.preventDefault();
 						}}
 						icon={iconForwards}
-					></IconButton>
+					></OmnibarButton>
 				)}
 			</div>
 		</div>

@@ -2,7 +2,7 @@ import type { IconifyIcon } from "@iconify/types";
 import { css, type Component } from "dreamland/core";
 import { Icon } from "./Icon";
 
-export const IconButton: Component<{
+export const OmnibarButton: Component<{
 	icon: IconifyIcon;
 	click?: (e: MouseEvent) => void;
 	rightclick?: (e: MouseEvent) => void;
@@ -22,7 +22,7 @@ export const IconButton: Component<{
 		</button>
 	);
 };
-IconButton.style = css`
+OmnibarButton.style = css`
 	:scope {
 		box-sizing: border-box;
 		aspect-ratio: 1/1;
