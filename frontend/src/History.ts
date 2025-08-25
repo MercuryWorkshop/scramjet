@@ -1,8 +1,10 @@
+import { createState } from "dreamland/core";
 import { browser } from "./Browser";
+import { StatefulClass } from "./StatefulClass";
 import type { Tab } from "./Tab";
 
 // history api emulation
-export class HistoryState {
+export class HistoryState extends StatefulClass {
 	url: URL = null!;
 	state: any;
 	title: string | null = null;
@@ -10,6 +12,7 @@ export class HistoryState {
 	timestamp: number;
 
 	constructor(partial?: Partial<HistoryState>) {
+		super(createState(Object.create(HistoryState.prototype)));
 		Object.assign(this, partial);
 		this.timestamp = Date.now();
 	}
@@ -47,6 +50,7 @@ export type SerializedHistory = {
 export class History {
 	index: number = -1;
 	states: HistoryState[] = [];
+	justTriggeredNavigation: boolean = false;
 
 	constructor(private tab: Tab) {}
 
@@ -74,13 +78,18 @@ export class History {
 	}
 
 	push(url: URL, state: any = null, navigate: boolean = true): HistoryState {
+		if (this.index + 1 < this.states.length)
+			// "fork" history tree, creating a new timeline
+			this.states.splice(this.index, this.states.length - this.index);
 		const hstate = new HistoryState({ url, state });
 		if (url.href != "puter://newtab") browser.globalhistory.push(hstate);
 		this.states.push(hstate);
 		this.index++;
 
-		if (navigate) this.tab._directnavigate(url);
-		else this.tab.url = url;
+		if (navigate) {
+			this.justTriggeredNavigation = true;
+			this.tab._directnavigate(url);
+		} else this.tab.url = url;
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();
@@ -97,7 +106,10 @@ export class History {
 			return this.push(url, state);
 		}
 
-		if (navigate) this.tab._directnavigate(url);
+		if (navigate) {
+			this.justTriggeredNavigation = true;
+			this.tab._directnavigate(url);
+		}
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();
@@ -112,7 +124,10 @@ export class History {
 			this.index = this.states.length - 1;
 		}
 
-		if (navigate) this.tab._directnavigate(this.states[this.index].url);
+		if (navigate) {
+			this.justTriggeredNavigation = true;
+			this.tab._directnavigate(this.states[this.index].url);
+		}
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();

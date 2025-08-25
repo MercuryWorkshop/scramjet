@@ -115,16 +115,6 @@ export const Omnibox: Component<{
 	tab: Tab;
 }> = function (cx) {
 	const selectContent = createDelegate<void>();
-	cx.mount = () => {
-		setContextMenu(cx.root, [
-			{
-				label: "Select All",
-				action: () => {
-					selectContent();
-				},
-			},
-		]);
-	};
 
 	animateDownloadFly.listen(async () => {
 		await new Promise((r) => setTimeout(r, 10));
@@ -142,7 +132,7 @@ export const Omnibox: Component<{
 	});
 
 	const historyMenu = (e: MouseEvent, states: HistoryState[]) => {
-		if (states.length > 1) {
+		if (states.length > 0) {
 			createMenu(e.clientX, cx.root.clientTop + cx.root.clientHeight * 2, [
 				...states.map((s) => ({
 					label: s.title || "New Tab",
@@ -178,10 +168,9 @@ export const Omnibox: Component<{
 				rightclick={(e: MouseEvent) =>
 					historyMenu(
 						e,
-						browser.activetab.history.states.slice(
-							0,
-							browser.activetab.history.index
-						)
+						browser.activetab.history.states
+							.slice(0, browser.activetab.history.index)
+							.reverse()
 					)
 				}
 			></OmnibarButton>

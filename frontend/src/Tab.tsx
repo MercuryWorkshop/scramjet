@@ -99,9 +99,13 @@ export class Tab extends StatefulClass {
 
 			// make sure it's top level, ctxInit calls for all frames too
 			if (ctx.window == frame.frame.contentWindow) {
-				// this was a navigation so update history
-				// make sure not to do this if it was replaceState that triggered it
-				this.history.push(ctx.client.url, undefined, false);
+				if (this.history.justTriggeredNavigation) {
+					// url bar was typed in, we triggered this navigation, don't push a new state since we already did
+					this.history.justTriggeredNavigation = false;
+				} else {
+					// the page just loaded on its own (a link was clicked, window.location was set)
+					this.history.push(ctx.client.url, undefined, false);
+				}
 
 				injectChobitsu(ctx.client, this, resolver);
 				injectTitleWatcher(ctx.client, this);

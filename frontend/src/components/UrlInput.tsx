@@ -12,7 +12,7 @@ import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import { Icon } from "./Icon";
 import { scramjet } from "../main";
 import { OmnibarButton } from "./OmnibarButton";
-import { createMenuCustom } from "./Menu";
+import { createMenuCustom, setContextMenu } from "./Menu";
 import { browser } from "../Browser";
 import { SiteInformationPopup } from "./SiteInformationPopup";
 import { emToPx, splitUrl } from "../utils";
@@ -51,10 +51,21 @@ export const UrlInput: Component<
 
 		overflowItems: OmniboxResult[];
 	}
-> = function () {
+> = function (cx) {
 	this.focusindex = 0;
 	this.overflowItems = [];
 	this.value = "";
+
+	cx.mount = () => {
+		setContextMenu(cx.root, [
+			{
+				label: "Select All",
+				action: () => {
+					this.selectContent();
+				},
+			},
+		]);
+	};
 
 	focusOmnibox.listen(() => {
 		setTimeout(() => {

@@ -189,6 +189,8 @@ export class Browser extends StatefulClass {
 		for (let detab of de.tabs) {
 			let tab = this.newTab();
 			tab.deserialize(detab);
+			tab.history.justTriggeredNavigation = true;
+			tab.history.go(0, false);
 		}
 		this.activetab = this.tabs[0];
 		this.bookmarks = de.bookmarks;
