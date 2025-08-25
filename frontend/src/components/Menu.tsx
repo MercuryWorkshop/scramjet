@@ -12,18 +12,31 @@ import type { IconifyIcon } from "@iconify/types";
 
 export const closeMenu = createDelegate<void>();
 
-export const Menu: Component<{
-	x: number;
-	y: number;
-	items?: MenuItem[];
-	custom?: HTMLElement;
-}> = function (cx) {
+export const Menu: Component<
+	{
+		x: number;
+		y: number;
+		items?: MenuItem[];
+		custom?: HTMLElement;
+	},
+	{
+		closing: boolean;
+	}
+> = function (cx) {
+	this.closing = true;
+	requestAnimationFrame(() => {
+		this.closing = false;
+	});
 	const close = () => {
-		cx.root.remove();
 		browser.unfocusframes = false;
 
 		window.removeEventListener("click", ev, { capture: true });
 		window.removeEventListener("contextmenu", ev, { capture: true });
+
+		this.closing = true;
+		cx.root.addEventListener("transitionend", () => {
+			cx.root.remove();
+		});
 	};
 	closeMenu.listen(close);
 
@@ -57,7 +70,10 @@ export const Menu: Component<{
 		});
 	};
 	return (
-		<div style={use`--x: ${this.x}px; --y: ${this.y}px;`}>
+		<div
+			style={use`--x: ${this.x}px; --y: ${this.y}px;`}
+			class:closing={use(this.closing)}
+		>
 			{this.items
 				? use(this.items).mapEach((item) =>
 						item.checkbox ? (
@@ -110,6 +126,16 @@ Menu.style = css`
 		flex-direction: column;
 		min-width: 10em;
 		overflow: hidden;
+
+		transition:
+			opacity 0.15s ease,
+			transform 0.15s ease;
+		opacity: 1;
+		transform: scale(100%);
+	}
+	:scope.closing {
+		transform: scale(95%);
+		opacity: 0;
 	}
 	.item {
 		background: none;

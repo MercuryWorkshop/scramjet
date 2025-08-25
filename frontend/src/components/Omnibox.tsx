@@ -149,6 +149,7 @@ const DownloadsPopup: Component<{}> = function (cx) {
 				class="footer"
 				on:click={() => {
 					browser.newTab(new URL("puter://downloads"));
+					closeMenu();
 				}}
 			>
 				<span>Full Download History</span>
@@ -205,7 +206,6 @@ DownloadsPopup.style = css`
 		padding: 1em;
 		display: flex;
 		gap: 1em;
-		cursor: pointer;
 		font-size: 0.9em;
 	}
 	.entry:hover {
