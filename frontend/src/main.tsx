@@ -172,7 +172,3 @@ async function init() {
 			"Failed to register service worker. Check console for details.";
 	}
 }
-
-scramjet.addEventListener("download", (e) => {
-	console.log(e.filename, e.body);
-});

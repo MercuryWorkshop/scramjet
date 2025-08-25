@@ -432,7 +432,7 @@ function injectAnchorHandler(client: ScramjetClient, tab: Tab) {
 							"EventTarget.prototype.addEventListener",
 							node,
 							"click",
-							(e) => {
+							(e: MouseEvent) => {
 								let lastlistener;
 								const path = e.composedPath();
 

@@ -198,7 +198,7 @@ export function createMenu(
 			})),
 		});
 
-		return;
+		return undefined as any;
 	}
 
 	if (activeMenu) {
