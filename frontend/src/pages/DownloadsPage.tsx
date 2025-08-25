@@ -34,7 +34,7 @@ export const DownloadsPage: Component<
 					{use(browser.globalDownloadHistory).mapEach((e) => (
 						<div class="entry">
 							<div class="iconcontainer">
-								<img src="/vite.svg"></img>
+								<img src="/defaultfavicon.png"></img>
 							</div>
 							<div class="content">
 								<a href={e.url}>{e.filename}</a>

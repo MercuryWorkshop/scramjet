@@ -240,7 +240,7 @@ export const UrlInput: Component<
 						) : (
 							<img
 								class="favicon"
-								src={item.favicon || "/vite.svg"}
+								src={item.favicon || "/defaultfavicon.png"}
 								alt="favicon"
 							/>
 						)}
@@ -274,7 +274,7 @@ export const UrlInput: Component<
 								<img
 									src={
 										this.overflowItems[this.focusindex - 1].favicon ||
-										"/vite.svg"
+										"/defaultfavicon.png"
 									}
 								></img>
 							) : (

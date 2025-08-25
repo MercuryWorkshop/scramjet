@@ -21,7 +21,7 @@ export const HistoryPage: Component<
 								browser.newTab(entry.url);
 							}}
 						>
-							<img src={entry.favicon || "/vite.svg"} alt="favicon" />
+							<img src={entry.favicon || "/defaultfavicon.png"} alt="favicon" />
 							<span class="title">{entry.title || entry.url.href}</span>
 							<span class="url">{entry.url.hostname}</span>
 						</div>

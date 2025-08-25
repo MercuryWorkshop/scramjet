@@ -73,7 +73,7 @@ export class Tab extends StatefulClass {
 		this.history = new History(this);
 		this.history.push(this.url, undefined);
 
-		this.icon = "/vite.svg";
+		this.icon = "/defaultfavicon.png";
 
 		this.dragoffset = -1;
 		this.startdragpos = -1;
@@ -744,7 +744,7 @@ function injectTitleWatcher(client: ScramjetClient, tab: Tab) {
 				const rewritten = scramjet.encodeUrl(new URL(iconhref, client.url));
 				tab.icon = rewritten;
 			} else {
-				tab.icon = "/vite.svg";
+				tab.icon = "/defaultfavicon.png";
 			}
 		} else {
 			tab.icon = scramjet.encodeUrl(new URL("/favicon.ico", client.url));

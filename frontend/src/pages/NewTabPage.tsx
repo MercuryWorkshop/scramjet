@@ -44,7 +44,10 @@ export const NewTabPage: Component<
 						>
 							<div class="suggestioninner">
 								<div class="circle">
-									<img src={entry.favicon || "/vite.svg"} alt="favicon" />
+									<img
+										src={entry.favicon || "/defaultfavicon.png"}
+										alt="favicon"
+									/>
 								</div>
 								<span class="title">{entry.title || trimUrl(entry.url)}</span>
 							</div>
