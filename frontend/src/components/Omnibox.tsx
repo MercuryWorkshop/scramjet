@@ -5,7 +5,9 @@ import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
+import iconPause from "@ktibow/iconset-ion/pause-outline";
 import iconClose from "@ktibow/iconset-ion/close";
+import iconFolder from "@ktibow/iconset-ion/folder-outline";
 import iconOpen from "@ktibow/iconset-ion/open-outline";
 import {
 	closeMenu,
@@ -122,7 +124,7 @@ const DownloadsPopup: Component<{}> = function (cx) {
 		<div>
 			<div class="title">
 				<span>Recent Downloads</span>
-				<div class="iconcontainer">
+				<div class="buttoniconcontainer">
 					<button
 						on:click={() => {
 							closeMenu();
@@ -140,7 +142,52 @@ const DownloadsPopup: Component<{}> = function (cx) {
 						</div>
 						<div class="contents">
 							<span>{b.filename}</span>
-							<span class="data">{formatBytes(b.size)}</span>
+							{use(b.progressbytes).andThen(
+								<span class="data">
+									{use(b.progressbytes).map((s) => formatBytes(s!))}/
+									{formatBytes(b.size)}
+								</span>
+							)}
+							{use(b.progressbytes)
+								.map((b) => !b)
+								.andThen(<span class="data">{formatBytes(b.size)}</span>)}
+							{use(b.progress).andThen(
+								<progress value={use(b.progress).map((p) => p || 0)} max="1">
+									50%
+								</progress>
+							)}
+						</div>
+						<div class="buttoniconcontainer">
+							{use(b.progress)
+								.map((b) => !b)
+								.andThen(
+									<>
+										<button>
+											<Icon icon={iconFolder}></Icon>
+										</button>
+										<button>
+											<Icon icon={iconOpen}></Icon>
+										</button>
+									</>
+								)}
+							{use(b.progress).andThen(
+								<>
+									<button
+										on:click={() => {
+											b.pause!();
+										}}
+									>
+										<Icon icon={iconPause}></Icon>
+									</button>
+									<button
+										on:click={() => {
+											b.cancel!();
+										}}
+									>
+										<Icon icon={iconClose}></Icon>
+									</button>
+								</>
+							)}
 						</div>
 					</div>
 				))}
@@ -153,7 +200,7 @@ const DownloadsPopup: Component<{}> = function (cx) {
 				}}
 			>
 				<span>Full Download History</span>
-				<div class="iconcontainer">
+				<div class="buttoniconcontainer">
 					<Icon icon={iconOpen}></Icon>
 				</div>
 			</div>
@@ -165,6 +212,7 @@ DownloadsPopup.style = css`
 		width: 20em;
 		display: flex;
 		flex-direction: column;
+		user-select: none;
 	}
 
 	.title {
@@ -198,7 +246,7 @@ DownloadsPopup.style = css`
 		max-height: 30em;
 		display: flex;
 		flex-direction: column;
-		overflow-y: scroll;
+		overflow-y: auto;
 		overflow-x: hidden;
 	}
 
@@ -207,15 +255,52 @@ DownloadsPopup.style = css`
 		display: flex;
 		gap: 1em;
 		font-size: 0.9em;
+		position: relative;
 	}
 	.entry:hover {
 		background: var(--bg20);
 	}
 	.contents {
 		display: flex;
+		overflow: hidden;
 		flex-direction: column;
 		gap: 0.5em;
 	}
+	.entry .buttoniconcontainer {
+		display: none;
+	}
+	.entry:hover .buttoniconcontainer {
+		display: flex;
+	}
+	.entry .buttoniconcontainer {
+		position: absolute;
+		right: 0;
+		top: 0;
+		padding: 1em;
+		background: var(--bg20);
+		height: 100%;
+		align-items: start;
+		gap: 1em;
+	}
+	.entry .buttoniconcontainer button {
+		font-size: 1.15em;
+		position: relative;
+		z-index: 1;
+		display: flex;
+	}
+	.entry .buttoniconcontainer button:hover::before {
+		content: "";
+		z-index: -1;
+		position: absolute;
+		width: 150%;
+		height: 150%;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background: var(--fg4);
+		border-radius: 50%;
+	}
+
 	.contents .data {
 		color: var(--fg2);
 	}
@@ -230,7 +315,7 @@ DownloadsPopup.style = css`
 		background: var(--bg20);
 	}
 
-	.iconcontainer {
+	.buttoniconcontainer {
 		flex: 1;
 		display: flex;
 		justify-content: right;

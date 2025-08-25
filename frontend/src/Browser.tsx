@@ -1,4 +1,4 @@
-import { createState, type Stateful } from "dreamland/core";
+import { createState, type Delegate, type Stateful } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
 import { Tab, type SerializedTab } from "./Tab";
 import { createDelegate } from "dreamland/core";
@@ -67,6 +67,13 @@ export type DownloadEntry = {
 	timestamp: number;
 	size: number;
 	id: string;
+	cancelled: boolean;
+
+	progress?: number;
+	progressbytes?: number;
+	paused?: boolean;
+	cancel?: Delegate<void>;
+	pause?: Delegate<void>;
 };
 
 export type Settings = {
@@ -83,8 +90,8 @@ export class Browser extends StatefulClass {
 	globalhistory: HistoryState[] = [];
 	bookmarks: BookmarkEntry[] = [];
 
-	sessionDownloadHistory: DownloadEntry[] = [];
-	globalDownloadHistory: DownloadEntry[] = [];
+	sessionDownloadHistory: Stateful<DownloadEntry>[] = [];
+	globalDownloadHistory: Stateful<DownloadEntry>[] = [];
 
 	unfocusframes: boolean = false;
 
@@ -118,13 +125,23 @@ export class Browser extends StatefulClass {
 				url.hostname.replaceAll(".", "-");
 		}
 
-		let entry: DownloadEntry = {
+		let cancel = createDelegate<void>();
+		let pause = createDelegate<void>();
+
+		let entry: Stateful<DownloadEntry> = createState({
 			filename,
 			url: download.url,
 			size: download.length,
 			timestamp: Date.now(),
 			id: crypto.randomUUID(),
-		};
+			cancelled: false,
+
+			progress: 0,
+			progressbytes: 0,
+			paused: false,
+			cancel,
+			pause,
+		});
 		this.globalDownloadHistory = [entry, ...this.globalDownloadHistory];
 		this.sessionDownloadHistory = [entry, ...this.sessionDownloadHistory];
 
@@ -132,13 +149,19 @@ export class Browser extends StatefulClass {
 			new WritableStream({
 				write(chunk) {
 					downloaded += chunk.byteLength;
-					browser.downloadProgress = Math.min(
+					entry.progressbytes = downloaded;
+					browser.downloadProgress = entry.progress = Math.min(
 						downloaded / download.length + 0.1,
 						1
 					);
 				},
 			})
 		);
+		entry.cancel = undefined;
+		entry.pause = undefined;
+		entry.progress = undefined;
+		entry.progressbytes = undefined;
+		entry.paused = false;
 		showDownloadsPopup();
 		setTimeout(() => {
 			this.downloadProgress = 0;
@@ -168,7 +191,7 @@ export class Browser extends StatefulClass {
 		}
 		this.activetab = this.tabs[0];
 		this.bookmarks = de.bookmarks;
-		this.globalDownloadHistory = de.globalDownloadHistory;
+		this.globalDownloadHistory = de.globalDownloadHistory.map(createState);
 		this.settings = createState(de.settings);
 		// this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
 	}
