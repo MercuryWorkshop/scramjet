@@ -30,6 +30,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `location` -> `$sj_location`
 	RewriteProperty {
 		ident: Atom<'data>,
+		wrap: bool,
 	},
 
 	/// `location` -> `$sj_location: location`
@@ -46,6 +47,9 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 
 	/// `cfg.wrapprop({})`
 	WrapProperty,
+
+	/// `(cfg.templogid={})`
+	WrapObject,
 
 	// dead code only if debug is disabled
 	#[allow(dead_code)]
@@ -120,12 +124,28 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				change!(span!(start), WrapFnLeft { enclose }),
 				change!(span!(end), WrapFnRight { enclose }),
 			],
-			Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
+			Self::RewriteProperty { ident, wrap } => smallvec![change!(
+				match wrap {
+					false => span,
+					true => Span::new(span.start - 1, span.end),
+				},
+				RewriteProperty { ident, wrap }
+			),],
 			Self::RebindProperty { ident } => smallvec![change!(span, RebindProperty { ident })],
 			Self::TempVar => smallvec![change!(span, TempVar)],
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
 				change!(span!(end), WrapPropertyRight),
+			],
+			Self::WrapObject => smallvec![
+				change!(span!(start), WrapObjectStart),
+				change!(
+					span!(end),
+					ClosingParen {
+						semi: false,
+						replace: false
+					}
+				)
 			],
 			Self::WrapObjectAssignment {
 				restids,

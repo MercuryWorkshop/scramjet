@@ -92,6 +92,8 @@ function check(val) {
 				continue;
 			}
 
+			println!("{:?}", file.path());
+
 			let content = fs::read_to_string(file.path()).unwrap();
 
 			let rewritten = rewriter.rewrite_default(&content).unwrap();
