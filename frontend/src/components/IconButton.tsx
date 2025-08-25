@@ -26,17 +26,12 @@ IconButton.style = css`
 	:scope {
 		box-sizing: border-box;
 		aspect-ratio: 1/1;
+		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding-top: 0.25em;
+		padding: 0.25em;
 
-		padding-bottom: 0.25em;
-
-		display: flex;
-		outline: none;
-		border: none;
 		font-size: 1.25em;
-		background: none;
 		color: var(--fg4);
 		border-radius: 0.2em;
 	}
@@ -44,7 +39,6 @@ IconButton.style = css`
 		background: var(--bg20);
 	}
 	:scope.active {
-		cursor: pointer;
 		color: var(--fg);
 	}
 `;

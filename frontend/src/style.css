@@ -82,3 +82,12 @@ body.light-mode {
 h1 {
 	font-size: 2em;
 }
+
+button {
+	border: none;
+	background: none;
+	color: var(--fg);
+	padding: 0;
+	cursor: pointer;
+	font-family: var(--font);
+}

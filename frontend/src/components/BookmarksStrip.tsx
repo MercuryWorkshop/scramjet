@@ -76,8 +76,6 @@ BookmarksStrip.style = css`
 	}
 
 	button {
-		padding: 0;
-		border: 0;
 		display: flex;
 		align-items: center;
 		height: 100%;
@@ -85,12 +83,7 @@ BookmarksStrip.style = css`
 
 		padding-left: 0.25em;
 		padding-right: 0.25em;
-		background: none;
 		border-radius: var(--radius);
-		cursor: pointer;
-
-		color: var(--fg);
-		font-family: var(--font);
 	}
 	button:hover {
 		background: var(--bg20);
