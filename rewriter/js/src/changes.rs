@@ -40,6 +40,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	WrapObjectStart,
 	RewriteProperty {
 		ident: Atom<'data>,
+		wrap: bool,
 	},
 	RebindProperty {
 		ident: Atom<'data>,
@@ -131,10 +132,26 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			} else {
 				transforms![")"]
 			}),
-			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(",&cfg.templocid,",("]),
+			Ty::WrapPropertyLeft => {
+				LL::insert(transforms![&cfg.wrappropertyfn, "(", &cfg.templocid, ",("])
+			}
 			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
-			Ty::WrapObjectStart => LL::insert(transforms!["(",&cfg.templocid,"="]),
-			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
+			Ty::WrapObjectStart => LL::insert(transforms!["(", &cfg.templocid, "="]),
+			Ty::RewriteProperty { ident, wrap } => {
+				if wrap {
+					LL::replace(transforms![
+						"[",
+						&cfg.wrappropertyfn,
+						"(",
+						&cfg.templocid,
+						",'",
+						ident,
+						"')]"
+					])
+				} else {
+					LL::replace(transforms![&cfg.wrappropertybase, ident])
+				}
+			}
 			Ty::RebindProperty { ident } => {
 				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
 			}

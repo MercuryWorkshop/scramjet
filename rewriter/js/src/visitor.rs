@@ -93,13 +93,13 @@ where
 			| Expression::BooleanLiteral(_) => {}
 			Expression::StringLiteral(lit) => {
 				if UNSAFE_GLOBALS.contains(&lit.value.as_str()) {
-					self.jschanges.add(rewrite!(it.object.span(),WrapObject,));
+					self.jschanges.add(rewrite!(it.object.span(), WrapObject,));
 					self.jschanges
 						.add(rewrite!(it.expression.span(), WrapProperty,));
 				}
 			}
 			_ => {
-				self.jschanges.add(rewrite!(it.object.span(),WrapObject,));
+				self.jschanges.add(rewrite!(it.object.span(), WrapObject,));
 				self.jschanges
 					.add(rewrite!(it.expression.span(), WrapProperty,));
 			}
@@ -133,7 +133,7 @@ where
 						self.jschanges.add(rewrite!(
 							p.binding.span(),
 							RebindProperty {
-								ident: p.binding.name.clone()
+								ident: p.binding.name.clone(),
 							}
 						));
 					}
@@ -157,7 +157,10 @@ where
 							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
 								self.jschanges.add(rewrite!(
 									p.name.span(),
-									RewriteProperty { ident: id.name }
+									RewriteProperty {
+										ident: id.name,
+										wrap: false
+									}
 								));
 							}
 						}
@@ -286,10 +289,12 @@ where
 				}
 
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+					self.jschanges.add(rewrite!(s.object.span(), WrapObject,));
 					self.jschanges.add(rewrite!(
 						s.property.span(),
 						RewriteProperty {
-							ident: s.property.name
+							ident: s.property.name,
+							wrap: true,
 						}
 					));
 				}
@@ -508,7 +513,10 @@ where
 									// const { location: a } = self;
 									self.jschanges.add(rewrite!(
 										id.span(),
-										RewriteProperty { ident: id.name }
+										RewriteProperty {
+											ident: id.name,
+											wrap: false
+										}
 									));
 								}
 							}
@@ -546,10 +554,12 @@ where
 			AssignmentTarget::StaticMemberExpression(s) => {
 				// window.location = ...
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+					self.jschanges.add(rewrite!(s.object.span(), WrapObject,));
 					self.jschanges.add(rewrite!(
 						s.property.span(),
 						RewriteProperty {
-							ident: s.property.name
+							ident: s.property.name,
+							wrap: true,
 						}
 					));
 				}
