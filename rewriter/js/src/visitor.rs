@@ -93,11 +93,13 @@ where
 			| Expression::BooleanLiteral(_) => {}
 			Expression::StringLiteral(lit) => {
 				if UNSAFE_GLOBALS.contains(&lit.value.as_str()) {
+					self.jschanges.add(rewrite!(it.object.span(),WrapObject,));
 					self.jschanges
 						.add(rewrite!(it.expression.span(), WrapProperty,));
 				}
 			}
 			_ => {
+				self.jschanges.add(rewrite!(it.object.span(),WrapObject,));
 				self.jschanges
 					.add(rewrite!(it.expression.span(), WrapProperty,));
 			}

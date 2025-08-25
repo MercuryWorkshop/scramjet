@@ -50,6 +50,9 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `cfg.wrapprop({})`
 	WrapProperty,
 
+	/// `(cfg.templogid={})`
+	WrapObject,
+
 	// dead code only if debug is disabled
 	#[allow(dead_code)]
 	/// `$scramerr(name)`
@@ -130,6 +133,10 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
 				change!(span!(end), WrapPropertyRight),
+			],
+			Self::WrapObject => smallvec![
+				change!(span!(start),WrapObjectStart),
+				change!(span!(end),ClosingParen { semi: false, replace: false })
 			],
 			Self::WrapObjectAssignment {
 				restids,
