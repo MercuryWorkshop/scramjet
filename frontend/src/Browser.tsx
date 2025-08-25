@@ -218,7 +218,13 @@ export class Browser extends StatefulClass {
 
 	destroyTab(tab: Tab) {
 		this.tabs = this.tabs.filter((t) => t !== tab);
-		console.log(this.tabs);
+		if (
+			this.tabs.length === 0 &&
+			location.ancestorOrigins[0] === "https://puter.com"
+		) {
+			puter.exit();
+		}
+
 		if (this.activetab === tab) {
 			this.activetab =
 				this.tabs[0] || browser.newTab(new URL("puter://newtab"), true);
