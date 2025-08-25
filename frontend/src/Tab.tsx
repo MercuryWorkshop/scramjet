@@ -405,8 +405,9 @@ function injectAnchorHandler(client: ScramjetClient, tab: Tab) {
 	const anchorObserver = new MutationObserver((mutations) => {
 		mutations.forEach((mutation) => {
 			setTimeout(() => {
-				mutation.addedNodes.forEach((node) => {
-					if (node instanceof HTMLAnchorElement) {
+				mutation.addedNodes.forEach((_node) => {
+					let node: HTMLAnchorElement = _node as any;
+					if ("tagName" in node && node.tagName == "A") {
 						const openInNewTab = () => {
 							const href = scramjet.decodeUrl(node.href);
 							browser.newTab(
@@ -754,7 +755,15 @@ function injectTitleWatcher(client: ScramjetClient, tab: Tab) {
 				tab.icon = "/defaultfavicon.png";
 			}
 		} else {
-			tab.icon = scramjet.encodeUrl(new URL("/favicon.ico", client.url));
+			// check if there's a favicon.ico
+			let img = new Image();
+			img.src = scramjet.encodeUrl(new URL("/favicon.ico", client.url));
+			img.onload = () => {
+				tab.icon = scramjet.encodeUrl(new URL("/favicon.ico", client.url));
+			};
+			img.onerror = () => {
+				// nope...
+			};
 		}
 		tab.history.current().title = tab.title;
 		tab.history.current().favicon = tab.icon;

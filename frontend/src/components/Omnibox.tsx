@@ -18,6 +18,7 @@ import iconTime from "@ktibow/iconset-ion/time-outline";
 import iconInfo from "@ktibow/iconset-ion/information-circle-outline";
 import iconSettings from "@ktibow/iconset-ion/settings-outline";
 import { showDownloadsPopup } from "./DownloadsPopup";
+import type { HistoryState } from "../History";
 
 export const animateDownloadFly = createDelegate<void>();
 
@@ -140,21 +141,28 @@ export const Omnibox: Component<{
 		fly.classList.remove("down");
 	});
 
-	const historyMenu = (e: MouseEvent) => {
-		if (browser.activetab.history.states.length > 1) {
-			createMenu(
-				e.clientX,
-				e.clientY,
-				browser.activetab.history.states.map((s) => ({
+	const historyMenu = (e: MouseEvent, states: HistoryState[]) => {
+		if (states.length > 1) {
+			createMenu(e.clientX, cx.root.clientTop + cx.root.clientHeight * 2, [
+				...states.map((s) => ({
 					label: s.title || "New Tab",
+					image: s.favicon || "/defaultfavicon.png",
 					action: () => {
 						let rel =
 							browser.activetab.history.states.indexOf(s) -
 							browser.activetab.history.index;
 						browser.activetab.history.go(rel);
 					},
-				}))
-			);
+				})),
+				"-",
+				{
+					icon: iconTime,
+					label: "Show Full History",
+					action: () => {
+						browser.newTab(new URL("puter://history"));
+					},
+				},
+			]);
 		}
 		e.preventDefault();
 		e.stopPropagation();
@@ -167,14 +175,30 @@ export const Omnibox: Component<{
 				active={use(this.tab.canGoBack)}
 				click={() => this.tab.back()}
 				icon={iconBack}
-				rightclick={historyMenu}
+				rightclick={(e: MouseEvent) =>
+					historyMenu(
+						e,
+						browser.activetab.history.states.slice(
+							0,
+							browser.activetab.history.index
+						)
+					)
+				}
 			></OmnibarButton>
 			<OmnibarButton
 				tooltip="Go forward one page (Alt+Right Arrow)"
 				active={use(this.tab.canGoForward)}
 				click={() => this.tab.forward()}
 				icon={iconForwards}
-				rightclick={historyMenu}
+				rightclick={(e: MouseEvent) =>
+					historyMenu(
+						e,
+						browser.activetab.history.states.slice(
+							browser.activetab.history.index + 1,
+							browser.activetab.history.states.length
+						)
+					)
+				}
 			></OmnibarButton>
 			<OmnibarButton
 				tooltip="Refresh current page (Ctrl+R)"

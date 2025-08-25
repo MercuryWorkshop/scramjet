@@ -9,6 +9,7 @@ import { browser } from "../Browser";
 import { Checkbox } from "./Checkbox";
 import { Icon } from "./Icon";
 import type { IconifyIcon } from "@iconify/types";
+import { emToPx } from "../utils";
 
 export const closeMenu = createDelegate<void>();
 
@@ -55,8 +56,8 @@ export const Menu: Component<
 		browser.unfocusframes = true;
 		document.body.appendChild(cx.root);
 		const { width, height } = cx.root.getBoundingClientRect();
-		let maxX = document.documentElement.clientWidth - width;
-		let maxY = document.documentElement.clientHeight - height;
+		let maxX = document.documentElement.clientWidth - width - emToPx(1);
+		let maxY = document.documentElement.clientHeight - height - emToPx(1);
 		if (this.x > maxX) this.x = maxX;
 		if (this.y > maxY) this.y = maxY;
 
@@ -76,7 +77,9 @@ export const Menu: Component<
 		>
 			{this.items
 				? use(this.items).mapEach((item) =>
-						item.checkbox ? (
+						item == "-" ? (
+							<div class="separator" />
+						) : item.checkbox ? (
 							<button
 								class="item"
 								on:click={(e: MouseEvent) => {
@@ -99,7 +102,9 @@ export const Menu: Component<
 									e.stopPropagation();
 								}}
 							>
-								{item.icon ? (
+								{item.image ? (
+									<img src={item.image}></img>
+								) : item.icon ? (
 									<Icon icon={item.icon}></Icon>
 								) : (
 									<div class="pad" />
@@ -133,6 +138,9 @@ Menu.style = css`
 		opacity: 1;
 		transform: scale(100%);
 	}
+	.separator {
+		border-top: 1px solid var(--fg4);
+	}
 	:scope.closing {
 		transform: scale(95%);
 		opacity: 0;
@@ -148,6 +156,11 @@ Menu.style = css`
 		display: flex;
 		align-items: center;
 		gap: 1em;
+	}
+
+	img {
+		width: 16px;
+		height: 16px;
 	}
 
 	.pad {
@@ -170,12 +183,15 @@ Menu.style = css`
 
 let activeMenu: DLElement<typeof Menu> | null = null;
 
-type MenuItem = {
-	label: string;
-	action?: () => void;
-	checkbox?: Pointer<boolean>;
-	icon?: IconifyIcon;
-};
+type MenuItem =
+	| {
+			label: string;
+			action?: () => void;
+			checkbox?: Pointer<boolean>;
+			icon?: IconifyIcon;
+			image?: string;
+	  }
+	| "-";
 
 export function setContextMenu(elm: HTMLElement, items: MenuItem[]) {
 	elm.addEventListener("contextmenu", (e) => {
@@ -192,10 +208,14 @@ export function createMenu(
 ): DLElement<typeof Menu> {
 	if (location.ancestorOrigins[0] === "https://puter.com") {
 		puter.ui.contextMenu({
-			items: items.map((i) => ({
-				label: i.label,
-				action: i.action,
-			})),
+			items: items.map((i) =>
+				i == "-"
+					? i
+					: {
+							label: i.label,
+							action: i.action,
+						}
+			),
 		});
 
 		return undefined as any;
