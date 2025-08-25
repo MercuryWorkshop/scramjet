@@ -1,8 +1,16 @@
-import { css, Pointer, type Component, type DLElement } from "dreamland/core";
+import {
+	createDelegate,
+	css,
+	Pointer,
+	type Component,
+	type DLElement,
+} from "dreamland/core";
 import { browser } from "../Browser";
 import { Checkbox } from "./Checkbox";
 import { Icon } from "./Icon";
 import type { IconifyIcon } from "@iconify/types";
+
+export const closeMenu = createDelegate<void>();
 
 export const Menu: Component<{
 	x: number;
@@ -13,7 +21,11 @@ export const Menu: Component<{
 	const close = () => {
 		cx.root.remove();
 		browser.unfocusframes = false;
+
+		window.removeEventListener("click", ev, { capture: true });
+		window.removeEventListener("contextmenu", ev, { capture: true });
 	};
+	closeMenu.listen(close);
 
 	const ev = (e: MouseEvent) => {
 		// Don't close if the click is over the menu
@@ -21,8 +33,6 @@ export const Menu: Component<{
 			return;
 		}
 
-		window.removeEventListener("click", ev, { capture: true });
-		window.removeEventListener("contextmenu", ev, { capture: true });
 		close();
 		e.stopImmediatePropagation();
 		e.preventDefault();
@@ -91,7 +101,7 @@ Menu.style = css`
 		position: absolute;
 		top: var(--y);
 		left: var(--x);
-		background: var(--bg20);
+		background: var(--bg02);
 		border: 1px solid var(--fg4);
 		border-radius: var(--radius);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -99,6 +109,7 @@ Menu.style = css`
 		display: flex;
 		flex-direction: column;
 		min-width: 10em;
+		overflow: hidden;
 	}
 	.item {
 		background: none;

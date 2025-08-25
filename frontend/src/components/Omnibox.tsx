@@ -5,7 +5,14 @@ import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
-import { createMenu, createMenuCustom, setContextMenu } from "./Menu";
+import iconClose from "@ktibow/iconset-ion/close";
+import iconOpen from "@ktibow/iconset-ion/open-outline";
+import {
+	closeMenu,
+	createMenu,
+	createMenuCustom,
+	setContextMenu,
+} from "./Menu";
 import { IconButton } from "./IconButton";
 import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
@@ -114,13 +121,22 @@ const DownloadsPopup: Component<{}> = function (cx) {
 	return (
 		<div>
 			<div class="title">
-				<p>Recent Downloads</p>
+				<span>Recent Downloads</span>
+				<div class="iconcontainer">
+					<button
+						on:click={() => {
+							closeMenu();
+						}}
+					>
+						<Icon icon={iconClose}></Icon>
+					</button>
+				</div>
 			</div>
 			<div class="entries">
 				{use(browser.globalDownloadHistory).mapEach((b) => (
 					<div class="entry">
 						<div class="iconcontainer">
-							<img src="/vite.svg"></img>
+							<img src="/defaultfavicon.png"></img>
 						</div>
 						<div class="contents">
 							<span>{b.filename}</span>
@@ -135,7 +151,10 @@ const DownloadsPopup: Component<{}> = function (cx) {
 					browser.newTab(new URL("puter://downloads"));
 				}}
 			>
-				Full Download History
+				<span>Full Download History</span>
+				<div class="iconcontainer">
+					<Icon icon={iconOpen}></Icon>
+				</div>
 			</div>
 		</div>
 	);
@@ -149,9 +168,29 @@ DownloadsPopup.style = css`
 
 	.title {
 		padding: 1em;
+		display: flex;
+		border-bottom: 1px solid var(--fg4);
 	}
 	.title p {
-		font-size: 1.5em;
+		font-size: 1.25em;
+	}
+	.title button {
+		display: flex;
+		align-items: center;
+		font-size: 1em;
+		position: relative;
+	}
+	.title button:hover::before {
+		content: "";
+		z-index: -1;
+		position: absolute;
+		width: 150%;
+		height: 150%;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background: var(--bg20);
+		border-radius: 50%;
 	}
 
 	.entries {
@@ -166,6 +205,11 @@ DownloadsPopup.style = css`
 		padding: 1em;
 		display: flex;
 		gap: 1em;
+		cursor: pointer;
+		font-size: 0.9em;
+	}
+	.entry:hover {
+		background: var(--bg20);
 	}
 	.contents {
 		display: flex;
@@ -176,8 +220,20 @@ DownloadsPopup.style = css`
 		color: var(--fg2);
 	}
 	.footer {
+		border-top: 1px solid var(--fg4);
 		padding: 1em;
 		cursor: pointer;
+		display: flex;
+		align-items: center;
+	}
+	.footer:hover {
+		background: var(--bg20);
+	}
+
+	.iconcontainer {
+		flex: 1;
+		display: flex;
+		justify-content: right;
 	}
 `;
 export function showDownloadsPopup() {
