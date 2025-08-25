@@ -190,6 +190,17 @@ export function createMenu(
 	y: number,
 	items: MenuItem[]
 ): DLElement<typeof Menu> {
+	if (location.ancestorOrigins[0] === "https://puter.com") {
+		puter.ui.contextMenu({
+			items: items.map((i) => ({
+				label: i.label,
+				action: i.action,
+			})),
+		});
+
+		return;
+	}
+
 	if (activeMenu) {
 		activeMenu.remove();
 	}
