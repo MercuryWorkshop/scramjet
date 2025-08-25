@@ -23,7 +23,7 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
 				let current = self;
 
-				for (;;) {
+				for (; ;) {
 					const test = current.parent.self;
 					if (test === current) break; // there is no parent, actual or emulated.
 
@@ -51,14 +51,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		enumerable: false,
 	});
 	Object.defineProperty(self, config.globals.wrappropertyfn, {
-		value: function (str) {
+		value: function (str, object: any = self) {
 			if (
 				str === "location" ||
 				str === "parent" ||
 				str === "top" ||
 				str === "eval"
-			)
-				return config.globals.wrappropertybase + str;
+			) if (object === self || object === self.document)
+					return config.globals.wrappropertybase + str;
 
 			return str;
 		},
