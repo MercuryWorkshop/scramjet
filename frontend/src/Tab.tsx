@@ -20,6 +20,10 @@ import iconForwards from "@ktibow/iconset-ion/arrow-forward";
 import iconRefresh from "@ktibow/iconset-ion/refresh";
 import iconBookmark from "@ktibow/iconset-ion/bookmark-outline";
 import iconCode from "@ktibow/iconset-ion/code-outline";
+import iconLink from "@ktibow/iconset-ion/link-outline";
+import iconAdd from "@ktibow/iconset-ion/duplicate-outline";
+import iconCopy from "@ktibow/iconset-ion/copy-outline";
+import iconSave from "@ktibow/iconset-ion/save-outline";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
@@ -632,6 +636,7 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 						browser.activetab.pushNavigate(new URL(url));
 					}
 				},
+				icon: iconLink,
 			},
 			{
 				label: "Open Link in New Tab",
@@ -640,18 +645,21 @@ function pageContextItems(client: ScramjetClient, tab: Tab, e: MouseEvent) {
 						browser.newTab(new URL(url));
 					}
 				},
+				icon: iconAdd,
 			},
 			{
 				label: "Copy Link Address",
 				action: () => {
 					navigator.clipboard.writeText(scramjet.decodeUrl(target.href));
 				},
+				icon: iconCopy,
 			},
 			{
 				label: "Save Link As...",
 				action: () => {
 					// TODO
 				},
+				icon: iconSave,
 			},
 		];
 	}
