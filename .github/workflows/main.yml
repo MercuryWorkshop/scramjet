@@ -110,9 +110,6 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
-      - name: Install Depot Tools
-        uses: newkdev/setup-depot-tools@v1.0.1
-
       - name: Install dependencies
         run: pnpm install
 
@@ -139,6 +136,10 @@ jobs:
             chii/public
             chii/front_end/dist
           key: chii-${{ runner.os }}-${{ steps.chii-hash.outputs.hash }}
+
+      - name: Install Depot Tools
+        if: steps.chii-cache.outputs.cache-hit != 'true'
+        uses: newkdev/setup-depot-tools@v1.0.1
 
       - name: Initialize Chii front_end
         if: steps.chii-cache.outputs.cache-hit != 'true'
