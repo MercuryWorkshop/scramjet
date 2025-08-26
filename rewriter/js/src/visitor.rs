@@ -592,16 +592,30 @@ where
 		}
 	}
 
-	fn visit_binding_pattern(&mut self, it: &BindingPattern<'data>) {
-		if !self.flags.destructure_rewrites {
-			walk::walk_binding_pattern(self, it);
+	fn visit_variable_declaration(&mut self, it: &oxc::ast::ast::VariableDeclaration<'data>) {
+    	if !self.flags.destructure_rewrites {
+			walk::walk_variable_declaration(self, it);
 			return;
 		}
 
-		let mut restids: Vec<Atom<'data>> = Vec::new();
-		let mut location_assigned: bool = false;
-		self.recurse_binding_pattern(it, &mut restids, &mut location_assigned);
-	}
+    	let mut restids: Vec<Atom<'data>> = Vec::new();
+    	let mut location_assigned: bool = false;
+
+        for declaration in &it.declarations {
+            if let Some(e) = &declaration.init {
+                walk::walk_expression(self, e);
+            }
+           	self.recurse_binding_pattern(&declaration.id, &mut restids, &mut location_assigned);
+        }
+
+        self.jschanges.add(rewrite!(
+			Span::new(it.span.end, it.span.end),
+			CleanFunction {
+				restids,
+				expression: false,
+			}
+		));
+    }
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
 		match &it.left {
