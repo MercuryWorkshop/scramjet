@@ -247,7 +247,6 @@ where
 		restids: &mut Vec<Atom<'data>>,
 		location_assigned: &mut bool,
 	) {
-		dbg!(it);
 		match &it.kind {
 			BindingPatternKind::BindingIdentifier(p) => {
 				// let a = 0;
@@ -445,7 +444,7 @@ where
 		// do not walk further, we don't want to rewrite the identifiers
 	}
 
-	#[cfg(feature = "debug")]
+	// #[cfg(feature = "debug")]
 	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'data>) {
 		// for debugging we need to know what the error was
 
@@ -459,7 +458,28 @@ where
 				.add(rewrite!(Span::new(start, start), ScramErr { ident }));
 		}
 
-		walk::walk_try_statement(self, it);
+   	    if !self.flags.destructure_rewrites {
+            walk::walk_try_statement(self, it);
+            return;
+        }
+
+        dbg!(&it);
+        if let Some(h) = &it.handler {
+            if let Some(p) = &h.param {
+                   	let mut restids: Vec<Atom<'data>> = Vec::new();
+                   	let mut location_assigned: bool = false;
+
+                    self.recurse_binding_pattern(&p.pattern, &mut restids, &mut location_assigned);
+                    self.jschanges.add(rewrite!(
+				h.body.body[0].span(),
+				CleanFunction {
+					restids,
+					expression: false,
+				}
+			));
+            }
+        }
+
 	}
 
 	fn visit_object_expression(&mut self, it: &ObjectExpression<'data>) {
