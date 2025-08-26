@@ -412,6 +412,19 @@ where
 		walk::walk_object_expression(self, it);
 	}
 
+	fn visit_arrow_function_expression(
+		&mut self,
+		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
+	) {
+		walk::walk_formal_parameters(self, it.params.as_ref());
+		let it = &*it.body;
+		if self.flags.do_sourcemaps {
+			self.jschanges
+				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
+		}
+		walk::walk_function_body(self, it);
+	}
+
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
 		if self.flags.do_sourcemaps {
@@ -419,16 +432,10 @@ where
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 		}
 		if let Some(stmt) = it.statements.get(0) {
-			if !match stmt {
-				Statement::ExpressionStatement(_) => true,
-				_ => false,
-			} || it.statements.len() != 1
-			{
-				self.jschanges.add(rewrite!(
-					Span::new(stmt.span().start, stmt.span().start),
-					DeclTempLoc
-				));
-			}
+			self.jschanges.add(rewrite!(
+				Span::new(stmt.span().start, stmt.span().start),
+				DeclTempLoc
+			));
 		}
 		walk::walk_function_body(self, it);
 	}
