@@ -125,6 +125,11 @@ jobs:
     name: "Run Rewriter Tests"
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       - name: Cache rewriter build artifacts
         uses: actions/cache@v4
         id: rewriter-cache
