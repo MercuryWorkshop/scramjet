@@ -195,6 +195,32 @@ jobs:
       - name: Run Playwright tests
         run: pnpm test
 
+  rewritertests:
+    name: "Run Rewriter Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache rewriter build artifacts
+        uses: actions/cache@v4
+        id: rewriter-cache
+        with:
+          path: |
+            rewriter/wasm/out
+            dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('rewriter/wasm/Cargo.toml', 'rewriter/wasm/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          restore-keys: |
+            rewriter-release-
+
+      - name: Cache Rust dependencies
+        if: steps.rewriter-cache.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "rewriter"
+          cache-all-crates: true
+
+      - name: Run Tests
+        if: steps.rewriter-cache.outputs.cache-hit != 'true'
+        run: cd rewriter/native && cargo test
+
   # upload:
   #   name: Upload release
   #   runs-on: ubuntu-latest
