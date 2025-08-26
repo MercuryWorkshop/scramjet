@@ -479,6 +479,7 @@ where
 
 	fn visit_binding_pattern(&mut self, it: &BindingPattern<'data>) {
 		if !self.flags.destructure_rewrites {
+    		walk::walk_binding_pattern(self, it);
 			return;
 		}
 
