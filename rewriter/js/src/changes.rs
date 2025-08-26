@@ -89,6 +89,10 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 	/// replace span with ""
 	Delete,
+	// ;cfg.cleanrestfn(restids[0]); cfg.cleanrestfn(restid[1]);
+	CleanRest {
+		restids: Vec<Atom<'data>>,
+	},
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -151,6 +155,14 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				}
 				let steps: &'static str = Box::leak(steps.into_boxed_str());
 				LL::insert(transforms!["((t)=>(", &steps, "t))("])
+			}
+			Ty::CleanRest { restids } => {
+			   let mut steps = String::new();
+				for id in restids {
+    				steps.push_str(&format!("{}({});", &cfg.cleanrestfn, id.as_str()));
+				}
+    			let steps: &'static str = Box::leak(steps.into_boxed_str());
+    			LL::insert(transforms![";",&steps])
 			}
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
