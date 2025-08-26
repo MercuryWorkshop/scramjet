@@ -488,7 +488,6 @@ where
 		for param in &it.params.items {
 			self.recurse_binding_pattern(&param.pattern, &mut restids, &mut location_assigned);
 		}
-		dbg!(&restids);
 
 		if let Some(b) = &it.body {
 			walk::walk_function_body(self, b);
@@ -496,9 +495,33 @@ where
 				let span = stmt.span();
 				self.jschanges.add(rewrite!(
 					Span::new(span.start, span.start),
-					CleanRest { restids }
+					CleanFunction {
+						restids,
+						expression: false
+					}
 				));
 			}
+		}
+	}
+	fn visit_arrow_function_expression(
+		&mut self,
+		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
+	) {
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		for param in &it.params.items {
+			self.recurse_binding_pattern(&param.pattern, &mut restids, &mut location_assigned);
+		}
+
+		walk::walk_function_body(self, &it.body);
+		if let Some(stmt) = &it.body.statements.get(0) {
+			self.jschanges.add(rewrite!(
+				stmt.span(),
+				CleanFunction {
+					restids,
+					expression: it.expression,
+				}
+			));
 		}
 	}
 
