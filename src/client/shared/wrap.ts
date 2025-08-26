@@ -176,4 +176,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		writable: false,
 		configurable: false,
 	});
+	Object.defineProperty(self, config.globals.templocid, {
+		value: undefined,
+		writable: true,
+		configurable: false,
+	});
 }
