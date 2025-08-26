@@ -9,8 +9,8 @@ use oxc::{
 		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
 		IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty,
 		NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind,
-		PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral,
-		ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
+		PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, Statement,
+		StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
 	},
 	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
@@ -419,10 +419,16 @@ where
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 		}
 		if let Some(stmt) = it.statements.get(0) {
-			self.jschanges.add(rewrite!(
-				Span::new(stmt.span().start, stmt.span().start),
-				DeclTempLoc
-			));
+			if !match stmt {
+				Statement::ExpressionStatement(_) => true,
+				_ => false,
+			} || it.statements.len() != 1
+			{
+				self.jschanges.add(rewrite!(
+					Span::new(stmt.span().start, stmt.span().start),
+					DeclTempLoc
+				));
+			}
 		}
 		walk::walk_function_body(self, it);
 	}

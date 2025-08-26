@@ -121,7 +121,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
-			Ty::DeclTempLoc => LL::insert(transforms!["var ",&cfg.templocid,";"]),
+			Ty::DeclTempLoc => LL::insert(transforms![";var ",&cfg.templocid,";"]),
 			Ty::WrapFnLeft { enclose } => LL::insert(if enclose {
 				transforms!["(", &cfg.wrapfn, "("]
 			} else {
