@@ -458,28 +458,27 @@ where
 				.add(rewrite!(Span::new(start, start), ScramErr { ident }));
 		}
 
-   	    if !self.flags.destructure_rewrites {
-            walk::walk_try_statement(self, it);
-            return;
-        }
+		if !self.flags.destructure_rewrites {
+			walk::walk_try_statement(self, it);
+			return;
+		}
 
-        dbg!(&it);
-        if let Some(h) = &it.handler {
-            if let Some(p) = &h.param {
-                   	let mut restids: Vec<Atom<'data>> = Vec::new();
-                   	let mut location_assigned: bool = false;
+		dbg!(&it);
+		if let Some(h) = &it.handler {
+			if let Some(p) = &h.param {
+				let mut restids: Vec<Atom<'data>> = Vec::new();
+				let mut location_assigned: bool = false;
 
-                    self.recurse_binding_pattern(&p.pattern, &mut restids, &mut location_assigned);
-                    self.jschanges.add(rewrite!(
-				h.body.body[0].span(),
-				CleanFunction {
-					restids,
-					expression: false,
-				}
-			));
-            }
-        }
-
+				self.recurse_binding_pattern(&p.pattern, &mut restids, &mut location_assigned);
+				self.jschanges.add(rewrite!(
+					h.body.body[0].span(),
+					CleanFunction {
+						restids,
+						expression: false,
+					}
+				));
+			}
+		}
 	}
 
 	fn visit_object_expression(&mut self, it: &ObjectExpression<'data>) {
@@ -613,29 +612,29 @@ where
 	}
 
 	fn visit_variable_declaration(&mut self, it: &oxc::ast::ast::VariableDeclaration<'data>) {
-    	if !self.flags.destructure_rewrites {
+		if !self.flags.destructure_rewrites {
 			walk::walk_variable_declaration(self, it);
 			return;
 		}
 
-    	let mut restids: Vec<Atom<'data>> = Vec::new();
-    	let mut location_assigned: bool = false;
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
 
-        for declaration in &it.declarations {
-            if let Some(e) = &declaration.init {
-                walk::walk_expression(self, e);
-            }
-           	self.recurse_binding_pattern(&declaration.id, &mut restids, &mut location_assigned);
-        }
+		for declaration in &it.declarations {
+			if let Some(e) = &declaration.init {
+				walk::walk_expression(self, e);
+			}
+			self.recurse_binding_pattern(&declaration.id, &mut restids, &mut location_assigned);
+		}
 
-        self.jschanges.add(rewrite!(
+		self.jschanges.add(rewrite!(
 			Span::new(it.span.end, it.span.end),
 			CleanFunction {
 				restids,
 				expression: false,
 			}
 		));
-    }
+	}
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
 		match &it.left {
