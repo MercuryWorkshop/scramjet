@@ -127,10 +127,29 @@ jobs:
           cd dreamlandjs
           pnpm build
 
-      - name: Build Chii
+      - name: Get Chii submodule commit hash
+        id: chii-hash
+        run: echo "hash=$(git submodule status chii | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Cache Chii build output
+        id: chii-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            chii/public
+            chii/front_end/dist
+          key: chii-${{ runner.os }}-${{ steps.chii-hash.outputs.hash }}
+
+      - name: Initialize Chii front_end
+        if: steps.chii-cache.outputs.cache-hit != 'true'
         run: |
           cd chii
           pnpm init:front_end
+
+      - name: Build Chii
+        if: steps.chii-cache.outputs.cache-hit != 'true'
+        run: |
+          cd chii
           pnpm build
 
       - name: Build Chobitsu
