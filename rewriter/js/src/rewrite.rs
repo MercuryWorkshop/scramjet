@@ -73,8 +73,9 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	SourceTag,
 
 	// ;cfg.cleanrestfn(restids[0]); cfg.cleanrestfn(restid[1]);
-	CleanRest {
+	CleanFunction {
 		restids: Vec<Atom<'data>>,
+		expression: bool,
 	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
@@ -151,7 +152,37 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 					}
 				)
 			],
-			Self::CleanRest { restids } => smallvec![change!(span!(start), CleanRest { restids })],
+			Self::CleanFunction {
+				restids,
+				expression,
+			} => {
+				if expression {
+					smallvec![
+						change!(
+							Span::new(span.start, span.start),
+							CleanFunction {
+								restids,
+								expression
+							}
+						),
+						change!(
+							Span::new(span.end, span.end),
+							ClosingParen {
+								semi: false,
+								replace: false
+							}
+						)
+					]
+				} else {
+					smallvec![change!(
+						Span::new(span.start, span.start),
+						CleanFunction {
+							restids,
+							expression
+						}
+					),]
+				}
+			}
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
