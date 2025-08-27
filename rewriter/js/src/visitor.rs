@@ -3,12 +3,20 @@ use std::error::Error;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
-		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault, AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern, BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, Statement, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression, VariableDeclaration, VariableDeclarationKind, VariableDeclarator
+		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault,
+		AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern,
+		BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression,
+		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement,
+		ForStatementInit, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference,
+		ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression,
+		ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind,
+		PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, Statement,
+		StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
+		VariableDeclaration, VariableDeclarationKind, VariableDeclarator,
 	},
-	ast_visit::{walk, Visit},
+	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
 };
-use oxc::ast::ast::ForStatementInit;
 
 use crate::{
 	cfg::{Config, Flags, UrlRewriter},
@@ -246,8 +254,8 @@ where
 			BindingPatternKind::BindingIdentifier(p) => {
 				// let a = 0;
 				if no_shadow && p.name == "location" {
-    				self.jschanges.add(rewrite!(p.span, TempVar));
-    				*location_assigned = true;
+					self.jschanges.add(rewrite!(p.span, TempVar));
+					*location_assigned = true;
 				}
 			}
 			BindingPatternKind::AssignmentPattern(p) => {
@@ -264,26 +272,34 @@ where
 									// const { location } = self;
 									let mut tempvar = false;
 									if no_shadow && id.name == "location" {
-    									tempvar = true;
-    									*location_assigned = true;
+										tempvar = true;
+										*location_assigned = true;
 									}
 									self.jschanges.add(rewrite!(
-  										id.span(),
-  										RebindProperty { ident: id.name, tempvar }
-   									));
+										id.span(),
+										RebindProperty {
+											ident: id.name,
+											tempvar
+										}
+									));
 								} else {
 									// const { location: a } = self;
 									if no_shadow && id.name == "location" {
-                   					    self.jschanges.add(rewrite!(
-    										id.span(),
-    										RewriteProperty { ident: self.alloc.alloc_str(&self.config.templocid).into() }
-    									));
-                                        *location_assigned = true;
+										self.jschanges.add(rewrite!(
+											id.span(),
+											RewriteProperty {
+												ident: self
+													.alloc
+													.alloc_str(&self.config.templocid)
+													.into()
+											}
+										));
+										*location_assigned = true;
 									} else {
-									    self.jschanges.add(rewrite!(
-    										id.span(),
-    										RewriteProperty { ident: id.name }
-    									));
+										self.jschanges.add(rewrite!(
+											id.span(),
+											RewriteProperty { ident: id.name }
+										));
 									}
 								}
 							}
@@ -304,11 +320,10 @@ where
 						BindingPatternKind::BindingIdentifier(i) => {
 							if no_shadow && i.name == "location" {
 								self.jschanges.add(rewrite!(i.span, TempVar));
-								restids
-									.push(self.alloc.alloc_str(&self.config.templocid).into());
+								restids.push(self.alloc.alloc_str(&self.config.templocid).into());
 								*location_assigned = true;
 							} else {
-    							restids.push(i.name);
+								restids.push(i.name);
 							}
 						}
 						_ => panic!("what?"),
@@ -319,16 +334,21 @@ where
 		}
 	}
 
-	fn handle_var_declarator(&mut self, v: &VariableDeclaration<'data>, restids: &mut Vec<Atom<'data>>, location_assigned: &mut bool) {
-    	// (const/let) location = ... is perfectly fine, no matter the scope
-    	// var location = ... is dangerous, it will assign to the real global if called in scope
-	    let no_shadow = matches!(v.kind, VariableDeclarationKind::Var);
-        for dec in &v.declarations {
-            if let Some(ini) = &dec.init {
-                walk::walk_expression(self, ini);
-            }
-            self.recurse_binding_pattern(&dec.id, restids, no_shadow, location_assigned);
-        }
+	fn handle_var_declarator(
+		&mut self,
+		v: &VariableDeclaration<'data>,
+		restids: &mut Vec<Atom<'data>>,
+		location_assigned: &mut bool,
+	) {
+		// (const/let) location = ... is perfectly fine, no matter the scope
+		// var location = ... is dangerous, it will assign to the real global if called in scope
+		let no_shadow = matches!(v.kind, VariableDeclarationKind::Var);
+		for dec in &v.declarations {
+			if let Some(ini) = &dec.init {
+				walk::walk_expression(self, ini);
+			}
+			self.recurse_binding_pattern(&dec.id, restids, no_shadow, location_assigned);
+		}
 	}
 
 	fn scramitize(&mut self, span: Span) {
@@ -468,7 +488,12 @@ where
 				let mut location_assigned: bool = false;
 
 				// variables defined in catch shadow the global, don't rewrite location to the temploc here
-				self.recurse_binding_pattern(&p.pattern, &mut restids, false, &mut location_assigned);
+				self.recurse_binding_pattern(
+					&p.pattern,
+					&mut restids,
+					false,
+					&mut location_assigned,
+				);
 				self.jschanges.add(rewrite!(
 					h.body.body[0].span(),
 					CleanFunction {
@@ -503,35 +528,39 @@ where
 		it: &oxc::ast::ast::Function<'data>,
 		flags: oxc::syntax::scope::ScopeFlags,
 	) {
-	    if !self.flags.destructure_rewrites {
-    		walk::walk_function(self, it, flags);
-    		return;
-    	}
+		if !self.flags.destructure_rewrites {
+			walk::walk_function(self, it, flags);
+			return;
+		}
 
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		for param in &it.params.items {
-		    // function params shadow global, don't rewrite temploc
-			self.recurse_binding_pattern(&param.pattern, &mut restids, false, &mut location_assigned);
+			// function params shadow global, don't rewrite temploc
+			self.recurse_binding_pattern(
+				&param.pattern,
+				&mut restids,
+				false,
+				&mut location_assigned,
+			);
 		}
 
-
 		if restids.len() > 0 || location_assigned {
-    		if let Some(b) = &it.body {
-    			walk::walk_function_body(self, b);
-    			if let Some(stmt) = b.statements.get(0) {
-    				let span = stmt.span();
-    				self.jschanges.add(rewrite!(
-    					Span::new(span.start, span.start),
-    					CleanFunction {
-    						restids,
-    						expression: false,
-    						location_assigned,
-          wrap: false,
-    					}
-    				));
-    			}
-    		}
+			if let Some(b) = &it.body {
+				walk::walk_function_body(self, b);
+				if let Some(stmt) = b.statements.get(0) {
+					let span = stmt.span();
+					self.jschanges.add(rewrite!(
+						Span::new(span.start, span.start),
+						CleanFunction {
+							restids,
+							expression: false,
+							location_assigned,
+							wrap: false,
+						}
+					));
+				}
+			}
 		}
 	}
 
@@ -539,15 +568,20 @@ where
 		&mut self,
 		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
 	) {
-    	if !self.flags.destructure_rewrites {
-    		walk::walk_arrow_function_expression(self, it);
-    		return;
-    	}
+		if !self.flags.destructure_rewrites {
+			walk::walk_arrow_function_expression(self, it);
+			return;
+		}
 
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		for param in &it.params.items {
-			self.recurse_binding_pattern(&param.pattern, &mut restids, false, &mut location_assigned);
+			self.recurse_binding_pattern(
+				&param.pattern,
+				&mut restids,
+				false,
+				&mut location_assigned,
+			);
 		}
 
 		walk::walk_function_body(self, &it.body);
@@ -565,82 +599,82 @@ where
 	}
 
 	fn visit_for_statement(&mut self, it: &ForStatement<'data>) {
-	    if !self.flags.destructure_rewrites {
-    		walk::walk_for_statement(self, it);
-    		return;
-    	}
+		if !self.flags.destructure_rewrites {
+			walk::walk_for_statement(self, it);
+			return;
+		}
 
-        let mut restids: Vec<Atom<'data>> = Vec::new();
-        let mut location_assigned: bool = false;
-        if let Some(i) = &it.init {
-            if let ForStatementInit::VariableDeclaration(d) = &i {
-                self.handle_var_declarator(d, &mut restids, &mut location_assigned);
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		if let Some(i) = &it.init {
+			if let ForStatementInit::VariableDeclaration(d) = &i {
+				self.handle_var_declarator(d, &mut restids, &mut location_assigned);
 
-                if location_assigned || restids.len() > 0 {
-                    self.jschanges.add(rewrite!(
-                        d.span,
-                        CleanVariableDeclaration {
-                            restids,
-                            location_assigned,
-                        }
-                    ));
-                }
-            } else {
-                // we've narrowed the for specific stuff so it's just a regular expression now
-                walk::walk_for_statement_init(self, i);
-            }
-        }
+				if location_assigned || restids.len() > 0 {
+					self.jschanges.add(rewrite!(
+						d.span,
+						CleanVariableDeclaration {
+							restids,
+							location_assigned,
+						}
+					));
+				}
+			} else {
+				// we've narrowed the for specific stuff so it's just a regular expression now
+				walk::walk_for_statement_init(self, i);
+			}
+		}
 
-        if let Some(t) = &it.test {
-            walk::walk_expression(self, t);
-        }
+		if let Some(t) = &it.test {
+			walk::walk_expression(self, t);
+		}
 
-        if let Some(t) = &it.update {
-            walk::walk_expression(self, t);
-        }
-    }
+		if let Some(t) = &it.update {
+			walk::walk_expression(self, t);
+		}
+	}
 
-    fn visit_for_of_statement(&mut self, it: &oxc::ast::ast::ForOfStatement<'data>) {
-        let mut restids: Vec<Atom<'data>> = Vec::new();
-        let mut location_assigned: bool = false;
-        if let ForStatementLeft::VariableDeclaration(v) = &it.left {
-            self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
-        } else {
-            walk::walk_for_statement_left(self, &it.left);
-        }
+	fn visit_for_of_statement(&mut self, it: &oxc::ast::ast::ForOfStatement<'data>) {
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		if let ForStatementLeft::VariableDeclaration(v) = &it.left {
+			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
+		} else {
+			walk::walk_for_statement_left(self, &it.left);
+		}
 
-        if location_assigned || restids.len() > 0 {
-            match &it.body {
-                Statement::BlockStatement(b) => {
-                    self.jschanges.add(rewrite!(
-                        Span::new(b.span.start+1,b.span.end-1),
-                        CleanFunction {
-                            restids,
-                            location_assigned,
-                            expression: false,
-                            wrap: false,
-                        }
-                    ));
-                }
-                Statement::BreakStatement(_)|
-                Statement::ContinueStatement(_)|
-                Statement::EmptyStatement(_)|
-                Statement::DebuggerStatement(_) =>{}
-                _=> {
-                    self.jschanges.add(rewrite!(
-                        it.body.span(),
-                        CleanFunction {
-                            restids,
-                            location_assigned,
-                            expression: false,
-                            wrap: true,
-                        }
-                    ));
-                }
-            }
-        }
-        walk::walk_expression(self, &it.right);
-    }
+		if location_assigned || restids.len() > 0 {
+			match &it.body {
+				Statement::BlockStatement(b) => {
+					self.jschanges.add(rewrite!(
+						Span::new(b.span.start + 1, b.span.end - 1),
+						CleanFunction {
+							restids,
+							location_assigned,
+							expression: false,
+							wrap: false,
+						}
+					));
+				}
+				Statement::BreakStatement(_)
+				| Statement::ContinueStatement(_)
+				| Statement::EmptyStatement(_)
+				| Statement::DebuggerStatement(_) => {}
+				_ => {
+					self.jschanges.add(rewrite!(
+						it.body.span(),
+						CleanFunction {
+							restids,
+							location_assigned,
+							expression: false,
+							wrap: true,
+						}
+					));
+				}
+			}
+		}
+		walk::walk_expression(self, &it.right);
+	}
 
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
@@ -706,15 +740,15 @@ where
 		self.handle_var_declarator(&it, &mut restids, &mut location_assigned);
 
 		if location_assigned || restids.len() > 0 {
-    		self.jschanges.add(rewrite!(
-    			Span::new(it.span.end, it.span.end),
-    			CleanFunction {
-    				restids,
-    				expression: false,
-    				location_assigned,
-                    wrap: false,
-    			}
-    		));
+			self.jschanges.add(rewrite!(
+				Span::new(it.span.end, it.span.end),
+				CleanFunction {
+					restids,
+					expression: false,
+					location_assigned,
+					wrap: false,
+				}
+			));
 		}
 	}
 

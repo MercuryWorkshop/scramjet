@@ -105,9 +105,9 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		wrap: bool,
 	},
 	CleanVariableDeclaration {
-    	restids: Vec<Atom<'data>>,
-    	location_assigned: bool,
-	}
+		restids: Vec<Atom<'data>>,
+		location_assigned: bool,
+	},
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -151,13 +151,16 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
 			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
 			Ty::RebindProperty { ident, tempvar } => {
-			    if tempvar {
-
-							LL::replace(transforms![&cfg.wrappropertybase, ident, ":", &cfg.templocid])
-							} else {
-
-				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
-							}
+				if tempvar {
+					LL::replace(transforms![
+						&cfg.wrappropertybase,
+						ident,
+						":",
+						&cfg.templocid
+					])
+				} else {
+					LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
+				}
 			}
 			Ty::TempVar => LL::replace(transforms![&cfg.templocid]),
 			Ty::WrapObjectAssignmentLeft {
@@ -181,7 +184,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				restids,
 				expression,
 				location_assigned,
-				wrap
+				wrap,
 			} => {
 				let mut steps = String::new();
 
@@ -209,25 +212,28 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					}
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
 					if wrap {
-					    LL::insert(transforms!["{", &steps])
+						LL::insert(transforms!["{", &steps])
 					} else {
-	                    LL::insert(transforms![";", &steps])
+						LL::insert(transforms![";", &steps])
 					}
 				}
 			}
-			Ty::CleanVariableDeclaration { restids, location_assigned } => {
-     			let mut steps = String::new();
-    			for id in restids {
-    				steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
-    			}
-    			if location_assigned {
-    				steps.push_str(&format!(
-    					"{}(location,\"=\",{})||(location={}),",
-    					&cfg.trysetfn, &cfg.templocid, &cfg.templocid
-    				));
-    			}
-			    let steps: &'static str = Box::leak(steps.into_boxed_str());
-			    LL::insert(transforms![",", &cfg.tempunusedid, "=(",&steps, "0)"])
+			Ty::CleanVariableDeclaration {
+				restids,
+				location_assigned,
+			} => {
+				let mut steps = String::new();
+				for id in restids {
+					steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
+				}
+				if location_assigned {
+					steps.push_str(&format!(
+						"{}(location,\"=\",{})||(location={}),",
+						&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+					));
+				}
+				let steps: &'static str = Box::leak(steps.into_boxed_str());
+				LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0)"])
 			}
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
@@ -269,7 +275,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				} else {
 					LL::insert(vec)
 				}
-			},
+			}
 			Ty::ClosingBrace { semi, replace } => {
 				let vec = if semi {
 					transforms!["};"]
