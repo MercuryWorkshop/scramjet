@@ -245,13 +245,16 @@ where
 		&mut self,
 		it: &BindingPattern<'data>,
 		restids: &mut Vec<Atom<'data>>,
-		rewrite_location: bool,
+		no_shadow: bool,
 		location_assigned: &mut bool,
 	) {
 		match &it.kind {
 			BindingPatternKind::BindingIdentifier(p) => {
 				// let a = 0;
-				walk::walk_binding_identifier(self, p);
+				if no_shadow && p.name == "location" {
+    				self.jschanges.add(rewrite!(p.span, TempVar));
+    				*location_assigned = true;
+				}
 			}
 			BindingPatternKind::AssignmentPattern(p) => {
 				// const {a = 1} = 1;
@@ -286,13 +289,13 @@ where
 							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
 						}
 					}
-					self.recurse_binding_pattern(&prop.value, restids, rewrite_location, location_assigned);
+					self.recurse_binding_pattern(&prop.value, restids, no_shadow, location_assigned);
 				}
 
 				if let Some(r) = &p.rest {
 					match &r.argument.kind {
 						BindingPatternKind::BindingIdentifier(i) => {
-							if rewrite_location && i.name == "location" {
+							if no_shadow && i.name == "location" {
 								self.jschanges.add(rewrite!(i.span, TempVar));
 								restids
 									.push(self.alloc.alloc_str(&self.config.templocid).into());
@@ -480,6 +483,11 @@ where
 		it: &oxc::ast::ast::Function<'data>,
 		flags: oxc::syntax::scope::ScopeFlags,
 	) {
+	    if !self.flags.destructure_rewrites {
+    		walk::walk_function(self, it, flags);
+    		return;
+    	}
+
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		for param in &it.params.items {
@@ -487,25 +495,34 @@ where
 			self.recurse_binding_pattern(&param.pattern, &mut restids, false, &mut location_assigned);
 		}
 
-		if let Some(b) = &it.body {
-			walk::walk_function_body(self, b);
-			if let Some(stmt) = b.statements.get(0) {
-				let span = stmt.span();
-				self.jschanges.add(rewrite!(
-					Span::new(span.start, span.start),
-					CleanFunction {
-						restids,
-						expression: false,
-						location_assigned,
-					}
-				));
-			}
+
+		if restids.len() > 0 || location_assigned {
+    		if let Some(b) = &it.body {
+    			walk::walk_function_body(self, b);
+    			if let Some(stmt) = b.statements.get(0) {
+    				let span = stmt.span();
+    				self.jschanges.add(rewrite!(
+    					Span::new(span.start, span.start),
+    					CleanFunction {
+    						restids,
+    						expression: false,
+    						location_assigned,
+    					}
+    				));
+    			}
+    		}
 		}
 	}
+
 	fn visit_arrow_function_expression(
 		&mut self,
 		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
 	) {
+    	if !self.flags.destructure_rewrites {
+    		walk::walk_arrow_function_expression(self, it);
+    		return;
+    	}
+
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		for param in &it.params.items {
@@ -586,7 +603,7 @@ where
 
 		// (const/let) location = ... is perfectly fine, no matter the scope
 		// var location = ... is dangerous, it will assign to the real global if called in scope
-		let shadows = matches!(it.kind, VariableDeclarationKind::Var);
+		let no_shadow = matches!(it.kind, VariableDeclarationKind::Var);
 
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
@@ -595,7 +612,7 @@ where
 			if let Some(e) = &declaration.init {
 				walk::walk_expression(self, e);
 			}
-			self.recurse_binding_pattern(&declaration.id, &mut restids, shadows, &mut location_assigned);
+			self.recurse_binding_pattern(&declaration.id, &mut restids, no_shadow, &mut location_assigned);
 		}
 
 		self.jschanges.add(rewrite!(
