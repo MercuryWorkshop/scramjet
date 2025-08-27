@@ -76,6 +76,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	CleanFunction {
 		restids: Vec<Atom<'data>>,
 		expression: bool,
+		location_assigned: bool,
 	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
@@ -155,6 +156,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::CleanFunction {
 				restids,
 				expression,
+				location_assigned,
 			} => {
 				if expression {
 					smallvec![
@@ -162,7 +164,8 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 							Span::new(span.start, span.start),
 							CleanFunction {
 								restids,
-								expression
+								expression,
+								location_assigned
 							}
 						),
 						change!(
@@ -178,7 +181,8 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 						Span::new(span.start, span.start),
 						CleanFunction {
 							restids,
-							expression
+							expression,
+							location_assigned
 						}
 					),]
 				}

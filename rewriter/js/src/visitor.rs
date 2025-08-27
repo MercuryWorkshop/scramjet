@@ -11,9 +11,9 @@ use oxc::{
 		MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression,
 		ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement,
 		SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator,
-		UpdateExpression,
+		UpdateExpression, VariableDeclarationKind,
 	},
-	ast_visit::{Visit, walk},
+	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
 };
 
@@ -245,6 +245,7 @@ where
 		&mut self,
 		it: &BindingPattern<'data>,
 		restids: &mut Vec<Atom<'data>>,
+		rewrite_location: bool,
 		location_assigned: &mut bool,
 	) {
 		match &it.kind {
@@ -285,20 +286,20 @@ where
 							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
 						}
 					}
-					self.recurse_binding_pattern(&prop.value, restids, location_assigned);
+					self.recurse_binding_pattern(&prop.value, restids, rewrite_location, location_assigned);
 				}
 
 				if let Some(r) = &p.rest {
 					match &r.argument.kind {
 						BindingPatternKind::BindingIdentifier(i) => {
-							// if i.name == "location" {
-							// 	self.jschanges.add(rewrite!(i.span, TempVar));
-							// 	restids
-							// 		.push(self.alloc.alloc_str(&self.config.templocid).into());
-							// 	*location_assigned = true;
-							// } else {
-							restids.push(i.name);
-							// }
+							if rewrite_location && i.name == "location" {
+								self.jschanges.add(rewrite!(i.span, TempVar));
+								restids
+									.push(self.alloc.alloc_str(&self.config.templocid).into());
+								*location_assigned = true;
+							} else {
+    							restids.push(i.name);
+							}
 						}
 						_ => panic!("what?"),
 					}
@@ -318,21 +319,10 @@ where
 	E: UrlRewriter,
 {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
-		// if self.config.capture_errors {
-		// 	self.jschanges.insert(JsChange::GenericChange {
-		// 		span: it.span,
-		// 		text: format!(
-		// 			"{}({}, typeof arguments != 'undefined' && arguments)",
-		// 			self.config.wrapfn, it.name
-		// 		),
-		// 	});
-		// } else {
-		//
 		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
 			self.jschanges
 				.add(rewrite!(it.span, WrapFn { enclose: false }));
 		}
-		// }
 	}
 
 	fn visit_new_expression(&mut self, it: &NewExpression<'data>) {
@@ -367,19 +357,7 @@ where
 			MemberExpression::ComputedMemberExpression(s) => {
 				self.walk_computed_member_expression(s);
 			}
-			_ => {} // if !self.flags.strict_rewrites
-			        // 	&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
-			        // 	&& let Expression::Identifier(_) | Expression::ThisExpression(_) = &s.object
-			        // {
-			        // 	// cull tree - this should be safe
-			        // 	return;
-			        // }
-
-			        // if self.flags.scramitize
-			        // 	&& !matches!(s.object, Expression::MetaProperty(_) | Expression::Super(_))
-			        // {
-			        // 	self.scramitize(s.object.span());
-			        // }
+			_ => {}
 		}
 
 		walk::walk_member_expression(self, it);
@@ -444,7 +422,6 @@ where
 		// do not walk further, we don't want to rewrite the identifiers
 	}
 
-	// #[cfg(feature = "debug")]
 	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'data>) {
 		// for debugging we need to know what the error was
 
@@ -463,18 +440,19 @@ where
 			return;
 		}
 
-		dbg!(&it);
 		if let Some(h) = &it.handler {
 			if let Some(p) = &h.param {
 				let mut restids: Vec<Atom<'data>> = Vec::new();
 				let mut location_assigned: bool = false;
 
-				self.recurse_binding_pattern(&p.pattern, &mut restids, &mut location_assigned);
+				// variables defined in catch shadow the global, don't rewrite location to the temploc here
+				self.recurse_binding_pattern(&p.pattern, &mut restids, false, &mut location_assigned);
 				self.jschanges.add(rewrite!(
 					h.body.body[0].span(),
 					CleanFunction {
 						restids,
 						expression: false,
+						location_assigned,
 					}
 				));
 			}
@@ -505,7 +483,8 @@ where
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		for param in &it.params.items {
-			self.recurse_binding_pattern(&param.pattern, &mut restids, &mut location_assigned);
+		    // function params shadow global, don't rewrite temploc
+			self.recurse_binding_pattern(&param.pattern, &mut restids, false, &mut location_assigned);
 		}
 
 		if let Some(b) = &it.body {
@@ -516,7 +495,8 @@ where
 					Span::new(span.start, span.start),
 					CleanFunction {
 						restids,
-						expression: false
+						expression: false,
+						location_assigned,
 					}
 				));
 			}
@@ -529,7 +509,7 @@ where
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		for param in &it.params.items {
-			self.recurse_binding_pattern(&param.pattern, &mut restids, &mut location_assigned);
+			self.recurse_binding_pattern(&param.pattern, &mut restids, false, &mut location_assigned);
 		}
 
 		walk::walk_function_body(self, &it.body);
@@ -539,6 +519,7 @@ where
 				CleanFunction {
 					restids,
 					expression: it.expression,
+					location_assigned,
 				}
 			));
 		}
@@ -552,20 +533,6 @@ where
 		}
 
 		walk::walk_function_body(self, it);
-	}
-
-	fn visit_return_statement(&mut self, it: &ReturnStatement<'data>) {
-		// if let Some(arg) = &it.argument {
-		// 	self.jschanges.insert(JsChange::GenericChange {
-		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
-		// 		text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
-		// 	});
-		// 	self.jschanges.insert(JsChange::GenericChange {
-		// 		span: Span::new(expression_span(arg).end, expression_span(arg).end),
-		// 		text: format!("))"),
-		// 	});
-		// }
-		walk::walk_return_statement(self, it);
 	}
 
 	fn visit_unary_expression(&mut self, it: &UnaryExpression<'data>) {
@@ -617,6 +584,10 @@ where
 			return;
 		}
 
+		// (const/let) location = ... is perfectly fine, no matter the scope
+		// var location = ... is dangerous, it will assign to the real global if called in scope
+		let shadows = matches!(it.kind, VariableDeclarationKind::Var);
+
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 
@@ -624,7 +595,7 @@ where
 			if let Some(e) = &declaration.init {
 				walk::walk_expression(self, e);
 			}
-			self.recurse_binding_pattern(&declaration.id, &mut restids, &mut location_assigned);
+			self.recurse_binding_pattern(&declaration.id, &mut restids, shadows, &mut location_assigned);
 		}
 
 		self.jschanges.add(rewrite!(
@@ -632,6 +603,7 @@ where
 			CleanFunction {
 				restids,
 				expression: false,
+				location_assigned,
 			}
 		));
 	}
@@ -640,7 +612,8 @@ where
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				// location = ...
-				if ["location"].contains(&s.name.to_string().as_str()) {
+				// location is the only unsafe global that has a setter
+				if &s.name == "location" {
 					self.jschanges.add(rewrite!(
 						it.span,
 						Assignment {
