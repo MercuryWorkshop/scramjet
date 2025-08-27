@@ -60,6 +60,7 @@ fn get_config(scramjet: &Object) -> Result<Config> {
 		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
 		trysetfn: get_str(globals, "trysetfn")?,
 		templocid: get_str(globals, "templocid")?,
+		tempunusedid: get_str(globals, "tempunusedid")?,
 	})
 }
 

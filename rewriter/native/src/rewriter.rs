@@ -62,6 +62,7 @@ impl NativeRewriter {
 				pushsourcemapfn: cfg.pushsourcemapfn.clone(),
 				trysetfn: cfg.trysetfn.clone(),
 				templocid: cfg.templocid.clone(),
+				tempunusedid: cfg.tempunusedid.clone(),
 			},
 			NativeUrlRewriter,
 		);

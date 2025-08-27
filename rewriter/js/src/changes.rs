@@ -97,6 +97,10 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		expression: bool,
 		location_assigned: bool,
 	},
+	CleanVariableDeclaration {
+    	restids: Vec<Atom<'data>>,
+    	location_assigned: bool,
+	}
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -192,6 +196,20 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
 					LL::insert(transforms![";", &steps])
 				}
+			}
+			Ty::CleanVariableDeclaration { restids, location_assigned } => {
+     			let mut steps = String::new();
+    			for id in restids {
+    				steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
+    			}
+    			if location_assigned {
+    				steps.push_str(&format!(
+    					"{}(location,\"=\",{})||(location={}),",
+    					&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+    				));
+    			}
+			    let steps: &'static str = Box::leak(steps.into_boxed_str());
+			    LL::insert(transforms![",", &cfg.tempunusedid, "=(",&steps, "0)"])
 			}
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
