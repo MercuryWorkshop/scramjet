@@ -95,6 +95,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	CleanFunction {
 		restids: Vec<Atom<'data>>,
 		expression: bool,
+		location_assigned: bool,
 	},
 }
 
@@ -162,6 +163,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::CleanFunction {
 				restids,
 				expression,
+				location_assigned,
 			} => {
 				let mut steps = String::new();
 
@@ -169,11 +171,23 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					for id in restids {
 						steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
 					}
+					if location_assigned {
+						steps.push_str(&format!(
+							"{}(location,\"=\",{})||(location={}),",
+							&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+						));
+					}
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
 					LL::insert(transforms!["(", &steps])
 				} else {
 					for id in restids {
 						steps.push_str(&format!("{}({});", &cfg.cleanrestfn, id.as_str()));
+					}
+					if location_assigned {
+						steps.push_str(&format!(
+							"{}(location,\"=\",{})||(location={});",
+							&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+						));
 					}
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
 					LL::insert(transforms![";", &steps])
