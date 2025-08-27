@@ -42,6 +42,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 	RebindProperty {
 		ident: Atom<'data>,
+		tempvar: bool,
 	},
 	TempVar,
 
@@ -82,6 +83,11 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		semi: bool,
 		replace: bool,
 	},
+	/// insert `}`
+	ClosingBrace {
+		semi: bool,
+		replace: bool,
+	},
 
 	/// replace span with text
 	Replace {
@@ -96,6 +102,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		restids: Vec<Atom<'data>>,
 		expression: bool,
 		location_assigned: bool,
+		wrap: bool,
 	},
 	CleanVariableDeclaration {
     	restids: Vec<Atom<'data>>,
@@ -143,8 +150,14 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(("]),
 			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
 			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
-			Ty::RebindProperty { ident } => {
+			Ty::RebindProperty { ident, tempvar } => {
+			    if tempvar {
+
+							LL::replace(transforms![&cfg.wrappropertybase, ident, ":", &cfg.templocid])
+							} else {
+
 				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
+							}
 			}
 			Ty::TempVar => LL::replace(transforms![&cfg.templocid]),
 			Ty::WrapObjectAssignmentLeft {
@@ -168,6 +181,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				restids,
 				expression,
 				location_assigned,
+				wrap
 			} => {
 				let mut steps = String::new();
 
@@ -194,7 +208,11 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 						));
 					}
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
-					LL::insert(transforms![";", &steps])
+					if wrap {
+					    LL::insert(transforms!["{", &steps])
+					} else {
+	                    LL::insert(transforms![";", &steps])
+					}
 				}
 			}
 			Ty::CleanVariableDeclaration { restids, location_assigned } => {
@@ -244,6 +262,19 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					transforms![");"]
 				} else {
 					transforms![")"]
+				};
+
+				if replace {
+					LL::replace(vec)
+				} else {
+					LL::insert(vec)
+				}
+			},
+			Ty::ClosingBrace { semi, replace } => {
+				let vec = if semi {
+					transforms!["};"]
+				} else {
+					transforms!["}"]
 				};
 
 				if replace {
