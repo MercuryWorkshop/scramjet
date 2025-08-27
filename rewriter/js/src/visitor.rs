@@ -3,7 +3,7 @@ use std::error::Error;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
-		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault, AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern, BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement, FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression, VariableDeclaration, VariableDeclarationKind
+		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault, AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern, BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression, VariableDeclaration, VariableDeclarationKind, VariableDeclarator
 	},
 	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
@@ -305,6 +305,18 @@ where
 		}
 	}
 
+	fn handle_var_declarator(&mut self, v: &VariableDeclaration<'data>, restids: &mut Vec<Atom<'data>>, location_assigned: &mut bool) {
+    	// (const/let) location = ... is perfectly fine, no matter the scope
+    	// var location = ... is dangerous, it will assign to the real global if called in scope
+	    let no_shadow = matches!(v.kind, VariableDeclarationKind::Var);
+        for dec in &v.declarations {
+            if let Some(ini) = &dec.init {
+                walk::walk_expression(self, ini);
+            }
+            self.recurse_binding_pattern(&dec.id, restids, no_shadow, location_assigned);
+        }
+	}
+
 	fn scramitize(&mut self, span: Span) {
 		self.jschanges.add(rewrite!(span, Scramitize));
 	}
@@ -545,14 +557,7 @@ where
         let mut location_assigned: bool = false;
         if let Some(i) = &it.init {
             if let ForStatementInit::VariableDeclaration(d) = &i {
-                let no_shadow = matches!(d.kind, VariableDeclarationKind::Var);
-                for dec in &d.declarations {
-                    if let Some(ini) = &dec.init {
-                        walk::walk_expression(self, ini);
-                    }
-
-                    self.recurse_binding_pattern(&dec.id, &mut restids, no_shadow, &mut location_assigned);
-                }
+                self.handle_var_declarator(d, &mut restids, &mut location_assigned);
 
                 if location_assigned || restids.len() > 0 {
                     self.jschanges.add(rewrite!(
@@ -576,7 +581,26 @@ where
         if let Some(t) = &it.update {
             walk::walk_expression(self, t);
         }
+    }
 
+    fn visit_for_of_statement(&mut self, it: &oxc::ast::ast::ForOfStatement<'data>) {
+        let mut restids: Vec<Atom<'data>> = Vec::new();
+        let mut location_assigned: bool = false;
+        if let ForStatementLeft::VariableDeclaration(v) = &it.left {
+            self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
+        } else {
+            walk::walk_for_statement_left(self, &it.left);
+        }
+        if location_assigned || restids.len() > 0 {
+            self.jschanges.add(rewrite!(
+                it.span,
+                CleanVariableDeclaration {
+                    restids,
+                    location_assigned,
+                }
+            ));
+        }
+        walk::walk_expression(self, &it.right);
     }
 
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
@@ -638,28 +662,20 @@ where
 			return;
 		}
 
-		// (const/let) location = ... is perfectly fine, no matter the scope
-		// var location = ... is dangerous, it will assign to the real global if called in scope
-		let no_shadow = matches!(it.kind, VariableDeclarationKind::Var);
-
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
+		self.handle_var_declarator(&it, &mut restids, &mut location_assigned);
 
-		for declaration in &it.declarations {
-			if let Some(e) = &declaration.init {
-				walk::walk_expression(self, e);
-			}
-			self.recurse_binding_pattern(&declaration.id, &mut restids, no_shadow, &mut location_assigned);
+		if location_assigned || restids.len() > 0 {
+    		self.jschanges.add(rewrite!(
+    			Span::new(it.span.end, it.span.end),
+    			CleanFunction {
+    				restids,
+    				expression: false,
+    				location_assigned,
+    			}
+    		));
 		}
-
-		self.jschanges.add(rewrite!(
-			Span::new(it.span.end, it.span.end),
-			CleanFunction {
-				restids,
-				expression: false,
-				location_assigned,
-			}
-		));
 	}
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
