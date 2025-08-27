@@ -3,7 +3,7 @@ use std::error::Error;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
-		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault, AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern, BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression, VariableDeclaration, VariableDeclarationKind, VariableDeclarator
+		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault, AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern, BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, Statement, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression, VariableDeclaration, VariableDeclarationKind, VariableDeclarator
 	},
 	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
@@ -129,7 +129,8 @@ where
 						self.jschanges.add(rewrite!(
 							p.binding.span(),
 							RebindProperty {
-								ident: p.binding.name.clone()
+								ident: p.binding.name.clone(),
+								tempvar: false,
 							}
 						));
 					}
@@ -261,16 +262,29 @@ where
 							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
 								if prop.shorthand {
 									// const { location } = self;
+									let mut tempvar = false;
+									if no_shadow && id.name == "location" {
+    									tempvar = true;
+    									*location_assigned = true;
+									}
 									self.jschanges.add(rewrite!(
-										id.span(),
-										RebindProperty { ident: id.name }
-									));
+  										id.span(),
+  										RebindProperty { ident: id.name, tempvar }
+   									));
 								} else {
 									// const { location: a } = self;
-									self.jschanges.add(rewrite!(
-										id.span(),
-										RewriteProperty { ident: id.name }
-									));
+									if no_shadow && id.name == "location" {
+                   					    self.jschanges.add(rewrite!(
+    										id.span(),
+    										RewriteProperty { ident: self.alloc.alloc_str(&self.config.templocid).into() }
+    									));
+                                        *location_assigned = true;
+									} else {
+									    self.jschanges.add(rewrite!(
+    										id.span(),
+    										RewriteProperty { ident: id.name }
+    									));
+									}
 								}
 							}
 						}
@@ -282,7 +296,7 @@ where
 							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
 						}
 					}
-					self.recurse_binding_pattern(&prop.value, restids, no_shadow, location_assigned);
+					// self.recurse_binding_pattern(&prop.value, restids, no_shadow, location_assigned);
 				}
 
 				if let Some(r) = &p.rest {
@@ -591,14 +605,34 @@ where
         } else {
             walk::walk_for_statement_left(self, &it.left);
         }
+
         if location_assigned || restids.len() > 0 {
-            self.jschanges.add(rewrite!(
-                it.span,
-                CleanVariableDeclaration {
-                    restids,
-                    location_assigned,
+            match &it.body {
+                Statement::BlockStatement(b) => {
+                    self.jschanges.add(rewrite!(
+                        Span::new(b.span.start+1,b.span.end-1),
+                        CleanFunction {
+                            restids,
+                            location_assigned,
+                            expression: false,
+                        }
+                    ));
                 }
-            ));
+                Statement::BreakStatement(_)|
+                Statement::ContinueStatement(_)|
+                Statement::EmptyStatement(_)|
+                Statement::DebuggerStatement(_) =>{}
+                _=> {
+                    self.jschanges.add(rewrite!(
+                        it.body.span(),
+                        CleanFunction {
+                            restids,
+                            location_assigned,
+                            expression: false,
+                        }
+                    ));
+                }
+            }
         }
         walk::walk_expression(self, &it.right);
     }
