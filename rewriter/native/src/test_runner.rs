@@ -2,7 +2,7 @@
 mod test {
 	use std::fs;
 
-	use crate::{rewriter::NativeRewriter, RewriterOptions};
+	use crate::{RewriterOptions, rewriter::NativeRewriter};
 	use boa_engine::{
 		Context, NativeFunction, Source, js_str, js_string,
 		object::ObjectInitializer,
@@ -18,7 +18,7 @@ mod test {
 			.unwrap();
 		let top = ObjectInitializer::new(&mut context).build();
 		context
-    		.register_global_property(js_str!("top"), top, Attribute::READONLY)
+			.register_global_property(js_str!("top"), top, Attribute::READONLY)
 			.unwrap();
 		context
 			.global_object()
@@ -97,7 +97,7 @@ function check(val) {
 	fn rewrite_tests() {
 		let files = fs::read_dir("./tests").unwrap();
 
-		let opts = crate::RewriterOptions{
+		let opts = crate::RewriterOptions {
 			prefix: String::from("/scrammedjet/"),
 			wrapfn: String::from("$wrap"),
 			wrappropertybase: String::from("$sj_"),
@@ -110,6 +110,7 @@ function check(val) {
 			pushsourcemapfn: String::from("$pushsourcemap"),
 			trysetfn: String::from("$tryset"),
 			templocid: String::from("$temploc"),
+			tempunusedid: String::from("$tempunused"),
 			base: String::from("https://google.com/glorngle/si.js"),
 			sourcetag: String::from("glongle1"),
 			is_module: false,

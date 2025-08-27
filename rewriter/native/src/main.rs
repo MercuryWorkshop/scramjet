@@ -45,7 +45,9 @@ pub struct RewriterOptions {
 	#[clap(long, default_value = "$tryset")]
 	trysetfn: String,
 	#[clap(long, default_value = "$temploc")]
-    templocid: String,
+	templocid: String,
+	#[clap(long, default_value = "$tempunused")]
+	tempunusedid: String,
 
 	#[clap(long, default_value = "https://google.com/glorngle/si.js")]
 	base: String,

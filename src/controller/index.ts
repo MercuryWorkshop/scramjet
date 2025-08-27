@@ -36,6 +36,7 @@ export class ScramjetController extends EventTarget {
 				pushsourcemapfn: "$scramjet$pushsourcemap",
 				trysetfn: "$scramjet$tryset",
 				templocid: "$scramjet$temploc",
+				tempunusedid: "$scramjet$tempunused",
 			},
 			files: {
 				wasm: "/scramjet.wasm.wasm",

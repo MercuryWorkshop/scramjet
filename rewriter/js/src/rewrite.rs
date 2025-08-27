@@ -78,6 +78,11 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		expression: bool,
 		location_assigned: bool,
 	},
+	/// `var location = ...` -> `var cfg.temploc = ..., cfg.tempunused = (cfg.cleanrestfn(restids[0]),cfg.trysetfn(location,"=",cfg.temploc)||location=cfg.temploc)`
+	CleanVariableDeclaration {
+		restids: Vec<Atom<'data>>,
+		location_assigned: bool,
+	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
 	Replace {
@@ -187,6 +192,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 					),]
 				}
 			}
+			Self::CleanVariableDeclaration { restids, location_assigned } => smallvec![change!(span!(end), CleanVariableDeclaration {restids, location_assigned})],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],

@@ -31,6 +31,7 @@ export interface ScramjetConfig {
 		pushsourcemapfn: string;
 		trysetfn: string;
 		templocid: string;
+		tempunusedid: string;
 	};
 	files: {
 		wasm: string;

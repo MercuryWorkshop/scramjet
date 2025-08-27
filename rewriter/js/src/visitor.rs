@@ -3,19 +3,12 @@ use std::error::Error;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	ast::ast::{
-		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault,
-		AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern,
-		BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression,
-		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression,
-		FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression,
-		MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression,
-		ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement,
-		SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator,
-		UpdateExpression, VariableDeclarationKind,
+		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault, AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern, BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression, DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement, FormalParameter, FunctionBody, IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind, PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression, VariableDeclaration, VariableDeclarationKind
 	},
 	ast_visit::{walk, Visit},
 	span::{Atom, GetSpan, Span},
 };
+use oxc::ast::ast::ForStatementInit;
 
 use crate::{
 	cfg::{Config, Flags, UrlRewriter},
@@ -541,6 +534,50 @@ where
 			));
 		}
 	}
+
+	fn visit_for_statement(&mut self, it: &ForStatement<'data>) {
+	    if !self.flags.destructure_rewrites {
+    		walk::walk_for_statement(self, it);
+    		return;
+    	}
+
+        let mut restids: Vec<Atom<'data>> = Vec::new();
+        let mut location_assigned: bool = false;
+        if let Some(i) = &it.init {
+            if let ForStatementInit::VariableDeclaration(d) = &i {
+                let no_shadow = matches!(d.kind, VariableDeclarationKind::Var);
+                for dec in &d.declarations {
+                    if let Some(ini) = &dec.init {
+                        walk::walk_expression(self, ini);
+                    }
+
+                    self.recurse_binding_pattern(&dec.id, &mut restids, no_shadow, &mut location_assigned);
+                }
+
+                if location_assigned || restids.len() > 0 {
+                    self.jschanges.add(rewrite!(
+                        d.span,
+                        CleanVariableDeclaration {
+                            restids,
+                            location_assigned,
+                        }
+                    ));
+                }
+            } else {
+                // we've narrowed the for specific stuff so it's just a regular expression now
+                walk::walk_for_statement_init(self, i);
+            }
+        }
+
+        if let Some(t) = &it.test {
+            walk::walk_expression(self, t);
+        }
+
+        if let Some(t) = &it.update {
+            walk::walk_expression(self, t);
+        }
+
+    }
 
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
