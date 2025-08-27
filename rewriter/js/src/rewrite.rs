@@ -135,7 +135,9 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				change!(span!(end), WrapFnRight { enclose }),
 			],
 			Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
-			Self::RebindProperty { ident, tempvar } => smallvec![change!(span, RebindProperty { ident, tempvar })],
+			Self::RebindProperty { ident, tempvar } => {
+				smallvec![change!(span, RebindProperty { ident, tempvar })]
+			}
 			Self::TempVar => smallvec![change!(span, TempVar)],
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
@@ -186,20 +188,24 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 						)
 					]
 				} else if wrap {
-				smallvec![change!(
-										Span::new(span.start, span.start),
-										CleanFunction {
-											restids,
-											expression,
-											location_assigned,
-											wrap
-										}
-				),
-
-				change!(span!(end), ClosingBrace {
-    					semi: false,
-    					replace: false
-				})]
+					smallvec![
+						change!(
+							Span::new(span.start, span.start),
+							CleanFunction {
+								restids,
+								expression,
+								location_assigned,
+								wrap
+							}
+						),
+						change!(
+							span!(end),
+							ClosingBrace {
+								semi: false,
+								replace: false
+							}
+						)
+					]
 				} else {
 					smallvec![change!(
 						Span::new(span.start, span.start),
@@ -209,11 +215,19 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 							location_assigned,
 							wrap
 						}
-					)
-					]
+					)]
 				}
 			}
-			Self::CleanVariableDeclaration { restids, location_assigned } => smallvec![change!(span!(end), CleanVariableDeclaration {restids, location_assigned})],
+			Self::CleanVariableDeclaration {
+				restids,
+				location_assigned,
+			} => smallvec![change!(
+				span!(end),
+				CleanVariableDeclaration {
+					restids,
+					location_assigned
+				}
+			)],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
