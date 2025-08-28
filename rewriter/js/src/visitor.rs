@@ -134,11 +134,16 @@ where
 					// correct thing to do here is to change it into an AsignmentTargetPropertyProperty
 					// { $sj_location: location } = self;
 					if UNSAFE_GLOBALS.contains(&p.binding.name.to_string().as_str()) {
+    					let mut tempvar = false;
+						if p.binding.name == "location" {
+							tempvar = true;
+							*location_assigned = true;
+						}
 						self.jschanges.add(rewrite!(
 							p.binding.span(),
 							RebindProperty {
 								ident: p.binding.name.clone(),
-								tempvar: false,
+								tempvar,
 							}
 						));
 					}
