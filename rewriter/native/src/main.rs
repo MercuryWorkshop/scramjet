@@ -109,10 +109,10 @@ fn main() -> Result<()> {
 			let source =
 				Arc::new(NamedSource::new(data.clone(), config.base).with_language("javascript"));
 
-			println!(
-				"rewritten:\n{}",
-				str::from_utf8(&res.js).context("failed to parse rewritten js")?
+			eprintln!(
+				"rewritten:\n",
 			);
+			println!("{}", str::from_utf8(&res.js).context("failed to parse rewritten js")?);
 
 			let unrewritten = NativeRewriter::unrewrite(&res);
 			// println!(
@@ -127,7 +127,7 @@ fn main() -> Result<()> {
 
 			rewriter.reset();
 
-			println!(
+			eprintln!(
 				"unrewritten matches orig: {}",
 				data.as_bytes() == unrewritten.as_slice()
 			);
