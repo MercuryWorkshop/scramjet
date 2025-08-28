@@ -69,23 +69,6 @@ where
 		}
 	}
 
-	// fn walk_member_expression(&mut self, it: &Expression) -> bool {
-	// 	match it {
-	// 		Expression::Identifier(s) => false,
-	// 		Expression::StaticMemberExpression(s) => {
-	// 			if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
-	// 				// self.jschanges.add(rewrite!(s.span, WrapAccess {
-	// 				//          ident: s.property.name,
-	// 				//          propspan: s.property.span,
-	// 				//      }
-	// 				// ));
-	// 			}
-	// 			self.walk_member_expression(&s.object)
-	// 		}
-	// 		Expression::ComputedMemberExpression(s) => self.walk_member_expression(&s.object),
-	// 		_ => false,
-	// 	}
-	// }
 	fn walk_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
 		match &it.expression {
 			Expression::NullLiteral(_)
@@ -361,6 +344,48 @@ where
 			}
 			self.recurse_binding_pattern(&dec.id, restids, no_shadow, location_assigned);
 		}
+	}
+
+	fn handle_for_of_in(&mut self, left: &ForStatementLeft<'data>, right: &Expression<'data>, body: &Statement<'data>) {
+    	let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		if let ForStatementLeft::VariableDeclaration(v) = &left {
+			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
+		} else {
+			walk::walk_for_statement_left(self, &left);
+		}
+
+		if location_assigned || restids.len() > 0 {
+			match &body {
+				Statement::BlockStatement(b) => {
+					self.jschanges.add(rewrite!(
+						Span::new(b.span.start + 1, b.span.end - 1),
+						CleanFunction {
+							restids,
+							location_assigned,
+							expression: false,
+							wrap: false,
+						}
+					));
+				}
+				Statement::BreakStatement(_)
+				| Statement::ContinueStatement(_)
+				| Statement::EmptyStatement(_)
+				| Statement::DebuggerStatement(_) => {}
+				_ => {
+					self.jschanges.add(rewrite!(
+						body.span(),
+						CleanFunction {
+							restids,
+							location_assigned,
+							expression: false,
+							wrap: true,
+						}
+					));
+				}
+			}
+		}
+		walk::walk_expression(self, &right);
 	}
 
 	fn scramitize(&mut self, span: Span) {
@@ -647,45 +672,10 @@ where
 	}
 
 	fn visit_for_of_statement(&mut self, it: &oxc::ast::ast::ForOfStatement<'data>) {
-		let mut restids: Vec<Atom<'data>> = Vec::new();
-		let mut location_assigned: bool = false;
-		if let ForStatementLeft::VariableDeclaration(v) = &it.left {
-			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
-		} else {
-			walk::walk_for_statement_left(self, &it.left);
-		}
-
-		if location_assigned || restids.len() > 0 {
-			match &it.body {
-				Statement::BlockStatement(b) => {
-					self.jschanges.add(rewrite!(
-						Span::new(b.span.start + 1, b.span.end - 1),
-						CleanFunction {
-							restids,
-							location_assigned,
-							expression: false,
-							wrap: false,
-						}
-					));
-				}
-				Statement::BreakStatement(_)
-				| Statement::ContinueStatement(_)
-				| Statement::EmptyStatement(_)
-				| Statement::DebuggerStatement(_) => {}
-				_ => {
-					self.jschanges.add(rewrite!(
-						it.body.span(),
-						CleanFunction {
-							restids,
-							location_assigned,
-							expression: false,
-							wrap: true,
-						}
-					));
-				}
-			}
-		}
-		walk::walk_expression(self, &it.right);
+    	self.handle_for_of_in(&it.left, &it.right, &it.body);
+	}
+	fn visit_for_in_statement(&mut self, it: &oxc::ast::ast::ForInStatement<'data>) {
+    	self.handle_for_of_in(&it.left, &it.right, &it.body);
 	}
 
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
