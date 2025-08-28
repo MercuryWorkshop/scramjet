@@ -183,27 +183,34 @@ where
 						}
 					}
 
-					match &p.binding {
-						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
-							// { location: x = parent } = {};
-							// if let Some(name) = p.binding.iden && name == "location" {
-							//     self.jschanges.add(rewrite!(p.span(), TempVar));
-							//                          *location_assigned = true;
-							// 			}
-							// we still need to rewrite whatever stuff might be in the default expression
-							walk::walk_expression(self, &d.init);
+					let mut target;
+
+					if let Some(t) = p.binding.as_assignment_target() {
+					    target = t;
+					} else {
+    					match &p.binding {
+    						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
+                                target = &d.binding;
+                                // { location: x = parent } = {};
+    							// we still need to rewrite whatever stuff might be in the default expression
+    							walk::walk_expression(self, &d.init);
+                            }
+                            _=>unreachable!()
+                        }
+					}
+
+					match &target {
+						AssignmentTarget::ObjectAssignmentTarget(p) => {
+							self.recurse_object_assignment_target(&p, restids, location_assigned);
 						}
-						AssignmentTargetMaybeDefault::ObjectAssignmentTarget(p) => {
-							self.recurse_object_assignment_target(p, restids, location_assigned);
-						}
-						AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p) => {
+						AssignmentTarget::AssignmentTargetIdentifier(p) => {
 							if p.name == "location" {
 								self.jschanges.add(rewrite!(p.span(), TempVar));
 								*location_assigned = true;
 							}
 						}
-						AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
-							self.recurse_array_assignment_target(a, restids, location_assigned);
+						AssignmentTarget::ArrayAssignmentTarget(a) => {
+							self.recurse_array_assignment_target(&a, restids, location_assigned);
 						}
 						_ => {}
 					}
