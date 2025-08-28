@@ -185,7 +185,7 @@ jobs:
   publish:
     name: Publish Scramjet to NPM
     runs-on: ubuntu-latest
-    needs: [build, tests]
+    needs: [build, rewritertests, tests]
     if: false
     permissions: write-all
     steps:
@@ -231,7 +231,7 @@ jobs:
   pages:
     name: Upload to Github Pages
     runs-on: ubuntu-latest
-    needs: [build, tests]
+    needs: [build, rewritertests, tests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
     steps:
