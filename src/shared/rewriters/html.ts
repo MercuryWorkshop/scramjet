@@ -46,7 +46,7 @@ function rewriteHtmlInner(
 		const dump = JSON.stringify(cookieStore.dump());
 		const injected = `
 			self.COOKIE = ${dump};
-			$scramjetLoadClient(${JSON.stringify(config)});
+			$scramjetLoadClient().loadAndHook(${JSON.stringify(config)})
 			if ("document" in self && document?.currentScript) {
 				document.currentScript.remove();
 			}
