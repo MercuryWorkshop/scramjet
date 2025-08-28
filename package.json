@@ -20,7 +20,8 @@
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
 		"test": "npx playwright test",
-		"preinstall": "npx only-allow pnpm"
+		"preinstall": "npx only-allow pnpm",
+		"docs": "typedoc"
 	},
 	"files": [
 		"dist/*.js",
@@ -68,6 +69,7 @@
 		"domutils": "^3.2.2",
 		"htmlparser2": "10.0.0",
 		"parse-domain": "^8.2.2",
-		"set-cookie-parser": "^2.7.1"
+		"set-cookie-parser": "^2.7.1",
+		"typedoc": "^0.28.11"
 	}
 }
