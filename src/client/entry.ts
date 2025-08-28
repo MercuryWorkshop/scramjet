@@ -21,7 +21,7 @@ function createFrameId() {
 		.join("")}`;
 }
 
-export function clientInitHook(config: ScramjetConfig) {
+export function loadAndHook(config: ScramjetConfig) {
 	setConfig(config);
 	dbg.log("initializing scramjet client");
 	// if it already exists, that means the handlers have probably already been setup by the parent document
