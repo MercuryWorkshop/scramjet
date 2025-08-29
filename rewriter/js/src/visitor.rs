@@ -277,6 +277,9 @@ where
 											tempvar
 										}
 									));
+
+									// don't recurse into the value because the value is the same and it would double rewrite the prop
+									continue;
 								} else {
 									// const { location: a } = self;
 									if no_shadow && id.name == "location" {
@@ -307,7 +310,7 @@ where
 							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
 						}
 					}
-					// self.recurse_binding_pattern(&prop.value, restids, no_shadow, location_assigned);
+					self.recurse_binding_pattern(&prop.value, restids, no_shadow, location_assigned);
 				}
 
 				if let Some(r) = &p.rest {
