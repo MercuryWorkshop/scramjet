@@ -1,23 +1,18 @@
 declare const scramjetPath: string;
 
 import * as controller from "../dist/types/controller/index.ts";
-import * as worker from "../dist/types/worker/index.ts";
-import * as types from "../dist/types/types.ts";
-import * as frame from "../dist/types/controller/frame.ts";
-import * as events from "../dist/types/client/events.ts";
-import { ScramjetClient as _ScramjetClient } from "../dist/types/client/index.ts";
+import { ScramjetConfig } from "../dist/types/types.ts";
+
+import * as worker from "../dist/types/worker";
+import * as shared from "../dist/types/shared";
 
 declare global {
 	function $scramjetLoadController(): typeof controller;
 	function $scramjetLoadWorker(): typeof worker;
-	function $scramjetLoadClient(config: ScramjetConfig);
-	type ScramjetController = controller.ScramjetController;
-	type ScramjetFrame = frame.ScramjetFrame;
-	type ScramjetClient = _ScramjetClient;
-	type ScramjetDownload = events.ScramjetDownload;
-
-	type ScramjetConfig = types.ScramjetConfig;
-	type ScramjetInitConfig = types.ScramjetInitConfig;
+	function $scramjetLoadClient(config: ScramjetConfig): typeof client;
+	function $scramjetLoadShared(): typeof shared;
+	/// load any file from scramjet source
+	function $scramjetRequire(path: string): any;
 	var $scramjetVersion: {
 		build: string;
 		version: string;

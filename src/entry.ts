@@ -193,6 +193,10 @@ export function $scramjetLoadWorker(): {
 	return require("./worker/index");
 }
 
+self.$scramjetRequire = function (path: string) {
+	return require(path);
+};
+
 /**
  * Version information for the current Scramjet build.
  * Contains both the semantic version string and the git commit hash for build identification.

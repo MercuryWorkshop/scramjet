@@ -10,6 +10,9 @@ import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
 import { config, loadCodecs, setConfig } from "@/shared";
 import { ScramjetDownload } from "@client/events";
+export * from "./error";
+export * from "./fetch";
+export * from "./fakesw";
 
 /**
  * Main `ScramjetServiceWorker` class created by the `$scramjetLoadWorker` factory, which handles routing the proxy and contains the core logic for request interception.

@@ -14,6 +14,9 @@ export const isshared = "SharedWorkerGlobalScope" in self;
 export const isemulatedsw =
 	new URL(self.location.href).searchParams.get("dest") === "serviceworker";
 
+export * from "./index";
+export * from "./location";
+
 function createFrameId() {
 	return `${Array(8)
 		.fill(0)
