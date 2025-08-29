@@ -11,6 +11,7 @@ import { App } from "./App";
 import { css, type Component } from "dreamland/core";
 
 const { ScramjetController } = $scramjetLoadController();
+import { type ScramjetInitConfig } from "@mercuryworkshop/scramjet";
 
 export const isPuter = !import.meta.env.VITE_LOCAL && puter.env == "app";
 

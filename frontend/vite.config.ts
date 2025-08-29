@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { scramjetPath } from "@mercuryworkshop/scramjet";
+import { scramjetPath } from "@mercuryworkshop/scramjet/path";
 
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
