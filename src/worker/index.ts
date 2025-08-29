@@ -5,6 +5,7 @@ import { ScramjetConfig } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
 import { config, loadCodecs, setConfig } from "@/shared";
+import { ScramjetDownload } from "@client/events";
 
 export class ScramjetServiceWorker extends EventTarget {
 	client: BareClient;
@@ -144,8 +145,11 @@ type ConfigMessage = {
 	config: ScramjetConfig;
 };
 
+type DownloadMessage = {
+	scramjet$type: "download";
+	download: ScramjetDownload;
+};
 type MessageCommon = {
-	scramjet$type: string;
 	scramjet$token?: number;
 };
 
@@ -153,7 +157,7 @@ type MessageTypeC2W =
 	| RegisterServiceWorkerMessage
 	| CookieMessage
 	| ConfigMessage;
-type MessageTypeW2C = CookieMessage;
+type MessageTypeW2C = CookieMessage | DownloadMessage;
 
 // c2w: client to (service) worker
 export type MessageC2W = MessageCommon & MessageTypeC2W;

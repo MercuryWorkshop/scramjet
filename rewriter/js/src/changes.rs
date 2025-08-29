@@ -44,6 +44,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 	RebindProperty {
 		ident: Atom<'data>,
+		tempvar: bool,
 	},
 	TempVar,
 	DeclTempLoc,
@@ -85,6 +86,11 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		semi: bool,
 		replace: bool,
 	},
+	/// insert `}`
+	ClosingBrace {
+		semi: bool,
+		replace: bool,
+	},
 
 	/// replace span with text
 	Replace {
@@ -92,6 +98,19 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 	/// replace span with ""
 	Delete,
+	// ;cfg.cleanrestfn(restids[0]); cfg.cleanrestfn(restids[1]);
+	// or
+	// (cfg.cleanrestfn(restids[0]), cfg.cleanrestfn(restids[1]),
+	CleanFunction {
+		restids: Vec<Atom<'data>>,
+		expression: bool,
+		location_assigned: bool,
+		wrap: bool,
+	},
+	CleanVariableDeclaration {
+		restids: Vec<Atom<'data>>,
+		location_assigned: bool,
+	},
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -121,7 +140,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
-			Ty::DeclTempLoc => LL::insert(transforms![";var ",&cfg.templocid,";"]),
+			Ty::DeclTempLoc => LL::insert(transforms![";var ", &cfg.templocid, ";"]),
 			Ty::WrapFnLeft { enclose } => LL::insert(if enclose {
 				transforms!["(", &cfg.wrapfn, "("]
 			} else {
@@ -152,8 +171,20 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					LL::replace(transforms![&cfg.wrappropertybase, ident])
 				}
 			}
-			Ty::RebindProperty { ident } => {
-				LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
+			// Ty::RebindProperty { ident } => {
+			// 	LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
+			// Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
+			Ty::RebindProperty { ident, tempvar } => {
+				if tempvar {
+					LL::replace(transforms![
+						&cfg.wrappropertybase,
+						ident,
+						":",
+						&cfg.templocid
+					])
+				} else {
+					LL::replace(transforms![&cfg.wrappropertybase, ident, ":", ident])
+				}
 			}
 			Ty::TempVar => LL::replace(transforms![&cfg.templocid]),
 			Ty::WrapObjectAssignmentLeft {
@@ -172,6 +203,61 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				}
 				let steps: &'static str = Box::leak(steps.into_boxed_str());
 				LL::insert(transforms!["((t)=>(", &steps, "t))("])
+			}
+			Ty::CleanFunction {
+				restids,
+				expression,
+				location_assigned,
+				wrap,
+			} => {
+				let mut steps = String::new();
+
+				if expression {
+					for id in restids {
+						steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
+					}
+					if location_assigned {
+						steps.push_str(&format!(
+							"{}(location,\"=\",{})||(location={}),",
+							&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+						));
+					}
+					let steps: &'static str = Box::leak(steps.into_boxed_str());
+					LL::insert(transforms!["(", &steps])
+				} else {
+					for id in restids {
+						steps.push_str(&format!("{}({});", &cfg.cleanrestfn, id.as_str()));
+					}
+					if location_assigned {
+						steps.push_str(&format!(
+							"{}(location,\"=\",{})||(location={});",
+							&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+						));
+					}
+					let steps: &'static str = Box::leak(steps.into_boxed_str());
+					if wrap {
+						LL::insert(transforms!["{", &steps])
+					} else {
+						LL::insert(transforms![";", &steps])
+					}
+				}
+			}
+			Ty::CleanVariableDeclaration {
+				restids,
+				location_assigned,
+			} => {
+				let mut steps = String::new();
+				for id in restids {
+					steps.push_str(&format!("{}({}),", &cfg.cleanrestfn, id.as_str()));
+				}
+				if location_assigned {
+					steps.push_str(&format!(
+						"{}(location,\"=\",{})||(location={}),",
+						&cfg.trysetfn, &cfg.templocid, &cfg.templocid
+					));
+				}
+				let steps: &'static str = Box::leak(steps.into_boxed_str());
+				LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0)"])
 			}
 			Ty::SetRealmFn => LL::insert(transforms![&cfg.setrealmfn, "({})."]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
@@ -206,6 +292,19 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					transforms![");"]
 				} else {
 					transforms![")"]
+				};
+
+				if replace {
+					LL::replace(vec)
+				} else {
+					LL::insert(vec)
+				}
+			}
+			Ty::ClosingBrace { semi, replace } => {
+				let vec = if semi {
+					transforms!["};"]
+				} else {
+					transforms!["}"]
 				};
 
 				if replace {

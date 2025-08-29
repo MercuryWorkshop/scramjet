@@ -1,5 +1,5 @@
-check(window);
-check(this);
-check(globalThis);
+check(top);
 check(location);
-check(globalThis["win" + "dow"])
+check(window.location);
+check(top["loca" + "tion"]);
+check(self["loca" + "tion"])

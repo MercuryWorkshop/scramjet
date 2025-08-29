@@ -2,7 +2,7 @@
 mod test {
 	use std::fs;
 
-	use crate::rewriter::NativeRewriter;
+	use crate::{RewriterOptions, rewriter::NativeRewriter};
 	use boa_engine::{
 		Context, NativeFunction, Source, js_str, js_string,
 		object::ObjectInitializer,
@@ -15,6 +15,10 @@ mod test {
 		let window = ObjectInitializer::new(&mut context).build();
 		context
 			.register_global_property(js_str!("window"), window, Attribute::READONLY)
+			.unwrap();
+		let top = ObjectInitializer::new(&mut context).build();
+		context
+			.register_global_property(js_str!("top"), top, Attribute::READONLY)
 			.unwrap();
 		context
 			.global_object()
@@ -49,10 +53,18 @@ mod test {
 		context
 			.eval(Source::from_bytes(
 				br#"
+const self = window;
 function $wrap(val) {
-	if (val === window || val === "location" || val === globalThis) return "";
+	if (val === window || val == "location" || val == top) return "";
 
     return val;
+}
+
+function $prop(prop) {
+    if (prop === "location" || prop === "top" || prop === "eval") {
+        return "$sj_"+prop
+    }
+    return prop
 }
 
 const $gwrap = $wrap;
@@ -64,7 +76,7 @@ function assert(val) {
 }
 
 function check(val) {
-    if (val === window || val === "location") fail();
+    if (val === window || val === top || val === "location") fail();
 }
 			    "#,
 			))
@@ -85,7 +97,31 @@ function check(val) {
 	fn rewrite_tests() {
 		let files = fs::read_dir("./tests").unwrap();
 
-		let mut rewriter = NativeRewriter::default();
+		let opts = crate::RewriterOptions {
+			prefix: String::from("/scrammedjet/"),
+			wrapfn: String::from("$wrap"),
+			wrappropertybase: String::from("$sj_"),
+			wrappropertyfn: String::from("$prop"),
+			cleanrestfn: String::from("$clean"),
+			importfn: String::from("$import"),
+			rewritefn: String::from("$rewrite"),
+			metafn: String::from("$meta"),
+			setrealmfn: String::from("$setrealm"),
+			pushsourcemapfn: String::from("$pushsourcemap"),
+			trysetfn: String::from("$tryset"),
+			templocid: String::from("$temploc"),
+			tempunusedid: String::from("$tempunused"),
+			base: String::from("https://google.com/glorngle/si.js"),
+			sourcetag: String::from("glongle1"),
+			is_module: false,
+			capture_errors: false,
+			do_sourcemaps: false,
+			scramitize: false,
+			strict_rewrites: true,
+			destructure_rewrites: true,
+		};
+
+		let mut rewriter = NativeRewriter::new(&opts);
 
 		for file in files.map(|x| x.unwrap()) {
 			if !file.path().extension().unwrap().eq_ignore_ascii_case("js") {
@@ -96,7 +132,7 @@ function check(val) {
 
 			let content = fs::read_to_string(file.path()).unwrap();
 
-			let rewritten = rewriter.rewrite_default(&content).unwrap();
+			let rewritten = rewriter.rewrite(&content, &opts).unwrap();
 			println!("{}", std::str::from_utf8(&rewritten.js).unwrap());
 
 			let mut ctx = create_context();
