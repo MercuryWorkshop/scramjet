@@ -44,7 +44,9 @@ pub struct RewriterOptions {
 	#[clap(long, default_value = "$tryset")]
 	trysetfn: String,
 	#[clap(long, default_value = "$temploc")]
-    templocid: String,
+	templocid: String,
+	#[clap(long, default_value = "$tempunused")]
+	tempunusedid: String,
 
 	#[clap(long, default_value = "https://google.com/glorngle/si.js")]
 	base: String,
@@ -103,10 +105,10 @@ fn main() -> Result<()> {
 			let source =
 				Arc::new(NamedSource::new(data.clone(), config.base).with_language("javascript"));
 
-			println!(
-				"rewritten:\n{}",
-				str::from_utf8(&res.js).context("failed to parse rewritten js")?
+			eprintln!(
+				"rewritten:\n",
 			);
+			println!("{}", str::from_utf8(&res.js).context("failed to parse rewritten js")?);
 
 			let unrewritten = NativeRewriter::unrewrite(&res);
 			// println!(
@@ -121,7 +123,7 @@ fn main() -> Result<()> {
 
 			rewriter.reset();
 
-			println!(
+			eprintln!(
 				"unrewritten matches orig: {}",
 				data.as_bytes() == unrewritten.as_slice()
 			);

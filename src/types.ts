@@ -13,6 +13,7 @@ export type ScramjetFlags = {
 	scramitize: boolean;
 	sourcemaps: boolean;
 	destructureRewrites: boolean;
+	interceptDownloads: boolean;
 };
 
 export interface ScramjetConfig {
@@ -29,6 +30,7 @@ export interface ScramjetConfig {
 		pushsourcemapfn: string;
 		trysetfn: string;
 		templocid: string;
+		tempunusedid: string;
 	};
 	files: {
 		wasm: string;
