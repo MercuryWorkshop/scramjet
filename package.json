@@ -2,8 +2,6 @@
 	"name": "@mercuryworkshop/scramjet",
 	"version": "1.0.2-dev",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
-	"main": "./lib/index.cjs",
-	"types": "./lib/index.d.js",
 	"type": "module",
 	"repository": {
 		"type": "git",
@@ -24,6 +22,15 @@
 		"docs": "typedoc",
 		"docs:dev": "typedoc --options typedoc.dev-facing.json",
 		"docs:serve": "npx serve _docs; typedoc --watch"
+	},
+	"exports": {
+		".": {
+			"types": "./lib/types.d.ts"
+		},
+		"./path": {
+			"types": "./lib/index.d.ts",
+			"default": "./lib/index.cjs"
+		}
 	},
 	"files": [
 		"dist/*.js",

@@ -5,6 +5,7 @@ import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { ScramjetContextEvent, UrlChangeEvent } from "@client/events";
 import { ScramjetServiceWorkerRuntime } from "@client/swruntime";
+import { ScramjetConfig } from "@/types";
 
 export const iswindow = "window" in self && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in self;
@@ -16,6 +17,7 @@ export const isemulatedsw =
 
 export * from "./index";
 export * from "./location";
+export * from "./events";
 
 function createFrameId() {
 	return `${Array(8)

@@ -1,5 +1,5 @@
 /// <reference types="@rspack/core/module" />
-import "../lib/index.d.ts";
+import "../lib/types.d.ts";
 
 /**
  * Hash of the current commit in `MercuryWorkshop/scramjet` Scramjet was built from.
