@@ -25,7 +25,8 @@
 	},
 	"exports": {
 		".": {
-			"types": "./lib/types.d.ts"
+			"types": "./lib/types.d.ts",
+			"default": "./lib/noop.js"
 		},
 		"./path": {
 			"types": "./lib/index.d.ts",
