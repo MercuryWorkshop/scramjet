@@ -18,7 +18,7 @@ export default function (client: ScramjetClient, self: any) {
 	};
 
 	// obviously
-	del("chrome");
+	// del("chrome");
 
 	// ShapeDetector https://developer.chrome.com/docs/capabilities/shape-detection
 	del("BarcodeDetector");

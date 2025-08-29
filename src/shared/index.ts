@@ -3,12 +3,8 @@ import { ScramjetConfig, ScramjetFlags } from "@/types";
 export * from "./cookie";
 export * from "./headers";
 export * from "./htmlRules";
-export * as rewriters from "./rewriters";
-export * as security from "./security";
-export type * from "./cookie";
-export type * from "./headers";
-export type * from "./rewriters";
-export type * from "./security";
+export * from "./rewriters";
+export * from "./security";
 
 export let codecEncode: (input: string) => string;
 export let codecDecode: (input: string) => string;
