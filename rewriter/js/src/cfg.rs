@@ -28,6 +28,7 @@ pub struct Config {
 
 	pub trysetfn: String,
 	pub templocid: String,
+	pub tempunusedid: String,
 }
 
 #[derive(Debug)]

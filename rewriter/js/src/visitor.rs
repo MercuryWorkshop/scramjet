@@ -6,11 +6,13 @@ use oxc::{
 		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault,
 		AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern,
 		BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression,
-		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, FunctionBody,
-		IdentifierReference, ImportDeclaration, ImportExpression, MemberExpression, MetaProperty,
-		NewExpression, ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind,
-		PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, StringLiteral,
-		ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
+		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement,
+		ForStatementInit, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference,
+		ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression,
+		ObjectAssignmentTarget, ObjectExpression, ObjectPattern, ObjectPropertyKind,
+		PrivateIdentifier, PropertyKey, ReturnStatement, SimpleAssignmentTarget, Statement,
+		StringLiteral, ThisExpression, UnaryExpression, UnaryOperator, UpdateExpression,
+		VariableDeclaration, VariableDeclarationKind, VariableDeclarator,
 	},
 	ast_visit::{Visit, walk},
 	span::{Atom, GetSpan, Span},
@@ -67,23 +69,6 @@ where
 		}
 	}
 
-	// fn walk_member_expression(&mut self, it: &Expression) -> bool {
-	// 	match it {
-	// 		Expression::Identifier(s) => false,
-	// 		Expression::StaticMemberExpression(s) => {
-	// 			if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
-	// 				// self.jschanges.add(rewrite!(s.span, WrapAccess {
-	// 				//          ident: s.property.name,
-	// 				//          propspan: s.property.span,
-	// 				//      }
-	// 				// ));
-	// 			}
-	// 			self.walk_member_expression(&s.object)
-	// 		}
-	// 		Expression::ComputedMemberExpression(s) => self.walk_member_expression(&s.object),
-	// 		_ => false,
-	// 	}
-	// }
 	fn walk_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
 		match &it.expression {
 			Expression::NullLiteral(_)
@@ -114,15 +99,13 @@ where
 			// { ...rest } = self;
 			match &r.target {
 				AssignmentTarget::AssignmentTargetIdentifier(i) => {
-    				if i.name == "location" {
-                        self.jschanges.add(rewrite!(i.span, TempVar));
-                        restids.push(
-                            self.alloc.alloc_str(&self.config.templocid).into()
-                        );
-                        *location_assigned = true;
-    				} else {
-    					restids.push(i.name);
-    				}
+					if i.name == "location" {
+						self.jschanges.add(rewrite!(i.span, TempVar));
+						restids.push(self.alloc.alloc_str(&self.config.templocid).into());
+						*location_assigned = true;
+					} else {
+						restids.push(i.name);
+					}
 				}
 				_ => panic!("what?"),
 			}
@@ -134,10 +117,16 @@ where
 					// correct thing to do here is to change it into an AsignmentTargetPropertyProperty
 					// { $sj_location: location } = self;
 					if UNSAFE_GLOBALS.contains(&p.binding.name.to_string().as_str()) {
+    					let mut tempvar = false;
+						if p.binding.name == "location" {
+							tempvar = true;
+							*location_assigned = true;
+						}
 						self.jschanges.add(rewrite!(
 							p.binding.span(),
 							RebindProperty {
-								ident: p.binding.name.clone()
+								ident: p.binding.name.clone(),
+								tempvar,
 							}
 						));
 					}
@@ -177,27 +166,34 @@ where
 						}
 					}
 
-					match &p.binding {
-						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
-							// { location: x = parent } = {};
-							// if let Some(name) = p.binding.iden && name == "location" {
-							//     self.jschanges.add(rewrite!(p.span(), TempVar));
-							//                          *location_assigned = true;
-							// 			}
-							// we still need to rewrite whatever stuff might be in the default expression
-							walk::walk_expression(self, &d.init);
+					let mut target;
+
+					if let Some(t) = p.binding.as_assignment_target() {
+					    target = t;
+					} else {
+    					match &p.binding {
+    						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
+                                target = &d.binding;
+                                // { location: x = parent } = {};
+    							// we still need to rewrite whatever stuff might be in the default expression
+    							walk::walk_expression(self, &d.init);
+                            }
+                            _=>unreachable!()
+                        }
+					}
+
+					match &target {
+						AssignmentTarget::ObjectAssignmentTarget(p) => {
+							self.recurse_object_assignment_target(&p, restids, location_assigned);
 						}
-						AssignmentTargetMaybeDefault::ObjectAssignmentTarget(p) => {
-							self.recurse_object_assignment_target(p, restids, location_assigned);
-						}
-						AssignmentTargetMaybeDefault::AssignmentTargetIdentifier(p) => {
+						AssignmentTarget::AssignmentTargetIdentifier(p) => {
 							if p.name == "location" {
 								self.jschanges.add(rewrite!(p.span(), TempVar));
 								*location_assigned = true;
 							}
 						}
-						AssignmentTargetMaybeDefault::ArrayAssignmentTarget(a) => {
-							self.recurse_array_assignment_target(a, restids, location_assigned);
+						AssignmentTarget::ArrayAssignmentTarget(a) => {
+							self.recurse_array_assignment_target(&a, restids, location_assigned);
 						}
 						_ => {}
 					}
@@ -242,6 +238,156 @@ where
 		}
 	}
 
+	fn recurse_binding_pattern(
+		&mut self,
+		it: &BindingPattern<'data>,
+		restids: &mut Vec<Atom<'data>>,
+		no_shadow: bool,
+		location_assigned: &mut bool,
+	) {
+		match &it.kind {
+			BindingPatternKind::BindingIdentifier(p) => {
+				// let a = 0;
+				if no_shadow && p.name == "location" {
+					self.jschanges.add(rewrite!(p.span, TempVar));
+					*location_assigned = true;
+				}
+			}
+			BindingPatternKind::AssignmentPattern(p) => {
+				// const {a = 1} = 1;
+				walk::walk_binding_pattern(self, &p.left);
+				walk::walk_expression(self, &p.right);
+			}
+			BindingPatternKind::ObjectPattern(p) => {
+				for prop in &p.properties {
+					match &prop.key {
+						PropertyKey::StaticIdentifier(id) => {
+							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
+								if prop.shorthand {
+									// const { location } = self;
+									let mut tempvar = false;
+									if no_shadow && id.name == "location" {
+										tempvar = true;
+										*location_assigned = true;
+									}
+									self.jschanges.add(rewrite!(
+										id.span(),
+										RebindProperty {
+											ident: id.name,
+											tempvar
+										}
+									));
+								} else {
+									// const { location: a } = self;
+									if no_shadow && id.name == "location" {
+										self.jschanges.add(rewrite!(
+											id.span(),
+											RewriteProperty {
+												ident: self
+													.alloc
+													.alloc_str(&self.config.templocid)
+													.into()
+											}
+										));
+										*location_assigned = true;
+									} else {
+										self.jschanges.add(rewrite!(
+											id.span(),
+											RewriteProperty { ident: id.name }
+										));
+									}
+								}
+							}
+						}
+						PropertyKey::PrivateIdentifier(_) => {
+							// doesn't matter
+						}
+						_ => {
+							// const { ["location"]: x } = self;
+							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
+						}
+					}
+					// self.recurse_binding_pattern(&prop.value, restids, no_shadow, location_assigned);
+				}
+
+				if let Some(r) = &p.rest {
+					match &r.argument.kind {
+						BindingPatternKind::BindingIdentifier(i) => {
+							if no_shadow && i.name == "location" {
+								self.jschanges.add(rewrite!(i.span, TempVar));
+								restids.push(self.alloc.alloc_str(&self.config.templocid).into());
+								*location_assigned = true;
+							} else {
+								restids.push(i.name);
+							}
+						}
+						_ => panic!("what?"),
+					}
+				}
+			}
+			_ => {}
+		}
+	}
+
+	fn handle_var_declarator(
+		&mut self,
+		v: &VariableDeclaration<'data>,
+		restids: &mut Vec<Atom<'data>>,
+		location_assigned: &mut bool,
+	) {
+		// (const/let) location = ... is perfectly fine, no matter the scope
+		// var location = ... is dangerous, it will assign to the real global if called in scope
+		let no_shadow = matches!(v.kind, VariableDeclarationKind::Var);
+		for dec in &v.declarations {
+			if let Some(ini) = &dec.init {
+				walk::walk_expression(self, ini);
+			}
+			self.recurse_binding_pattern(&dec.id, restids, no_shadow, location_assigned);
+		}
+	}
+
+	fn handle_for_of_in(&mut self, left: &ForStatementLeft<'data>, right: &Expression<'data>, body: &Statement<'data>) {
+    	let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		if let ForStatementLeft::VariableDeclaration(v) = &left {
+			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
+		} else {
+			walk::walk_for_statement_left(self, &left);
+		}
+
+		if location_assigned || restids.len() > 0 {
+			match &body {
+				Statement::BlockStatement(b) => {
+					self.jschanges.add(rewrite!(
+						Span::new(b.span.start + 1, b.span.end - 1),
+						CleanFunction {
+							restids,
+							location_assigned,
+							expression: false,
+							wrap: false,
+						}
+					));
+				}
+				Statement::BreakStatement(_)
+				| Statement::ContinueStatement(_)
+				| Statement::EmptyStatement(_)
+				| Statement::DebuggerStatement(_) => {}
+				_ => {
+					self.jschanges.add(rewrite!(
+						body.span(),
+						CleanFunction {
+							restids,
+							location_assigned,
+							expression: false,
+							wrap: true,
+						}
+					));
+				}
+			}
+		}
+		walk::walk_expression(self, &right);
+	}
+
 	fn scramitize(&mut self, span: Span) {
 		self.jschanges.add(rewrite!(span, Scramitize));
 	}
@@ -252,21 +398,10 @@ where
 	E: UrlRewriter,
 {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
-		// if self.config.capture_errors {
-		// 	self.jschanges.insert(JsChange::GenericChange {
-		// 		span: it.span,
-		// 		text: format!(
-		// 			"{}({}, typeof arguments != 'undefined' && arguments)",
-		// 			self.config.wrapfn, it.name
-		// 		),
-		// 	});
-		// } else {
-		//
 		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
 			self.jschanges
 				.add(rewrite!(it.span, WrapFn { enclose: false }));
 		}
-		// }
 	}
 
 	fn visit_new_expression(&mut self, it: &NewExpression<'data>) {
@@ -301,19 +436,7 @@ where
 			MemberExpression::ComputedMemberExpression(s) => {
 				self.walk_computed_member_expression(s);
 			}
-			_ => {} // if !self.flags.strict_rewrites
-			        // 	&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
-			        // 	&& let Expression::Identifier(_) | Expression::ThisExpression(_) = &s.object
-			        // {
-			        // 	// cull tree - this should be safe
-			        // 	return;
-			        // }
-
-			        // if self.flags.scramitize
-			        // 	&& !matches!(s.object, Expression::MetaProperty(_) | Expression::Super(_))
-			        // {
-			        // 	self.scramitize(s.object.span());
-			        // }
+			_ => {}
 		}
 
 		walk::walk_member_expression(self, it);
@@ -378,7 +501,6 @@ where
 		// do not walk further, we don't want to rewrite the identifiers
 	}
 
-	#[cfg(feature = "debug")]
 	fn visit_try_statement(&mut self, it: &oxc::ast::ast::TryStatement<'data>) {
 		// for debugging we need to know what the error was
 
@@ -392,7 +514,34 @@ where
 				.add(rewrite!(Span::new(start, start), ScramErr { ident }));
 		}
 
-		walk::walk_try_statement(self, it);
+		if !self.flags.destructure_rewrites {
+			walk::walk_try_statement(self, it);
+			return;
+		}
+
+		if let Some(h) = &it.handler {
+			if let Some(p) = &h.param {
+				let mut restids: Vec<Atom<'data>> = Vec::new();
+				let mut location_assigned: bool = false;
+
+				// variables defined in catch shadow the global, don't rewrite location to the temploc here
+				self.recurse_binding_pattern(
+					&p.pattern,
+					&mut restids,
+					false,
+					&mut location_assigned,
+				);
+				self.jschanges.add(rewrite!(
+					h.body.body[0].span(),
+					CleanFunction {
+						restids,
+						expression: false,
+						location_assigned,
+						wrap: false,
+					}
+				));
+			}
+		}
 	}
 
 	fn visit_object_expression(&mut self, it: &ObjectExpression<'data>) {
@@ -411,27 +560,132 @@ where
 		walk::walk_object_expression(self, it);
 	}
 
+	fn visit_function(
+		&mut self,
+		it: &oxc::ast::ast::Function<'data>,
+		flags: oxc::syntax::scope::ScopeFlags,
+	) {
+		if !self.flags.destructure_rewrites {
+			walk::walk_function(self, it, flags);
+			return;
+		}
+
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		for param in &it.params.items {
+			// function params shadow global, don't rewrite temploc
+			self.recurse_binding_pattern(
+				&param.pattern,
+				&mut restids,
+				false,
+				&mut location_assigned,
+			);
+		}
+
+		if restids.len() > 0 || location_assigned {
+			if let Some(b) = &it.body {
+				walk::walk_function_body(self, b);
+				if let Some(stmt) = b.statements.get(0) {
+					let span = stmt.span();
+					self.jschanges.add(rewrite!(
+						Span::new(span.start, span.start),
+						CleanFunction {
+							restids,
+							expression: false,
+							location_assigned,
+							wrap: false,
+						}
+					));
+				}
+			}
+		}
+	}
+
+	fn visit_arrow_function_expression(
+		&mut self,
+		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
+	) {
+		if !self.flags.destructure_rewrites {
+			walk::walk_arrow_function_expression(self, it);
+			return;
+		}
+
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		for param in &it.params.items {
+			self.recurse_binding_pattern(
+				&param.pattern,
+				&mut restids,
+				false,
+				&mut location_assigned,
+			);
+		}
+
+		walk::walk_function_body(self, &it.body);
+		if let Some(stmt) = &it.body.statements.get(0) {
+			self.jschanges.add(rewrite!(
+				stmt.span(),
+				CleanFunction {
+					restids,
+					expression: it.expression,
+					location_assigned,
+					wrap: false,
+				}
+			));
+		}
+	}
+
+	fn visit_for_statement(&mut self, it: &ForStatement<'data>) {
+		if !self.flags.destructure_rewrites {
+			walk::walk_for_statement(self, it);
+			return;
+		}
+
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		if let Some(i) = &it.init {
+			if let ForStatementInit::VariableDeclaration(d) = &i {
+				self.handle_var_declarator(d, &mut restids, &mut location_assigned);
+
+				if location_assigned || restids.len() > 0 {
+					self.jschanges.add(rewrite!(
+						d.span,
+						CleanVariableDeclaration {
+							restids,
+							location_assigned,
+						}
+					));
+				}
+			} else {
+				// we've narrowed the for specific stuff so it's just a regular expression now
+				walk::walk_for_statement_init(self, i);
+			}
+		}
+
+		if let Some(t) = &it.test {
+			walk::walk_expression(self, t);
+		}
+
+		if let Some(t) = &it.update {
+			walk::walk_expression(self, t);
+		}
+	}
+
+	fn visit_for_of_statement(&mut self, it: &oxc::ast::ast::ForOfStatement<'data>) {
+    	self.handle_for_of_in(&it.left, &it.right, &it.body);
+	}
+	fn visit_for_in_statement(&mut self, it: &oxc::ast::ast::ForInStatement<'data>) {
+    	self.handle_for_of_in(&it.left, &it.right, &it.body);
+	}
+
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
 		if self.flags.do_sourcemaps {
 			self.jschanges
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 		}
-		walk::walk_function_body(self, it);
-	}
 
-	fn visit_return_statement(&mut self, it: &ReturnStatement<'data>) {
-		// if let Some(arg) = &it.argument {
-		// 	self.jschanges.insert(JsChange::GenericChange {
-		// 		span: Span::new(it.span.start + 6, it.span.start + 6),
-		// 		text: format!(" $scramdbg((()=>{{ try {{return arguments}} catch(_){{}} }})(),("),
-		// 	});
-		// 	self.jschanges.insert(JsChange::GenericChange {
-		// 		span: Span::new(expression_span(arg).end, expression_span(arg).end),
-		// 		text: format!("))"),
-		// 	});
-		// }
-		walk::walk_return_statement(self, it);
+		walk::walk_function_body(self, it);
 	}
 
 	fn visit_unary_expression(&mut self, it: &UnaryExpression<'data>) {
@@ -477,52 +731,26 @@ where
 		}
 	}
 
-	fn visit_binding_pattern(&mut self, it: &BindingPattern<'data>) {
+	fn visit_variable_declaration(&mut self, it: &oxc::ast::ast::VariableDeclaration<'data>) {
 		if !self.flags.destructure_rewrites {
+			walk::walk_variable_declaration(self, it);
 			return;
 		}
 
-		match &it.kind {
-			BindingPatternKind::BindingIdentifier(p) => {
-				// let a = 0;
-				walk::walk_binding_identifier(self, p);
-			}
-			BindingPatternKind::AssignmentPattern(p) => {
-				walk::walk_binding_pattern(self, &p.left);
-				walk::walk_expression(self, &p.right);
-			}
-			BindingPatternKind::ObjectPattern(p) => {
-				for prop in &p.properties {
-					match &prop.key {
-						PropertyKey::StaticIdentifier(id) => {
-							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
-								if prop.shorthand {
-									// const { location } = self;
-									self.jschanges.add(rewrite!(
-										id.span(),
-										RebindProperty { ident: id.name }
-									));
-								} else {
-									// const { location: a } = self;
-									self.jschanges.add(rewrite!(
-										id.span(),
-										RewriteProperty { ident: id.name }
-									));
-								}
-							}
-						}
-						PropertyKey::PrivateIdentifier(_) => {
-							// doesn't matter
-						}
-						_ => {
-							// const { ["location"]: x } = self;
-							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
-						}
-					}
-					walk::walk_binding_pattern(self, &prop.value);
+		let mut restids: Vec<Atom<'data>> = Vec::new();
+		let mut location_assigned: bool = false;
+		self.handle_var_declarator(&it, &mut restids, &mut location_assigned);
+
+		if location_assigned || restids.len() > 0 {
+			self.jschanges.add(rewrite!(
+				Span::new(it.span.end, it.span.end),
+				CleanFunction {
+					restids,
+					expression: false,
+					location_assigned,
+					wrap: false,
 				}
-			}
-			_ => {}
+			));
 		}
 	}
 
@@ -530,7 +758,8 @@ where
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				// location = ...
-				if ["location"].contains(&s.name.to_string().as_str()) {
+				// location is the only unsafe global that has a setter
+				if &s.name == "location" {
 					self.jschanges.add(rewrite!(
 						it.span,
 						Assignment {

@@ -35,6 +35,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `location` -> `$sj_location: location`
 	RebindProperty {
 		ident: Atom<'data>,
+		tempvar: bool,
 	},
 	// `location` -> `cfg.templocid`
 	TempVar,
@@ -71,6 +72,19 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		name: Atom<'data>,
 	},
 	SourceTag,
+
+	// ;cfg.cleanrestfn(restids[0]); cfg.cleanrestfn(restid[1]);
+	CleanFunction {
+		restids: Vec<Atom<'data>>,
+		expression: bool,
+		location_assigned: bool,
+		wrap: bool,
+	},
+	/// `var location = ...` -> `var cfg.temploc = ..., cfg.tempunused = (cfg.cleanrestfn(restids[0]),cfg.trysetfn(location,"=",cfg.temploc)||location=cfg.temploc)`
+	CleanVariableDeclaration {
+		restids: Vec<Atom<'data>>,
+		location_assigned: bool,
+	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
 	Replace {
@@ -121,7 +135,9 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				change!(span!(end), WrapFnRight { enclose }),
 			],
 			Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
-			Self::RebindProperty { ident } => smallvec![change!(span, RebindProperty { ident })],
+			Self::RebindProperty { ident, tempvar } => {
+				smallvec![change!(span, RebindProperty { ident, tempvar })]
+			}
 			Self::TempVar => smallvec![change!(span, TempVar)],
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
@@ -146,6 +162,72 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 					}
 				)
 			],
+			Self::CleanFunction {
+				restids,
+				expression,
+				location_assigned,
+				wrap,
+			} => {
+				if expression {
+					smallvec![
+						change!(
+							Span::new(span.start, span.start),
+							CleanFunction {
+								restids,
+								expression,
+								location_assigned,
+								wrap
+							}
+						),
+						change!(
+							Span::new(span.end, span.end),
+							ClosingParen {
+								semi: false,
+								replace: false
+							}
+						)
+					]
+				} else if wrap {
+					smallvec![
+						change!(
+							Span::new(span.start, span.start),
+							CleanFunction {
+								restids,
+								expression,
+								location_assigned,
+								wrap
+							}
+						),
+						change!(
+							span!(end),
+							ClosingBrace {
+								semi: false,
+								replace: false
+							}
+						)
+					]
+				} else {
+					smallvec![change!(
+						Span::new(span.start, span.start),
+						CleanFunction {
+							restids,
+							expression,
+							location_assigned,
+							wrap
+						}
+					)]
+				}
+			}
+			Self::CleanVariableDeclaration {
+				restids,
+				location_assigned,
+			} => smallvec![change!(
+				span!(end),
+				CleanVariableDeclaration {
+					restids,
+					location_assigned
+				}
+			)],
 			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
