@@ -14,15 +14,14 @@ function createFrameId() {
  * 
  * Using ScramjetFrame enables Scramjet to bind to and control the internal window a bit differently. 
  * Using normal iframes that have an `src` directly to /scramjet/ **won't function correctly** - you'll need to use a ScramjetFrame instance.
+ * 
+ * The underlying `HTMLIframeElement` is available at `ScramjetFrame.frame`.
  */
 export class ScramjetFrame extends EventTarget {
 	/**
 	 * Create a ScramjetFrame instance. You likely won't need to interact the `constrctor`
 	 * directly. Instead, you can use {@link controller.ScramjetController.createFrame | ScramjetController.createFrame()}
 	 * on your existing ScramjetController.
-	 * 
-	 * @param controller 
-	 * @param frame 
 	 */
 	constructor(
 		private controller: ScramjetController,
@@ -34,7 +33,7 @@ export class ScramjetFrame extends EventTarget {
 	}
 
 	/**
-	 * Returns the {@link ScramjetClient} running inside the iframe's contentWindow.
+	 * Returns the {@link ScramjetClient} instance running inside the iframe's contentWindow.
 	 */
 	get client(): ScramjetClient {
 		return this.frame.contentWindow.window[SCRAMJETCLIENT];
@@ -48,8 +47,10 @@ export class ScramjetFrame extends EventTarget {
 	}
 
 	/**
-	 * Navigates the iframe to a new URL. 
-	 * The inputted URL gets encoded internally, so you don't need to do it yourself.
+	 * Navigates the iframe to a new URL.
+	 * The inputted URL gets encoded internally.
+	 * 
+	 * @param url An unproxied URL
 	 */
 	go(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
@@ -85,7 +86,7 @@ export class ScramjetFrame extends EventTarget {
 	/**
 	 * Binds event listeners to listen for lifetime events that are triggered by Scramjet.
 	 * @param type The lifecycle event you want to bind a listener to. 
-	 * Either `navigate`, `urlchange`, or `contextInit`. Each type is pretty self-explanatory.
+	 * Either `navigate`, `urlchange`, or `contextInit`.
 	 */
 	addEventListener<K extends keyof ScramjetEvents>(
 		type: K,

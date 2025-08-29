@@ -17,7 +17,6 @@ import {
 
 /**
  * The ScramjetController is the client-facing API for integrating and configuring Scramjet in your application.
- * It provides important interfaces for configuring Scramjet and creating ScramjetFrames.
  */
 export class ScramjetController extends EventTarget {
 	private db: IDBDatabase;
@@ -97,6 +96,8 @@ export class ScramjetController extends EventTarget {
 	}
 
 	/**
+	 * Initializes Scramjet.
+	 * 
 	 * Sends the config to the service worker, loads in the codecs, and initializes the IndexedDB tables.
 	 */
 	async init(): Promise<void> {
@@ -120,10 +121,7 @@ export class ScramjetController extends EventTarget {
 	}
 
 	/**
-	 * Creates a new Scramjet-controlled iframe to be used in your application.
-	 * 
-	 * Using this is preferred to creating an iframe yourself, because it allows Scramjet to do
-	 * something cool.
+	 * Creates a new ScramjetFrame to be integrated into your application.
 	 */
 	createFrame(frame?: HTMLIFrameElement): ScramjetFrame {
 		if (!frame) {
@@ -204,9 +202,6 @@ export class ScramjetController extends EventTarget {
 		});
 	}
 
-	/**
-	 * An internal function to save the global config to IndexedDB
-	 */
 	async #saveConfig() {
 		if (!this.db) {
 			console.error("Store not ready!");
@@ -226,7 +221,7 @@ export class ScramjetController extends EventTarget {
 	/**
 	 * An interface to modify the Scramjet config from your application.
 	 * 
-	 * Any values in the new configuration will overwrite their counterparts in the existing config - it won't clear or un-default values
+	 * Any values in the new configuration will overwrite only their counterparts in the existing config - it won't clear or un-default values
 	 * that aren't declared in the new configuration.
 	 */
 	async modifyConfig(newconfig: Partial<ScramjetInitConfig>) {
