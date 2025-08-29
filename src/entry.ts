@@ -13,6 +13,10 @@ self.$scramjetLoadWorker = function () {
 	return require("./worker/index");
 };
 
+self.$scramjetRequire = function (path: string) {
+	return require(path);
+};
+
 export const $scramjetVersion = {
 	build: COMMITHASH,
 	version: VERSION,

@@ -7,7 +7,7 @@ export type { JsRewriterOutput, Rewriter };
 
 import { rewriteUrl, URLMeta } from "@rewriters/url";
 import { htmlRules } from "@/shared/htmlRules";
-import { rewriteCss, unrewriteCss } from "@rewriters/css";
+import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 
 let wasm_u8: Uint8Array;

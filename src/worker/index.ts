@@ -11,6 +11,10 @@ import initEpoxy, {
 } from "@mercuryworkshop/epoxy-tls";
 import { ScramjetDownload } from "@client/events";
 
+export * from "./error";
+export * from "./fetch";
+export * from "./fakesw";
+
 let epoxyPromise = initEpoxy();
 
 export class ScramjetServiceWorker extends EventTarget {
