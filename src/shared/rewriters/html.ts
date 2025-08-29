@@ -5,9 +5,31 @@ import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { CookieStore } from "@/shared/cookie";
-import { getRewriter } from "@rewriters/wasm";
 import { config } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
+
+export function getInjectScripts<T>(
+	cookieStore: CookieStore,
+	script: (src: string) => T
+): T[] {
+	const dump = JSON.stringify(cookieStore.dump());
+	const injected = `
+		self.COOKIE = ${dump};
+		$scramjetLoadClient().loadAndHook(${JSON.stringify(config)});
+		if ("document" in self && document?.currentScript) {
+			document.currentScript.remove();
+		}
+	`;
+
+	// for compatibility purpose
+	const base64Injected = bytesToBase64(encoder.encode(injected));
+
+	return [
+		script(config.files.wasm),
+		script(config.files.all),
+		script("data:application/javascript;base64," + base64Injected),
+	];
+}
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
@@ -43,50 +65,14 @@ function rewriteHtmlInner(
 			handler.root.children.unshift(head);
 		}
 
-		const dump = JSON.stringify(cookieStore.dump());
-		const injected = `
-			self.COOKIE = ${dump};
-			$scramjetLoadClient().loadAndHook(${JSON.stringify(config)})
-			if ("document" in self && document?.currentScript) {
-				document.currentScript.remove();
-			}
-		`;
-
-		const script = (src) => new Element("script", { src });
-
-		// for compatibility purpose
-		const base64Injected = bytesToBase64(encoder.encode(injected));
-
-		head.children.unshift(
-			script(config.files.wasm),
-			script(config.files.all),
-			script("data:application/javascript;base64," + base64Injected)
-		);
+		const script = (src: string) => new Element("script", { src });
+		head.children.unshift(...getInjectScripts(cookieStore, script));
 	}
 
 	return render(handler.root, {
 		encodeEntities: "utf8",
 		decodeEntities: false,
 	});
-}
-
-function rewriteHtmlWasm(
-	html: string,
-	cookieStore: CookieStore,
-	meta: URLMeta,
-	fromTop: boolean = false
-): number {
-	const [rewriter, ret] = getRewriter(meta);
-
-	try {
-		const before = performance.now();
-		const rewritten = rewriter.rewrite_html(html, meta, cookieStore);
-		const after = performance.now();
-
-		return after - before;
-	} finally {
-		ret();
-	}
 }
 
 export function rewriteHtml(
@@ -98,11 +84,6 @@ export function rewriteHtml(
 	const before = performance.now();
 	const ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
 	dbg.time(meta, before, "html rewrite");
-	// let wasm = rewriteHtmlWasm(html, cookieStore, meta, fromTop);
-	// let js = after - before;
-	// console.log(
-	// 	`html rewrite took ${js}ms in js and ${wasm}ms in wasm, ${((wasm - js) / js) * 100}%`
-	// );
 
 	return ret;
 }

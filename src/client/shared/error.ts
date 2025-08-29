@@ -13,14 +13,16 @@ export default function (client: ScramjetClient, _self: Self) {
 		for (let i = 0; i < stack.length; i++) {
 			const url = stack[i].getFileName();
 
-			if (url.endsWith(config.files.all)) {
-				// strip stack frames including scramjet handlers from the trace
-				const lines = newstack.split("\n");
-				const line = lines.find((l) => l.includes(url));
-				lines.splice(line, 1);
-				newstack = lines.join("\n");
-				continue;
-			}
+			try {
+				if (url.endsWith(config.files.all)) {
+					// strip stack frames including scramjet handlers from the trace
+					const lines = newstack.split("\n");
+					const line = lines.find((l) => l.includes(url));
+					lines.splice(line, 1);
+					newstack = lines.join("\n");
+					continue;
+				}
+			} catch {}
 
 			try {
 				newstack = newstack.replaceAll(url, unrewriteUrl(url));

@@ -1,14 +1,12 @@
 pub mod error;
 
 use error::{Result, RewriterError};
-use htmlr::{HtmlRewriter, HtmlRewriterOutput, create_html, create_html_output, get_html_params};
 use js_sys::{Function, Object, Reflect};
 use jsr::{JsRewriter, JsRewriterOutput, create_js, create_js_output, get_js_flags};
 use oxc::allocator::Allocator;
 use wasm_bindgen::prelude::*;
 use web_sys::Url;
 
-mod htmlr;
 mod jsr;
 
 #[wasm_bindgen]
@@ -53,8 +51,6 @@ pub struct Rewriter {
 
 	scramjet: Object,
 	js: JsRewriter,
-	html: HtmlRewriter,
-	html_funcs: (Function, Function, Function),
 }
 
 #[wasm_bindgen]
@@ -65,8 +61,6 @@ impl Rewriter {
 			alloc: Allocator::default(),
 
 			js: create_js(&scramjet)?,
-			html: create_html(&scramjet)?,
-			html_funcs: get_html_params(&scramjet)?,
 			scramjet,
 		})
 	}
@@ -109,35 +103,4 @@ impl Rewriter {
 		self.rewrite_js(js, base, url, module)
 	}
 
-	#[allow(clippy::needless_pass_by_value)]
-	#[wasm_bindgen]
-	pub fn rewrite_html(
-		&mut self,
-		html: String,
-		meta: Object,
-		cookie: Object,
-	) -> Result<HtmlRewriterOutput> {
-		let out = match self.html.rewrite(
-			&self.alloc,
-			&html,
-			&(
-				meta,
-				cookie,
-				self.html_funcs.0.clone(),
-				self.html_funcs.1.clone(),
-				self.html_funcs.2.clone(),
-			),
-		) {
-			Ok(x) => x,
-			Err(x) => {
-				self.alloc.reset();
-				Err(x)?
-			}
-		};
-
-		let ret = create_html_output(&out);
-
-		self.alloc.reset();
-		ret
-	}
 }
