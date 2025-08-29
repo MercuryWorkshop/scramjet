@@ -75,6 +75,14 @@ function assert(val) {
 	if (!val) fail();
 }
 
+function $tryset(target, op, value) {
+    if (target == "location") return true;
+    return false;
+}
+function $clean() {
+
+}
+
 function check(val) {
     if (val === window || val === top || val === "location") fail();
 }
