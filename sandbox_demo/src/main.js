@@ -3,9 +3,13 @@ import { css } from "dreamland/core";
 import { editor } from "monaco-editor";
 import "./style.css";
 
-const client = $scramjetLoadClient();
-console.log(client);
-client.setConfig({
+import {
+	setConfig,
+	ScramjetClient,
+	rewriteJs,
+	asyncSetWasm,
+} from "@mercuryworkshop/scramjet/bundled";
+setConfig({
 	wisp: "ws://localhost",
 	prefix: "/scramjet/",
 	globals: {
@@ -84,7 +88,7 @@ Editor.style = css`
 
 let ifr = html`<iframe style="display: none" />`;
 document.body.append(ifr);
-const cl = new client.ScramjetClient(ifr.contentWindow);
+const cl = new ScramjetClient(ifr.contentWindow);
 cl.hook();
 
 function App() {
@@ -119,7 +123,7 @@ function App() {
 					language="javascript"
 					recompile=${(value) => {
 						localStorage["code"] = value;
-						let rewritten = client.rewriteJs(value, "https://example.com", {
+						let rewritten = rewriteJs(value, "https://example.com", {
 							url: new URL("https://example.com"),
 							base: new URL("https://example.com"),
 						});
@@ -181,6 +185,6 @@ App.style = css`
 	}
 `;
 
-client.asyncSetWasm().then(() => {
+asyncSetWasm().then(() => {
 	app.replaceWith(html`<${App}></${App}>`);
 });
