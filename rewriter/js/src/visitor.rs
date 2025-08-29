@@ -585,9 +585,9 @@ where
 			);
 		}
 
-		if restids.len() > 0 || location_assigned {
-			if let Some(b) = &it.body {
-				walk::walk_function_body(self, b);
+		if let Some(b) = &it.body {
+			walk::walk_function_body(self, b);
+	    	if restids.len() > 0 || location_assigned {
 				if let Some(stmt) = b.statements.get(0) {
 					let span = stmt.span();
 					self.jschanges.add(rewrite!(
