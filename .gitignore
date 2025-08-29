@@ -17,3 +17,5 @@ test-results
 *.tgz
 package-lock.json
 rebuild.sh
+
+_docs/

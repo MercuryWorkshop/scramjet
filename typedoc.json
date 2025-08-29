@@ -1,0 +1,8 @@
+{
+  "plugin": ["typedoc-material-theme"],
+  "skipErrorChecking": true,
+  "entryPointStrategy": "expand",
+  
+  "entryPoints": ["./src"],
+  "out": "./_docs"
+}

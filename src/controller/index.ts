@@ -15,12 +15,22 @@ import {
 	ScramjetGlobalEvents,
 } from "@client/events";
 
+/**
+ * The ScramjetController is the client-facing API for integrating and configuring Scramjet in your application.
+ */
 export class ScramjetController extends EventTarget {
 	private db: IDBDatabase;
 
+	/**
+	 * Creates a ScramjetController with any changes you want to make to the default config.
+	 * 
+	 * {@includeCode ./index.ts#defaultconfig}
+	 * @param config 
+	 */
 	constructor(config: Partial<ScramjetInitConfig>) {
 		super();
 		// sane ish defaults
+		// #region defaultconfig
 		const defaultConfig: ScramjetInitConfig = {
 			prefix: "/scramjet/",
 			globals: {
@@ -68,6 +78,7 @@ export class ScramjetController extends EventTarget {
 				},
 			},
 		};
+		// #endregion defaultconfig
 
 		const deepMerge = (target: any, source: any): any => {
 			for (const key in source) {
@@ -85,6 +96,11 @@ export class ScramjetController extends EventTarget {
 		setConfig(newConfig as ScramjetConfig);
 	}
 
+	/**
+	 * Initializes Scramjet.
+	 * 
+	 * Sends the config to the service worker, loads in the codecs, and initializes the IndexedDB tables.
+	 */
 	async init(): Promise<void> {
 		loadCodecs();
 
@@ -105,6 +121,9 @@ export class ScramjetController extends EventTarget {
 		});
 	}
 
+	/**
+	 * Creates a new ScramjetFrame to be integrated into your application.
+	 */
 	createFrame(frame?: HTMLIFrameElement): ScramjetFrame {
 		if (!frame) {
 			frame = document.createElement("iframe");
@@ -113,6 +132,12 @@ export class ScramjetController extends EventTarget {
 		return new ScramjetFrame(this, frame);
 	}
 
+	/**
+	 * Encodes a URL into a URL that routes to the Scramjet service worker.
+	 * 
+	 * @param url A fully complete URL
+	 * @returns The encoded URL
+	 */
 	encodeUrl(url: string | URL): string {
 		if (typeof url === "string") url = new URL(url);
 
@@ -127,6 +152,12 @@ export class ScramjetController extends EventTarget {
 		return config.prefix + codecEncode(url.href) + realHash;
 	}
 
+	/**
+	 * Decodes a Scramjet-encoded URL into its original, unproxied destination.
+	 * 
+	 * @param url A Scramjet-encoded URL
+	 * @returns The destination for the encoded URL
+	 */
 	decodeUrl(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
 		const prefixed = location.origin + config.prefix;
@@ -134,6 +165,13 @@ export class ScramjetController extends EventTarget {
 		return codecDecode(url.slice(prefixed.length));
 	}
 
+	/**
+	 * Opens Scramjet's IndexedDB database and initializes its required object stores if they don't yet exist.
+	 * 
+	 * Only used internally by the controller's `constructor()`.
+	 * 
+	 * @returns A Promise to either return the initialized IndexedDB or to handle IndexedDB rejections.
+	 */
 	async openIDB(): Promise<IDBDatabase> {
 		const db = indexedDB.open("$scramjet", 1);
 
@@ -181,6 +219,12 @@ export class ScramjetController extends EventTarget {
 		});
 	}
 
+	/**
+	 * An interface to modify the Scramjet config from your application.
+	 * 
+	 * Any values in the new configuration will overwrite only their counterparts in the existing config - it won't clear or un-default values
+	 * that aren't declared in the new configuration.
+	 */
 	async modifyConfig(newconfig: Partial<ScramjetInitConfig>) {
 		setConfig(Object.assign({}, config, newconfig));
 		loadCodecs();
