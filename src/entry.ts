@@ -1,5 +1,5 @@
 /// <reference types="@rspack/core/module" />
-import "../lib/index.d.ts";
+import "../lib/types.d.ts";
 
 self.$scramjetLoadController = function () {
 	return require("./controller/index");
