@@ -13,6 +13,7 @@ import { showDownloadsPopup } from "./components/DownloadsPopup";
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
+import type { ScramjetDownload } from "@mercuryworkshop/scramjet";
 
 export let browser: Browser;
 

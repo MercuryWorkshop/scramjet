@@ -3,6 +3,8 @@ import { browser } from "./Browser";
 import { StatefulClass } from "./StatefulClass";
 import type { Tab } from "./Tab";
 
+import type { ScramjetClient, ScramjetFrame } from "@mercuryworkshop/scramjet";
+
 // history api emulation
 export class HistoryState extends StatefulClass {
 	url: URL = null!;

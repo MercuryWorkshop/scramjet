@@ -27,6 +27,11 @@ import iconSave from "@ktibow/iconset-ion/save-outline";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
+import {
+	type ScramjetClient,
+	type ScramjetFrame,
+} from "@mercuryworkshop/scramjet";
+
 export type SerializedTab = {
 	id: number;
 	title: string | null;
