@@ -5,7 +5,6 @@ import { rewriteJs } from "@rewriters/js";
 import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
-import { nativeGetOwnPropertyDescriptor } from "@client/natives";
 
 const encoder = new TextEncoder();
 function bytesToBase64(bytes: Uint8Array) {
@@ -44,15 +43,24 @@ export default function (client: ScramjetClient, self: typeof window) {
 		self.HTMLAreaElement.prototype,
 	];
 	const originalhrefs = [
-		nativeGetOwnPropertyDescriptor(self.HTMLAnchorElement.prototype, "href"),
-		nativeGetOwnPropertyDescriptor(self.HTMLAreaElement.prototype, "href"),
+		client.natives.call(
+			"Object.getOwnPropertyDescriptor",
+			self.HTMLAnchorElement.prototype,
+			"href"
+		),
+		client.natives.call(
+			"Object.getOwnPropertyDescriptor",
+			self.HTMLAreaElement.prototype,
+			"href"
+		),
 	];
 
 	const attrs = Object.keys(attrObject);
 
 	for (const attr of attrs) {
 		for (const element of attrObject[attr]) {
-			const descriptor = nativeGetOwnPropertyDescriptor(
+			const descriptor = client.natives.call(
+				"Object.getOwnPropertyDescriptor",
 				element.prototype,
 				attr
 			);
