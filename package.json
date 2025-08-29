@@ -27,6 +27,10 @@
 		"./path": {
 			"types": "./lib/index.d.ts",
 			"default": "./lib/index.cjs"
+		},
+		"./bundled": {
+			"types": "./dist/types/index.d.ts",
+			"default": "./dist/scramjet.bundle.js"
 		}
 	},
 	"files": [
