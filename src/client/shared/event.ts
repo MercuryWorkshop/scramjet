@@ -3,7 +3,6 @@ import { unrewriteUrl } from "@rewriters/url";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
-import { nativeGetOwnPropertyDescriptor } from "@client/natives";
 
 const realOnEvent = Symbol.for("scramjet original onevent function");
 
@@ -176,7 +175,11 @@ export default function (client: ScramjetClient, self: Self) {
 				key.startsWith("on") &&
 				handlers[key.slice(2)]
 			) {
-				const descriptor = nativeGetOwnPropertyDescriptor(target, key);
+				const descriptor = client.natives.call(
+					"Object.getOwnPropertyDescriptor",
+					target,
+					key
+				);
 				if (!descriptor.get || !descriptor.set || !descriptor.configurable)
 					continue;
 

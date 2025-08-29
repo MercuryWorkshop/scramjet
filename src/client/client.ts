@@ -8,7 +8,6 @@ import initEpoxy, {
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
-import { nativeGetOwnPropertyDescriptor } from "@client/natives";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
@@ -184,7 +183,8 @@ export class ScramjetClient {
 
 						if (!realTarget) return;
 
-						const original = nativeGetOwnPropertyDescriptor(
+						const original = client.natives.call(
+							"Object.getOwnPropertyDescriptor",
 							realTarget,
 							realProp
 						);
@@ -561,7 +561,11 @@ export class ScramjetClient {
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		if (!target) return;
 
-		const original = nativeGetOwnPropertyDescriptor(target, prop);
+		const original = this.natives.call(
+			"Object.getOwnPropertyDescriptor",
+			target,
+			prop
+		);
 		this.descriptors.store[name] = original;
 
 		return this.RawTrap(target, prop, descriptor);
@@ -575,7 +579,11 @@ export class ScramjetClient {
 		if (!prop) return;
 		if (!Reflect.has(target, prop)) return;
 
-		const oldDescriptor = nativeGetOwnPropertyDescriptor(target, prop);
+		const oldDescriptor = this.natives.call(
+			"Object.getOwnPropertyDescriptor",
+			target,
+			prop
+		);
 
 		const ctx: TrapCtx<T> = {
 			this: null,
