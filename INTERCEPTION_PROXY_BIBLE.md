@@ -1,1 +1,0 @@
-# The Interception Proxy Bible
