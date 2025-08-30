@@ -30,6 +30,7 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `location` -> `$sj_location`
 	RewriteProperty {
 		ident: Atom<'data>,
+		wrap: bool,
 	},
 
 	/// `location` -> `$sj_location: location`
@@ -37,8 +38,11 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		ident: Atom<'data>,
 		tempvar: bool,
 	},
-	// `location` -> `cfg.templocid`
+	/// `location` -> `cfg.templocid`
 	TempVar,
+
+	/// `var cfg.templocid;`
+	DeclTempLoc,
 
 	WrapObjectAssignment {
 		restids: Vec<Atom<'data>>,
@@ -47,6 +51,9 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 
 	/// `cfg.wrapprop({})`
 	WrapProperty,
+
+	/// `(cfg.templogid={})`
+	WrapObject,
 
 	// dead code only if debug is disabled
 	#[allow(dead_code)]
@@ -130,11 +137,20 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 		}
 
 		match self {
+			Self::DeclTempLoc => smallvec![change!(span,DeclTempLoc)],
 			Self::WrapFn { enclose } => smallvec![
 				change!(span!(start), WrapFnLeft { enclose }),
 				change!(span!(end), WrapFnRight { enclose }),
 			],
-			Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
+			Self::RewriteProperty { ident, wrap } => smallvec![change!(
+				match wrap {
+					false => span,
+					true => Span::new(span.start - 1, span.end),
+				},
+				RewriteProperty { ident, wrap }
+			),],
+			// Self::RebindProperty { ident } => smallvec![change!(span, RebindProperty { ident })],
+			// Self::RewriteProperty { ident } => smallvec![change!(span, RewriteProperty { ident }),],
 			Self::RebindProperty { ident, tempvar } => {
 				smallvec![change!(span, RebindProperty { ident, tempvar })]
 			}
@@ -142,6 +158,16 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::WrapProperty => smallvec![
 				change!(span!(start), WrapPropertyLeft),
 				change!(span!(end), WrapPropertyRight),
+			],
+			Self::WrapObject => smallvec![
+				change!(span!(start), WrapObjectStart),
+				change!(
+					span!(end),
+					ClosingParen {
+						semi: false,
+						replace: false
+					}
+				)
 			],
 			Self::WrapObjectAssignment {
 				restids,

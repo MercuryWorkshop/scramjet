@@ -51,14 +51,15 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		enumerable: false,
 	});
 	Object.defineProperty(self, config.globals.wrappropertyfn, {
-		value: function (str) {
+		value: function (object, str) {
 			if (
 				str === "location" ||
 				str === "parent" ||
 				str === "top" ||
 				str === "eval"
 			)
-				return config.globals.wrappropertybase + str;
+				if (object === self || object === self.document)
+					return config.globals.wrappropertybase + str;
 
 			return str;
 		},
@@ -171,6 +172,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			}
 		},
 		writable: false,
+		configurable: false,
+	});
+	Object.defineProperty(self, config.globals.templocid, {
+		value: undefined,
+		writable: true,
 		configurable: false,
 	});
 }

@@ -78,11 +78,13 @@ where
 			| Expression::BooleanLiteral(_) => {}
 			Expression::StringLiteral(lit) => {
 				if UNSAFE_GLOBALS.contains(&lit.value.as_str()) {
+					self.jschanges.add(rewrite!(it.object.span(), WrapObject,));
 					self.jschanges
 						.add(rewrite!(it.expression.span(), WrapProperty,));
 				}
 			}
 			_ => {
+				self.jschanges.add(rewrite!(it.object.span(), WrapObject,));
 				self.jschanges
 					.add(rewrite!(it.expression.span(), WrapProperty,));
 			}
@@ -117,7 +119,7 @@ where
 					// correct thing to do here is to change it into an AsignmentTargetPropertyProperty
 					// { $sj_location: location } = self;
 					if UNSAFE_GLOBALS.contains(&p.binding.name.to_string().as_str()) {
-    					let mut tempvar = false;
+						let mut tempvar = false;
 						if p.binding.name == "location" {
 							tempvar = true;
 							*location_assigned = true;
@@ -150,7 +152,10 @@ where
 							if UNSAFE_GLOBALS.contains(&id.name.to_string().as_str()) {
 								self.jschanges.add(rewrite!(
 									p.name.span(),
-									RewriteProperty { ident: id.name }
+									RewriteProperty {
+										ident: id.name,
+										wrap: false
+									}
 								));
 							}
 						}
@@ -169,17 +174,17 @@ where
 					let mut target;
 
 					if let Some(t) = p.binding.as_assignment_target() {
-					    target = t;
+						target = t;
 					} else {
-    					match &p.binding {
-    						AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
-                                target = &d.binding;
-                                // { location: x = parent } = {};
-    							// we still need to rewrite whatever stuff might be in the default expression
-    							walk::walk_expression(self, &d.init);
-                            }
-                            _=>unreachable!()
-                        }
+						match &p.binding {
+							AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(d) => {
+								target = &d.binding;
+								// { location: x = parent } = {};
+								// we still need to rewrite whatever stuff might be in the default expression
+								walk::walk_expression(self, &d.init);
+							}
+							_ => unreachable!(),
+						}
 					}
 
 					match &target {
@@ -286,14 +291,14 @@ where
 												ident: self
 													.alloc
 													.alloc_str(&self.config.templocid)
-													.into()
+													.into(),wrap:false,
 											}
 										));
 										*location_assigned = true;
 									} else {
 										self.jschanges.add(rewrite!(
 											id.span(),
-											RewriteProperty { ident: id.name }
+											RewriteProperty { ident: id.name,wrap: false }
 										));
 									}
 								}
@@ -346,8 +351,13 @@ where
 		}
 	}
 
-	fn handle_for_of_in(&mut self, left: &ForStatementLeft<'data>, right: &Expression<'data>, body: &Statement<'data>) {
-    	let mut restids: Vec<Atom<'data>> = Vec::new();
+	fn handle_for_of_in(
+		&mut self,
+		left: &ForStatementLeft<'data>,
+		right: &Expression<'data>,
+		body: &Statement<'data>,
+	) {
+		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		if let ForStatementLeft::VariableDeclaration(v) = &left {
 			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
@@ -425,10 +435,12 @@ where
 				}
 
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+					self.jschanges.add(rewrite!(s.object.span(), WrapObject,));
 					self.jschanges.add(rewrite!(
 						s.property.span(),
 						RewriteProperty {
-							ident: s.property.name
+							ident: s.property.name,
+							wrap: true,
 						}
 					));
 				}
@@ -599,6 +611,8 @@ where
 				}
 			}
 		}
+
+		
 	}
 
 	fn visit_arrow_function_expression(
@@ -672,10 +686,10 @@ where
 	}
 
 	fn visit_for_of_statement(&mut self, it: &oxc::ast::ast::ForOfStatement<'data>) {
-    	self.handle_for_of_in(&it.left, &it.right, &it.body);
+		self.handle_for_of_in(&it.left, &it.right, &it.body);
 	}
 	fn visit_for_in_statement(&mut self, it: &oxc::ast::ast::ForInStatement<'data>) {
-    	self.handle_for_of_in(&it.left, &it.right, &it.body);
+		self.handle_for_of_in(&it.left, &it.right, &it.body);
 	}
 
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
@@ -683,6 +697,12 @@ where
 		if self.flags.do_sourcemaps {
 			self.jschanges
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
+		}
+		if let Some(stmt) = it.statements.get(0) {
+			self.jschanges.add(rewrite!(
+				Span::new(stmt.span().start, stmt.span().start),
+				DeclTempLoc
+			));
 		}
 
 		walk::walk_function_body(self, it);
@@ -736,7 +756,6 @@ where
 			walk::walk_variable_declaration(self, it);
 			return;
 		}
-
 		let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
 		self.handle_var_declarator(&it, &mut restids, &mut location_assigned);
@@ -752,6 +771,7 @@ where
 				}
 			));
 		}
+			
 	}
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
@@ -773,10 +793,12 @@ where
 			AssignmentTarget::StaticMemberExpression(s) => {
 				// window.location = ...
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+					self.jschanges.add(rewrite!(s.object.span(), WrapObject,));
 					self.jschanges.add(rewrite!(
 						s.property.span(),
 						RewriteProperty {
-							ident: s.property.name
+							ident: s.property.name,
+							wrap: true,
 						}
 					));
 				}
