@@ -552,8 +552,10 @@ export class ScramjetClient {
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		if (!target) return;
 
-		const original = nativeGetOwnPropertyDescriptor(target, prop);
-		this.descriptors.store[name] = original;
+		if (!(name in this.descriptors.store)) {
+			const original = nativeGetOwnPropertyDescriptor(target, prop);
+			this.descriptors.store[name] = original;
+		}
 
 		return this.RawTrap(target, prop, descriptor);
 	}
