@@ -3,6 +3,9 @@ import { ScramjetController } from "@/controller";
 import { ScramjetFrame } from "@/controller/frame";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 
+/**
+ * Scramjet Feature Flags, configured at build time
+ */
 export type ScramjetFlags = {
 	serviceworkers: boolean;
 	syncxhr: boolean;
@@ -45,6 +48,9 @@ export interface ScramjetConfig {
 	};
 }
 
+/**
+ * The config for Scramjet initialization.
+ */
 export interface ScramjetInitConfig
 	extends Omit<ScramjetConfig, "codec" | "flags"> {
 	flags: Partial<ScramjetFlags>;

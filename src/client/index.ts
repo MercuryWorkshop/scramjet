@@ -65,6 +65,10 @@ export type Trap<T> = {
 	set?: (ctx: TrapCtx<T>, v: T) => void;
 };
 
+/**
+ * Class created by `$scramjetLoadClient`, which handles the sandboxing features.
+ * Most use cases for Scramjet when it comes to proxy site devs should use `ScramjetController` instead.
+ */
 export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
