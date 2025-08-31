@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Contains the controller class.
+ */
+
 import {
 	codecDecode,
 	codecEncode,
@@ -16,16 +20,53 @@ import {
 } from "@client/events";
 
 /**
- * The ScramjetController is the client-facing API for integrating and configuring Scramjet in your application.
+ * Controller class for managing behavior in the Scramjet Service Worker.
+ * You should create this class from the factory `$scramjetLoadController`
+ * This handles proxified Scramjet iframe creations and let's you configure how Scramjet intercepts things.
+ * A lot of these are lower level, and some of these APIs can be avoided by using {@link ScramjetController.createFrame}.
+ *
+ * @example
+ * ```typescript
+ * const { ScramjetController } = $scramjetLoadController();
+ *
+ * const scramjet = new ScramjetController({
+ *   prefix: "/scramjet/",
+ *   files: {
+ *     wasm: "/scram/scramjet.wasm.wasm",
+ *     all: "/scram/scramjet.all.js",
+ *     sync: "/scram/scramjet.sync.js",
+ *   }
+ * });
+ *
+ * await scramjet.init();
+ *
+ * const frame = scramjet.createFrame();
+ * document.body.appendChild(frame.frame);
+ * frame.go("https://example.com");
+ * ```
  */
 export class ScramjetController extends EventTarget {
 	private db: IDBDatabase;
 
 	/**
-	 * Creates a ScramjetController with any changes you want to make to the default config.
-	 * 
+	 * Creates an instance with config overrides
+	 *
 	 * {@includeCode ./index.ts#defaultconfig}
-	 * @param config 
+	 *
+	 * @example
+	 * ```typescript
+	 * // Initialize the ScramjetController with recommended defaults
+	 * const scramjet = new ScramjetController({
+	 *   prefix: "/scramjet/",
+	 *   files: {
+	 *     wasm: "/scram/scramjet.wasm.wasm",
+	 *     all: "/scram/scramjet.all.js",
+	 *     sync: "/scram/scramjet.sync.js",
+	 *   }
+	 * });
+	 * ```
+	 *
+	 * @param config Configuration options for Scramjet
 	 */
 	constructor(config: Partial<ScramjetInitConfig>) {
 		super();
@@ -98,8 +139,25 @@ export class ScramjetController extends EventTarget {
 
 	/**
 	 * Initializes Scramjet.
-	 * 
-	 * Sends the config to the service worker, loads in the codecs, and initializes the IndexedDB tables.
+	 * This sends the current config to the service worker and initializes the IndexedDB tables.
+	 * Must be called after creating the controller and before using Scramjet Frames.
+	 *
+	 * @example
+	 * ```typescript
+	 * const { ScramjetController } = $scramjetLoadController();
+	 * const scramjet = new ScramjetController({
+	 *   prefix: "/scramjet/",
+	 *   files: {
+	 *     all: "/scram/scramjet.all.js"
+	 *   }
+	 * });
+	 *
+	 * await scramjet.init();
+	 *
+	 * // Initialize a Scramjet Frame and goes to a site
+	 * const frame = scramjet.createFrame();
+	 * frame.go("https://example.com");
+	 * ```
 	 */
 	async init(): Promise<void> {
 		loadCodecs();
@@ -122,7 +180,28 @@ export class ScramjetController extends EventTarget {
 	}
 
 	/**
-	 * Creates a new ScramjetFrame to be integrated into your application.
+	 * Factory method that creates a `ScramjetFrame` to be integrated into your application.
+	 *
+	 * @example
+	 * ```typescript
+	 * const frame = scramjet.createFrame();
+	 * document.body.appendChild(frame.frame);
+	 *
+	 * const iframe = document.createElement("iframe");
+	 * const frame = scramjet.createFrame(iframe);
+	 * document.body.appendChild(frame.frame);
+	 *
+	 * // Navigate to a proxified URL
+	 * frame.go("https://example.com");
+	 *
+	 * // Listen for proxified URL changes
+	 * frame.addEventListener("urlchange", (e) => {
+	 *   console.log("New URL:", e.url);
+	 * });
+	 * ```
+	 *
+	 * @param frame Existing iframe element to use.
+	 * @returns A ScramjetFrame instance.
 	 */
 	createFrame(frame?: HTMLIFrameElement): ScramjetFrame {
 		if (!frame) {
@@ -133,10 +212,10 @@ export class ScramjetController extends EventTarget {
 	}
 
 	/**
-	 * Encodes a URL into a URL that routes to the Scramjet service worker.
-	 * 
-	 * @param url A fully complete URL
-	 * @returns The encoded URL
+	 * Encodes a proxy URL into a real URL.
+	 *
+	 * @param url A fully complete URL.
+	 * @returns The encoded URL.
 	 */
 	encodeUrl(url: string | URL): string {
 		if (typeof url === "string") url = new URL(url);
@@ -153,10 +232,10 @@ export class ScramjetController extends EventTarget {
 	}
 
 	/**
-	 * Decodes a Scramjet-encoded URL into its original, unproxied destination.
-	 * 
-	 * @param url A Scramjet-encoded URL
-	 * @returns The destination for the encoded URL
+	 * Decodes a real URL into its proxy URL.
+	 *
+	 * @param url Real URL
+	 * @returns Its proxy URL
 	 */
 	decodeUrl(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
@@ -167,9 +246,9 @@ export class ScramjetController extends EventTarget {
 
 	/**
 	 * Opens Scramjet's IndexedDB database and initializes its required object stores if they don't yet exist.
-	 * 
-	 * Only used internally by the controller's `constructor()`.
-	 * 
+	 * This is only to be used internally by the {@link ScramjetController.constructor | constructor}.
+	 * As a proxy site developer, you do not need to interact with this directly.
+	 *
 	 * @returns A Promise to either return the initialized IndexedDB or to handle IndexedDB rejections.
 	 */
 	async openIDB(): Promise<IDBDatabase> {
@@ -203,6 +282,11 @@ export class ScramjetController extends EventTarget {
 		});
 	}
 
+	/**
+	 * Persists the current config in IndexedDB.
+	 *
+	 * @returns The IndexedDB result.
+	 */
 	async #saveConfig() {
 		if (!this.db) {
 			console.error("Store not ready!");
@@ -220,10 +304,7 @@ export class ScramjetController extends EventTarget {
 	}
 
 	/**
-	 * An interface to modify the Scramjet config from your application.
-	 * 
-	 * Any values in the new configuration will overwrite only their counterparts in the existing config - it won't clear or un-default values
-	 * that aren't declared in the new configuration.
+	 * Dynamically updates the Scramjet config on the Service Worker.
 	 */
 	async modifyConfig(newconfig: Partial<ScramjetInitConfig>) {
 		setConfig(Object.assign({}, config, newconfig));
@@ -236,6 +317,14 @@ export class ScramjetController extends EventTarget {
 		});
 	}
 
+	/**
+	 * Adds an event listener for Scramjet's lower level events.
+	 * Binds event listeners to listen for proxified navigation events in Scramjet.
+	 *
+	 * @param type Type of event to listen for.
+	 * @param listener Event listener to dispatch.
+	 * @param options Options for the event listener.
+	 */
 	addEventListener<K extends keyof ScramjetGlobalEvents>(
 		type: K,
 		listener: (event: ScramjetGlobalEvents[K]) => void,

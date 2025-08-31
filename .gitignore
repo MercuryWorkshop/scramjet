@@ -18,4 +18,11 @@ test-results
 package-lock.json
 rebuild.sh
 
+# Typedoc
 _docs/
+_docs-dev/
+existing-typedoc/
+existing-typedoc-dev/
+staticbuild/
+typedoc-*.tar.gz
+typedoc-*.tar.gz-dev

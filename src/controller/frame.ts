@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Contains abstractions for using Scrmajet under an iframe.
+ */
+
 import { ScramjetController } from "@/controller/index";
 import type { ScramjetClient } from "@client/index";
 import { ScramjetEvent, ScramjetEvents } from "@client/events";
@@ -10,18 +14,40 @@ function createFrameId() {
 }
 
 /**
- * The ScramjetFrame is the main interface that developers will use to interface with Scramjet itself.
- * 
- * Using ScramjetFrame enables Scramjet to bind to and control the internal window a bit differently. 
- * Using normal iframes that have an `src` directly to /scramjet/ **won't function correctly** - you'll need to use a ScramjetFrame instance.
- * 
- * The underlying `HTMLIframeElement` is available at `ScramjetFrame.frame`.
+ * An abstraction over proxy iframe creation, which lets you manage instances of Scramjet and not have to worry about the proxy internals, since everything you need is already proxified.
+ *
+ * @example
+ * ```typescript
+ * const { ScramjetController } = $scramjetLoadController();
+ * const scramjet = new ScramjetController({ prefix: "/scramjet/" });
+ * await scramjet.init();
+ *
+ * const frame = scramjet.createFrame();
+ * document.body.appendChild(frame.frame);
+ *
+ * // Navigate to a URL
+ * frame.go("https://example.com");
+ *
+ * // Listen for proxified navigation events
+ * frame.addEventListener("urlchange", (e) => {
+ *   console.log("URL changed to:", e.url);
+ * });
+ *
+ * // Go back
+ * frame.back();
+ * // Go forward
+ * frame.forward();
+ * // Reload page
+ * frame.reload();
+ * ```
  */
 export class ScramjetFrame extends EventTarget {
 	/**
-	 * Create a ScramjetFrame instance. You likely won't need to interact the `constrctor`
-	 * directly. Instead, you can use {@link controller.ScramjetController.createFrame | ScramjetController.createFrame()}
-	 * on your existing ScramjetController.
+	 * Create a ScramjetFrame instance. You likely won't need to interact the {@link ScramjetFrame.constructor | constructor} directly.
+	 * You can instead use {@link ScramjetController.createFrame} on your existing `ScramjetController`.
+	 *
+	 * @param controller The `ScramjetController` instance that manages this frame with.
+	 * @param frame The frame to be controlled for you under Scramjet.
 	 */
 	constructor(
 		private controller: ScramjetController,
@@ -34,23 +60,31 @@ export class ScramjetFrame extends EventTarget {
 
 	/**
 	 * Returns the {@link ScramjetClient} instance running inside the iframe's contentWindow.
+	 *
+	 * @returns The `ScramjetClient` instance.
 	 */
 	get client(): ScramjetClient {
 		return this.frame.contentWindow.window[SCRAMJETCLIENT];
 	}
 
 	/**
-	 * Returns the decoded URL of the iframe.
+	 * Returns the proxified URL.
+	 *
+	 * @returns The proxified URL.
 	 */
 	get url(): URL {
 		return this.client.url;
 	}
 
 	/**
-	 * Navigates the iframe to a new URL.
-	 * The inputted URL gets encoded internally.
-	 * 
-	 * @param url An unproxied URL
+	 * Navigates the iframe to a new URL under Scramjet.
+	 *
+	 * @example
+	 * ```typescript
+	 * frame.go("https://example.net");
+	 * ```
+	 *
+	 * @param url A real URL to navigate to
 	 */
 	go(url: string | URL) {
 		if (url instanceof URL) url = url.toString();
@@ -61,16 +95,14 @@ export class ScramjetFrame extends EventTarget {
 	}
 
 	/**
-	 * Takes the iframe back in its browser history.
-	 * Same action as hitting the back arrow in your own browser.
+	 * Goes backwards in the browser history.
 	 */
 	back() {
 		this.frame.contentWindow?.history.back();
 	}
 
 	/**
-	 * Takes the iframe forward in its browser history.
-	 * Same action as hitting the forward arrow in your own browser.
+	 * Goes forward in the browser history.
 	 */
 	forward() {
 		this.frame.contentWindow?.history.forward();
@@ -84,9 +116,25 @@ export class ScramjetFrame extends EventTarget {
 	}
 
 	/**
-	 * Binds event listeners to listen for lifetime events that are triggered by Scramjet.
-	 * @param type The lifecycle event you want to bind a listener to. 
-	 * Either `navigate`, `urlchange`, or `contextInit`.
+	 * Binds event listeners to listen for proxified navigation events in Scramjet.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Listen for URL changes
+	 * frame.addEventListener("urlchange", (event) => {
+	 *   console.log("URL changed:", event.url);
+	 *   document.title = event.url; // Update page title
+	 * });
+	 *
+	 * // Listen for navigation events
+	 * frame.addEventListener("navigate", (event) => {
+	 *   console.log("Navigating to:", event.url);
+	 * });
+	 * ```
+	 *
+	 * @param type Type of event to listen for.
+	 * @param listener Event listener to dispatch.
+	 * @param options Options for the event listener.
 	 */
 	addEventListener<K extends keyof ScramjetEvents>(
 		type: K,
