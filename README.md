@@ -12,8 +12,8 @@ Scramjet is an interception-based web proxy which is the successor to Ultraviole
 
 Some of the popular websites that Scramjet supports include:
 
--   [Google](https://google.com)
--   [Spotify](https://spotify.com)
+-   [Google](https://google.com) (partial)
+-   [Spotify](https://spotify.com) (partial)
 -   [Discord](https://discord.com)
 -   [Reddit](https://reddit.com)
 -   [GeForce NOW](https://play.geforcenow.com/)
@@ -44,7 +44,7 @@ You can run the Scramjet dev server with the command
 pnpm dev
 ```
 
-Scramjet should now be running at http://localhost:1337 and should rebuild upon a file being changed (excluding the rewriter).
+Scramjet should now be running at <http://localhost:1337> and should rebuild upon a file being changed (excluding the rewriter).
 
 ## Extra documentation
 
