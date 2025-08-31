@@ -11,7 +11,6 @@ rewriter/target
 rewriter/wasm/out
 static/wasm.js
 rewriter/*.js
-pnpm-lock.yaml
 playwright-report
 test-results
 *.tgz
