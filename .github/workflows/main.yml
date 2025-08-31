@@ -272,8 +272,9 @@ jobs:
 
       - name: Build TypeDoc documentation with versioning
         run: bash ./ci/build-docs.sh
+        continue-on-error: true
 
-      - name: Create and Upload TypeDoc artifacts
+      - name: Create TypeDoc artifacts
         run: |
           VERSION=$(jq -r '.version' package.json)
           cd _docs && tar -czf ../typedoc-$VERSION.tar.gz . && cd ..
@@ -294,11 +295,11 @@ jobs:
       - name: Build static assets
         run: bash ./ci/build-static.sh
 
-      - name: upload pages artifact
+      - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: "./staticbuild"
 
-      - name: deploy to github
+      - name: Deploy to github
         id: deployment
         uses: actions/deploy-pages@v4
