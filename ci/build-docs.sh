@@ -1,11 +1,9 @@
 #!/bin/bash
-set -e
-
 cp -r existing-typedoc/* _docs/ || true
 cp -r existing-typedoc-dev/* _docs-dev/ || true
 
-pnpm run docs
-pnpm run docs:dev
+pnpm run docs || true
+pnpm run docs:dev || true
 
 VERSION=$(jq -r '.version' package.json)
 

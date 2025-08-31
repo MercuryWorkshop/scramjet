@@ -274,14 +274,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Build TypeDoc documentation with versioning
-        run: bash ./ci/build-docs.sh
         continue-on-error: true
-
-      - name: Create TypeDoc artifacts
-        run: |
-          VERSION=$(jq -r '.version' package.json)
-          cd _docs && tar -czf ../typedoc-$VERSION.tar.gz . && cd ..
-          cd _docs-dev && tar -czf ../typedoc-$VERSION.tar.gz-dev . && cd ..
+        run: bash ./ci/build-docs.sh
 
       - name: Upload TypeDoc user-facing artifact
         uses: actions/upload-artifact@v4
