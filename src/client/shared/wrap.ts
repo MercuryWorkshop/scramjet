@@ -69,6 +69,23 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	});
 	Object.defineProperty(self, config.globals.cleanrestfn, {
 		value: function (obj) {
+			for (const unsafeKey in {
+				location: true,
+				parent: true,
+				top: true,
+				eval: true,
+			})
+				if (unsafeKey in obj) {
+					if (obj[unsafeKey] === self[unsafeKey]) {
+						obj[unsafeKey] = self[config.globals.wrappropertybase + unsafeKey];
+						continue;
+					}
+					if (obj[unsafeKey] === self.document[unsafeKey]) {
+						obj[unsafeKey] =
+							self.document[config.globals.wrappropertybase + unsafeKey];
+						continue;
+					}
+				}
 			// TODO
 		},
 		writable: false,
