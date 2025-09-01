@@ -177,6 +177,7 @@ export default function (client: ScramjetClient, self: Self) {
 			) {
 				const descriptor = client.natives.call(
 					"Object.getOwnPropertyDescriptor",
+					null,
 					target,
 					key
 				);

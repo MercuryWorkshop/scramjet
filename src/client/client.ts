@@ -130,7 +130,6 @@ export class ScramjetClient {
 			global.document[SCRAMJETCLIENT] = this;
 		}
 
-		this.locationProxy = createLocationProxy(this, global);
 		this.wrapfn = createWrapFn(this, global);
 		this.sourcemaps = {};
 		this.natives = {
@@ -185,6 +184,7 @@ export class ScramjetClient {
 
 						const original = client.natives.call(
 							"Object.getOwnPropertyDescriptor",
+							null,
 							realTarget,
 							realProp
 						);
@@ -321,6 +321,7 @@ export class ScramjetClient {
 				}
 			},
 		};
+		this.locationProxy = createLocationProxy(this, global);
 
 		global[SCRAMJETCLIENT] = this;
 	}
@@ -563,6 +564,7 @@ export class ScramjetClient {
 
 		const original = this.natives.call(
 			"Object.getOwnPropertyDescriptor",
+			null,
 			target,
 			prop
 		);
@@ -581,6 +583,7 @@ export class ScramjetClient {
 
 		const oldDescriptor = this.natives.call(
 			"Object.getOwnPropertyDescriptor",
+			null,
 			target,
 			prop
 		);
