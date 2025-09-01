@@ -586,7 +586,8 @@ where
 		}
 
 		if let Some(b) = &it.body {
-			walk::walk_function_body(self, b);
+		    // calling the actual visit method is neccesary here, walking isn't enough for some reason
+			self.visit_function_body(b);
 	    	if restids.len() > 0 || location_assigned {
 				if let Some(stmt) = b.statements.get(0) {
 					let span = stmt.span();
@@ -624,7 +625,7 @@ where
 			);
 		}
 
-		walk::walk_function_body(self, &it.body);
+		self.visit_function_body(&it.body);
 		if let Some(stmt) = &it.body.statements.get(0) {
 			self.jschanges.add(rewrite!(
 				stmt.span(),
@@ -683,6 +684,7 @@ where
 
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
 		// tag function for use in sourcemaps
+
 		if self.flags.do_sourcemaps {
 			self.jschanges
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
