@@ -8,7 +8,7 @@ import { indirectEval } from "@client/shared/eval";
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	return function (identifier: any, strict: boolean) {
 		if (identifier === self.location) return client.locationProxy;
-		if (identifier === eval) return indirectEval.bind(client, strict);
+		if (identifier === self.eval) return indirectEval.bind(client, strict);
 
 		if (iswindow) {
 			if (identifier === self.parent) {
