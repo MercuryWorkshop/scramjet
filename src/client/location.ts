@@ -29,6 +29,7 @@ export function createLocationProxy(
 	for (const prop of urlprops) {
 		const native = client.natives.call(
 			"Object.getOwnPropertyDescriptor",
+			null,
 			descriptorSource,
 			prop
 		);

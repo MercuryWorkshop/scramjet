@@ -45,11 +45,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 	const originalhrefs = [
 		client.natives.call(
 			"Object.getOwnPropertyDescriptor",
+			null,
 			self.HTMLAnchorElement.prototype,
 			"href"
 		),
 		client.natives.call(
 			"Object.getOwnPropertyDescriptor",
+			null,
 			self.HTMLAreaElement.prototype,
 			"href"
 		),
@@ -61,6 +63,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		for (const element of attrObject[attr]) {
 			const descriptor = client.natives.call(
 				"Object.getOwnPropertyDescriptor",
+				null,
 				element.prototype,
 				attr
 			);

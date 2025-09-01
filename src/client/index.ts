@@ -5,3 +5,5 @@ export * from "./helpers";
 export * from "./location";
 export * from "./natives";
 export * from "./swruntime";
+export * from "./index";
+export * from "./location";
