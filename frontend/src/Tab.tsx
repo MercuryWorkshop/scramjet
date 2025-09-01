@@ -390,7 +390,11 @@ function injectAnchorHandler(client: ScramjetClient, tab: Tab) {
 
 				// have a flag for the event that's currently running so that we know where we are in the stack if preventDefault() or stopPropagation() is called
 				currentlyExecutingDesc = desc;
-				Reflect.apply(cb, this, args);
+				if (typeof cb === "function") {
+					Reflect.apply(cb, this, args);
+				} else if (typeof cb === "object" && cb !== null && cb.handleEvent) {
+					Reflect.apply(cb.handleEvent, this, args);
+				}
 
 				if (desc.injectafter) {
 					desc.injectafter(args[0]);
