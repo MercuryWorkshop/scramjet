@@ -64,6 +64,9 @@ export class Tab extends StatefulClass {
 	devtoolsOpen: boolean = false;
 	devtoolsWidth = 200;
 
+	loadProgress: number = 0;
+	loadProgressTarget: number = 0;
+
 	sendToChobitsu: ((message: string) => void) | null = null;
 	onChobitsuMessage: ((message: string) => void) | null = null;
 	waitForChobitsuInit: Promise<void>;
@@ -97,6 +100,30 @@ export class Tab extends StatefulClass {
 
 		addHistoryListeners(frame, this);
 		let injected = false;
+
+		this.loadProgress = 0;
+		this.loadProgressTarget = 0;
+		const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
+		const finishLoad = () => {
+			this.loadProgress = 1;
+			setTimeout(() => {
+				this.loadProgress = 0;
+				this.loadProgressTarget = 0;
+			}, 250);
+		};
+		setInterval(() => {
+			if (this.loadProgress < this.loadProgressTarget) {
+				this.loadProgress = lerp(
+					this.loadProgress,
+					this.loadProgressTarget,
+					0.01
+				);
+				if (Math.abs(this.loadProgress - this.loadProgressTarget) < 0.01) {
+					this.loadProgress = this.loadProgressTarget;
+				}
+			}
+		}, 16);
+
 		frame.addEventListener("contextInit", (ctx) => {
 			injectContextMenu(ctx.client, this);
 			injectWindowFill(ctx.client, this);
@@ -111,6 +138,19 @@ export class Tab extends StatefulClass {
 					// the page just loaded on its own (a link was clicked, window.location was set)
 					this.history.push(ctx.client.url, undefined, false);
 				}
+
+				this.loadProgressTarget = 0.2;
+				ctx.client.global.addEventListener("load", (e) => {
+					if (!e.isTrusted) return;
+					finishLoad();
+				});
+				ctx.client.global.addEventListener("DOMContentLoaded", (e) => {
+					if (!e.isTrusted) return;
+					this.loadProgressTarget = 0.8;
+				});
+				setTimeout(() => {
+					finishLoad();
+				}, 5000); // failsafe 5 seconds in case the page just never fires load for some reason
 
 				injectChobitsu(ctx.client, this, resolver);
 				injectTitleWatcher(ctx.client, this);

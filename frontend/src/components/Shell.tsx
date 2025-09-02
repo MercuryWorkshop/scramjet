@@ -52,6 +52,7 @@ export const Shell: Component = function (cx) {
 						{tab.devtoolsFrame.frame}
 					</div>
 				</div>
+				<progress value={use(tab.loadProgress)}></progress>
 			</div>
 		);
 	});
@@ -143,5 +144,18 @@ Shell.style = css`
 	}
 	.showframe iframe {
 		display: block;
+	}
+	progress {
+		z-index: 1;
+		position: absolute;
+		width: 100%;
+		height: 3px;
+		border: none;
+	}
+	progress::-webkit-progress-bar {
+		background-color: transparent;
+	}
+	progress::-webkit-progress-value {
+		background-color: var(--accent);
 	}
 `;

@@ -1,12 +1,14 @@
+import { config } from "@/shared";
 import { ScramjetClient } from "@client/index";
-import { EpoxyWebSocket } from "@mercuryworkshop/epoxy-tls";
+import { EpoxyHandlers, EpoxyWebSocket } from "@mercuryworkshop/epoxy-tls";
 
 type FakeWebSocketState = {
 	extensions: string;
 	protocol: string;
 	url: string;
 	binaryType: string;
-	barews: EpoxyWebSocket;
+	epws: Promise<EpoxyWebSocket>;
+	readyState: number;
 
 	onclose?: (ev: CloseEvent) => any;
 	onerror?: (ev: Event) => any;
@@ -28,284 +30,325 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	const socketmap: WeakMap<WebSocket, FakeWebSocketState> = new WeakMap();
 	const socketstreammap: WeakMap<object, FakeWebSocketStreamState> =
 		new WeakMap();
-	// client.Proxy("WebSocket", {
-	// 	construct(ctx) {
-	// 		const fakeWebSocket = new EventTarget() as WebSocket;
-	// 		Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
-	// 		fakeWebSocket.constructor = ctx.fn;
+	client.Proxy("WebSocket", {
+		construct(ctx) {
+			if (ctx.args[0] == config.wisp) {
+				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
+			}
 
-	// 		const trustEvent = (ev: Event) =>
-	// 			new Proxy(ev, {
-	// 				get(target, prop) {
-	// 					if (prop === "isTrusted") return true;
+			const fakeWebSocket = new EventTarget() as WebSocket;
+			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
+			fakeWebSocket.constructor = ctx.fn;
 
-	// 					return Reflect.get(target, prop);
-	// 				},
-	// 			});
+			const trustEvent = (ev: Event) =>
+				new Proxy(ev, {
+					get(target, prop) {
+						if (prop === "isTrusted") return true;
 
-	// 		const barews = client.bare.createWebSocket(
-	// 			ctx.args[0],
-	// 			ctx.args[1],
-	// 			null,
-	// 			{
-	// 				"User-Agent": self.navigator.userAgent,
-	// 				Origin: client.url.origin,
-	// 			}
-	// 		);
+						return Reflect.get(target, prop);
+					},
+				});
 
-	// 		const state: FakeWebSocketState = {
-	// 			extensions: "",
-	// 			protocol: "",
-	// 			url: ctx.args[0],
-	// 			binaryType: "blob",
-	// 			barews,
+			const state: FakeWebSocketState = {
+				extensions: "",
+				protocol: "",
+				url: ctx.args[0],
+				binaryType: "blob",
+				readyState: 0,
+				epws: null,
 
-	// 			onclose: null,
-	// 			onerror: null,
-	// 			onmessage: null,
-	// 			onopen: null,
-	// 		};
+				onclose: null,
+				onerror: null,
+				onmessage: null,
+				onopen: null,
+			};
+			const barews = client.epoxy.connect_websocket(
+				new EpoxyHandlers(
+					() => {
+						fakeEventSend(new Event("open"));
+					},
+					(ev) => {
+						// debugger;
+						// fakeEventSend(new CloseEvent("close", ev));
+					},
+					() => {
+						// debugger;
+						// fakeEventSend(new Event("error"));
+					},
+					async (payload) => {
+						if (typeof payload === "string") {
+							// DO NOTHING
+						} else if ("byteLength" in payload) {
+							// arraybuffer, convert to blob if needed or set the proper prototype
+							if (state.binaryType === "blob") {
+								payload = new Blob([payload]);
+							} else {
+								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+							}
+						} else if ("arrayBuffer" in payload) {
+							// blob, convert to arraybuffer if neccesary.
+							if (state.binaryType === "arraybuffer") {
+								payload = await payload.arrayBuffer();
+								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+							}
+						}
 
-	// 		function fakeEventSend(fakeev: Event) {
-	// 			state["on" + fakeev.type]?.(trustEvent(fakeev));
-	// 			fakeWebSocket.dispatchEvent(fakeev);
-	// 		}
+						const fakeev = new MessageEvent("message", {
+							data: payload,
+							origin: client.url.origin,
 
-	// 		barews.addEventListener("open", () => {
-	// 			fakeEventSend(new Event("open"));
-	// 		});
-	// 		barews.addEventListener("close", (ev) => {
-	// 			fakeEventSend(new CloseEvent("close", ev));
-	// 		});
-	// 		barews.addEventListener("message", async (ev) => {
-	// 			let payload = ev.data;
-	// 			if (typeof payload === "string") {
-	// 				// DO NOTHING
-	// 			} else if ("byteLength" in payload) {
-	// 				// arraybuffer, convert to blob if needed or set the proper prototype
-	// 				if (state.binaryType === "blob") {
-	// 					payload = new Blob([payload]);
-	// 				} else {
-	// 					Object.setPrototypeOf(payload, ArrayBuffer.prototype);
-	// 				}
-	// 			} else if ("arrayBuffer" in payload) {
-	// 				// blob, convert to arraybuffer if neccesary.
-	// 				if (state.binaryType === "arraybuffer") {
-	// 					payload = await payload.arrayBuffer();
-	// 					Object.setPrototypeOf(payload, ArrayBuffer.prototype);
-	// 				}
-	// 			}
+							// origin: ev.origin,
+							// lastEventId: ev.lastEventId,
+							// source: ev.source,
+							// ports: ev.ports,
+						});
 
-	// 			const fakeev = new MessageEvent("message", {
-	// 				data: payload,
-	// 				origin: ev.origin,
-	// 				lastEventId: ev.lastEventId,
-	// 				source: ev.source,
-	// 				ports: ev.ports,
-	// 			});
+						fakeEventSend(fakeev);
+					}
+				),
+				ctx.args[0],
+				ctx.args[1] || [],
+				{
+					"User-Agent": self.navigator.userAgent,
+					Origin: client.url.origin,
+				}
+			);
+			state.epws = barews;
 
-	// 			fakeEventSend(fakeev);
-	// 		});
-	// 		barews.addEventListener("error", () => {
-	// 			fakeEventSend(new Event("error"));
-	// 		});
+			function fakeEventSend(fakeev: Event) {
+				state["on" + fakeev.type]?.(trustEvent(fakeev));
+				fakeWebSocket.dispatchEvent(fakeev);
+			}
 
-	// 		socketmap.set(fakeWebSocket, state);
-	// 		ctx.return(fakeWebSocket);
-	// 	},
-	// });
-	// client.Trap("WebSocket.prototype.binaryType", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+			socketmap.set(fakeWebSocket, state);
+			ctx.return(fakeWebSocket);
+		},
+	});
+	client.Trap("WebSocket.prototype.binaryType", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.binaryType;
-	// 	},
-	// 	set(ctx, v: string) {
-	// 		const ws = socketmap.get(ctx.this);
-	// 		if (v === "blob" || v === "arraybuffer") ws.binaryType = v;
-	// 	},
-	// });
+			return ws.binaryType;
+		},
+		set(ctx, v: string) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) {
+				ctx.set(v);
 
-	// client.Trap("WebSocket.prototype.bufferedAmount", {
-	// 	get() {
-	// 		return 0;
-	// 	},
-	// });
+				return;
+			}
+			if (v === "blob" || v === "arraybuffer") ws.binaryType = v;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.extensions", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.bufferedAmount", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.extensions;
-	// 	},
-	// });
+			return 0;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.onclose", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.extensions", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.onclose;
-	// 	},
-	// 	set(ctx, v: (ev: CloseEvent) => any) {
-	// 		const ws = socketmap.get(ctx.this);
-	// 		ws.onclose = v;
-	// 	},
-	// });
+			return ws.extensions;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.onerror", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.onclose", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.onerror;
-	// 	},
-	// 	set(ctx, v: (ev: Event) => any) {
-	// 		const ws = socketmap.get(ctx.this);
-	// 		ws.onerror = v;
-	// 	},
-	// });
+			return ws.onclose;
+		},
+		set(ctx, v: (ev: CloseEvent) => any) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+			ws.onclose = v;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.onmessage", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.onerror", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.onmessage;
-	// 	},
-	// 	set(ctx, v: (ev: MessageEvent) => any) {
-	// 		const ws = socketmap.get(ctx.this);
-	// 		ws.onmessage = v;
-	// 	},
-	// });
+			return ws.onerror;
+		},
+		set(ctx, v: (ev: Event) => any) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+			ws.onerror = v;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.onopen", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.onmessage", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.onopen;
-	// 	},
-	// 	set(ctx, v: (ev: Event) => any) {
-	// 		const ws = socketmap.get(ctx.this);
-	// 		ws.onopen = v;
-	// 	},
-	// });
+			return ws.onmessage;
+		},
+		set(ctx, v: (ev: MessageEvent) => any) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+			ws.onmessage = v;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.url", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.onopen", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.url;
-	// 	},
-	// });
+			return ws.onopen;
+		},
+		set(ctx, v: (ev: Event) => any) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+			ws.onopen = v;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.protocol", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.url", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.protocol;
-	// 	},
-	// });
+			return ws.url;
+		},
+	});
 
-	// client.Trap("WebSocket.prototype.readyState", {
-	// 	get(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.protocol", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		return ws.barews.readyState;
-	// 	},
-	// });
+			return ws.protocol;
+		},
+	});
 
-	// client.Proxy("WebSocket.prototype.send", {
-	// 	apply(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
+	client.Trap("WebSocket.prototype.readyState", {
+		get(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
-	// 		ctx.return(ws.barews.send(ctx.args[0]));
-	// 	},
-	// });
+			return ws.readyState;
+		},
+	});
 
-	// client.Proxy("WebSocket.prototype.close", {
-	// 	apply(ctx) {
-	// 		const ws = socketmap.get(ctx.this);
-	// 		if (ctx.args[0] === undefined) ctx.args[0] = 1000;
-	// 		if (ctx.args[1] === undefined) ctx.args[1] = "";
-	// 		ctx.return(ws.barews.close(ctx.args[0], ctx.args[1]));
-	// 	},
-	// });
+	client.Proxy("WebSocket.prototype.send", {
+		apply(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return;
 
-	// client.Proxy("WebSocketStream", {
-	// 	construct(ctx) {
-	// 		const fakeWebSocket = {};
-	// 		Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
-	// 		fakeWebSocket.constructor = ctx.fn;
+			(async () => {
+				let payload = ctx.args[0];
+				if (payload instanceof Blob) {
+					payload = await payload.arrayBuffer();
+				}
+				// (await ws.epws).send(payload);
+			})();
 
-	// 		const barews = client.epoxy.createWebSocket(
-	// 			ctx.args[0],
-	// 			ctx.args[1],
-	// 			null,
-	// 			{
-	// 				"User-Agent": self.navigator.userAgent,
-	// 				Origin: client.url.origin,
-	// 			}
-	// 		);
-	// 		ctx.args[1]?.signal.addEventListener("abort", () => {
-	// 			barews.close(1000, "");
-	// 		});
-	// 		let openResolver, closeResolver;
-	// 		let openRejector;
-	// 		const state: FakeWebSocketStreamState = {
-	// 			extensions: "",
-	// 			protocol: "",
-	// 			url: ctx.args[0],
-	// 			barews,
+			ctx.return(undefined);
+		},
+	});
 
-	// 			opened: new Promise((resolve, reject) => {
-	// 				openResolver = resolve;
-	// 				openRejector = reject;
-	// 			}),
-	// 			closed: new Promise((resolve) => {
-	// 				closeResolver = resolve;
-	// 			}),
-	// 			readable: new ReadableStream({
-	// 				start(controller) {
-	// 					barews.addEventListener("message", async (ev: MessageEvent) => {
-	// 						let payload = ev.data;
-	// 						if (typeof payload === "string") {
-	// 							// DO NOTHING
-	// 						} else if ("byteLength" in payload) {
-	// 							// arraybuffer, set the realms prototype so its recognized
-	// 							Object.setPrototypeOf(payload, ArrayBuffer.prototype);
-	// 						} else if ("arrayBuffer" in payload) {
-	// 							// blob, convert to arraybuffer
-	// 							payload = await payload.arrayBuffer();
-	// 							Object.setPrototypeOf(payload, ArrayBuffer.prototype);
-	// 						}
-	// 						controller.enqueue(payload);
-	// 					});
-	// 				},
-	// 			}),
-	// 			writable: new WritableStream({
-	// 				write(chunk) {
-	// 					barews.send(chunk);
-	// 				},
-	// 			}),
-	// 		};
-	// 		barews.addEventListener("open", () => {
-	// 			openResolver({
-	// 				readable: state.readable,
-	// 				writable: state.writable,
-	// 				extensions: state.extensions,
-	// 				protocol: state.protocol,
-	// 			});
-	// 		});
-	// 		barews.addEventListener("close", (ev: CloseEvent) => {
-	// 			closeResolver({ code: ev.code, reason: ev.reason });
-	// 		});
+	client.Proxy("WebSocket.prototype.close", {
+		apply(ctx) {
+			const ws = socketmap.get(ctx.this);
+			if (!ws) return;
 
-	// 		barews.addEventListener("error", (ev: Event) => {
-	// 			openRejector(ev);
-	// 		});
+			if (ctx.args[0] === undefined) ctx.args[0] = 1000;
+			if (ctx.args[1] === undefined) ctx.args[1] = "";
+			// ctx.return(ws.epws.close(ctx.args[0], ctx.args[1]));
+		},
+	});
 
-	// 		socketstreammap.set(fakeWebSocket, state);
-	// 		ctx.return(fakeWebSocket);
-	// 	},
-	// });
+	client.Proxy("WebSocketStream", {
+		construct(ctx) {
+			console.log(ctx);
+			const fakeWebSocket = {};
+			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
+			fakeWebSocket.constructor = ctx.fn;
+
+			const barews = client.epoxy.createWebSocket(
+				ctx.args[0],
+				ctx.args[1],
+				null,
+				{
+					"User-Agent": self.navigator.userAgent,
+					Origin: client.url.origin,
+				}
+			);
+			ctx.args[1]?.signal.addEventListener("abort", () => {
+				barews.close(1000, "");
+			});
+			let openResolver, closeResolver;
+			let openRejector;
+			const state: FakeWebSocketStreamState = {
+				extensions: "",
+				protocol: "",
+				url: ctx.args[0],
+				barews,
+
+				opened: new Promise((resolve, reject) => {
+					openResolver = resolve;
+					openRejector = reject;
+				}),
+				closed: new Promise((resolve) => {
+					closeResolver = resolve;
+				}),
+				readable: new ReadableStream({
+					start(controller) {
+						barews.addEventListener("message", async (ev: MessageEvent) => {
+							let payload = ev.data;
+							if (typeof payload === "string") {
+								// DO NOTHING
+							} else if ("byteLength" in payload) {
+								// arraybuffer, set the realms prototype so its recognized
+								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+							} else if ("arrayBuffer" in payload) {
+								// blob, convert to arraybuffer
+								payload = await payload.arrayBuffer();
+								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+							}
+							controller.enqueue(payload);
+						});
+					},
+				}),
+				writable: new WritableStream({
+					write(chunk) {
+						barews.send(chunk);
+					},
+				}),
+			};
+			barews.addEventListener("open", () => {
+				openResolver({
+					readable: state.readable,
+					writable: state.writable,
+					extensions: state.extensions,
+					protocol: state.protocol,
+				});
+			});
+			barews.addEventListener("close", (ev: CloseEvent) => {
+				closeResolver({ code: ev.code, reason: ev.reason });
+			});
+
+			barews.addEventListener("error", (ev: Event) => {
+				openRejector(ev);
+			});
+
+			socketstreammap.set(fakeWebSocket, state);
+			ctx.return(fakeWebSocket);
+		},
+	});
 
 	client.Trap("WebSocketStream.prototype.closed", {
 		get(ctx) {
