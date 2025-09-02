@@ -147,18 +147,47 @@ export class Browser extends StatefulClass {
 		this.globalDownloadHistory = [entry, ...this.globalDownloadHistory];
 		this.sessionDownloadHistory = [entry, ...this.sessionDownloadHistory];
 
-		await download.body.pipeTo(
-			new WritableStream({
-				write(chunk) {
-					downloaded += chunk.byteLength;
-					entry.progressbytes = downloaded;
-					browser.downloadProgress = entry.progress = Math.min(
-						downloaded / download.length + 0.1,
-						1
-					);
-				},
-			})
-		);
+		let resumeResolver: (() => void) | null = null;
+		const ac = new AbortController();
+
+		pause.listen(() => {
+			entry.paused = !entry.paused;
+			if (!entry.paused) {
+				resumeResolver?.();
+				resumeResolver = null;
+			}
+		});
+
+		cancel.listen(() => {
+			entry.cancelled = true;
+			ac.abort();
+		});
+
+		const pausableProgress = new TransformStream<Uint8Array, Uint8Array>({
+			async transform(chunk, controller) {
+				if (entry.paused)
+					await new Promise<void>((res) => (resumeResolver = res));
+				downloaded += chunk.byteLength;
+				entry.progressbytes = downloaded;
+				browser.downloadProgress = entry.progress = Math.min(
+					(download.length ? downloaded / download.length : 0) + 0.1,
+					1
+				);
+				controller.enqueue(chunk);
+			},
+		});
+
+		const streamnull = new WritableStream<Uint8Array>({
+			write() {},
+		});
+
+		try {
+			await download.body
+				.pipeThrough(pausableProgress)
+				.pipeTo(streamnull, { signal: ac.signal });
+		} catch (err) {
+			if ((err as any)?.name !== "AbortError") throw err;
+		}
 		entry.cancel = undefined;
 		entry.pause = undefined;
 		entry.progress = undefined;
