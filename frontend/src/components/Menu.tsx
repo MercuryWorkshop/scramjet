@@ -223,7 +223,7 @@ export function createMenu(
 	}
 
 	if (activeMenu) {
-		activeMenu.remove();
+		closeMenu();
 	}
 
 	let menu = (<Menu x={x} y={y} items={items} />) as DLElement<typeof Menu>;
@@ -238,7 +238,7 @@ export function createMenuCustom(
 	custom: HTMLElement
 ): DLElement<typeof Menu> {
 	if (activeMenu) {
-		activeMenu.remove();
+		closeMenu();
 	}
 
 	let menu = (<Menu x={x} y={y} custom={custom} />) as DLElement<typeof Menu>;
