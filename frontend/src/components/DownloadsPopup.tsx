@@ -40,11 +40,6 @@ export const DownloadsPopup: Component<{}> = function (cx) {
 							{use(b.progressbytes)
 								.map((b) => !b)
 								.andThen(<span class="data">{formatBytes(b.size)}</span>)}
-							{use(b.progress).andThen(
-								<progress value={use(b.progress).map((p) => p || 0)} max="1">
-									50%
-								</progress>
-							)}
 						</div>
 						<div class="buttoniconcontainer">
 							{use(b.progress)
@@ -78,6 +73,11 @@ export const DownloadsPopup: Component<{}> = function (cx) {
 								</>
 							)}
 						</div>
+						{use(b.progress).andThen(
+							<progress value={use(b.progress).map((p) => p || 0)} max="1">
+								50%
+							</progress>
+						)}
 					</div>
 				))}
 			</div>
@@ -208,6 +208,25 @@ DownloadsPopup.style = css`
 		flex: 1;
 		display: flex;
 		justify-content: right;
+	}
+
+	progress {
+		z-index: 1;
+		position: absolute;
+		bottom: -0.25em;
+		left: 2em;
+		margin: 0.5em;
+		width: calc(100% - 4em);
+		height: 0.25em;
+		border: none;
+	}
+	progress::-webkit-progress-bar {
+		background-color: var(--fg4);
+		border-radius: var(--radius);
+	}
+	progress::-webkit-progress-value {
+		background-color: var(--accent);
+		border-radius: var(--radius);
 	}
 `;
 
