@@ -69,7 +69,7 @@ where
 		}
 	}
 
-	fn walk_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
+	fn handle_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
 		match &it.expression {
 			Expression::NullLiteral(_)
 			| Expression::BigIntLiteral(_)
@@ -355,7 +355,46 @@ where
 		if let ForStatementLeft::VariableDeclaration(v) = &left {
 			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
 		} else {
-			walk::walk_for_statement_left(self, &left);
+		    let target = left.as_assignment_target().unwrap();
+		    match target {
+				AssignmentTarget::AssignmentTargetIdentifier(s) => {
+					if &s.name == "location" {
+						self.jschanges.add(rewrite!(s.span, TempVar));
+						location_assigned = true;
+					}
+				}
+
+				// TODO: this logic is duplicated in visit_assignment_target. can it be merged?
+				AssignmentTarget::StaticMemberExpression(s) => {
+					// window.location = ...
+					if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+						self.jschanges.add(rewrite!(
+							s.property.span(),
+							RewriteProperty {
+								ident: s.property.name
+							}
+						));
+					}
+
+					// walk the left hand side of the member expression (`window` for the `window.location = ...` case)
+					walk::walk_expression(self, &s.object);
+				}
+				AssignmentTarget::ComputedMemberExpression(s) => {
+					// window["location"] = ...
+					self.handle_computed_member_expression(s);
+					// `window`
+					walk::walk_expression(self, &s.object);
+					// `"location"`
+					walk::walk_expression(self, &s.expression);
+				}
+				AssignmentTarget::ObjectAssignmentTarget(o) => {
+					self.recurse_object_assignment_target(o, &mut restids, &mut location_assigned);
+				}
+				AssignmentTarget::ArrayAssignmentTarget(a) => {
+					self.recurse_array_assignment_target(a, &mut restids, &mut location_assigned);
+				}
+				_ => {}
+			}
 		}
 
 		if location_assigned || restids.len() > 0 {
@@ -437,7 +476,7 @@ where
 				}
 			}
 			MemberExpression::ComputedMemberExpression(s) => {
-				self.walk_computed_member_expression(s);
+				self.handle_computed_member_expression(s);
 			}
 			_ => {}
 		}
@@ -791,7 +830,7 @@ where
 			}
 			AssignmentTarget::ComputedMemberExpression(s) => {
 				// window["location"] = ...
-				self.walk_computed_member_expression(s);
+				self.handle_computed_member_expression(s);
 				// `window`
 				walk::walk_expression(self, &s.object);
 				// `"location"`
