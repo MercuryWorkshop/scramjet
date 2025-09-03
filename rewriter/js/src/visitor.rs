@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, mem::take};
 
 use oxc::{
 	allocator::{Allocator, StringBuilder},
@@ -40,6 +40,7 @@ where
 	pub config: &'data Config,
 	pub rewriter: &'data E,
 	pub flags: Flags,
+	// pub(crate) arrow: bool,
 }
 
 impl<'data, E> Visitor<'_, 'data, E>
@@ -291,14 +292,18 @@ where
 												ident: self
 													.alloc
 													.alloc_str(&self.config.templocid)
-													.into(),wrap:false,
+													.into(),
+												wrap: false,
 											}
 										));
 										*location_assigned = true;
 									} else {
 										self.jschanges.add(rewrite!(
 											id.span(),
-											RewriteProperty { ident: id.name,wrap: false }
+											RewriteProperty {
+												ident: id.name,
+												wrap: false
+											}
 										));
 									}
 								}
@@ -611,16 +616,20 @@ where
 				}
 			}
 		}
-
-		
 	}
 
 	fn visit_arrow_function_expression(
 		&mut self,
 		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
 	) {
+		// self.arrow = true;
 		if !self.flags.destructure_rewrites {
-			walk::walk_arrow_function_expression(self, it);
+			if self.flags.do_sourcemaps {
+				self.jschanges
+					.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
+			}
+
+			walk::walk_function_body(self, &it.body);
 			return;
 		}
 
@@ -698,12 +707,14 @@ where
 			self.jschanges
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 		}
+		// if !take(&mut self.arrow) {
 		if let Some(stmt) = it.statements.get(0) {
 			self.jschanges.add(rewrite!(
 				Span::new(stmt.span().start, stmt.span().start),
 				DeclTempLoc
 			));
 		}
+		// }
 
 		walk::walk_function_body(self, it);
 	}
@@ -771,7 +782,6 @@ where
 				}
 			));
 		}
-			
 	}
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {

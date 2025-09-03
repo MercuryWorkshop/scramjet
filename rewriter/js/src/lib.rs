@@ -150,6 +150,7 @@ impl<E: UrlRewriter> Rewriter<E> {
 			config: &self.cfg,
 			rewriter: &self.url,
 			flags,
+			// arrow: false,
 		};
 		visitor.visit_program(&parsed.program);
 		if let Some(error) = visitor.error {
