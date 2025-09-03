@@ -38,6 +38,8 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	WrapPropertyLeft,
 	WrapPropertyRight,
 	WrapObjectStart,
+	EndStatement,
+	BeginStatement,
 	RewriteProperty {
 		ident: Atom<'data>,
 		wrap: bool,
@@ -85,6 +87,8 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		semi: bool,
 		replace: bool,
 	},
+	///Insert '('
+	OpeningParen,
 	/// insert `}`
 	ClosingBrace {
 		semi: bool,
@@ -139,6 +143,9 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
+			Ty::BeginStatement => LL::insert(transforms!["{"]),
+			Ty::EndStatement => LL::insert(transforms!["}"]),
+			Ty::OpeningParen => LL::insert(transforms!["("]),
 			// Ty::DeclTempLoc => LL::insert(transforms![";var ", &cfg.templocid, ";"]),
 			Ty::WrapFnLeft { enclose } => LL::insert(if enclose {
 				transforms!["(", &cfg.wrapfn, "("]

@@ -43,6 +43,9 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 
 	// /// `var cfg.templocid;`
 	// DeclTempLoc,
+	/// `({expr})`
+	Wrap,
+
 	WrapObjectAssignment {
 		restids: Vec<Atom<'data>>,
 		location_assigned: bool,
@@ -97,6 +100,10 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		text: &'alloc str,
 	},
 	Delete,
+
+	/// `;`
+	EndStatement,
+	BeginStatement,
 }
 
 #[derive(Debug)]
@@ -136,6 +143,18 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 		}
 
 		match self {
+			Self::BeginStatement => smallvec![change!(span!(start),BeginStatement)],
+			Self::EndStatement => smallvec![change!(span!(end),EndStatement)],
+			Self::Wrap => smallvec![
+				change!(span!(start), OpeningParen),
+				change!(
+					span!(end),
+					ClosingParen {
+						semi: false,
+						replace: false
+					}
+				)
+			],
 			// Self::DeclTempLoc => smallvec![change!(span,DeclTempLoc)],
 			Self::WrapFn { enclose } => smallvec![
 				change!(span!(start), WrapFnLeft { enclose }),
@@ -232,17 +251,15 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 						)
 					]
 				} else {
-					smallvec![
-						change!(
-							Span::new(span.start, span.start),
-							CleanFunction {
-								restids,
-								expression,
-								location_assigned,
-								wrap
-							}
-						)
-					]
+					smallvec![change!(
+						Span::new(span.start, span.start),
+						CleanFunction {
+							restids,
+							expression,
+							location_assigned,
+							wrap
+						}
+					)]
 				}
 			}
 			Self::CleanVariableDeclaration {

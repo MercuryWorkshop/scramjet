@@ -33,7 +33,7 @@ export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 		indirection = this.global.eval;
 	}
 
-	return indirection(
-		rewriteJs(js, "(indirect eval proxy)", this.meta) as string
-	);
+	js = rewriteJs(js, "(indirect eval proxy)", this.meta) as string;
+	console.log(js);
+	return indirection(js);
 }

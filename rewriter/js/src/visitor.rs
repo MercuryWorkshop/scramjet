@@ -1,4 +1,7 @@
-use std::{error::Error, mem::take};
+use std::{
+	error::Error,
+	mem::{replace, take},
+};
 
 use oxc::{
 	allocator::{Allocator, StringBuilder},
@@ -40,6 +43,7 @@ where
 	pub config: &'data Config,
 	pub rewriter: &'data E,
 	pub flags: Flags,
+	// pub(crate) is_if_stmt: bool,
 	// pub(crate) arrow: bool,
 }
 
@@ -600,21 +604,21 @@ where
 		}
 
 		// if restids.len() > 0 || location_assigned {
-			if let Some(b) = &it.body {
-				walk::walk_function_body(self, b);
-				if let Some(stmt) = b.statements.get(0) {
-					let span = stmt.span();
-					self.jschanges.add(rewrite!(
-						Span::new(span.start, span.start),
-						CleanFunction {
-							restids,
-							expression: false,
-							location_assigned,
-							wrap: false,
-						}
-					));
-				}
+		if let Some(b) = &it.body {
+			walk::walk_function_body(self, b);
+			if let Some(stmt) = b.statements.get(0) {
+				let span = stmt.span();
+				self.jschanges.add(rewrite!(
+					Span::new(span.start, span.start),
+					CleanFunction {
+						restids,
+						expression: false,
+						location_assigned,
+						wrap: false,
+					}
+				));
 			}
+		}
 		// }
 	}
 
@@ -629,7 +633,15 @@ where
 					.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 			}
 
-			walk::walk_function_body(self, &it.body);
+			if it.expression {
+				if let Some(stmt) = &it.body.statements.get(0) {
+					if let Statement::ExpressionStatement(expr) = stmt {
+						self.visit_expression_statement(&expr);
+					}
+				}
+			} else {
+				walk::walk_function_body(self, &it.body);
+			}
 			return;
 		}
 
@@ -643,8 +655,15 @@ where
 				&mut location_assigned,
 			);
 		}
-
-		walk::walk_function_body(self, &it.body);
+		if it.expression {
+			if let Some(stmt) = &it.body.statements.get(0) {
+				if let Statement::ExpressionStatement(expr) = stmt {
+					self.visit_expression_statement(&expr);
+				}
+			}
+		} else {
+			walk::walk_function_body(self, &it.body);
+		}
 		if let Some(stmt) = &it.body.statements.get(0) {
 			self.jschanges.add(rewrite!(
 				stmt.span(),
@@ -785,6 +804,7 @@ where
 	}
 
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
+		// self.jschanges.add(rewrite!(it.span, Wrap));
 		match &it.left {
 			AssignmentTarget::AssignmentTargetIdentifier(s) => {
 				// location = ...
@@ -865,5 +885,27 @@ where
 			_ => {}
 		}
 		walk::walk_expression(self, &it.right);
+	}
+
+	fn visit_statement(&mut self, it: &Statement<'data>) {
+		// let old = take(&mut self.is_if_stmt);
+		// if !old {
+		if let Statement::ExpressionStatement(_) = it {
+			self.jschanges.add(rewrite!(it.span(), BeginStatement));
+		}
+		// }
+		walk::walk_statement(self, it);
+		// self.is_if_stmt = old;
+		// if old {
+		// 	return;
+		// }
+		if let Statement::ExpressionStatement(_) = it {
+			self.jschanges.add(rewrite!(it.span(), EndStatement));
+		}
+	}
+	fn visit_if_statement(&mut self, it: &oxc::ast::ast::IfStatement<'data>) {
+		// let old = replace(&mut self.is_if_stmt, true);
+		walk::walk_if_statement(self, it);
+		// self.is_if_stmt = old;
 	}
 }

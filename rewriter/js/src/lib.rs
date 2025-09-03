@@ -150,6 +150,7 @@ impl<E: UrlRewriter> Rewriter<E> {
 			config: &self.cfg,
 			rewriter: &self.url,
 			flags,
+			// is_if_stmt: false,
 			// arrow: false,
 		};
 		visitor.visit_program(&parsed.program);
