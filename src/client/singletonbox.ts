@@ -7,7 +7,7 @@ export class SingletonBox {
 	documents: Map<Document, ScramjetClient> = new Map();
 	locations: Map<Location, ScramjetClient> = new Map();
 
-	sourcemaps: SourceMaps;
+	sourcemaps: SourceMaps = {};
 
 	constructor(public ownerclient: ScramjetClient) {}
 

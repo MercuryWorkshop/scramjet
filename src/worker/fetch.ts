@@ -30,8 +30,6 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetDownload } from "@client/events";
 
-import { libcurl } from "libcurl.js/bundled";
-
 function isRedirect(response: BareResponseFetch) {
 	return response.status >= 300 && response.status < 400;
 }
