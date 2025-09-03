@@ -32,34 +32,6 @@ function getEnd(rewrite: Rewrite): number {
 	throw "unreachable";
 }
 
-// some sites like to steal funcs from frames and then unrewrite them
-function searchRewrites(tag: string): Rewrite[] | undefined {
-	function searchFrame(globalThis: Self) {
-		const SCRAMJETCLIENT = globalThis.Symbol.for(SCRAMJETCLIENTNAME);
-		if (
-			globalThis[SCRAMJETCLIENT] &&
-			globalThis[SCRAMJETCLIENT].sourcemaps &&
-			globalThis[SCRAMJETCLIENT].sourcemaps[tag]
-		)
-			return globalThis[SCRAMJETCLIENT].sourcemaps[tag];
-
-		// no enhanced for :frowning2:
-		for (let i = 0; i < globalThis.frames.length; i++) {
-			const rewrites = searchFrame(globalThis.frames[i].self);
-			if (rewrites) return rewrites;
-		}
-	}
-
-	let globalThis = self;
-	let rewrites = searchFrame(globalThis);
-	if (rewrites) return rewrites;
-	while (globalThis.parent && globalThis.parent !== globalThis.window) {
-		globalThis = globalThis.parent.self;
-		let rewrites = searchFrame(globalThis);
-		if (rewrites) return rewrites;
-	}
-}
-
 function registerRewrites(
 	client: ScramjetClient,
 	buf: Array<number>,
@@ -98,7 +70,7 @@ function registerRewrites(
 		}
 	}
 
-	client.sourcemaps[tag] = rewrites;
+	client.box.sourcemaps[tag] = rewrites;
 }
 
 const SCRAMTAG = "/*scramtag ";
@@ -132,16 +104,16 @@ function extractTag(fn: string): [string, number, number] | null {
 	return [tag[2], start, +tag[1]];
 }
 
-function doUnrewrite(ctx: ProxyCtx) {
-	let stringified: string = ctx.fn.call(ctx.this);
+function doUnrewrite(client: ScramjetClient, ctx: ProxyCtx) {
+	const stringified: string = ctx.fn.call(ctx.this);
 
-	let extracted = extractTag(stringified);
+	const extracted = extractTag(stringified);
 	if (!extracted) return ctx.return(stringified);
-	let [tag, tagOffset, tagStart] = extracted;
+	const [tag, tagOffset, tagStart] = extracted;
 
-	let fnStart = tagStart - tagOffset;
-	let fnEnd = fnStart + stringified.length;
-	const rewrites = searchRewrites(tag);
+	const fnStart = tagStart - tagOffset;
+	const fnEnd = fnStart + stringified.length;
+	const rewrites = client.box.sourcemaps[tag];
 
 	if (!rewrites) {
 		console.warn("failed to get rewrites for tag", tag);
@@ -205,7 +177,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("Function.prototype.toString", {
 		apply(ctx) {
 			const before = performance.now();
-			doUnrewrite(ctx);
+			doUnrewrite(client, ctx);
 			// dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);
 		},
 	});

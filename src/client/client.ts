@@ -74,7 +74,6 @@ export class ScramjetClient {
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
-	sourcemaps: SourceMaps;
 	wrapfn: (i: any, ...args: any) => any;
 
 	cookieStore = new CookieStore();
