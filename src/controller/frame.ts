@@ -4,7 +4,7 @@
 
 import { ScramjetController } from "@/controller/index";
 import type { ScramjetClient } from "@client/index";
-import { ScramjetEvent, ScramjetEvents } from "@client/events";
+import type { ScramjetEvent, ScramjetEvents } from "@client/events";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 function createFrameId() {
 	return `${Array(8)
