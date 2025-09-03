@@ -145,9 +145,6 @@ export class ScramjetServiceWorker extends EventTarget {
 	}
 }
 
-// @ts-ignore
-self.ScramjetServiceWorker = ScramjetServiceWorker;
-
 type RegisterServiceWorkerMessage = {
 	scramjet$type: "registerServiceWorker";
 	port: MessagePort;

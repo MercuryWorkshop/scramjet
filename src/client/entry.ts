@@ -7,13 +7,15 @@ import { ScramjetContextEvent, UrlChangeEvent } from "@client/events";
 import { ScramjetServiceWorkerRuntime } from "@client/swruntime";
 import { ScramjetConfig } from "@/types";
 
-export const iswindow = "window" in self && window instanceof Window;
-export const isworker = "WorkerGlobalScope" in self;
-export const issw = "ServiceWorkerGlobalScope" in self;
-export const isdedicated = "DedicatedWorkerGlobalScope" in self;
-export const isshared = "SharedWorkerGlobalScope" in self;
+export const iswindow = "window" in globalThis && window instanceof Window;
+export const isworker = "WorkerGlobalScope" in globalThis;
+export const issw = "ServiceWorkerGlobalScope" in globalThis;
+export const isdedicated = "DedicatedWorkerGlobalScope" in globalThis;
+export const isshared = "SharedWorkerGlobalScope" in globalThis;
 export const isemulatedsw =
-	new URL(self.location.href).searchParams.get("dest") === "serviceworker";
+	"location" in globalThis &&
+	new URL(globalThis.location.href).searchParams.get("dest") ===
+		"serviceworker";
 
 function createFrameId() {
 	return `${Array(8)
@@ -26,17 +28,18 @@ export function loadAndHook(config: ScramjetConfig) {
 	setConfig(config);
 	dbg.log("initializing scramjet client");
 	// if it already exists, that means the handlers have probably already been setup by the parent document
-	if (!(SCRAMJETCLIENT in <Partial<typeof self>>self)) {
+	if (!(SCRAMJETCLIENT in <Partial<typeof self>>globalThis)) {
 		loadCodecs();
 
-		const client = new ScramjetClient(self);
-		const frame: HTMLIFrameElement = self.frameElement as HTMLIFrameElement;
+		const client = new ScramjetClient(globalThis);
+		const frame: HTMLIFrameElement =
+			globalThis.frameElement as HTMLIFrameElement;
 		if (frame && !frame.name) {
 			// all frames need to be named for our logic to work
 			frame.name = createFrameId();
 		}
 
-		if (self.COOKIE) client.loadcookies(self.COOKIE);
+		if (globalThis.COOKIE) client.loadcookies(globalThis.COOKIE);
 
 		client.hook();
 
@@ -51,6 +54,6 @@ export function loadAndHook(config: ScramjetConfig) {
 		if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 	}
 
-	Reflect.deleteProperty(self, "WASM");
-	Reflect.deleteProperty(self, "COOKIE");
+	Reflect.deleteProperty(globalThis, "WASM");
+	Reflect.deleteProperty(globalThis, "COOKIE");
 }

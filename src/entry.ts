@@ -1,19 +1,19 @@
 /// <reference types="@rspack/core/module" />
 import "../lib/types.d.ts";
 
-self.$scramjetLoadController = function () {
+globalThis.$scramjetLoadController = function () {
 	return require("./controller/index");
 };
 
-self.$scramjetLoadClient = function () {
+globalThis.$scramjetLoadClient = function () {
 	return require("./client/entry");
 };
 
-self.$scramjetLoadWorker = function () {
+globalThis.$scramjetLoadWorker = function () {
 	return require("./worker/index");
 };
 
-self.$scramjetRequire = function (path: string) {
+globalThis.$scramjetRequire = function (path: string) {
 	return require(path);
 };
 
@@ -22,8 +22,8 @@ export const $scramjetVersion = {
 	version: VERSION,
 };
 
-self.$scramjetVersion = $scramjetVersion;
+globalThis.$scramjetVersion = $scramjetVersion;
 
-if ("document" in self && document?.currentScript) {
+if ("document" in globalThis && document?.currentScript) {
 	document.currentScript.remove();
 }

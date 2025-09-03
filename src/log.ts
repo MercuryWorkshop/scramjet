@@ -1,4 +1,4 @@
-import { flagEnabled } from "@/shared";
+// import { flagEnabled } from "@/shared";
 import type { URLMeta } from "@rewriters/url";
 
 const logfuncs = {
@@ -91,7 +91,7 @@ export default {
 		this.fmt("debug", message, ...args);
 	},
 	time(meta: URLMeta, before: number, type: string) {
-		if (!flagEnabled("rewriterLogs", meta.base)) return;
+		if (1) return;
 		const after = performance.now();
 		const duration = after - before;
 
