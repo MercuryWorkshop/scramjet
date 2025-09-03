@@ -15,6 +15,7 @@ import { SourceMaps } from "@client/shared/sourcemaps";
 import { config } from "@/shared";
 import { CookieStore } from "@/shared/cookie";
 import { iswindow } from "./entry";
+import { SingletonBox } from "./singletonbox";
 
 type NativeStore = {
 	store: Record<string, any>;
@@ -91,6 +92,8 @@ export class ScramjetClient {
 
 	meta: URLMeta;
 
+	box: SingletonBox;
+
 	constructor(public global: typeof globalThis) {
 		if (SCRAMJETCLIENT in global) {
 			console.error(
@@ -98,6 +101,23 @@ export class ScramjetClient {
 			);
 			throw new Error();
 		}
+
+		if (iswindow) {
+			if (SCRAMJETCLIENT in global.parent) {
+				this.box = global.parent[SCRAMJETCLIENT].box;
+			} else if (SCRAMJETCLIENT in global.top) {
+				this.box = global.top[SCRAMJETCLIENT].box;
+			} else if (global.opener && SCRAMJETCLIENT in global.opener) {
+				this.box = global.opener[SCRAMJETCLIENT].box;
+			} else {
+				dbg.warn("Creating SingletonBox");
+				this.box = new SingletonBox(this);
+			}
+		} else {
+			this.box = new SingletonBox(this);
+		}
+
+		this.box.registerClient(this, global);
 
 		initEpoxy().then(() => {
 			let options = new EpoxyClientOptions();
