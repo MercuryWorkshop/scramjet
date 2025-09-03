@@ -10,6 +10,11 @@ import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const packagemeta = JSON.parse(await readFile("package.json"));
 
+let wasmB64 = null;
+const wasmPath = join(__dirname, "rewriter/wasm/out/wasm_bg.wasm");
+const wasmBuf = await readFile(wasmPath);
+wasmB64 = wasmBuf.toString("base64");
+
 // Configuration for standard IIFE builds
 const iifeConfig = defineConfig({
 	mode: "development",
@@ -68,6 +73,9 @@ const iifeConfig = defineConfig({
 		}),
 		new rspack.DefinePlugin({
 			VERSION: JSON.stringify(packagemeta.version),
+		}),
+		new rspack.DefinePlugin({
+			REWRITERWASM: "undefined",
 		}),
 		new rspack.DefinePlugin({
 			COMMITHASH: (() => {
@@ -153,6 +161,9 @@ const moduleConfig = defineConfig({
 		}),
 		new rspack.DefinePlugin({
 			VERSION: JSON.stringify(packagemeta.version),
+		}),
+		new rspack.DefinePlugin({
+			REWRITERWASM: JSON.stringify(wasmB64),
 		}),
 		new rspack.DefinePlugin({
 			COMMITHASH: (() => {
