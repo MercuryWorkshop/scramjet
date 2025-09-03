@@ -27,7 +27,7 @@ setConfig({
 		tempunusedid: "$scramjet$tempunused",
 	},
 	files: {
-		wasm: "/scram/scramjet.wasm.wasm",
+		wasm: "/scramjet.wasm.wasm",
 		all: "/scram/scramjet.all.js",
 		sync: "/scram/scramjet.sync.js",
 	},
@@ -39,9 +39,10 @@ setConfig({
 		captureErrors: true,
 		cleanErrors: false,
 		scramitize: false,
-		sourcemaps: false,
+		sourcemaps: true,
 		destructureRewrites: true,
 		interceptDownloads: false,
+		allowInvalidJs: false,
 	},
 	siteFlags: {},
 	codec: {
@@ -89,6 +90,22 @@ Editor.style = css`
 let ifr = html`<iframe style="display: none" />`;
 document.body.append(ifr);
 const cl = new ScramjetClient(ifr.contentWindow);
+Object.defineProperty(cl.meta, "base", {
+	get() {
+		return new URL("https://example.com/");
+	},
+});
+Object.defineProperty(cl.meta, "origin", {
+	get() {
+		return new URL("https://example.com/");
+	},
+});
+Object.defineProperty(cl, "url", {
+	get() {
+		return new URL("https://example.com/");
+	},
+});
+
 cl.hook();
 
 function App() {
@@ -110,6 +127,7 @@ function App() {
 		try {
 			ifr.contentWindow.eval(js);
 		} catch (e) {
+			console.error(e);
 			this.errors = e.stack;
 		}
 	};
@@ -123,12 +141,16 @@ function App() {
 					language="javascript"
 					recompile=${(value) => {
 						localStorage["code"] = value;
-						let rewritten = rewriteJs(value, "https://example.com", {
-							url: new URL("https://example.com"),
-							base: new URL("https://example.com"),
-						});
-						this.code.innerText = rewritten;
-						run(rewritten);
+						try {
+							let rewritten = rewriteJs(value, "https://example.com", {
+								url: new URL("https://example.com"),
+								base: new URL("https://example.com"),
+							});
+							this.code.innerText = rewritten;
+							run(rewritten);
+						} catch (e) {
+							this.code.innerText = e.stack;
+						}
 					}}
 				/>
 			</div>
@@ -160,6 +182,7 @@ App.style = css`
 		padding: 1em;
 		box-sizing: border-box;
 		gap: 1em;
+		overflow: hidden;
 	}
 	#main {
 		display: flex;
@@ -169,7 +192,8 @@ App.style = css`
 		height: 35em;
 	}
 	#main > * {
-		flex: 1;
+		width: 50%;
+		/*flex: 1;*/
 		display: flex;
 		flex-direction: column;
 	}
@@ -181,10 +205,8 @@ App.style = css`
 		font-family: monospace;
 		padding: 0.5em;
 		white-space: pre-wrap;
-		overflow-x: auto;
+		overflow: auto;
 	}
 `;
 
-asyncSetWasm().then(() => {
-	app.replaceWith(html`<${App}></${App}>`);
-});
+app.replaceWith(html`<${App}></${App}>`);
