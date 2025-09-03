@@ -193,7 +193,7 @@ export function $scramjetLoadWorker(): {
 	return require("./worker/index");
 }
 
-self.$scramjetRequire = function (path: string) {
+globalThis.$scramjetRequire = function (path: string) {
 	return require(path);
 };
 
@@ -220,11 +220,11 @@ export const $scramjetVersion: ScramjetVersionInfo = {
 	version: VERSION,
 };
 
-(self as any).$scramjetLoadController = $scramjetLoadController;
-(self as any).$scramjetLoadClient = $scramjetLoadClient;
-(self as any).$scramjetLoadWorker = $scramjetLoadWorker;
-(self as any).$scramjetVersion = $scramjetVersion;
+globalThis.$scramjetLoadController = $scramjetLoadController;
+globalThis.$scramjetLoadClient = $scramjetLoadClient;
+globalThis.$scramjetLoadWorker = $scramjetLoadWorker;
+globalThis.$scramjetVersion = $scramjetVersion;
 
-if ("document" in self && (document as any)?.currentScript) {
-	(document as any).currentScript.remove();
+if ("document" in globalThis && document?.currentScript) {
+	document.currentScript.remove();
 }

@@ -11,7 +11,6 @@ import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { SourceMaps } from "@client/shared/sourcemaps";
 import { config } from "@/shared";
 import { CookieStore } from "@/shared/cookie";
 import { iswindow } from "./entry";
@@ -116,7 +115,7 @@ export class ScramjetClient {
 			this.box = new SingletonBox(this);
 		}
 
-		this.box.registerClient(this, global);
+		this.box.registerClient(this, global as Self);
 
 		initEpoxy().then(() => {
 			let options = new EpoxyClientOptions();
@@ -150,7 +149,6 @@ export class ScramjetClient {
 		}
 
 		this.wrapfn = createWrapFn(this, global);
-		this.sourcemaps = {};
 		this.natives = {
 			store: new Proxy(
 				{},

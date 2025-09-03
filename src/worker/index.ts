@@ -197,9 +197,6 @@ export class ScramjetServiceWorker extends EventTarget {
 	}
 }
 
-// @ts-ignore
-self.ScramjetServiceWorker = ScramjetServiceWorker;
-
 /**
  * Scramjet fake Service Worker event message.
  * Contains a `scramjet$type` for identifying the message.
