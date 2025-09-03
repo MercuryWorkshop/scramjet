@@ -47,8 +47,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		tempvar: bool,
 	},
 	TempVar,
-	DeclTempLoc,
-
+	// DeclTempLoc,
 	WrapObjectAssignmentLeft {
 		restids: Vec<Atom<'data>>,
 		location_assigned: bool,
@@ -140,7 +139,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 		use JsChangeType as Ty;
 		use TransformLL as LL;
 		match self.ty {
-			Ty::DeclTempLoc => LL::insert(transforms![";var ", &cfg.templocid, ";"]),
+			// Ty::DeclTempLoc => LL::insert(transforms![";var ", &cfg.templocid, ";"]),
 			Ty::WrapFnLeft { enclose } => LL::insert(if enclose {
 				transforms!["(", &cfg.wrapfn, "("]
 			} else {
@@ -236,9 +235,9 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					}
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
 					if wrap {
-						LL::insert(transforms!["{", &steps])
+						LL::insert(transforms!["{", ";var ", &cfg.templocid, ";", &steps])
 					} else {
-						LL::insert(transforms![";", &steps])
+						LL::insert(transforms![";var ", &cfg.templocid, ";", &steps])
 					}
 				}
 			}

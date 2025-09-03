@@ -599,7 +599,7 @@ where
 			);
 		}
 
-		if restids.len() > 0 || location_assigned {
+		// if restids.len() > 0 || location_assigned {
 			if let Some(b) = &it.body {
 				walk::walk_function_body(self, b);
 				if let Some(stmt) = b.statements.get(0) {
@@ -615,7 +615,7 @@ where
 					));
 				}
 			}
-		}
+		// }
 	}
 
 	fn visit_arrow_function_expression(
@@ -708,12 +708,12 @@ where
 				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
 		}
 		// if !take(&mut self.arrow) {
-		if let Some(stmt) = it.statements.get(0) {
-			self.jschanges.add(rewrite!(
-				Span::new(stmt.span().start, stmt.span().start),
-				DeclTempLoc
-			));
-		}
+		// if let Some(stmt) = it.statements.get(0) {
+		// 	self.jschanges.add(rewrite!(
+		// 		Span::new(stmt.span().start, stmt.span().start),
+		// 		DeclTempLoc
+		// 	));
+		// }
 		// }
 
 		walk::walk_function_body(self, it);
