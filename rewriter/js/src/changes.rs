@@ -250,7 +250,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				"*/"
 			]),
 			Ty::ImportFn => LL::replace(transforms![&cfg.importfn, "(\"", &flags.base, "\","]),
-			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(\"", &flags.base, "\")"]),
+			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(import.meta,\"", &flags.base, "\")"]),
 			Ty::AssignmentLeft { name, op } => LL::replace(transforms![
 				"((t)=>",
 				&cfg.trysetfn,
