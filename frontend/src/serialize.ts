@@ -185,7 +185,11 @@ async function deserializeDb(db: SerializedIndexedDB): Promise<void> {
 					const addPromises = store.pairs.map(async ([key, valueStr]) => {
 						try {
 							const value = JSON.parse(valueStr);
-							objectStore.put(value);
+							if (store.autoIncrement) {
+								objectStore.put(value);
+							} else {
+								objectStore.put(value, key);
+							}
 						} catch (e) {
 							console.error(
 								`Failed to parse value for key ${String(key)} in store ${store.name}:`,
@@ -215,6 +219,3 @@ async function deserializeDb(db: SerializedIndexedDB): Promise<void> {
 		};
 	});
 }
-
-(window as any).s = serializeAll;
-(window as any).d = deserializeAll;

@@ -14,6 +14,7 @@ export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
 import type { ScramjetDownload } from "@mercuryworkshop/scramjet";
+import { deserializeAll, serializeAll } from "./serialize";
 
 export let browser: Browser;
 
@@ -286,7 +287,7 @@ export class Browser extends StatefulClass {
 }
 
 let loaded = false;
-export function saveBrowserState() {
+export async function saveBrowserState() {
 	if (!loaded) return;
 
 	let ser = browser.serialize();
@@ -294,12 +295,28 @@ export function saveBrowserState() {
 	if (import.meta.env.VITE_LOCAL) {
 		localStorage["browserstate"] = JSON.stringify(ser);
 	} else {
-		puter.kv.set("browserstate", JSON.stringify(ser));
+		await puter.kv.set("browserstate", JSON.stringify(ser));
+	}
+
+	if (!import.meta.env.VITE_LOCAL) {
+		let data = await serializeAll();
+		await puter.kv.set("browserdata", JSON.stringify(data));
 	}
 }
 
 export async function initBrowser() {
 	browser = new Browser();
+
+	if (!import.meta.env.VITE_LOCAL) {
+		let de = await puter.kv.get("browserdata");
+		if (de) {
+			try {
+				await deserializeAll(JSON.parse(de));
+			} catch (e) {
+				console.error("Error while loading browser data:", e);
+			}
+		}
+	}
 
 	let de;
 	if (import.meta.env.VITE_LOCAL) {
