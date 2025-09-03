@@ -24,12 +24,12 @@ export default function (client: ScramjetClient, self: Self) {
 		}
 	};
 
-	self[config.globals.metafn] = function (base: string) {
-		return {
-			url: base,
-			resolve: function (url: string) {
-				return new URL(url, base).href;
-			},
+	self[config.globals.metafn] = function (metaobj: any, base: string) {
+		metaobj.url = base;
+		metaobj.resolve = function (url: string) {
+			return new URL(url, base).href;
 		};
+
+		return metaobj;
 	};
 }
