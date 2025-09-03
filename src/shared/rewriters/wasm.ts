@@ -13,7 +13,11 @@ import { getInjectScripts } from "@rewriters/html";
 import { CookieStore } from "@/shared/cookie";
 
 let wasm_u8: Uint8Array<ArrayBuffer>;
-if (self.WASM)
+
+declare const REWRITERWASM: string | undefined;
+if (REWRITERWASM)
+	wasm_u8 = Uint8Array.from(atob(REWRITERWASM), (c) => c.charCodeAt(0));
+else if (self.WASM)
 	wasm_u8 = Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0));
 
 // only use in sw
