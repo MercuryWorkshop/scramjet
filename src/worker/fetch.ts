@@ -15,7 +15,7 @@ import {
 } from "@/shared/security/forceReferrer";
 
 import { unrewriteBlob, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { rewriteJsWithMap } from "@rewriters/js";
+import { rewriteJs } from "@rewriters/js";
 import { ScramjetHeaders } from "@/shared/headers";
 import { config, flagEnabled } from "@/shared";
 import { rewriteHeaders } from "@rewriters/headers";
@@ -23,6 +23,8 @@ import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetDownload } from "@client/events";
+
+import { libcurl } from "libcurl.js/bundled";
 
 function isRedirect(response: BareResponseFetch) {
 	return response.status >= 300 && response.status < 400;
@@ -390,6 +392,18 @@ async function handleResponse(
 	referrer: string
 ): Promise<Response> {
 	let responseBody: BodyType;
+	// response.rawHeaders = {};
+	// for (let h of response.raw_headers) {
+	// 	const key = h[0];
+	// 	const value = h[1];
+	// 	if (response.rawHeaders[key] === undefined) {
+	// 		response.rawHeaders[key] = value;
+	// 	} else if (Array.isArray(response.rawHeaders[key])) {
+	// 		(response.rawHeaders[key] as string[]).push(value);
+	// 	} else {
+	// 		response.rawHeaders[key] = [response.rawHeaders[key] as string, value];
+	// 	}
+	// }
 	const isNavigationRequest =
 		mode === "navigate" && ["document", "iframe"].includes(destination);
 	const responseHeaders = await rewriteHeaders(
@@ -613,26 +627,12 @@ async function rewriteBody(
 				return response.body;
 			}
 		case "script": {
-			let { js, tag, map } = rewriteJsWithMap(
+			return rewriteJs(
 				new Uint8Array(await response.arrayBuffer()),
 				response.finalURL,
 				meta,
 				workertype === "module"
-			);
-			if (flagEnabled("sourcemaps", meta.base) && map) {
-				if (js instanceof Uint8Array) {
-					js = new TextDecoder().decode(js);
-				}
-				const sourcemapfn = `${config.globals.pushsourcemapfn}([${map.join(",")}], "${tag}");`;
-				const strictMode = /^\s*(['"])use strict\1;?/;
-				if (strictMode.test(js)) {
-					js = js.replace(strictMode, `$&\n${sourcemapfn}`);
-				} else {
-					js = `${sourcemapfn}\n${js}`;
-				}
-			}
-
-			return js as unknown as ArrayBuffer;
+			) as unknown as ArrayBuffer;
 		}
 		case "style":
 			return rewriteCss(await response.text(), meta);
