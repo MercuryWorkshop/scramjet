@@ -5,11 +5,11 @@ function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 	const stringifiedFunction = ctx.call().toString();
 
 	const content = rewriteJs(
-		stringifiedFunction,
+		`return ${stringifiedFunction}`,
 		"(function proxy)",
 		client.meta
 	);
-	ctx.return(ctx.fn(`return ${content}`)());
+	ctx.return(ctx.fn(`return (()=>{${content}})()`)());
 }
 
 export default function (client: ScramjetClient, _self: Self) {
@@ -23,23 +23,32 @@ export default function (client: ScramjetClient, _self: Self) {
 	};
 
 	client.Proxy("Function", handler);
-	/*
-	// god i love javascript
-	client.RawProxy(function () {}.constructor.prototype, "constructor", handler);
-	client.RawProxy(
-		async function () {}.constructor.prototype,
-		"constructor",
-		handler
-	);
-	client.RawProxy(
-		function* () {}.constructor.prototype,
-		"constructor",
-		handler
-	);
-	client.RawProxy(
-		async function* () {}.constructor.prototype,
-		"constructor",
-		handler
-	);
-	*/
+	console.log("WHAT");
+
+	const RawFunction = client.natives.call(
+		"eval",
+		null,
+		"(function () {})"
+	).constructor;
+	const RawAsyncFunction = client.natives.call(
+		"eval",
+		null,
+		"(async function () {})"
+	).constructor;
+	const RawGeneratorFunction = client.natives.call(
+		"eval",
+		null,
+		"(function* () {})"
+	).constructor;
+	const RawAsyncGeneratorFunction = client.natives.call(
+		"eval",
+		null,
+		"(async function* () {})"
+	).constructor;
+	console.log(RawAsyncFunction);
+
+	client.RawProxy(RawFunction.prototype, "constructor", handler);
+	client.RawProxy(RawAsyncFunction.prototype, "constructor", handler);
+	client.RawProxy(RawGeneratorFunction.prototype, "constructor", handler);
+	client.RawProxy(RawAsyncGeneratorFunction.prototype, "constructor", handler);
 }
