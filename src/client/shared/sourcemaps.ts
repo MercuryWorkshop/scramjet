@@ -60,7 +60,11 @@ function searchRewrites(tag: string): Rewrite[] | undefined {
 	}
 }
 
-function registerRewrites(buf: Array<number>, tag: string) {
+function registerRewrites(
+	client: ScramjetClient,
+	buf: Array<number>,
+	tag: string
+) {
 	const sourcemap = Uint8Array.from(buf);
 	const view = new DataView(sourcemap.buffer);
 	const decoder = new TextDecoder("utf-8");
@@ -94,7 +98,7 @@ function registerRewrites(buf: Array<number>, tag: string) {
 		}
 	}
 
-	self[SCRAMJETCLIENT].sourcemaps[tag] = rewrites;
+	client.sourcemaps[tag] = rewrites;
 }
 
 const SCRAMTAG = "/*scramtag ";
@@ -188,7 +192,7 @@ export default function (client: ScramjetClient, self: Self) {
 	Object.defineProperty(self, config.globals.pushsourcemapfn, {
 		value: (buf: Array<number>, tag: string) => {
 			const before = performance.now();
-			registerRewrites(buf, tag);
+			registerRewrites(client, buf, tag);
 			dbg.time(client.meta, before, `scramtag parse for ${tag}`);
 		},
 		enumerable: false,
