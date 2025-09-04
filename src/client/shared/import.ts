@@ -3,7 +3,12 @@ import { config } from "@/shared";
 import { rewriteUrl } from "@rewriters/url";
 
 export default function (client: ScramjetClient, self: Self) {
-	const Function = client.natives.store["Function"];
+	const boundimport = client.natives.call(
+		"Function",
+		null,
+		"url",
+		"return import(url)"
+	);
 
 	Object.defineProperty(self, config.globals.importfn, {
 		value: function (base: string, url: string) {
@@ -16,12 +21,10 @@ export default function (client: ScramjetClient, self: Self) {
 				url.startsWith("..")
 			) {
 				// this is a url
-				return Function(
-					`return import("${rewriteUrl(resolved, client.meta)}?type=module")`
-				)();
+				return boundimport(`${rewriteUrl(resolved, client.meta)}?type=module`);
 			} else {
 				// this is a specifier handled by importmaps
-				return Function(`return import("${url}")`)();
+				return boundimport(url);
 			}
 		},
 		writable: false,
