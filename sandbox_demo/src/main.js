@@ -43,6 +43,7 @@ setConfig({
 		destructureRewrites: true,
 		interceptDownloads: false,
 		allowInvalidJs: false,
+		allowFailedIntercepts: false,
 	},
 	siteFlags: {},
 	codec: {
@@ -100,10 +101,12 @@ Object.defineProperty(cl.meta, "origin", {
 		return new URL("https://example.com/");
 	},
 });
+const getter = Object.getOwnPropertyDescriptor(cl.__proto__, "url");
 Object.defineProperty(cl, "url", {
 	get() {
 		return new URL("https://example.com/");
 	},
+	set: getter.set,
 });
 
 cl.hook();
