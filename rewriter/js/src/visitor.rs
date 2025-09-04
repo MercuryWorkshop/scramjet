@@ -583,7 +583,13 @@ where
 					}
 				));
 			}
+			walk::walk_block_statement(self, &h.body);
 		}
+
+		if let Some(f) = &it.finalizer {
+    		walk::walk_block_statement(self, f);
+		}
+		walk::walk_block_statement(self, &it.block);
 	}
 
 	fn visit_object_expression(&mut self, it: &ObjectExpression<'data>) {
