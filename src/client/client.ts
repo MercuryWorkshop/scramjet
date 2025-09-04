@@ -11,7 +11,7 @@ import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { config } from "@/shared";
+import { config, flagEnabled } from "@/shared";
 import { CookieStore } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
@@ -504,7 +504,7 @@ export class ScramjetClient {
 		}
 
 		if (handler.apply) {
-			h.apply = function (fn: any, that: any, args: any[]) {
+			h.apply = (fn: any, that: any, args: any[]) => {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
 
@@ -544,6 +544,9 @@ export class ScramjetClient {
 							//@ts-expect-error i'm not going to explain this
 							err.stack = err.stack.stack;
 							console.error("ERROR FROM SCRAMJET INTERNALS", err);
+							if (!flagEnabled("allowFailedIntercepts", this.url)) {
+								throw err;
+							}
 						} else {
 							throw err;
 						}

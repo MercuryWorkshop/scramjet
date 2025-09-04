@@ -15,6 +15,7 @@ export type ScramjetFlags = {
 	destructureRewrites: boolean;
 	interceptDownloads: boolean;
 	allowInvalidJs: boolean;
+	allowFailedIntercepts: boolean;
 };
 
 export interface ScramjetConfig {
