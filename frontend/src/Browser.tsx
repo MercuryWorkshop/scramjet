@@ -108,7 +108,7 @@ export class Browser extends StatefulClass {
 	constructor() {
 		super(createState(Object.create(Browser.prototype)));
 
-		setInterval(saveBrowserState, 1000);
+		setInterval(saveBrowserState, 10000);
 
 		scramjet.addEventListener("download", (e) => {
 			this.startDownload(e.download);
