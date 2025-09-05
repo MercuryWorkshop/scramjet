@@ -150,7 +150,6 @@ jobs:
           cache-all-crates: true
 
       - name: Run Tests
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
         run: cd rewriter/native && cargo test
 
   upload:

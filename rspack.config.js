@@ -108,6 +108,7 @@ const iifeConfig = defineConfig({
 const moduleConfig = defineConfig({
 	mode: "development",
 	devtool: "source-map",
+	watch: false,
 	entry: {
 		bundle: join(__dirname, "src/index.ts"),
 	},
