@@ -124,6 +124,7 @@ jobs:
   rewritertests:
     name: "Run Rewriter Tests"
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -224,7 +225,7 @@ jobs:
 
       - name: Publish
         if: steps.check.outputs.version_changed == 'true'
-        run: npm publish --access public --no-git-checks
+        run: npm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
