@@ -1,10 +1,8 @@
 import { ScramjetFrame } from "@/controller/frame";
-import initEpoxy, {
-	EpoxyClient,
-	EpoxyClientOptions,
-	EpoxyHandlers,
-	info as epoxyInfo,
-} from "@mercuryworkshop/epoxy-tls";
+import {
+	BareClient,
+	type BareClient as BareClientType,
+} from "../bare-mux-custom";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
@@ -69,7 +67,7 @@ export type Trap<T> = {
 export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
-	epoxy: EpoxyClient;
+	bare: BareClientType;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
@@ -117,30 +115,7 @@ export class ScramjetClient {
 
 		this.box.registerClient(this, global as Self);
 
-		initEpoxy().then(() => {
-			let options = new EpoxyClientOptions();
-			options.user_agent = navigator.userAgent;
-			this.epoxy = new EpoxyClient(config.wisp, options);
-		});
-
-		if (iswindow) {
-			// this.bare = new EpoxyClient();
-			// this.bare = new BareClient();
-		} else {
-			// this.bare = new BareClient(
-			// 	new Promise((resolve) => {
-			// 		addEventListener("message", ({ data }) => {
-			// 			if (typeof data !== "object") return;
-			// 			if (
-			// 				"$scramjet$type" in data &&
-			// 				data.$scramjet$type === "baremuxinit"
-			// 			) {
-			// 				resolve(data.port);
-			// 			}
-			// 		});
-			// 	})
-			// );
-		}
+		this.bare = new BareClient();
 
 		this.serviceWorker = this.global.navigator.serviceWorker;
 

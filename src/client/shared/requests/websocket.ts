@@ -1,14 +1,12 @@
-import { config } from "@/shared";
+import { type BareWebSocket } from "../../../bare-mux-custom";
 import { ScramjetClient } from "@client/index";
-import { EpoxyHandlers, EpoxyWebSocket } from "@mercuryworkshop/epoxy-tls";
 
 type FakeWebSocketState = {
 	extensions: string;
 	protocol: string;
 	url: string;
 	binaryType: string;
-	epws: Promise<EpoxyWebSocket>;
-	readyState: number;
+	barews: BareWebSocket;
 
 	onclose?: (ev: CloseEvent) => any;
 	onerror?: (ev: Event) => any;
@@ -19,7 +17,7 @@ type FakeWebSocketStreamState = {
 	extensions: string;
 	protocol: string;
 	url: string;
-	barews: EpoxyWebSocket;
+	barews: BareWebSocket;
 
 	opened: any;
 	closed: any;
@@ -32,10 +30,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		new WeakMap();
 	client.Proxy("WebSocket", {
 		construct(ctx) {
-			if (ctx.args[0] == config.wisp) {
-				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
-			}
-
 			const fakeWebSocket = new EventTarget() as WebSocket;
 			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;
@@ -49,76 +43,72 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					},
 				});
 
+			const barews = client.bare.createWebSocket(
+				ctx.args[0],
+				ctx.args[1],
+				null,
+				{
+					"User-Agent": self.navigator.userAgent,
+					Origin: client.url.origin,
+				}
+			);
+
 			const state: FakeWebSocketState = {
 				extensions: "",
 				protocol: "",
 				url: ctx.args[0],
 				binaryType: "blob",
-				readyState: 0,
-				epws: null,
+				barews,
 
 				onclose: null,
 				onerror: null,
 				onmessage: null,
 				onopen: null,
 			};
-			const barews = client.epoxy.connect_websocket(
-				new EpoxyHandlers(
-					() => {
-						fakeEventSend(new Event("open"));
-					},
-					(ev) => {
-						// debugger;
-						// fakeEventSend(new CloseEvent("close", ev));
-					},
-					() => {
-						// debugger;
-						// fakeEventSend(new Event("error"));
-					},
-					async (payload) => {
-						if (typeof payload === "string") {
-							// DO NOTHING
-						} else if ("byteLength" in payload) {
-							// arraybuffer, convert to blob if needed or set the proper prototype
-							if (state.binaryType === "blob") {
-								payload = new Blob([payload]);
-							} else {
-								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
-							}
-						} else if ("arrayBuffer" in payload) {
-							// blob, convert to arraybuffer if neccesary.
-							if (state.binaryType === "arraybuffer") {
-								payload = await payload.arrayBuffer();
-								Object.setPrototypeOf(payload, ArrayBuffer.prototype);
-							}
-						}
-
-						const fakeev = new MessageEvent("message", {
-							data: payload,
-							origin: client.url.origin,
-
-							// origin: ev.origin,
-							// lastEventId: ev.lastEventId,
-							// source: ev.source,
-							// ports: ev.ports,
-						});
-
-						fakeEventSend(fakeev);
-					}
-				),
-				ctx.args[0],
-				ctx.args[1] || [],
-				{
-					"User-Agent": self.navigator.userAgent,
-					Origin: client.url.origin,
-				}
-			);
-			state.epws = barews;
 
 			function fakeEventSend(fakeev: Event) {
 				state["on" + fakeev.type]?.(trustEvent(fakeev));
 				fakeWebSocket.dispatchEvent(fakeev);
 			}
+
+			barews.addEventListener("open", () => {
+				fakeEventSend(new Event("open"));
+			});
+			barews.addEventListener("close", (ev) => {
+				fakeEventSend(new CloseEvent("close", ev));
+			});
+			barews.addEventListener("message", async (ev) => {
+				let payload = ev.data;
+				if (typeof payload === "string") {
+					// DO NOTHING
+				} else if ("byteLength" in payload) {
+					// arraybuffer, convert to blob if needed or set the proper prototype
+					if (state.binaryType === "blob") {
+						payload = new Blob([payload]);
+					} else {
+						Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+					}
+				} else if ("arrayBuffer" in payload) {
+					// blob, convert to arraybuffer if neccesary.
+					if (state.binaryType === "arraybuffer") {
+						payload = await payload.arrayBuffer();
+						Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+					}
+				}
+
+				const fakeev = new MessageEvent("message", {
+					data: payload,
+					origin: ev.origin,
+					lastEventId: ev.lastEventId,
+					source: ev.source,
+					ports: ev.ports,
+				});
+
+				fakeEventSend(fakeev);
+			});
+			barews.addEventListener("error", () => {
+				fakeEventSend(new Event("error"));
+			});
 
 			socketmap.set(fakeWebSocket, state);
 			ctx.return(fakeWebSocket);
@@ -127,26 +117,17 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.binaryType", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.binaryType;
 		},
 		set(ctx, v: string) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) {
-				ctx.set(v);
-
-				return;
-			}
 			if (v === "blob" || v === "arraybuffer") ws.binaryType = v;
 		},
 	});
 
 	client.Trap("WebSocket.prototype.bufferedAmount", {
-		get(ctx) {
-			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
-
+		get() {
 			return 0;
 		},
 	});
@@ -154,7 +135,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.extensions", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.extensions;
 		},
@@ -163,13 +143,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onclose", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.onclose;
 		},
 		set(ctx, v: (ev: CloseEvent) => any) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.set(v);
 			ws.onclose = v;
 		},
 	});
@@ -177,13 +155,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onerror", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.onerror;
 		},
 		set(ctx, v: (ev: Event) => any) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.set(v);
 			ws.onerror = v;
 		},
 	});
@@ -191,13 +167,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onmessage", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.onmessage;
 		},
 		set(ctx, v: (ev: MessageEvent) => any) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.set(v);
 			ws.onmessage = v;
 		},
 	});
@@ -205,13 +179,11 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onopen", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.onopen;
 		},
 		set(ctx, v: (ev: Event) => any) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.set(v);
 			ws.onopen = v;
 		},
 	});
@@ -219,7 +191,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.url", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.url;
 		},
@@ -228,7 +199,6 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.protocol", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
 			return ws.protocol;
 		},
@@ -237,48 +207,35 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.readyState", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return ctx.get();
 
-			return ws.readyState;
+			return ws.barews.readyState;
 		},
 	});
 
 	client.Proxy("WebSocket.prototype.send", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return;
 
-			(async () => {
-				let payload = ctx.args[0];
-				if (payload instanceof Blob) {
-					payload = await payload.arrayBuffer();
-				}
-				// (await ws.epws).send(payload);
-			})();
-
-			ctx.return(undefined);
+			ctx.return(ws.barews.send(ctx.args[0]));
 		},
 	});
 
 	client.Proxy("WebSocket.prototype.close", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
-			if (!ws) return;
-
 			if (ctx.args[0] === undefined) ctx.args[0] = 1000;
 			if (ctx.args[1] === undefined) ctx.args[1] = "";
-			// ctx.return(ws.epws.close(ctx.args[0], ctx.args[1]));
+			ctx.return(ws.barews.close(ctx.args[0], ctx.args[1]));
 		},
 	});
 
 	client.Proxy("WebSocketStream", {
 		construct(ctx) {
-			console.log(ctx);
 			const fakeWebSocket = {};
 			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;
 
-			const barews = client.epoxy.createWebSocket(
+			const barews = client.bare.createWebSocket(
 				ctx.args[0],
 				ctx.args[1],
 				null,

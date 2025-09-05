@@ -1,5 +1,6 @@
-import { EpoxyClient } from "@mercuryworkshop/epoxy-tls";
 import { type URLMeta } from "@rewriters/url";
+
+import type { BareClient, BareResponseFetch } from "../../bare-mux-custom";
 
 // Cache every hour
 const CACHE_DURATION_MINUTES = 60;
@@ -68,7 +69,7 @@ async function setCachedSuffixList(data: string[]): Promise<void> {
 export async function getSiteDirective(
 	meta: URLMeta,
 	referrerURL: URL,
-	client: EpoxyClient
+	client: BareClient
 ): Promise<string> {
 	if (!referrerURL) {
 		return "none";
@@ -103,7 +104,7 @@ export async function getSiteDirective(
 export async function isSameSite(
 	url1: URL,
 	url2: URL,
-	client: EpoxyClient
+	client: BareClient
 ): Promise<boolean> {
 	const registrableDomain1 = await getRegistrableDomain(url1, client);
 	const registrableDomain2 = await getRegistrableDomain(url2, client);
@@ -119,7 +120,7 @@ export async function isSameSite(
  */
 async function getRegistrableDomain(
 	url: URL,
-	client: EpoxyClient
+	client: BareClient
 ): Promise<string> {
 	const publicSuffixes = await getPublicSuffixList(client);
 
@@ -199,7 +200,7 @@ function matchesSuffix(
  * @throws {Error} If an error occurs while fetching from the Public Suffix List
  */
 export async function getPublicSuffixList(
-	client: EpoxyClient
+	client: BareClient
 ): Promise<string[]> {
 	const cached = await getCachedSuffixList();
 	if (cached && Date.now() < cached.expiry) {

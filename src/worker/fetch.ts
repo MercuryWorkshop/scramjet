@@ -1,9 +1,4 @@
-type BareResponseFetch = Response & {
-	finalURL?: string;
-	rawHeaders: Record<string, string | string[]>;
-};
-type BareClient = any;
-import { EpoxyClient } from "@mercuryworkshop/epoxy-tls";
+import { BareClient, BareResponseFetch } from "../bare-mux-custom";
 
 import { MessageW2C, ScramjetServiceWorker } from "@/worker";
 import { renderError } from "@/worker/error";
@@ -297,7 +292,11 @@ export async function handleFetch(
 				const unrewrittenReferrer = unrewriteUrl(request.referrer);
 				if (unrewrittenReferrer) {
 					const referrerUrl = new URL(unrewrittenReferrer);
-					siteDirective = await getSiteDirective(meta, referrerUrl, this.epoxy);
+					siteDirective = await getSiteDirective(
+						meta,
+						referrerUrl,
+						this.client
+					);
 				}
 			}
 		}
@@ -325,7 +324,7 @@ export async function handleFetch(
 
 		const response =
 			(await ev.response) ||
-			((await this.epoxy.fetch(ev.url, {
+			((await this.client.fetch(ev.url, {
 				method: ev.method,
 				body: ev.body,
 				headers: ev.requestHeaders,
@@ -347,7 +346,7 @@ export async function handleFetch(
 			response,
 			this.cookieStore,
 			client,
-			this.epoxy,
+			this.client,
 			this,
 			request.referrer
 		);
@@ -387,7 +386,7 @@ async function handleResponse(
 	response: BareResponseFetch,
 	cookieStore: CookieStore,
 	client: Client,
-	bareClient: EpoxyClient,
+	bareClient: BareClient,
 	swtarget: ScramjetServiceWorker,
 	referrer: string
 ): Promise<Response> {

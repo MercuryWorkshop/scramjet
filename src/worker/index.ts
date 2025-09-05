@@ -1,24 +1,18 @@
 import { FakeServiceWorker } from "@/worker/fakesw";
 import { handleFetch } from "@/worker/fetch";
-// import BareClient from "@mercuryworkshop/bare-mux";
+import { BareClient } from "../bare-mux-custom";
 import { ScramjetConfig } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
 import { config, loadCodecs, setConfig } from "@/shared";
-import initEpoxy, {
-	EpoxyClient,
-	EpoxyClientOptions,
-} from "@mercuryworkshop/epoxy-tls";
 import { ScramjetDownload } from "@client/events";
 
 export * from "./error";
 export * from "./fetch";
 export * from "./fakesw";
 
-let epoxyPromise = initEpoxy();
-
 export class ScramjetServiceWorker extends EventTarget {
-	epoxy: EpoxyClient;
+	client: BareClient;
 	config: ScramjetConfig;
 
 	syncPool: Record<number, (val?: any) => void> = {};
@@ -74,7 +68,6 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "loadConfig") {
 				this.config = data.config;
-				await this.initEpoxy();
 			}
 		});
 	}
@@ -106,6 +99,7 @@ export class ScramjetServiceWorker extends EventTarget {
 				storedconfig.onsuccess = async () => {
 					this.config = storedconfig.result;
 					setConfig(storedconfig.result);
+					this.client = new BareClient();
 
 					await asyncSetWasm();
 
@@ -126,18 +120,8 @@ export class ScramjetServiceWorker extends EventTarget {
 		else return false;
 	}
 
-	async initEpoxy() {
-		await epoxyPromise;
-		const options = new EpoxyClientOptions();
-		options.user_agent = navigator.userAgent;
-		this.epoxy = new EpoxyClient(this.config.wisp, options);
-	}
 	async fetch({ request, clientId }: FetchEvent) {
 		if (!this.config) await this.loadConfig();
-
-		if (!this.epoxy) {
-			await this.initEpoxy();
-		}
 
 		const client = await self.clients.get(clientId);
 
