@@ -10,12 +10,7 @@ const scramjet = new ScramjetController({
 		rewriterLogs: false,
 		scramitize: false,
 		cleanErrors: true,
-		// sourcemaps: true,
-	},
-	siteFlags: {
-		"https://worker-playground.glitch.me/.*": {
-			serviceworkers: true,
-		},
+		sourcemaps: true,
 	},
 });
 

@@ -1,10 +1,15 @@
+<h1 align="center">Scramjet</h1>
 <div align="center">
   <img src="assets/scramjet.png" height="200" />
 </div>
 
----
+<div align="center">
+  <a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
+  <img src="https://img.shields.io/github/issues/MercuryWorkshop/scramjet?style=flat&color=orange" />
+  <img src="https://img.shields.io/github/stars/MercuryWorkshop/scramjet?style=flat&color=orange" />
+</div>
 
-<a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
+---
 
 Scramjet is an interception-based web proxy which is the successor to Ultraviolet. It is designed with security, developer friendliness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
 
@@ -13,6 +18,7 @@ Scramjet is an interception-based web proxy which is the successor to Ultraviole
 Some of the popular websites that Scramjet supports include:
 
 -   [Google](https://google.com) (partial)
+-   [Youtube](https://youtube.com)
 -   [Spotify](https://spotify.com) (partial)
 -   [Discord](https://discord.com)
 -   [Reddit](https://reddit.com)

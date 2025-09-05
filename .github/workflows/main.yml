@@ -143,7 +143,6 @@ jobs:
             rewriter-release-
 
       - name: Cache Rust dependencies
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "rewriter"
