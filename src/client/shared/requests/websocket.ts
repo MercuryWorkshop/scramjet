@@ -1,3 +1,4 @@
+import { config } from "@/shared";
 import { type BareWebSocket } from "../../../bare-mux-custom";
 import { ScramjetClient } from "@client/index";
 
@@ -30,6 +31,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		new WeakMap();
 	client.Proxy("WebSocket", {
 		construct(ctx) {
+			if (ctx.args[0] == config.wisp) {
+				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
+			}
 			const fakeWebSocket = new EventTarget() as WebSocket;
 			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;
@@ -117,17 +121,22 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.binaryType", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.binaryType;
 		},
 		set(ctx, v: string) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
 			if (v === "blob" || v === "arraybuffer") ws.binaryType = v;
 		},
 	});
 
 	client.Trap("WebSocket.prototype.bufferedAmount", {
-		get() {
+		get(ctx) {
+			const ws = socketmap.get(this);
+			if (!ws) return ctx.get();
+
 			return 0;
 		},
 	});
@@ -135,6 +144,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.extensions", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.extensions;
 		},
@@ -143,11 +153,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onclose", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.onclose;
 		},
 		set(ctx, v: (ev: CloseEvent) => any) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+
 			ws.onclose = v;
 		},
 	});
@@ -155,11 +168,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onerror", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.onerror;
 		},
 		set(ctx, v: (ev: Event) => any) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+
 			ws.onerror = v;
 		},
 	});
@@ -167,11 +183,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onmessage", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.onmessage;
 		},
 		set(ctx, v: (ev: MessageEvent) => any) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+
 			ws.onmessage = v;
 		},
 	});
@@ -179,11 +198,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.onopen", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.onopen;
 		},
 		set(ctx, v: (ev: Event) => any) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.set(v);
+
 			ws.onopen = v;
 		},
 	});
@@ -191,6 +213,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.url", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.url;
 		},
@@ -199,6 +222,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.protocol", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.protocol;
 		},
@@ -207,6 +231,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Trap("WebSocket.prototype.readyState", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return ctx.get();
 
 			return ws.barews.readyState;
 		},
@@ -215,6 +240,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("WebSocket.prototype.send", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return;
 
 			ctx.return(ws.barews.send(ctx.args[0]));
 		},
@@ -223,6 +249,8 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	client.Proxy("WebSocket.prototype.close", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
+			if (!ws) return;
+
 			if (ctx.args[0] === undefined) ctx.args[0] = 1000;
 			if (ctx.args[1] === undefined) ctx.args[1] = "";
 			ctx.return(ws.barews.close(ctx.args[0], ctx.args[1]));

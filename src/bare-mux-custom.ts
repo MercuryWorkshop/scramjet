@@ -1,3 +1,4 @@
+import LibcurlClient from "./curltransport";
 import EpoxyTransport from "./epoxytransport";
 import { config } from "./shared";
 
@@ -90,7 +91,7 @@ export class BareClient {
 	 * Create a BareClient. Calls to fetch and connect will wait for an implementation to be ready.
 	 */
 	constructor() {
-		this.transport = new EpoxyTransport({
+		this.transport = new LibcurlClient({
 			wisp: config.wisp,
 		});
 	}
