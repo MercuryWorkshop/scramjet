@@ -2,11 +2,24 @@ name: CI
 
 on:
   push:
-    paths-ignore:
+    paths-ignore: &ci_ignore_paths
       - ".github/workflows/**"
+      - "assets/**"
+      - "scripts/**"
+      # Editor configs
+      - ".zed/**"
+      - ".vscode/**"
+      # Docs
+      - "documentation/**"
+      - "**/*.md"
+      # The README is included in the Typedoc
+      - "!README.md"
+      # Formatters
+      - "eslint.config.json"
+      - "prettier.config.json"
+      - ".editorconfig"
   pull_request:
-    paths-ignore:
-      - ".github/workflows/**"
+    paths-ignore: *ci_ignore_paths
   workflow_dispatch:
 
 concurrency:
@@ -211,7 +224,7 @@ jobs:
           LATEST_VERSION=$(npm view @mercuryworkshop/scramjet version || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; 
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
           then
             echo "Version changed"
             echo "version_changed=true" >> $GITHUB_OUTPUT
