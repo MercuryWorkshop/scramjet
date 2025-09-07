@@ -27,6 +27,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  version-check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.exit_code }}
+      new_version: ${{ steps.check.outputs.exit_code }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Check the version
+        id: check
+        run: |
+          CURRENT_VERSION=$(jq -r .version package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet version || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
     name: Build Scramjet
     runs-on: ubuntu-latest
@@ -104,6 +133,7 @@ jobs:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -138,6 +168,7 @@ jobs:
     name: "Run Rewriter Tests"
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -167,7 +198,7 @@ jobs:
   upload:
     name: Upload release
     runs-on: ubuntu-latest
-    needs: [build, rewritertests, tests]
+    needs: [version-check, build, rewritertests, tests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
     steps:
@@ -184,7 +215,7 @@ jobs:
           name: packaged-scramjet
           path: .
 
-      - name: Release to GitHub
+      - name: Release unstable build to GitHub
         uses: ncipollo/release-action@v1
         with:
           name: Continuous Build
@@ -194,12 +225,23 @@ jobs:
           artifacts: "mercuryworkshop-scramjet-*.tgz"
           prerelease: true
 
+      - name: Release tagged version to GitHub
+        if: needs.version-check.outputs.version_changed == 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          name: "${{ needs.version-check.outputs.new_version }}"
+          tag: "v${{ needs.version-check.outputs.new_version }}"
+          commit: main
+          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
+          artifacts: "mercuryworkshop-scramjet-*.tgz"
+
   publish:
     name: Publish Scramjet to NPM
     runs-on: ubuntu-latest
-    needs: [build, rewritertests, tests]
-    if: false
+    needs: [version-check, build, rewritertests, tests]
     permissions: write-all
+    if: needs.version-check.outputs.version_changed == 'true'
+
     steps:
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -216,29 +258,8 @@ jobs:
       - name: Extract package
         run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
 
-      - name: Check the version
-        id: check
-        run: |
-          CURRENT_VERSION=$(jq -r .version package.json)
-          echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet version || echo "0.0.0")
-          echo "Latest NPM version: $LATEST_VERSION"
-
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
-          then
-            echo "Version changed"
-            echo "version_changed=true" >> $GITHUB_OUTPUT
-            echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "Version not changed"
-            echo "version_changed=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Publish
-        if: steps.check.outputs.version_changed == 'true'
-        run: npm publish --provenance --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --no-git-checks
 
   pages:
     name: Upload to Github Pages
@@ -246,6 +267,7 @@ jobs:
     needs: [build, rewritertests, tests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
