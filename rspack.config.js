@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { readFileSync } from "node:fs";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const packagemeta = JSON.parse(await readFile("package.json"));
 
@@ -158,10 +159,10 @@ const moduleConfig = defineConfig({
 			VERSION: JSON.stringify(packagemeta.version),
 		}),
 		new rspack.DefinePlugin({
-			REWRITERWASM: (async () => {
+			REWRITERWASM: (() => {
 				try {
 					const wasmPath = join(__dirname, "dist/scramjet.wasm.wasm");
-					const wasmBuf = await readFile(wasmPath);
+					const wasmBuf = readFileSync(wasmPath);
 					const wasmB64 = wasmBuf.toString("base64");
 					return JSON.stringify(wasmB64);
 				} catch {

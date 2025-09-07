@@ -1,5 +1,5 @@
 {
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
-    "prettier.useEditorConfig": true
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+	"prettier.useEditorConfig": true
 }

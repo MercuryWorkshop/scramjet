@@ -1,6 +1,6 @@
 {
 	"name": "@mercuryworkshop/scramjet",
-	"version": "1.0.2-dev",
+	"version": "2.0.0-alpha",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
 	"repository": {
