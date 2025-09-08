@@ -4,8 +4,9 @@ import { BareClient } from "../bare-mux-custom";
 import { ScramjetConfig } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
-import { config, loadCodecs, setConfig } from "@/shared";
+import { config, loadCodecs, setConfig, unrewriteUrl } from "@/shared";
 import { ScramjetDownload } from "@client/events";
+import { renderError } from "./error";
 
 export * from "./error";
 export * from "./fetch";
@@ -125,7 +126,58 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		const client = await self.clients.get(clientId);
 
-		return handleFetch.call(this, request, client);
+		let url = new URL(request.url);
+
+		if (url.pathname === this.config.files.wasm) {
+			return fetch(this.config.files.wasm).then(async (x) => {
+				const buf = await x.arrayBuffer();
+				const b64 = btoa(
+					new Uint8Array(buf)
+						.reduce(
+							(data, byte) => (data.push(String.fromCharCode(byte)), data),
+							[]
+						)
+						.join("")
+				);
+
+				let payload = "";
+				payload +=
+					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+				payload += `self.WASM = '${b64}';`;
+
+				return new Response(payload, {
+					headers: { "content-type": "text/javascript" },
+				});
+			});
+		}
+
+		try {
+			return handleFetch.call(this, request, client);
+		} catch (err) {
+			const errorDetails = {
+				message: err.message,
+				url: request.url,
+				destination: request.destination,
+			};
+			if (err.stack) {
+				errorDetails["stack"] = err.stack;
+			}
+
+			console.error("ERROR FROM SERVICE WORKER FETCH: ", errorDetails);
+			console.error(err);
+
+			if (!["document", "iframe"].includes(request.destination))
+				return new Response(undefined, { status: 500 });
+
+			const formattedError = Object.entries(errorDetails)
+				.map(
+					([key, value]) =>
+						`${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`
+				)
+				.join("\n\n");
+
+			return renderError(formattedError, unrewriteUrl(request.url));
+		}
 	}
 }
 

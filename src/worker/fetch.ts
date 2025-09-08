@@ -24,6 +24,7 @@ import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetDownload } from "@client/events";
+import { ScramjetConfig } from "@/types";
 
 function isRedirect(response: BareResponseFetch) {
 	return response.status >= 300 && response.status < 400;
@@ -72,339 +73,361 @@ function isDownload(responseHeaders: object, destination: string): boolean {
 	return false;
 }
 
-export async function handleFetch(
-	this: ScramjetServiceWorker,
-	request: Request,
-	client: Client | null
-) {
-	try {
-		const requestUrl = new URL(request.url);
+export interface ScramjetFetchContext {
+	rawUrl: URL;
+	destination: RequestDestination;
+	mode: RequestMode;
+	referrer: string;
+	method: string;
+	body: BodyType | null;
+	cache: RequestCache;
 
-		if (requestUrl.pathname === this.config.files.wasm) {
-			return fetch(this.config.files.wasm).then(async (x) => {
-				const buf = await x.arrayBuffer();
-				const b64 = btoa(
-					new Uint8Array(buf)
-						.reduce(
-							(data, byte) => (data.push(String.fromCharCode(byte)), data),
-							[]
-						)
-						.join("")
+	forceCrossOriginIsolated: boolean;
+	initialHeaders: ScramjetHeaders;
+	cookieStore: CookieStore;
+
+	rawClientUrl?: URL;
+}
+
+export interface ScramjetFetchParsed {
+	url: URL;
+	clientUrl?: URL;
+
+	meta: URLMeta;
+	scriptType: string;
+}
+
+export function parseRequest(
+	request: ScramjetFetchContext
+): ScramjetFetchParsed {
+	const strippedUrl = new URL(request.rawUrl.href);
+	const extraParams: Record<string, string> = {};
+
+	let scriptType = "";
+	let topFrameName: string | undefined;
+	let parentFrameName: string | undefined;
+	for (const [param, value] of [...request.rawUrl.searchParams.entries()]) {
+		switch (param) {
+			case "type":
+				scriptType = value;
+				break;
+			case "dest":
+				break;
+			case "topFrame":
+				topFrameName = value;
+				break;
+			case "parentFrame":
+				parentFrameName = value;
+				break;
+			default:
+				dbg.warn(
+					`${request.rawUrl.href} extraneous query parameter ${param}. Assuming <form> element`
 				);
-
-				let payload = "";
-				payload +=
-					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
-				payload += `self.WASM = '${b64}';`;
-
-				return new Response(payload, {
-					headers: { "content-type": "text/javascript" },
-				});
-			});
+				extraParams[param] = value;
+				break;
 		}
 
-		let scriptType = "";
-		let topFrameName;
-		let parentFrameName;
+		strippedUrl.searchParams.delete(param);
+	}
 
-		const extraParams: Record<string, string> = {};
-		for (const [param, value] of [...requestUrl.searchParams.entries()]) {
-			switch (param) {
-				case "type":
-					scriptType = value;
-					break;
-				case "dest":
-					break;
-				case "topFrame":
-					topFrameName = value;
-					break;
-				case "parentFrame":
-					parentFrameName = value;
-					break;
-				default:
-					dbg.warn(
-						`${requestUrl.href} extraneous query parameter ${param}. Assuming <form> element`
-					);
-					extraParams[param] = value;
-					break;
-			}
-			requestUrl.searchParams.delete(param);
-		}
+	const url = new URL(unrewriteUrl(strippedUrl));
 
-		const url = new URL(unrewriteUrl(requestUrl));
-		// now that we're past unrewriting it's safe to add back the params
-		for (const [param, value] of Object.entries(extraParams)) {
-			url.searchParams.set(param, value);
-		}
-
-		const meta: URLMeta = {
-			origin: url,
-			base: url,
-			topFrameName,
-			parentFrameName,
-		};
-
-		if (
-			requestUrl.pathname.startsWith(`${this.config.prefix}blob:`) ||
-			requestUrl.pathname.startsWith(`${this.config.prefix}data:`)
-		) {
-			let dataUrl = requestUrl.pathname.substring(this.config.prefix.length);
-			if (dataUrl.startsWith("blob:")) {
-				dataUrl = unrewriteBlob(dataUrl);
-			}
-
-			const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
-			const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
-			response.finalURL = url;
-			let body: BodyType;
-
-			if (response.body) {
-				body = await rewriteBody(
-					response as BareResponseFetch,
-					meta,
-					request.destination,
-					scriptType,
-					this.cookieStore
-				);
-			}
-			const headers = Object.fromEntries(response.headers.entries());
-
-			if (crossOriginIsolated) {
-				headers["Cross-Origin-Opener-Policy"] = "same-origin";
-				headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-			}
-
-			return new Response(body, {
-				status: response.status,
-				statusText: response.statusText,
-				headers: headers,
-			});
-		}
-
-		const activeWorker: FakeServiceWorker | null = this.serviceWorkers.find(
-			(w) => w.origin === url.origin
+	if (url.origin === new URL(request.rawUrl).origin) {
+		// uh oh!
+		throw new Error(
+			"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
 		);
+	}
 
-		if (
-			activeWorker?.connected &&
-			requestUrl.searchParams.get("from") !== "swruntime"
-		) {
-			// TODO: check scope
-			const r = await activeWorker.fetch(request);
-			if (r) return r;
-		}
-		if (url.origin === new URL(request.url).origin) {
-			throw new Error(
-				"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
-			);
-		}
+	// now that we're past unrewriting it's safe to add back the params
+	for (const [param, value] of Object.entries(extraParams)) {
+		url.searchParams.set(param, value);
+	}
 
-		const headers = new ScramjetHeaders();
-		for (const [key, value] of request.headers.entries()) {
-			headers.set(key, value);
-		}
+	// TODO: figure out what origin and base actually mean
+	const meta: URLMeta = {
+		origin: url,
+		base: url,
+		topFrameName,
+		parentFrameName,
+	};
 
-		if (client && new URL(client.url).pathname.startsWith(config.prefix)) {
-			// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-			const clientURL = new URL(unrewriteUrl(client.url));
-			if (clientURL.toString().includes("youtube.com")) {
-				// console.log(headers);
-			} else {
-				// Force referrer to unsafe-url for all requests
-				headers.set("Referer", clientURL.href);
-				headers.set("Origin", clientURL.origin);
-			}
-		}
+	const parsed: ScramjetFetchParsed = {
+		meta,
+		url,
+		scriptType,
+	};
 
-		const cookies = this.cookieStore.getCookies(url, false);
+	if (request.rawClientUrl) {
+		// TODO: probably need to make a meta for it
+		parsed.clientUrl = new URL(unrewriteUrl(request.rawClientUrl));
+	}
 
-		if (cookies.length) {
-			headers.set("Cookie", cookies);
-		}
+	return parsed;
+}
 
-		// Check if we should emulate a top-level navigation
-		let isTopLevelProxyNavigation = false;
-		if (
-			request.destination === "iframe" &&
-			request.mode === "navigate" &&
-			request.referrer &&
-			request.referrer !== "no-referrer"
-		) {
-			// Trace back through the referrer chain, checking if each was an iframe navigation using the clients, until we find a non-iframe parent on a non-proxy page
-			let currentReferrer = request.referrer;
-			const allClients = await self.clients.matchAll({ type: "window" });
+function rewriteRequestHeaders(
+	context: ScramjetFetchContext,
+	parsed: ScramjetFetchParsed
+): ScramjetHeaders {
+	const headers = context.initialHeaders.clone();
 
-			// Trace backwards
-			while (currentReferrer) {
-				if (!currentReferrer.includes(config.prefix)) {
-					isTopLevelProxyNavigation = true;
-					break;
-				}
-
-				// Find the parent for this iteration
-				const parentChainClient = allClients.find(
-					(c) => c.url === currentReferrer
-				);
-
-				// Get the next referrer policy that applies to this parent
-				// eslint-disable-next-line no-await-in-loop
-				const parentPolicyData = await getReferrerPolicy(currentReferrer);
-
-				if (!parentPolicyData || !parentPolicyData.referrer) {
-					// Check if this ends at the proxy origin
-					if (
-						parentChainClient &&
-						currentReferrer.startsWith(location.origin)
-					) {
-						isTopLevelProxyNavigation = true;
-					}
-					// Results are inclusive
-					break;
-				}
-
-				// Check if this was an iframe navigation by looking at the client
-				if (parentChainClient && parentChainClient.frameType === "nested") {
-					// Continue checking the chain
-					currentReferrer = parentPolicyData.referrer;
-				} else {
-					// Results are inclusive
-					break;
-				}
-			}
-		}
-
-		if (isTopLevelProxyNavigation) {
-			headers.set("Sec-Fetch-Dest", "document");
-			headers.set("Sec-Fetch-Mode", "navigate");
+	if (
+		context.rawClientUrl &&
+		context.rawClientUrl.pathname.startsWith(config.prefix)
+	) {
+		// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
+		const clientURL = new URL(unrewriteUrl(context.rawClientUrl));
+		if (clientURL.toString().includes("youtube.com")) {
+			// console.log(headers);
 		} else {
-			// Convert empty destination to "empty" string per spec
-			headers.set("Sec-Fetch-Dest", request.destination || "empty");
-			headers.set("Sec-Fetch-Mode", request.mode);
+			// Force referrer to unsafe-url for all requests
+			headers.set("Referer", clientURL.href);
+			headers.set("Origin", clientURL.origin);
 		}
+	}
 
-		let siteDirective = "none";
-		if (
-			request.referrer &&
-			request.referrer !== "" &&
-			request.referrer !== "no-referrer"
-		) {
-			if (request.referrer.includes(config.prefix)) {
-				const unrewrittenReferrer = unrewriteUrl(request.referrer);
-				if (unrewrittenReferrer) {
-					const referrerUrl = new URL(unrewrittenReferrer);
-					siteDirective = await getSiteDirective(
-						meta,
-						referrerUrl,
-						this.client
-					);
-				}
+	const cookies = context.cookieStore.getCookies(parsed.url, false);
+
+	if (cookies.length) {
+		headers.set("Cookie", cookies);
+	}
+
+	// // Check if we should emulate a top-level navigation
+	// let isTopLevelProxyNavigation = false;
+	// if (
+	// 	context.destination === "iframe" &&
+	// 	context.mode === "navigate" &&
+	// 	context.referrer &&
+	// 	context.referrer !== "no-referrer"
+	// ) {
+	// 	// Trace back through the referrer chain, checking if each was an iframe navigation using the clients, until we find a non-iframe parent on a non-proxy page
+	// 	let currentReferrer = context.referrer;
+	// 	const allClients = await self.clients.matchAll({ type: "window" });
+
+	// 	// Trace backwards
+	// 	while (currentReferrer) {
+	// 		if (!currentReferrer.includes(config.prefix)) {
+	// 			isTopLevelProxyNavigation = true;
+	// 			break;
+	// 		}
+
+	// 		// Find the parent for this iteration
+	// 		const parentChainClient = allClients.find(
+	// 			(c) => c.url === currentReferrer
+	// 		);
+
+	// 		// Get the next referrer policy that applies to this parent
+	// 		// eslint-disable-next-line no-await-in-loop
+	// 		const parentPolicyData = await getReferrerPolicy(currentReferrer);
+
+	// 		if (!parentPolicyData || !parentPolicyData.referrer) {
+	// 			// Check if this ends at the proxy origin
+	// 			if (parentChainClient && currentReferrer.startsWith(location.origin)) {
+	// 				isTopLevelProxyNavigation = true;
+	// 			}
+	// 			// Results are inclusive
+	// 			break;
+	// 		}
+
+	// 		// Check if this was an iframe navigation by looking at the client
+	// 		if (parentChainClient && parentChainClient.frameType === "nested") {
+	// 			// Continue checking the chain
+	// 			currentReferrer = parentPolicyData.referrer;
+	// 		} else {
+	// 			// Results are inclusive
+	// 			break;
+	// 		}
+	// 	}
+	// }
+
+	// if (isTopLevelProxyNavigation) {
+	// 	headers.set("Sec-Fetch-Dest", "document");
+	// 	headers.set("Sec-Fetch-Mode", "navigate");
+	// } else {
+	// 	// Convert empty destination to "empty" string per spec
+	// 	headers.set("Sec-Fetch-Dest", request.destination || "empty");
+	// 	headers.set("Sec-Fetch-Mode", request.mode);
+	// }
+
+	// let siteDirective = "none";
+	// if (
+	// 	request.referrer &&
+	// 	request.referrer !== "" &&
+	// 	request.referrer !== "no-referrer"
+	// ) {
+	// 	if (request.referrer.includes(config.prefix)) {
+	// 		const unrewrittenReferrer = unrewriteUrl(request.referrer);
+	// 		if (unrewrittenReferrer) {
+	// 			const referrerUrl = new URL(unrewrittenReferrer);
+	// 			siteDirective = await getSiteDirective(meta, referrerUrl, this.client);
+	// 		}
+	// 	}
+	// }
+
+	// await initializeTracker(
+	// 	url.toString(),
+	// 	request.referrer ? unrewriteUrl(request.referrer) : null,
+	// 	siteDirective
+	// );
+
+	// headers.set(
+	// 	"Sec-Fetch-Site",
+	// 	await getMostRestrictiveSite(url.toString(), siteDirective)
+	// );
+	return headers;
+}
+
+async function handleBlobOrDataUrlFetch(
+	config: ScramjetConfig,
+	context: ScramjetFetchContext,
+	parsed: ScramjetFetchParsed
+): Promise<Response> {
+	let dataUrl = context.rawUrl.pathname.substring(config.prefix.length);
+	if (dataUrl.startsWith("blob:")) {
+		dataUrl = unrewriteBlob(dataUrl);
+	}
+
+	const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
+	const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
+	response.finalURL = url;
+	let body: BodyType;
+
+	if (response.body) {
+		body = await rewriteBody(
+			response as BareResponseFetch,
+			parsed.meta,
+			context.destination,
+			parsed.scriptType,
+			thiscookieStore
+		);
+	}
+
+	const headers = Object.fromEntries(response.headers.entries());
+
+	if (context.forceCrossOriginIsolated) {
+		headers["Cross-Origin-Opener-Policy"] = "same-origin";
+		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+	}
+
+	return new Response(body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers: headers,
+	});
+}
+
+async function handleDownload(
+	context: ScramjetFetchContext,
+	parsed: ScramjetFetchParsed
+) {
+	if (flagEnabled("interceptDownloads", parsed.url)) {
+		if (!client) {
+			throw new Error("cant find client");
+		}
+		let filename: string | null = null;
+		const disp = responseHeaders["content-disposition"];
+		if (typeof disp === "string") {
+			const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
+			if (filenameMatch && filenameMatch[1]) {
+				filename = filenameMatch[1];
 			}
 		}
+		const length = responseHeaders["content-length"];
 
-		await initializeTracker(
-			url.toString(),
-			request.referrer ? unrewriteUrl(request.referrer) : null,
-			siteDirective
-		);
-
-		headers.set(
-			"Sec-Fetch-Site",
-			await getMostRestrictiveSite(url.toString(), siteDirective)
-		);
-
-		const ev = new ScramjetRequestEvent(
-			url,
-			headers.headers,
-			request.body,
-			request.method,
-			request.destination,
-			client
-		);
-		this.dispatchEvent(ev);
-
-		const response =
-			(await ev.response) ||
-			((await this.client.fetch(ev.url, {
-				method: ev.method,
-				body: ev.body,
-				headers: ev.requestHeaders,
-				credentials: "omit",
-				mode: request.mode === "cors" ? request.mode : "same-origin",
-				cache: request.cache,
-				redirect: "manual",
-				// @ts-ignore why the fuck is this not typed microsoft
-				duplex: "half",
-			})) as BareResponseFetch);
-		response.finalURL = ev.url.href;
-
-		return await handleResponse(
-			url,
-			meta,
-			scriptType,
-			request.destination,
-			request.mode,
-			response,
-			this.cookieStore,
-			client,
-			this.client,
-			this,
-			request.referrer
-		);
-	} catch (err) {
-		const errorDetails = {
-			message: err.message,
-			url: request.url,
-			destination: request.destination,
-		};
-		if (err.stack) {
-			errorDetails["stack"] = err.stack;
+		// there's no reliable way of finding the top level client that made the request
+		// just take the first one and hope
+		let clis = await clients.matchAll({
+			type: "window",
+		});
+		// only want controller windows
+		clis = clis.filter((e) => !e.url.includes(config.prefix));
+		if (clis.length < 1) {
+			throw Error("couldn't find a controller client to dispatch download to");
 		}
 
-		console.error("ERROR FROM SERVICE WORKER FETCH: ", errorDetails);
-		console.error(err);
+		const download: ScramjetDownload = {
+			filename,
+			url: url.href,
+			type: responseHeaders["content-type"],
+			body: response.body,
+			length: Number(length),
+		};
+		clis[0].postMessage(
+			{
+				scramjet$type: "download",
+				download,
+			} as MessageW2C,
+			[response.body]
+		);
 
-		if (!["document", "iframe"].includes(request.destination))
-			return new Response(undefined, { status: 500 });
+		// endless vortex reference
+		await new Promise(() => {});
+	} else {
+		// manually rewrite for regular browser download
+		const header = responseHeaders["content-disposition"];
 
-		const formattedError = Object.entries(errorDetails)
-			.map(
-				([key, value]) =>
-					`${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`
-			)
-			.join("\n\n");
+		// validate header and test for filename
+		if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
+			// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
+			// if it"s invalid then we can still possibly test for the attachment/inline type
+			const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
 
-		return renderError(formattedError, unrewriteUrl(request.url));
+			// set the filename
+			const [filename] = new URL(response.finalURL).pathname
+				.split("/")
+				.slice(-1);
+
+			responseHeaders["content-disposition"] =
+				`${type}; filename=${JSON.stringify(filename)}`;
+		}
 	}
 }
 
-async function handleResponse(
-	url: URL,
-	meta: URLMeta,
-	scriptType: string,
-	destination: RequestDestination,
-	mode: RequestMode,
-	response: BareResponseFetch,
-	cookieStore: CookieStore,
-	client: Client,
-	bareClient: BareClient,
-	swtarget: ScramjetServiceWorker,
-	referrer: string
-): Promise<Response> {
+export async function hFetch(
+	context: ScramjetFetchContext,
+	config: ScramjetConfig,
+	client: BareClient
+) {
+	const parsed = parseRequest(context);
+
+	if (
+		context.rawUrl.pathname.startsWith(`${config.prefix}blob:`) ||
+		context.rawUrl.pathname.startsWith(`${config.prefix}data:`)
+	) {
+		return handleBlobOrDataUrlFetch(config, context, parsed);
+	}
+
+	const newheaders = rewriteRequestHeaders(context, parsed);
+
+	const init = {
+		method: context.method,
+		body: context.body,
+		headers: newheaders.headers,
+		credentials: "omit",
+		mode: context.mode === "cors" ? context.mode : "same-origin",
+		cache: context.cache,
+		redirect: "manual",
+		// @ts-ignore why the fuck is this not typed microsoft
+		duplex: "half",
+	} as RequestInit;
+
+	const ev = new ScramjetRequestEvent(context, parsed.url, parsed, init);
+	this.dispatchEvent(ev);
+
+	// if the event listener overwrote response with a promise, use that. otherwise fetch normally
+	const response =
+		(await ev.response) ||
+		((await client.fetch(ev.url, ev.init)) as BareResponseFetch);
+
+	response.finalURL = ev.parsed.url.href;
+
 	let responseBody: BodyType;
-	// response.rawHeaders = {};
-	// for (let h of response.raw_headers) {
-	// 	const key = h[0];
-	// 	const value = h[1];
-	// 	if (response.rawHeaders[key] === undefined) {
-	// 		response.rawHeaders[key] = value;
-	// 	} else if (Array.isArray(response.rawHeaders[key])) {
-	// 		(response.rawHeaders[key] as string[]).push(value);
-	// 	} else {
-	// 		response.rawHeaders[key] = [response.rawHeaders[key] as string, value];
-	// 	}
-	// }
+
 	const isNavigationRequest =
-		mode === "navigate" && ["document", "iframe"].includes(destination);
+		context.mode === "navigate" &&
+		["document", "iframe"].includes(context.destination);
+
 	const responseHeaders = await rewriteHeaders(
 		response.rawHeaders,
 		meta,
@@ -474,70 +497,11 @@ async function handleResponse(
 			responseHeaders[header] = responseHeaders[header][0];
 	}
 
-	if (isDownload(responseHeaders, destination) && !isRedirect(response)) {
-		if (flagEnabled("interceptDownloads", url)) {
-			if (!client) {
-				throw new Error("cant find client");
-			}
-			let filename: string | null = null;
-			const disp = responseHeaders["content-disposition"];
-			if (typeof disp === "string") {
-				const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
-				if (filenameMatch && filenameMatch[1]) {
-					filename = filenameMatch[1];
-				}
-			}
-			const length = responseHeaders["content-length"];
-
-			// there's no reliable way of finding the top level client that made the request
-			// just take the first one and hope
-			let clis = await clients.matchAll({
-				type: "window",
-			});
-			// only want controller windows
-			clis = clis.filter((e) => !e.url.includes(config.prefix));
-			if (clis.length < 1) {
-				throw Error(
-					"couldn't find a controller client to dispatch download to"
-				);
-			}
-
-			const download: ScramjetDownload = {
-				filename,
-				url: url.href,
-				type: responseHeaders["content-type"],
-				body: response.body,
-				length: Number(length),
-			};
-			clis[0].postMessage(
-				{
-					scramjet$type: "download",
-					download,
-				} as MessageW2C,
-				[response.body]
-			);
-
-			// endless vortex reference
-			await new Promise(() => {});
-		} else {
-			// manually rewrite for regular browser download
-			const header = responseHeaders["content-disposition"];
-
-			// validate header and test for filename
-			if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
-				// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
-				// if it"s invalid then we can still possibly test for the attachment/inline type
-				const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
-
-				// set the filename
-				const [filename] = new URL(response.finalURL).pathname
-					.split("/")
-					.slice(-1);
-
-				responseHeaders["content-disposition"] =
-					`${type}; filename=${JSON.stringify(filename)}`;
-			}
-		}
+	if (
+		isDownload(responseHeaders, context.destination) &&
+		!isRedirect(response)
+	) {
+		handleDownload();
 	}
 
 	if (response.body && !isRedirect(response)) {
@@ -582,7 +546,6 @@ async function handleResponse(
 		response,
 		client
 	);
-	swtarget.dispatchEvent(ev);
 
 	// Clean up tracker if not a redirect
 	if (!isRedirect(response)) {
@@ -667,12 +630,10 @@ export class ScramjetHandleResponseEvent extends Event {
 
 export class ScramjetRequestEvent extends Event {
 	constructor(
+		public context: ScramjetFetchContext,
 		public url: URL,
-		public requestHeaders: Record<string, string>,
-		public body: BodyType,
-		public method: string,
-		public destination: string,
-		public client: Client
+		public parsed: ScramjetFetchParsed,
+		public init: RequestInit
 	) {
 		super("request");
 	}
