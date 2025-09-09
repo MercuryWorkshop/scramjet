@@ -1,6 +1,8 @@
 pnpm-lock.yaml
 README.md
-tsconfig.json
 tests/
 dist/
 rewriter/
+.rslib/
+lib/rslibOutput/
+lib/temp/

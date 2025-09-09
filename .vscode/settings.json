@@ -1,5 +1,9 @@
 {
 	"editor.formatOnSave": true,
 	"editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
-	"prettier.useEditorConfig": true
+	"prettier.useEditorConfig": true,
+	"typescript.preferences.includePackageJsonAutoImports": "off",
+	"typescript.suggest.autoImports": false,
+	"js/ts.implicitProjectConfig.checkJs": true,
+	"typescript.validate.enable": true
 }

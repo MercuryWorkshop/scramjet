@@ -10,6 +10,8 @@
 		"dunstontc.vscode-gitignore-syntax",
 		"sndst00m.vscode-native-svg-preview",
 		"github.vscode-pull-request-github",
-		"rvest.vs-code-prettier-eslint"
+		"rvest.vs-code-prettier-eslint",
+		"formulahendry.github-actions",
+		"github.vscode-github-actions"
 	]
 }

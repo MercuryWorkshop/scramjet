@@ -3,16 +3,20 @@
 	"version": "2.0.0-alpha",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
+	"types": "./lib/rslibOutput/rslib/entry.d.ts",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/MercuryWorkshop/scramjet"
 	},
 	"scripts": {
 		"build": "rspack build --mode production",
+		"build:lib": "rslib build",
+		"build:types": "rslib build && rm -rf lib/temp-js",
+		"build:all": "npm run build && npm run build:types",
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
 		"dev:debug": "DEBUG=1 node server.js",
-		"prepack": "RELEASE=1 npm run rewriter:build && npm run build && tsc && tsc-alias",
+		"prepack": "RELEASE=1 npm run rewriter:build && npm run build:all",
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
@@ -25,7 +29,7 @@
 	},
 	"exports": {
 		".": {
-			"types": "./lib/types.d.ts",
+			"types": "./lib/rslibOutput/rslib/entry.d.ts",
 			"default": "./lib/noop.js"
 		},
 		"./path": {
@@ -41,7 +45,8 @@
 		"dist/*.js",
 		"dist/*.js.map",
 		"dist/*.wasm",
-		"lib"
+		"lib/**/*",
+		"!lib/temp/**"
 	],
 	"keywords": [],
 	"author": "",
@@ -59,6 +64,7 @@
 		"@nebula-services/bare-server-node": "^2.0.4",
 		"@playwright/test": "^1.55.0",
 		"@rsdoctor/rspack-plugin": "^1.2.3",
+		"@rslib/core": "^0.12.4",
 		"@rspack/cli": "^1.5.2",
 		"@rspack/core": "^1.5.2",
 		"@types/eslint": "^9.6.1",

@@ -1,5 +1,4 @@
 /// <reference types="@rspack/core/module" />
-import "../lib/types.d.ts";
 
 /**
  * Hash of the current commit in `MercuryWorkshop/scramjet` Scramjet was built from.
@@ -220,10 +219,10 @@ export const $scramjetVersion: ScramjetVersionInfo = {
 	version: VERSION,
 };
 
-globalThis.$scramjetLoadController = $scramjetLoadController;
-globalThis.$scramjetLoadClient = $scramjetLoadClient;
-globalThis.$scramjetLoadWorker = $scramjetLoadWorker;
-globalThis.$scramjetVersion = $scramjetVersion;
+(globalThis as any).$scramjetLoadController = $scramjetLoadController;
+(globalThis as any).$scramjetLoadClient = $scramjetLoadClient;
+(globalThis as any).$scramjetLoadWorker = $scramjetLoadWorker;
+(globalThis as any).$scramjetVersion = $scramjetVersion;
 
 if ("document" in globalThis && document?.currentScript) {
 	document.currentScript.remove();

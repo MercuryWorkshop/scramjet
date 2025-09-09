@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { setupPage } from "./util/setupPage";
+import { setupPage } from "../util/setupPage";
 
 test.describe("YouTube", () => {
     test("The front page can load.", async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe("YouTube", () => {
         await thumbnailRef.waitFor({ state: "visible" });
 
         const thumbnail = await thumbnailRef.getAttribute("src");
-        
+
         expect(title).not.toBeNull();
         expect(thumbnail).not.toBeNull();
     });

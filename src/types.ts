@@ -66,17 +66,23 @@ declare global {
 		WASM: string;
 		REAL_WASM: Uint8Array;
 
-		// the scramjet client belonging to a window
+		/**
+		 * The scramjet client belonging to a window.
+		 */
 		[SCRAMJETCLIENT]: ScramjetClient;
 	}
 
 	interface HTMLDocument {
-		// should be the same as window
+		/**
+		 * Should be the same as window.
+		 */
 		[SCRAMJETCLIENT]: ScramjetClient;
 	}
 
 	interface HTMLIFrameElement {
-		// the event target belonging to an <iframe> holding a /prefix/blah url
+		/**
+		 * The event target belonging to an iframe element holding an encoded URL.
+		 */
 		[SCRAMJETFRAME]: ScramjetFrame;
 	}
 }

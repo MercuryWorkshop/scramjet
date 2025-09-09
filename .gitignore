@@ -25,3 +25,8 @@ existing-typedoc-dev/
 staticbuild/
 typedoc-*.tar.gz
 typedoc-*.tar.gz-dev
+
+# Rslib (For global type generation)
+.rslib/
+lib/rslibOutput/
+lib/temp/

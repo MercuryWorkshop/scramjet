@@ -10,16 +10,13 @@
 		"declarationDir": "./dist/types",
 		"outDir": "./dist/types",
 		"emitDeclarationOnly": true,
+		"removeComments": false,
 		"paths": {
-		"@rewriters/*": ["./src/shared/rewriters/*"],
-		"@client/*": ["./src/client/*"],
-		"@/*": ["./src/*"]
+			"@rewriters/*": ["./src/shared/rewriters/*"],
+			"@client/*": ["./src/client/*"],
+			"@/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src"],
+	"exclude": ["node_modules"]
 }

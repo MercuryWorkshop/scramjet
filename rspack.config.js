@@ -98,6 +98,13 @@ const iifeConfig = defineConfig({
 			: null,
 	],
 	target: "webworker",
+	ignoreWarnings: [
+		{
+			module: /src\/entry\.ts/,
+			message:
+				/Critical dependency: the request of a dependency is an expression/,
+		},
+	],
 });
 
 // Configuration for ES module build
@@ -198,6 +205,13 @@ const moduleConfig = defineConfig({
 	experiments: {
 		outputModule: true,
 	},
+	ignoreWarnings: [
+		{
+			module: /src\/entry\.ts/,
+			message:
+				/Critical dependency: the request of a dependency is an expression/,
+		},
+	],
 });
 
 // Export multiple configurations

@@ -5,8 +5,8 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                 fetchedURL.textContent = ${JSON.stringify(fetchedURL)};
                 for (const node of document.querySelectorAll("#hostname")) node.textContent = ${JSON.stringify(location.hostname)};
                 reload.addEventListener("click", () => location.reload());
-                version.textContent = ${JSON.stringify($scramjetVersion.version)};
-                build.textContent = ${JSON.stringify($scramjetVersion.build)};
+                version.textContent = ${JSON.stringify((globalThis as any).$scramjetVersion?.version || "unknown")};
+                build.textContent = ${JSON.stringify((globalThis as any).$scramjetVersion?.build || "unknown")};
 
                 document.getElementById('copy-button').addEventListener('click', async () => {
                     const text = document.getElementById('errorTrace').value;

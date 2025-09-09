@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { setupPage } from "./util/setupPage";
+import { setupPage } from "../util/setupPage";
 
 test.describe("Google", () => {
     test("The front page can load.", async ({ page }) => {
