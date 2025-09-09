@@ -492,9 +492,7 @@ async function handleResponse(
 
 			// there's no reliable way of finding the top level client that made the request
 			// just take the first one and hope
-			let clis = await clients.matchAll({
-				type: "window",
-			});
+			let clis = await clients.matchAll({});
 			// only want controller windows
 			clis = clis.filter((e) => !e.url.includes(config.prefix));
 			if (clis.length < 1) {
