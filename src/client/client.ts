@@ -99,13 +99,22 @@ export class ScramjetClient {
 		}
 
 		if (iswindow) {
-			if (SCRAMJETCLIENT in global.parent) {
-				this.box = global.parent[SCRAMJETCLIENT].box;
-			} else if (SCRAMJETCLIENT in global.top) {
-				this.box = global.top[SCRAMJETCLIENT].box;
-			} else if (global.opener && SCRAMJETCLIENT in global.opener) {
-				this.box = global.opener[SCRAMJETCLIENT].box;
-			} else {
+			try {
+				if (SCRAMJETCLIENT in global.parent) {
+					this.box = global.parent[SCRAMJETCLIENT].box;
+				}
+			} catch {}
+			try {
+				if (SCRAMJETCLIENT in global.top) {
+					this.box = global.top[SCRAMJETCLIENT].box;
+				}
+			} catch {}
+			try {
+				if (global.opener && SCRAMJETCLIENT in global.opener) {
+					this.box = global.opener[SCRAMJETCLIENT].box;
+				}
+			} catch {}
+			if (!this.box) {
 				dbg.warn("Creating SingletonBox");
 				this.box = new SingletonBox(this);
 			}
