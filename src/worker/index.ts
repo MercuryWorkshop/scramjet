@@ -121,10 +121,10 @@ export class ScramjetServiceWorker extends EventTarget {
 		else return false;
 	}
 
-	async fetch({ request, clientId }: FetchEvent) {
+	async fetch({ request }: FetchEvent) {
 		if (!this.config) await this.loadConfig();
 
-		const client = await self.clients.get(clientId);
+		// const client = await self.clients.get(clientId);
 
 		let url = new URL(request.url);
 
@@ -152,7 +152,7 @@ export class ScramjetServiceWorker extends EventTarget {
 		}
 
 		try {
-			return handleFetch.call(this, request, client);
+			return handleFetch.call(this, request, this.client);
 		} catch (err) {
 			const errorDetails = {
 				message: err.message,
