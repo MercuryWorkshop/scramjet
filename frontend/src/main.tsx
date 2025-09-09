@@ -71,6 +71,11 @@ LoadInterstitial.style = css`
 	}
 `;
 
+let swReadyResolve: () => void;
+export const serviceWorkerReady = new Promise<void>(
+	(resolve) => (swReadyResolve = resolve)
+);
+
 async function mount() {
 	try {
 		let shell = <Shell></Shell>;
@@ -201,6 +206,7 @@ async function init() {
 		await waitForControllerOrReady(10000);
 		signin.$.state.status = "Service worker ready";
 		signin.close();
+		swReadyResolve();
 	} catch (e) {
 		console.error("Error during service worker registration:", e);
 		// Always close the modal on error to prevent hanging UI.

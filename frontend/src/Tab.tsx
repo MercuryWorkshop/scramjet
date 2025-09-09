@@ -13,7 +13,7 @@ import { createMenu } from "./components/Menu";
 import { AboutPage } from "./pages/AboutPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { scramjet } from "./main";
+import { scramjet, serviceWorkerReady } from "./main";
 import { DownloadsPage } from "./pages/DownloadsPage";
 import iconBack from "@ktibow/iconset-ion/arrow-back";
 import iconForwards from "@ktibow/iconset-ion/arrow-forward";
@@ -215,7 +215,14 @@ export class Tab extends StatefulClass {
 			this.internalpage = null;
 			// placeholder title until the page fills in
 			this.title = url.href;
-			this.frame.go(url);
+
+			if (!navigator.serviceWorker.controller) {
+				serviceWorkerReady.then(() => {
+					this.frame.go(url);
+				});
+			} else {
+				this.frame.go(url);
+			}
 		}
 	}
 
