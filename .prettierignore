@@ -1,6 +1,4 @@
 pnpm-lock.yaml
-README.md
-tests/
 dist/
 rewriter/
 .rslib/

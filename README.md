@@ -11,36 +11,36 @@
 
 ---
 
-Scramjet is an interception-based web proxy which is the successor to Ultraviolet. It is designed with security, developer friendliness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
+Scramjet is an interception-based web proxy that the successor to Ultraviolet. It is designed with security, developer friendliness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
 
 ## Supported Sites
 
 Some of the popular websites that Scramjet supports include:
 
--   [Google](https://google.com) (partial)
--   [Youtube](https://youtube.com)
--   [Spotify](https://spotify.com) (partial)
--   [Discord](https://discord.com)
--   [Reddit](https://reddit.com)
--   [GeForce NOW](https://play.geforcenow.com/)
--   [now.gg](https://now.gg)
+- [Google](https://google.com) (partial)
+- [Youtube](https://youtube.com)
+- [Spotify](https://spotify.com) (partial)
+- [Discord](https://discord.com)
+- [Reddit](https://reddit.com)
+- [GeForce NOW](https://play.geforcenow.com/)
+- [now.gg](https://now.gg)
 
 ## Development
 
 ### Dependencies
 
--   Recent versions of `node.js` and `pnpm`
--   `rustup`
--   `wasm-bindgen`
--   [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
--   [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
+- Recent versions of `node.js` and `pnpm`
+- `rustup`
+- `wasm-bindgen`
+- [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
+- [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
 
 #### Building
 
--   Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
--   Install the dependencies with `pnpm i`
--   Build the rewriter with `pnpm rewriter:build`
--   Build Scramjet with `pnpm build`
+- Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
+- Install the dependencies with `pnpm i`
+- Build the rewriter with `pnpm rewriter:build`
+- Build Scramjet with `pnpm build`
 
 ### Running Scramjet Locally
 
@@ -52,6 +52,8 @@ pnpm dev
 
 Scramjet should now be running at <http://localhost:1337> and should rebuild upon a file being changed (excluding the rewriter).
 
-## Extra documentation
+## Resources
 
-There's [a page on TN's docs](https://docs.titaniumnetwork.org/proxies/scramjet) for Scramjet, which is structured more like a guide if you are an interested proxy site developer.
+- [TN Docs](https://docs.titaniumnetwork.org/proxies/scramjet) - There's a page on TN's docs for Scramjet, which is structured more like a guide if you are an interested proxy site developer.
+- [Scramjet Typedocs](https://scramjet.mercurywork.shop/typedoc) - Contains documentation for Scramjet APIs. This is useful for any proxy site developer.
+- [Scramjet-App](https://github.com/MercuryWorkshop/scramjet-app) - A simple example of a proxy site, which uses Scramjet in a mass-deployable manner. This is based on [Ultraviolet-App](https://github.com/titaniumnetwork-dev/ultraviolet-app) for familiarity.

@@ -296,7 +296,7 @@ jobs:
           SHARD_COUNT: ${{ github.event.inputs.shard_count || '2' }}
           MAX_TESTS_ARG: ${{ github.event.inputs.max_tests != '' && format('--max-tests {0}', github.event.inputs.max_tests) || '' }}
         run: |
-          xvfb-run --auto-servernum pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" $MAX_TESTS_ARG
+          xvfb-run --auto-servernum pnpm start --report "wpt-report.json" --output-failed "failed-tests.json" --shard "${{ matrix.shard }}" --total-shards "$SHARD_COUNT" "$MAX_TESTS_ARG"
 
       - name: Stop Scramjet demo server
         if: always()

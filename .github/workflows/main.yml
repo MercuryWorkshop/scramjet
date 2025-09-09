@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Check the version
         id: check
@@ -49,11 +49,11 @@ jobs:
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
           then
             echo "Version changed"
-            echo "version_changed=true" >> $GITHUB_OUTPUT
-            echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
           else
             echo "Version not changed"
-            echo "version_changed=false" >> $GITHUB_OUTPUT
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
   build:
@@ -129,10 +129,42 @@ jobs:
             dist/*.js
             dist/*.js.map
             dist/*.wasm
+
+  package-validation:
+    name: Validate Package Structure
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet
+          path: dist
+
+      - name: Run package validation tests
+        run: pnpm test:package
   tests:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, package-validation]
 
     steps:
       - name: Checkout code
@@ -162,12 +194,12 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: pnpm test
+        run: pnpm test:integration
 
   rewritertests:
     name: "Run Rewriter Tests"
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, package-validation]
 
     steps:
       - name: Checkout code
@@ -198,7 +230,7 @@ jobs:
   upload:
     name: Upload release
     runs-on: ubuntu-latest
-    needs: [version-check, build, rewritertests, tests]
+    needs: [version-check, build, package-validation, rewritertests, tests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
 
@@ -239,7 +271,7 @@ jobs:
   publish:
     name: Publish Scramjet to NPM
     runs-on: ubuntu-latest
-    needs: [version-check, build, rewritertests, tests]
+    needs: [version-check, build, package-validation, rewritertests, tests]
     permissions: write-all
     if: ${{ (needs.version-check.outputs.version_changed == 'true') && (github.ref == 'refs/heads/main') }}
 
@@ -265,7 +297,7 @@ jobs:
   pages:
     name: Upload to Github Pages
     runs-on: ubuntu-latest
-    needs: [build, rewritertests, tests]
+    needs: [build, package-validation, rewritertests, tests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
 

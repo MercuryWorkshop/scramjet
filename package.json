@@ -21,7 +21,11 @@
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
-		"test": "npx playwright test",
+		"lint:workflows": "actionlint .github/workflows/*.yml",
+		"lint:all": "npm run lint && npm run lint:workflows",
+		"test:package": "ava src/tests/ci/packageValidation.js",
+		"test:integration": "npx playwright test",
+		"test": "npm run test:package && npm run test:integration",
 		"preinstall": "npx only-allow pnpm",
 		"docs": "typedoc",
 		"docs:dev": "typedoc --options typedoc.dev-facing.json",
@@ -51,6 +55,12 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
+	"ava": {
+		"files": [
+			"src/tests/ci/**/*.js"
+		],
+		"verbose": true
+	},
 	"devDependencies": {
 		"@8hobbies/typedoc-plugin-plausible": "^2.2.0",
 		"@eslint/eslintrc": "^3.3.1",
@@ -73,9 +83,12 @@
 		"@types/serviceworker": "^0.0.152",
 		"@typescript-eslint/eslint-plugin": "^8.42.0",
 		"@typescript-eslint/parser": "^8.42.0",
+		"actionlint": "^2.0.6",
+		"ava": "^6.4.1",
 		"dotenv": "^17.2.2",
 		"eslint": "^9.35.0",
 		"fastify": "^5.6.0",
+		"glob": "^11.0.3",
 		"playwright": "^1.55.0",
 		"prettier": "^3.6.2",
 		"ts-checker-rspack-plugin": "^1.1.5",
