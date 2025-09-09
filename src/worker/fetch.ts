@@ -139,12 +139,12 @@ export async function handleFetch(
 		}
 	}
 
-	if (
-		isDownload(responseHeaders, context.destination) &&
-		!isRedirect(response)
-	) {
-		// handleDownload();
-	}
+	// if (
+	// 	isDownload(responseHeaders, context.destination) &&
+	// 	!isRedirect(response)
+	// ) {
+	// 	// handleDownload();
+	// }
 
 	if (response.body && !isRedirect(response)) {
 		responseBody = await rewriteBody(context, parsed, response);

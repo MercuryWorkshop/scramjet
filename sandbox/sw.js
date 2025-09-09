@@ -41,12 +41,45 @@ class SandboxThing {
 
 let sb = new SandboxThing();
 
+// export interface ScramjetFetchContext {
+// 	rawUrl: URL;
+// 	destination: RequestDestination;
+// 	mode: RequestMode;
+// 	referrer: string;
+// 	method: string;
+// 	body: BodyType | null;
+// 	cache: RequestCache;
+// 	forceCrossOriginIsolated: boolean;
+// 	initialHeaders: ScramjetHeaders;
+// 	cookieStore: CookieStore;
+// 	rawClientUrl?: URL;
+// }
+//
+// interface ScramjetFetchResponse {
+// 	body: BodyType;
+// 	headers: BareHeaders;
+// 	status: number;
+// 	statusText: string;
+// }
 async function handleFetch(event) {
 	let resp = await sb.request("fetch", {
-		url: event.request.url,
+		rawUrl: event.request.url,
+		destination: event.request.destination,
+		mode: event.request.mode,
+		referrer: event.request.referrer,
+		method: event.request.method,
+		body: event.request.body,
+		cache: event.request.cache,
+		forceCrossOriginIsolated: false,
+		initialHeaders: Object.fromEntries([...event.request.headers.entries()]),
+		rawClientUrl: event.clientId ? new URL(event.clientId) : undefined,
 	});
 
-	return new Response(resp);
+	return new Response(resp.body, {
+		status: resp.status,
+		statusText: resp.statusText,
+		headers: resp.headers,
+	});
 }
 
 self.addEventListener("fetch", (event) => {

@@ -1,6 +1,19 @@
 import "./reset.css";
 import "./style.css";
 
+import {
+	ScramjetHeaders,
+	ScramjetServiceWorker,
+	type ScramjetInitConfig,
+	type ScramjetFetchContext,
+	ScramjetController,
+	CookieStore,
+	handleFetch,
+	rewriteUrl,
+	config,
+	ScramjetClient,
+} from "@mercuryworkshop/scramjet/bundled";
+
 // temp fix for vite not working
 import.meta.hot?.accept(() => location.reload());
 
@@ -15,26 +28,27 @@ let app = document.getElementById("app")!;
 
 // export const isPuter = !import.meta.env.VITE_LOCAL && puter.env == "app";
 
-// const scramjetcfg: Partial<ScramjetInitConfig> = {
-// 	wisp: "ws://localhost:1337/",
-// 	files: {
-// 		wasm: "/scram/scramjet.wasm.wasm",
-// 		all: "/scram/scramjet.all.js",
-// 		sync: "/scram/scramjet.sync.js",
-// 	},
-// 	flags: {
-// 		rewriterLogs: false,
-// 		captureErrors: false,
-// 		interceptDownloads: true,
-// 	},
-// 	siteFlags: {
-// 		"https://worker-playground.glitch.me/.*": {
-// 			serviceworkers: true,
-// 		},
-// 	},
-// };
+const scramjetcfg: Partial<ScramjetInitConfig> = {
+	wisp: "ws://localhost:1337/",
+	files: {
+		wasm: "/scram/scramjet.wasm.wasm",
+		all: "/scram/scramjet.all.js",
+		sync: "/scram/scramjet.sync.js",
+	},
+	flags: {
+		rewriterLogs: false,
+		captureErrors: false,
+		interceptDownloads: true,
+	},
+	siteFlags: {
+		"https://worker-playground.glitch.me/.*": {
+			serviceworkers: true,
+		},
+	},
+};
 
-// export const scramjet = new ScramjetController(scramjetcfg);
+export const scramjet = new ScramjetController(scramjetcfg);
+console.log(scramjet.config);
 
 // export function setWispUrl(wispurl: string) {
 // 	scramjetcfg.wisp = wispurl;
@@ -249,15 +263,101 @@ class SwMessager {
 	}
 }
 
+// export interface ScramjetFetchParsed {
+// 	url: URL;
+// 	clientUrl?: URL;
+
+// 	meta: URLMeta;
+// 	scriptType: string;
+// }
+
+// interface ScramjetFetchResponse {
+// 	body: BodyType;
+// 	headers: BareHeaders;
+// 	status: number;
+// 	statusText: string;
+// }
+
+scramjet.init();
+const tgt = new EventTarget();
+
+const cookiestore = new CookieStore();
+
+let client = new ScramjetClient(self);
+
 const methods = {
-	async fetch(data: BareResposne) {
+	async fetch(data: ScramjetFetchContext) {
+		data.cookieStore = cookiestore;
 		console.log(data);
-		return {
-			a: "a",
-		};
+		data.rawUrl = new URL(data.rawUrl);
+		let headers = new ScramjetHeaders();
+		console.log(client);
+		for (let [k, v] of Object.entries(data.initialHeaders)) {
+			headers.set(k, v);
+		}
+		data.initialHeaders = headers;
+
+		return handleFetch.call(
+			tgt,
+			data,
+			{
+				wisp: "ws://localhost",
+				prefix: "/scramjet/",
+				globals: {
+					wrapfn: "$scramjet$wrap",
+					wrappropertybase: "$scramjet__",
+					wrappropertyfn: "$scramjet$prop",
+					cleanrestfn: "$scramjet$clean",
+					importfn: "$scramjet$import",
+					rewritefn: "$scramjet$rewrite",
+					metafn: "$scramjet$meta",
+					setrealmfn: "$scramjet$setrealm",
+					pushsourcemapfn: "$scramjet$pushsourcemap",
+					trysetfn: "$scramjet$tryset",
+					templocid: "$scramjet$temploc",
+					tempunusedid: "$scramjet$tempunused",
+				},
+				files: {
+					wasm: "/scramjet.wasm.wasm",
+					all: "/scram/scramjet.all.js",
+					sync: "/scram/scramjet.sync.js",
+				},
+				flags: {
+					serviceworkers: false,
+					syncxhr: false,
+					strictRewrites: true,
+					rewriterLogs: false,
+					captureErrors: true,
+					cleanErrors: false,
+					scramitize: false,
+					sourcemaps: true,
+					destructureRewrites: true,
+					interceptDownloads: false,
+					allowInvalidJs: false,
+					allowFailedIntercepts: false,
+					antiAntiDebugger: false,
+				},
+				siteFlags: {},
+				codec: {
+					encode: (url) => {
+						if (!url) return url;
+
+						return encodeURIComponent(url);
+					},
+					decode: (url) => {
+						if (!url) return url;
+
+						return decodeURIComponent(url);
+					},
+				},
+			},
+			client.bare
+		);
 	},
 };
-
+console.log(
+	rewriteUrl("https://example.com", { base: new URL("https://google.com") })
+);
 window.addEventListener("message", async (event) => {
 	let data = event.data;
 	if (!("$sandboxsw$type" in data)) return;
@@ -268,7 +368,7 @@ window.addEventListener("message", async (event) => {
 
 		let fn = (methods as any)[domain];
 
-		let result = await fn();
+		let result = await fn(message);
 		framewindow.postMessage(
 			{
 				$sandboxsw$type: "response",
@@ -277,6 +377,11 @@ window.addEventListener("message", async (event) => {
 			},
 			"*"
 		);
+	} else if (data.$sandboxsw$type == "confirm") {
+		let ifrm = (
+			<iframe src="http://localhost:5233/scramjet/https%3A%2F%2Fexample.com%2F"></iframe>
+		);
+		app.appendChild(ifrm);
 	}
 	console.log("recv'd data", data);
 });
