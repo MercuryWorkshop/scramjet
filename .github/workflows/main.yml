@@ -201,6 +201,7 @@ jobs:
     needs: [version-check, build, rewritertests, tests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
+
     steps:
       - name: Delete old release and tag
         uses: dev-drprasad/delete-tag-and-release@v1.1
@@ -240,7 +241,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [version-check, build, rewritertests, tests]
     permissions: write-all
-    if: needs.version-check.outputs.version_changed == 'true'
+    if: ${{ (needs.version-check.outputs.version_changed == 'true') && (github.ref == 'refs/heads/main') }}
 
     steps:
       - name: Setup Node.js
