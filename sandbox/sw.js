@@ -62,6 +62,8 @@ let sb = new SandboxThing();
 // 	statusText: string;
 // }
 async function handleFetch(event) {
+	const client = await self.clients.get(event.clientId);
+
 	let resp = await sb.request("fetch", {
 		rawUrl: event.request.url,
 		destination: event.request.destination,
@@ -72,7 +74,7 @@ async function handleFetch(event) {
 		cache: event.request.cache,
 		forceCrossOriginIsolated: false,
 		initialHeaders: Object.fromEntries([...event.request.headers.entries()]),
-		rawClientUrl: event.clientId ? new URL(event.clientId) : undefined,
+		rawClientUrl: client ? client.url : undefined,
 	});
 
 	return new Response(resp.body, {
@@ -92,6 +94,7 @@ self.addEventListener("fetch", (event) => {
 			try {
 				return await handleFetch(event);
 			} catch (e) {
+				console.error(e);
 				return new Response("SandboxSW Error: " + e + e.stack, {
 					status: 500,
 				});
@@ -109,15 +112,6 @@ self.addEventListener("activate", (e) => {
 });
 
 console.log("sw initialized");
-clients.matchAll({ includeUncontrolled: true }).then((swclients) => {
-	for (const client of swclients) {
-		if (new URL(client.url).pathname.startsWith("/controller")) {
-			client.postMessage({
-				$sandboxsw$type: "confirm",
-			});
-		}
-	}
-});
 self.addEventListener("message", (e) => {
 	let data = e.data;
 	if (!("$sandboxsw$type" in data)) return;

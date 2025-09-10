@@ -284,9 +284,60 @@ const tgt = new EventTarget();
 const cookiestore = new CookieStore();
 
 let client = new ScramjetClient(self);
+const cfg = {
+	wisp: "ws://localhost",
+	prefix: "/scramjet/",
+	globals: {
+		wrapfn: "$scramjet$wrap",
+		wrappropertybase: "$scramjet__",
+		wrappropertyfn: "$scramjet$prop",
+		cleanrestfn: "$scramjet$clean",
+		importfn: "$scramjet$import",
+		rewritefn: "$scramjet$rewrite",
+		metafn: "$scramjet$meta",
+		setrealmfn: "$scramjet$setrealm",
+		pushsourcemapfn: "$scramjet$pushsourcemap",
+		trysetfn: "$scramjet$tryset",
+		templocid: "$scramjet$temploc",
+		tempunusedid: "$scramjet$tempunused",
+	},
+	files: {
+		wasm: "/scram/scramjet.wasm.wasm",
+		all: "/scram/scramjet.all.js",
+		sync: "/scram/scramjet.sync.js",
+	},
+	flags: {
+		serviceworkers: false,
+		syncxhr: false,
+		strictRewrites: true,
+		rewriterLogs: false,
+		captureErrors: true,
+		cleanErrors: false,
+		scramitize: false,
+		sourcemaps: true,
+		destructureRewrites: true,
+		interceptDownloads: false,
+		allowInvalidJs: false,
+		allowFailedIntercepts: false,
+		antiAntiDebugger: false,
+	},
+	siteFlags: {},
+	codec: {
+		encode: `(url) => {
+						if (!url) return url;
+
+						return encodeURIComponent(url);
+					}`,
+		decode: `(url) => {
+						if (!url) return url;
+
+						return decodeURIComponent(url);
+					}`,
+	},
+};
 
 const methods = {
-	async fetch(data: ScramjetFetchContext) {
+	async fetch(data: ScramjetFetchContext): ScramjetFetchResponse {
 		data.cookieStore = cookiestore;
 		console.log(data);
 		data.rawUrl = new URL(data.rawUrl);
@@ -296,63 +347,43 @@ const methods = {
 			headers.set(k, v);
 		}
 		data.initialHeaders = headers;
+		if (data.rawUrl.pathname === cfg.files.wasm) {
+			return fetch(cfg.files.wasm).then(async (x) => {
+				const buf = await x.arrayBuffer();
+				const b64 = btoa(
+					new Uint8Array(buf)
+						.reduce(
+							(data, byte) => (data.push(String.fromCharCode(byte)), data),
+							[]
+						)
+						.join("")
+				);
 
-		return handleFetch.call(
-			tgt,
-			data,
-			{
-				wisp: "ws://localhost",
-				prefix: "/scramjet/",
-				globals: {
-					wrapfn: "$scramjet$wrap",
-					wrappropertybase: "$scramjet__",
-					wrappropertyfn: "$scramjet$prop",
-					cleanrestfn: "$scramjet$clean",
-					importfn: "$scramjet$import",
-					rewritefn: "$scramjet$rewrite",
-					metafn: "$scramjet$meta",
-					setrealmfn: "$scramjet$setrealm",
-					pushsourcemapfn: "$scramjet$pushsourcemap",
-					trysetfn: "$scramjet$tryset",
-					templocid: "$scramjet$temploc",
-					tempunusedid: "$scramjet$tempunused",
-				},
-				files: {
-					wasm: "/scramjet.wasm.wasm",
-					all: "/scram/scramjet.all.js",
-					sync: "/scram/scramjet.sync.js",
-				},
-				flags: {
-					serviceworkers: false,
-					syncxhr: false,
-					strictRewrites: true,
-					rewriterLogs: false,
-					captureErrors: true,
-					cleanErrors: false,
-					scramitize: false,
-					sourcemaps: true,
-					destructureRewrites: true,
-					interceptDownloads: false,
-					allowInvalidJs: false,
-					allowFailedIntercepts: false,
-					antiAntiDebugger: false,
-				},
-				siteFlags: {},
-				codec: {
-					encode: (url) => {
-						if (!url) return url;
+				let payload = "";
+				payload +=
+					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+				payload += `self.WASM = '${b64}';`;
 
-						return encodeURIComponent(url);
-					},
-					decode: (url) => {
-						if (!url) return url;
+				return {
+					body: payload,
+					headers: { "Content-Type": "application/javascript" },
+					status: 200,
+					statusText: "OK",
+				};
+			});
+		} else if (data.rawUrl.pathname === cfg.files.all) {
+			return fetch(cfg.files.all).then(async (x) => {
+				const text = await x.text();
+				return {
+					body: text,
+					headers: { "Content-Type": "application/javascript" },
+					status: 200,
+					statusText: "OK",
+				};
+			});
+		}
 
-						return decodeURIComponent(url);
-					},
-				},
-			},
-			client.bare
-		);
+		return handleFetch.call(tgt as any, data, cfg, client.bare);
 	},
 };
 console.log(
