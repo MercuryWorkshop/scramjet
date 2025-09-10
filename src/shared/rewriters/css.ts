@@ -18,7 +18,7 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 		const encodedUrl =
 			type === "rewrite"
 				? rewriteUrl(url.trim(), meta)
-				: unrewriteUrl(url.trim());
+				: unrewriteUrl(url.trim(), meta);
 
 		return match.replace(url, encodedUrl);
 	});
@@ -34,7 +34,7 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 					const encodedUrl =
 						type === "rewrite"
 							? rewriteUrl(url.trim(), meta)
-							: unrewriteUrl(url.trim());
+							: unrewriteUrl(url.trim(), meta);
 
 					return `${firstQuote}${encodedUrl}${endQuote}`;
 				}

@@ -43,7 +43,7 @@ export const htmlRules: {
 			if (value.startsWith("blob:")) {
 				// for media elements specifically they must take the original blob
 				// because they can't be fetch'd
-				return unrewriteBlob(value);
+				return unrewriteBlob(value, meta);
 			}
 
 			return rewriteUrl(value, meta);
@@ -79,6 +79,7 @@ export const htmlRules: {
 					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
 					origin: new URL(meta.origin.origin),
 					base: new URL(meta.origin.origin),
+					prefix: meta.prefix,
 				},
 				true
 			),

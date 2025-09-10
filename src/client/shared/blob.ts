@@ -23,7 +23,7 @@ export default function (client: ScramjetClient) {
 				// for some reason this is not an issue natively
 				// simple delay is enough
 				// TODO: find a way to make this not necessary
-				ctx.args[0] = unrewriteBlob(ctx.args[0]);
+				ctx.args[0] = unrewriteBlob(ctx.args[0], client.meta);
 				ctx.call();
 			}, 1000);
 			ctx.return(undefined);

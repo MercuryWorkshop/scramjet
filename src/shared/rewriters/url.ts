@@ -3,6 +3,7 @@ import { config } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 
 export type URLMeta = {
+	prefix: URL;
 	origin: URL;
 	base: URL;
 	topFrameName?: string;
@@ -23,10 +24,10 @@ export function rewriteBlob(url: string, meta: URLMeta) {
 	return "blob:" + meta.origin.origin + blob.pathname;
 }
 
-export function unrewriteBlob(url: string) {
+export function unrewriteBlob(url: string, meta: URLMeta) {
 	const blob = new URL(url.substring("blob:".length));
 
-	return "blob:" + location.origin + blob.pathname;
+	return "blob:" + meta.prefix.origin + blob.pathname;
 }
 
 export function rewriteUrl(url: string | URL, meta: URLMeta) {
@@ -38,35 +39,32 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 			rewriteJs(url.slice("javascript:".length), "(javascript: url)", meta)
 		);
 	} else if (url.startsWith("blob:")) {
-		return location.origin + config.prefix + url;
+		return meta.prefix.href + url;
 	} else if (url.startsWith("data:")) {
-		return location.origin + config.prefix + url;
+		return meta.prefix.href + url;
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else {
 		let base = meta.base.href;
 
-		if (base.startsWith("about:")) base = unrewriteUrl(self.location.href); // jank!!!!! weird jank!!!
+		if (base.startsWith("about:"))
+			base = unrewriteUrl(self.location.href, meta); // jank!!!!! weird jank!!!
 		const realUrl = tryCanParseURL(url, base);
 		if (!realUrl) return url;
 		const encodedHash = codecEncode(realUrl.hash.slice(1));
 		const realHash = encodedHash ? "#" + encodedHash : "";
 		realUrl.hash = "";
 
-		return (
-			location.origin + config.prefix + codecEncode(realUrl.href) + realHash
-		);
+		return meta.prefix.href + codecEncode(realUrl.href) + realHash;
 	}
 }
 
-export function unrewriteUrl(url: string | URL) {
+export function unrewriteUrl(url: string | URL, meta: URLMeta) {
 	if (url instanceof URL) url = url.toString();
 	// remove query string
 	// if (url.includes("?")) {
 	// 	url = url.split("?")[0];
 	// }
-
-	const prefixed = location.origin + config.prefix;
 
 	if (url.startsWith("javascript:")) {
 		//TODO
@@ -74,10 +72,10 @@ export function unrewriteUrl(url: string | URL) {
 	} else if (url.startsWith("blob:")) {
 		// realistically this shouldn't happen
 		return url;
-	} else if (url.startsWith(prefixed + "blob:")) {
-		return url.substring(prefixed.length);
-	} else if (url.startsWith(prefixed + "data:")) {
-		return url.substring(prefixed.length);
+	} else if (url.startsWith(meta.prefix.href + "blob:")) {
+		return url.substring(meta.prefix.href.length);
+	} else if (url.startsWith(meta.prefix.href + "data:")) {
+		return url.substring(meta.prefix.href.length);
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else {
@@ -87,6 +85,6 @@ export function unrewriteUrl(url: string | URL) {
 		const realHash = decodedHash ? "#" + decodedHash : "";
 		realUrl.hash = "";
 
-		return codecDecode(realUrl.href.slice(prefixed.length) + realHash);
+		return codecDecode(realUrl.href.slice(meta.prefix.href.length) + realHash);
 	}
 }

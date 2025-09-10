@@ -25,13 +25,13 @@ export default function (client: ScramjetClient) {
 
 	client.Trap("Response.prototype.url", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string);
+			return unrewriteUrl(ctx.get() as string, client.meta);
 		},
 	});
 
 	client.Trap("Request.prototype.url", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string);
+			return unrewriteUrl(ctx.get() as string, client.meta);
 		},
 	});
 }
