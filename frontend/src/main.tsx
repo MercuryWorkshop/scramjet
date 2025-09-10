@@ -51,7 +51,10 @@ export const scramjet = new ScramjetController(scramjetcfg);
 console.log(scramjet.config);
 
 let frame = (
-	<iframe src="http://localhost:5233/controller.html"></iframe>
+	<iframe
+		src="http://localhost:5233/controller.html"
+		style="display: none"
+	></iframe>
 ) as HTMLIFrameElement;
 app.appendChild(frame);
 let framewindow: Window = frame.contentWindow!;
@@ -189,32 +192,45 @@ const methods = {
 					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
 				payload += `self.WASM = '${b64}';`;
 
-				return {
-					body: payload,
-					headers: { "Content-Type": "application/javascript" },
-					status: 200,
-					statusText: "OK",
-				};
+				return [
+					{
+						body: payload,
+						headers: { "Content-Type": "application/javascript" },
+						status: 200,
+						statusText: "OK",
+					},
+					undefined,
+				];
 			});
 		} else if (data.rawUrl.pathname === cfg.files.all) {
 			return fetch(cfg.files.all).then(async (x) => {
 				const text = await x.text();
-				return {
-					body: text,
-					headers: { "Content-Type": "application/javascript" },
-					status: 200,
-					statusText: "OK",
-				};
+				return [
+					{
+						body: text,
+						headers: { "Content-Type": "application/javascript" },
+						status: 200,
+						statusText: "OK",
+					},
+					undefined,
+				];
 			});
 		}
 
-		return handleFetch.call(
+		const fetchresponse = await handleFetch.call(
 			tgt as any,
 			data,
 			cfg,
 			client.bare,
 			new URL("http://localhost:5233" + cfg.prefix)
 		);
+		return [
+			fetchresponse,
+			fetchresponse.body instanceof ArrayBuffer ||
+			fetchresponse.body instanceof ReadableStream
+				? [fetchresponse.body]
+				: undefined,
+		];
 	},
 };
 window.addEventListener("message", async (event) => {
@@ -227,18 +243,19 @@ window.addEventListener("message", async (event) => {
 
 		let fn = (methods as any)[domain];
 
-		let result = await fn(message);
+		let [result, transfer] = await fn(message);
 		framewindow.postMessage(
 			{
 				$sandboxsw$type: "response",
 				$sandboxsw$token: token,
 				$sandboxsw$message: result,
 			},
-			"*"
+			"*",
+			transfer
 		);
 	} else if (data.$sandboxsw$type == "confirm") {
 		let ifrm = (
-			<iframe src="http://localhost:5233/scramjet/https%3A%2F%2Fexample.com%2F"></iframe>
+			<iframe src="http://localhost:5233/scramjet/https%3A%2F%2Fgoogle.com%2F"></iframe>
 		);
 		app.appendChild(ifrm);
 	}

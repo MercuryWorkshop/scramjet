@@ -28,14 +28,28 @@
 	navigator.serviceWorker.addEventListener("message", (event) => {
 		let data = event.data;
 		if ("$sandboxsw$type" in data) {
-			window.parent.postMessage(event.data, "*");
+			let transfer;
+			if (data.$sandboxsw$message?.body) {
+				let body = data.$sandboxsw$message.body;
+				if (body instanceof ArrayBuffer || body instanceof ReadableStream) {
+					transfer = [body];
+				}
+			}
+			window.parent.postMessage(event.data, "*", transfer);
 		}
 	});
 	window.addEventListener("message", (event) => {
 		let data = event.data;
 		if ("$sandboxsw$type" in data) {
 			if (navigator.serviceWorker.controller) {
-				navigator.serviceWorker.controller.postMessage(data);
+				let transfer;
+				if (data.$sandboxsw$message?.body) {
+					let body = data.$sandboxsw$message.body;
+					if (body instanceof ArrayBuffer || body instanceof ReadableStream) {
+						transfer = [body];
+					}
+				}
+				navigator.serviceWorker.controller.postMessage(data, transfer);
 			} else {
 				console.error("No service worker controller to send message to.");
 			}

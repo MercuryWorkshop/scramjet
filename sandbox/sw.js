@@ -12,17 +12,20 @@ class SandboxThing {
 		return null;
 	}
 
-	async request(domain, message) {
+	async request(domain, message, transfer) {
 		let controller = await this.find();
 		if (!controller) throw new Error("couldn't find controller");
 		return new Promise((resolve, reject) => {
 			this.promises.set(this.counter, { resolve, reject });
-			controller.postMessage({
-				$sandboxsw$type: "request",
-				$sandboxsw$token: this.counter++,
-				$sandboxsw$domain: domain,
-				$sandboxsw$message: message,
-			});
+			controller.postMessage(
+				{
+					$sandboxsw$type: "request",
+					$sandboxsw$token: this.counter++,
+					$sandboxsw$domain: domain,
+					$sandboxsw$message: message,
+				},
+				transfer
+			);
 		});
 	}
 
@@ -64,18 +67,32 @@ let sb = new SandboxThing();
 async function handleFetch(event) {
 	const client = await self.clients.get(event.clientId);
 
-	let resp = await sb.request("fetch", {
-		rawUrl: event.request.url,
-		destination: event.request.destination,
-		mode: event.request.mode,
-		referrer: event.request.referrer,
-		method: event.request.method,
-		body: event.request.body,
-		cache: event.request.cache,
-		forceCrossOriginIsolated: false,
-		initialHeaders: Object.fromEntries([...event.request.headers.entries()]),
-		rawClientUrl: client ? client.url : undefined,
-	});
+	console.log(event.request.body);
+	console.log(
+		event.request.body instanceof ReadableStream ||
+			event.request.body instanceof ArrayBuffer
+			? [event.request.body]
+			: []
+	);
+	let resp = await sb.request(
+		"fetch",
+		{
+			rawUrl: event.request.url,
+			destination: event.request.destination,
+			mode: event.request.mode,
+			referrer: event.request.referrer,
+			method: event.request.method,
+			body: event.request.body,
+			cache: event.request.cache,
+			forceCrossOriginIsolated: false,
+			initialHeaders: Object.fromEntries([...event.request.headers.entries()]),
+			rawClientUrl: client ? client.url : undefined,
+		},
+		event.request.body instanceof ReadableStream ||
+			event.request.body instanceof ArrayBuffer
+			? [event.request.body]
+			: undefined
+	);
 
 	return new Response(resp.body, {
 		status: resp.status,

@@ -9,6 +9,9 @@ html,
 	display: flex;
 	flex-direction: column;
 }
+iframe {
+	height: 100%;
+}
 html,
 body {
 	--bg: #121212;
