@@ -65,9 +65,10 @@ export async function handleFetch(
 	this: ScramjetServiceWorker,
 	context: ScramjetFetchContext,
 	config: ScramjetConfig,
-	client: BareClient
+	client: BareClient,
+	prefix: URL
 ) {
-	const parsed = parseRequest(context);
+	const parsed = parseRequest(context, prefix);
 
 	if (
 		context.rawUrl.pathname.startsWith(`${config.prefix}blob:`) ||
@@ -112,7 +113,9 @@ export async function handleFetch(
 	await handleCookies(context, parsed, responseHeaders);
 
 	if (isRedirect(response)) {
-		const redirectUrl = new URL(unrewriteUrl(responseHeaders["location"]));
+		const redirectUrl = new URL(
+			unrewriteUrl(responseHeaders["location"], parsed.meta)
+		);
 
 		// await updateTracker(
 		// 	url.toString(),
@@ -217,7 +220,8 @@ function isDownload(responseHeaders: object, destination: string): boolean {
 }
 
 export function parseRequest(
-	request: ScramjetFetchContext
+	request: ScramjetFetchContext,
+	prefix: URL
 ): ScramjetFetchParsed {
 	const strippedUrl = new URL(request.rawUrl.href);
 	const extraParams: Record<string, string> = {};
@@ -249,7 +253,7 @@ export function parseRequest(
 		strippedUrl.searchParams.delete(param);
 	}
 
-	const url = new URL(unrewriteUrl(strippedUrl));
+	const url = new URL(unrewriteUrl(strippedUrl, { prefix } as URLMeta));
 
 	if (url.origin === new URL(request.rawUrl).origin) {
 		// uh oh!
@@ -269,6 +273,7 @@ export function parseRequest(
 		base: url,
 		topFrameName,
 		parentFrameName,
+		prefix,
 	};
 
 	const parsed: ScramjetFetchParsed = {
@@ -279,7 +284,7 @@ export function parseRequest(
 
 	if (request.rawClientUrl) {
 		// TODO: probably need to make a meta for it
-		parsed.clientUrl = new URL(unrewriteUrl(request.rawClientUrl));
+		parsed.clientUrl = new URL(unrewriteUrl(request.rawClientUrl, parsed.meta));
 	}
 
 	return parsed;
@@ -296,7 +301,7 @@ function rewriteRequestHeaders(
 		context.rawClientUrl.pathname.startsWith(config.prefix)
 	) {
 		// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-		const clientURL = new URL(unrewriteUrl(context.rawClientUrl));
+		const clientURL = new URL(unrewriteUrl(context.rawClientUrl, parsed.meta));
 		if (clientURL.toString().includes("youtube.com")) {
 			// console.log(headers);
 		} else {

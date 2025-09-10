@@ -99,13 +99,22 @@ export class ScramjetClient {
 		}
 
 		if (iswindow) {
-			if (SCRAMJETCLIENT in global.parent) {
-				this.box = global.parent[SCRAMJETCLIENT].box;
-			} else if (SCRAMJETCLIENT in global.top) {
-				this.box = global.top[SCRAMJETCLIENT].box;
-			} else if (global.opener && SCRAMJETCLIENT in global.opener) {
-				this.box = global.opener[SCRAMJETCLIENT].box;
-			} else {
+			try {
+				if (SCRAMJETCLIENT in global.parent) {
+					this.box = global.parent[SCRAMJETCLIENT].box;
+				}
+			} catch {}
+			try {
+				if (SCRAMJETCLIENT in global.top) {
+					this.box = global.top[SCRAMJETCLIENT].box;
+				}
+			} catch {}
+			try {
+				if (global.opener && SCRAMJETCLIENT in global.opener) {
+					this.box = global.opener[SCRAMJETCLIENT].box;
+				}
+			} catch {}
+			if (!this.box) {
 				dbg.warn("Creating SingletonBox");
 				this.box = new SingletonBox(this);
 			}
@@ -312,6 +321,7 @@ export class ScramjetClient {
 					return frame.name;
 				}
 			},
+			prefix: new URL(location.origin + config.prefix),
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
@@ -392,7 +402,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(unrewriteUrl(this.global.location.href));
+		return new URL(unrewriteUrl(this.global.location.href, this.meta));
 	}
 
 	set url(url: URL | string) {
