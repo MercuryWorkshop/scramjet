@@ -53,6 +53,6 @@
 		"**/*.yaml": false,
 		"**/Makefile": false,
 		"**/*.sh": false,
-		"**/dist": true
+		"**/dist": false
 	}
 }

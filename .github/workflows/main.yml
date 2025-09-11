@@ -156,8 +156,11 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: scramjet
-          path: dist
+          name: packaged-scramjet
+          path: .
+
+      - name: Extract package
+        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
 
       - name: Run package validation tests
         run: pnpm test:package

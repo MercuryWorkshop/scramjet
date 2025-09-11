@@ -13,12 +13,12 @@ export default defineConfig({
 			bundle: false,
 			dts: {
 				bundle: false,
-				distPath: "./lib/rslibOutput",
+				distPath: "./dist/types",
 				abortOnError: false,
 			},
 			output: {
 				distPath: {
-					root: "./lib/temp",
+					root: "./dist/temp",
 				},
 				cleanDistPath: true,
 			},

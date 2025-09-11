@@ -25,11 +25,9 @@ const EXPECTED_DIST_FILES = [
  * These aren't going to be all, because the modules update quite often, but the entry points and basic structure will be validatedl
  */
 const EXPECTED_TYPE_FILES = [
-	"lib/rslibOutput/**/*.d.ts",
-	"lib/rslibOutput/rslib/entry.d.ts",
-	"lib/index.d.ts",
 	"dist/types/**/*.d.ts",
-	"dist/types/",
+	"dist/types/rslib/entry.d.ts",
+	"lib/index.d.ts",
 ];
 
 /**
