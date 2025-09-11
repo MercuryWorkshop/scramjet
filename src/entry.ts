@@ -115,9 +115,7 @@ export type { ScramjetServiceWorker } from "./worker";
  *
  * @category Window Context
  */
-export function $scramjetLoadController(): {
-	ScramjetController: typeof import("./controller").ScramjetController;
-} {
+export function $scramjetLoadController() {
 	return require("./controller/index");
 }
 /**
@@ -133,10 +131,7 @@ export function $scramjetLoadController(): {
  * ```
  * @category Window Context
  */
-export function $scramjetLoadClient(): {
-	ScramjetClient: typeof import("./client").ScramjetClient;
-	[key: string]: any;
-} {
+export function $scramjetLoadClient() {
 	return require("./client/entry");
 }
 /**
@@ -186,9 +181,7 @@ export function $scramjetLoadClient(): {
  *
  * @category Service Worker Context
  */
-export function $scramjetLoadWorker(): {
-	ScramjetServiceWorker: typeof import("./worker").ScramjetServiceWorker;
-} {
+export function $scramjetLoadWorker() {
 	return require("./worker/index");
 }
 
@@ -219,10 +212,10 @@ export const $scramjetVersion: ScramjetVersionInfo = {
 	version: VERSION,
 };
 
-(globalThis as any).$scramjetLoadController = $scramjetLoadController;
-(globalThis as any).$scramjetLoadClient = $scramjetLoadClient;
-(globalThis as any).$scramjetLoadWorker = $scramjetLoadWorker;
-(globalThis as any).$scramjetVersion = $scramjetVersion;
+globalThis.$scramjetLoadController = $scramjetLoadController;
+globalThis.$scramjetLoadClient = $scramjetLoadClient;
+globalThis.$scramjetLoadWorker = $scramjetLoadWorker;
+globalThis.$scramjetVersion = $scramjetVersion;
 
 if ("document" in globalThis && document?.currentScript) {
 	document.currentScript.remove();
