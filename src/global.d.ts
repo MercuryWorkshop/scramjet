@@ -12,11 +12,3 @@ declare const COMMITHASH: string;
 declare const VERSION: string;
 
 declare type Self = Window & typeof globalThis;
-
-declare global {
-	var $scramjetLoadController: any;
-	var $scramjetLoadClient: any;
-	var $scramjetLoadWorker: any;
-	var $scramjetVersion: string;
-	var $scramjetRequire: (path: string) => any;
-}

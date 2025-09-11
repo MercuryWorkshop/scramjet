@@ -1,7 +1,10 @@
 import { ScramjetClient } from "@client/index";
-import { ScramjetController } from "@/controller";
 import { ScramjetFrame } from "@/controller/frame";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
+import * as controller from "@/controller/index";
+import * as client from "@/client/entry";
+import * as worker from "@/worker/index";
+import { ScramjetVersionInfo } from "./entry";
 
 /**
  * Scramjet Feature Flags, configured at build time
@@ -61,6 +64,10 @@ export interface ScramjetInitConfig
 	};
 }
 declare global {
+	var $scramjetLoadController: () => typeof controller;
+	var $scramjetLoadClient: () => typeof client;
+	var $scramjetLoadWorker: () => typeof worker;
+	var $scramjetVersion: ScramjetVersionInfo;
 	interface Window {
 		COOKIE: string;
 		WASM: string;
