@@ -67,7 +67,7 @@ declare global {
 	var $scramjetLoadController: () => typeof controller;
 	var $scramjetLoadClient: () => typeof client;
 	var $scramjetLoadWorker: () => typeof worker;
-	var $scramjetLoadVersion: () => ScramjetVersionInfo;
+	var $scramjetVersion: () => ScramjetVersionInfo;
 	interface Window {
 		COOKIE: string;
 		WASM: string;
