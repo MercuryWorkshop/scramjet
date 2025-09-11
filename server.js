@@ -107,11 +107,13 @@ if (!process.env.CI) {
 	const compiler = rspack(rspackConfig);
 	compiler.watch({}, (err, stats) => {
 		console.log(
-			stats.toString({
-				preset: "minimal",
-				colors: true,
-				version: false,
-			})
+			stats
+				? stats.toString({
+						preset: "minimal",
+						colors: true,
+						version: false,
+					})
+				: ""
 		);
 	});
 }
