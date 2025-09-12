@@ -1,5 +1,7 @@
 /// <reference types="@rspack/core/module" />
 
+import type { ScramjetVersionInfo } from "./types";
+
 /**
  * Hash of the current commit in `MercuryWorkshop/scramjet` Scramjet was built from.
  */
@@ -119,7 +121,6 @@ globalThis.$scramjetRequire = function (path: string) {
  *
  * @category Window Context
  */
-import type { ScramjetVersionInfo } from "./types";
 export const $scramjetVersion: ScramjetVersionInfo = {
 	build: COMMITHASH,
 	version: VERSION,
