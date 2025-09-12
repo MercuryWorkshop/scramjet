@@ -116,13 +116,6 @@ globalThis.$scramjetRequire = function (path: string) {
 
 /**
  * Version information for the current Scramjet build.
- * Contains both the semantic version string and the git commit hash for build identification.
- *
- * @category Window Context
- */
-
-/**
- * Version information for the current Scramjet build.
  *
  * @category Window Context
  */
