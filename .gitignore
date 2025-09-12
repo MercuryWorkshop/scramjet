@@ -28,4 +28,3 @@ typedoc-*.tar.gz-dev
 
 # Rslib (For global type generation)
 .rslib/
-lib/temp/

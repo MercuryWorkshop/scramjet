@@ -15,5 +15,5 @@
 		"types": []
 	},
 	"include": ["static/**/*", "dist/types/index.d.ts"],
-	"exclude": ["node_modules", "dist", "lib/temp-js", "src/**/*", "tests/**/*"]
+	"exclude": ["node_modules", "dist", "src/**/*", "tests/**/*"]
 }
