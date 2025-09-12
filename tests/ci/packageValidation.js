@@ -26,7 +26,7 @@ const EXPECTED_DIST_FILES = [
  */
 const EXPECTED_TYPE_FILES = [
 	"dist/types/**/*.d.ts",
-	"dist/types/rslib/entry.d.ts",
+	"dist/types/index.d.ts",
 	"lib/index.d.ts",
 ];
 
