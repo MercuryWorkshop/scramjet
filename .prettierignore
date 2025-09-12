@@ -2,5 +2,4 @@ pnpm-lock.yaml
 dist/
 rewriter/
 .rslib/
-lib/rslibOutput/
 lib/temp/
