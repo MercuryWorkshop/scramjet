@@ -4,7 +4,16 @@ import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import * as controller from "@/controller/index";
 import * as client from "@/client/entry";
 import * as worker from "@/worker/index";
-import { ScramjetVersionInfo } from "./entry";
+/**
+ * Version information for the current Scramjet build.
+ * Contains both the semantic version string and the git commit hash for build identification.
+ */
+export interface ScramjetVersionInfo {
+	/** The git commit hash that this build was created from */
+	build: string;
+	/** The semantic version */
+	version: string;
+}
 
 /**
  * Scramjet Feature Flags, configured at build time

@@ -3,7 +3,7 @@
 	"version": "2.0.0-alpha",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
-	"types": "./dist/types/rslib/entry.d.ts",
+	"types": "./dist/types/index.d.ts",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/MercuryWorkshop/scramjet"
@@ -32,7 +32,7 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/types/rslib/entry.d.ts",
+			"types": "./dist/types/index.d.ts",
 			"default": "./lib/noop.js"
 		},
 		"./path": {
@@ -40,7 +40,7 @@
 			"default": "./lib/index.cjs"
 		},
 		"./bundled": {
-			"types": "./dist/types/rslib/entry.d.ts",
+			"types": "./dist/types/index.d.ts",
 			"default": "./dist/scramjet.bundle.js"
 		}
 	},
