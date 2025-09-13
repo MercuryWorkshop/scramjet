@@ -2,7 +2,7 @@
 	"$schema": "https://typedoc.org/schema.json",
 	"skipErrorChecking": true,
 	"customCss": "./node_modules/@stephansama/catppuccin-typedoc/dist/catppuccin-typedoc.css",
-	"entryPoints": ["src/entry.ts"],
+	"entryPoints": ["src/index.ts"],
 	"out": "./_docs",
 	"tsconfig": "./tsconfig.user-facing.json",
 	"exclude": [

@@ -3,7 +3,7 @@ import { defineConfig } from "@rslib/core";
 export default defineConfig({
 	source: {
 		entry: {
-			index: "./src/rslib/entry.ts",
+			index: "./src/index.ts",
 		},
 		tsconfigPath: "./tsconfig.rslib.json",
 	},

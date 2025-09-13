@@ -17,7 +17,7 @@
 		},
 		"types": ["node"]
 	},
-	"include": ["src/entry.ts", "src/globals.d.ts"],
+	"include": ["src/index.ts", "src/globals.d.ts"],
 	"exclude": [
 		"node_modules",
 		"**/*.spec.ts",

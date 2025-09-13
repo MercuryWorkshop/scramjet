@@ -14,6 +14,6 @@
 		"typeRoots": ["./node_modules/@types"],
 		"types": []
 	},
-	"include": ["static/**/*", "lib/rslibOutput/rslib/entry.d.ts"],
-	"exclude": ["node_modules", "dist", "lib/temp-js", "src/**/*", "tests/**/*"]
+	"include": ["static/**/*", "dist/types/index.d.ts"],
+	"exclude": ["node_modules", "dist", "src/**/*", "tests/**/*"]
 }

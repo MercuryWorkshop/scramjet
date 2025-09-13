@@ -12,20 +12,7 @@
 		"allowImportingTsExtensions": true,
 		"noEmit": false
 	},
-	"include": [
-		"src/rslib/entry.ts",
-		"src/rslib/worker-types.ts",
-		"src/entry.ts",
-		"src/types.ts",
-		"src/symbols.ts",
-		"src/controller/index.ts",
-		"src/controller/controller.ts",
-		"src/controller/frame.ts",
-		"src/client/index.ts",
-		"src/client/client.ts",
-		"src/global.d.ts",
-		"src/rslib/buildGlobals.d.ts"
-	],
+	"include": ["src/index.ts", "src/global.d.ts", "src/rslib/buildGlobals.d.ts"],
 	"exclude": [
 		"**/*.test.ts",
 		"node_modules",
