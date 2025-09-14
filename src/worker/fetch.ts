@@ -67,7 +67,7 @@ export async function handleFetch(
 	config: ScramjetConfig,
 	client: BareClient,
 	prefix: URL
-) {
+): Promise<ScramjetFetchResponse> {
 	const parsed = parseRequest(context, prefix);
 
 	if (
@@ -406,96 +406,91 @@ async function handleBlobOrDataUrlFetch(
 	config: ScramjetConfig,
 	context: ScramjetFetchContext,
 	parsed: ScramjetFetchParsed
-): Promise<Response> {
-	throw "";
-	// 	let dataUrl = context.rawUrl.pathname.substring(config.prefix.length);
-	// 	if (dataUrl.startsWith("blob:")) {
-	// 		dataUrl = unrewriteBlob(dataUrl);
-	// 	}
-	// 	const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
-	// 	const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
-	// 	response.finalURL = url;
-	// 	let body: BodyType;
-	// 	if (response.body) {
-	// 		body = await rewriteBody(
-	// 			response as BareResponseFetch,
-	// 			parsed.meta,
-	// 			context.destination,
-	// 			parsed.scriptType,
-	// 			thiscookieStore
-	// 		);
-	// 	}
-	// 	const headers = Object.fromEntries(response.headers.entries());
-	// 	if (context.forceCrossOriginIsolated) {
-	// 		headers["Cross-Origin-Opener-Policy"] = "same-origin";
-	// 		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-	// 	}
-	// 	return new Response(body, {
-	// 		status: response.status,
-	// 		statusText: response.statusText,
-	// 		headers: headers,
-	// 	});
-	// }
-	// async function handleDownload(
-	// 	context: ScramjetFetchContext,
-	// 	parsed: ScramjetFetchParsed
-	// ) {
-	// 	if (flagEnabled("interceptDownloads", parsed.url)) {
-	// 		if (!client) {
-	// 			throw new Error("cant find client");
-	// 		}
-	// 		let filename: string | null = null;
-	// 		const disp = responseHeaders["content-disposition"];
-	// 		if (typeof disp === "string") {
-	// 			const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
-	// 			if (filenameMatch && filenameMatch[1]) {
-	// 				filename = filenameMatch[1];
-	// 			}
-	// 		}
-	// 		const length = responseHeaders["content-length"];
-	// 		// there's no reliable way of finding the top level client that made the request
-	// 		// just take the first one and hope
-	// 		let clis = await clients.matchAll({
-	// 			type: "window",
-	// 		});
-	// 		// only want controller windows
-	// 		clis = clis.filter((e) => !e.url.includes(config.prefix));
-	// 		if (clis.length < 1) {
-	// 			throw Error("couldn't find a controller client to dispatch download to");
-	// 		}
-	// 		const download: ScramjetDownload = {
-	// 			filename,
-	// 			url: url.href,
-	// 			type: responseHeaders["content-type"],
-	// 			body: response.body,
-	// 			length: Number(length),
-	// 		};
-	// 		clis[0].postMessage(
-	// 			{
-	// 				scramjet$type: "download",
-	// 				download,
-	// 			} as MessageW2C,
-	// 			[response.body]
-	// 		);
-	// 		// endless vortex reference
-	// 		await new Promise(() => {});
-	// 	} else {
-	// 		// manually rewrite for regular browser download
-	// 		const header = responseHeaders["content-disposition"];
-	// 		// validate header and test for filename
-	// 		if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
-	// 			// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
-	// 			// if it"s invalid then we can still possibly test for the attachment/inline type
-	// 			const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
-	// 			// set the filename
-	// 			const [filename] = new URL(response.finalURL).pathname
-	// 				.split("/")
-	// 				.slice(-1);
-	// 			responseHeaders["content-disposition"] =
-	// 				`${type}; filename=${JSON.stringify(filename)}`;
-	// 		}
-	// 	}
+): Promise<ScramjetFetchResponse> {
+	let dataUrl = context.rawUrl.pathname.substring(config.prefix.length);
+	if (dataUrl.startsWith("blob:")) {
+		dataUrl = unrewriteBlob(dataUrl, parsed.meta);
+	}
+	const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
+	const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
+	response.finalURL = url;
+	let body: BodyType;
+	if (response.body) {
+		body = await rewriteBody(context, parsed, response as BareResponseFetch);
+	}
+	const headers = Object.fromEntries(response.headers.entries());
+	if (context.forceCrossOriginIsolated) {
+		headers["Cross-Origin-Opener-Policy"] = "same-origin";
+		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+	}
+
+	return {
+		body,
+		status: response.status,
+		statusText: response.statusText,
+		headers: headers,
+	};
 }
+// async function handleDownload(
+// 	context: ScramjetFetchContext,
+// 	parsed: ScramjetFetchParsed
+// ) {
+// 	if (flagEnabled("interceptDownloads", parsed.url)) {
+// 		if (!client) {
+// 			throw new Error("cant find client");
+// 		}
+// 		let filename: string | null = null;
+// 		const disp = responseHeaders["content-disposition"];
+// 		if (typeof disp === "string") {
+// 			const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
+// 			if (filenameMatch && filenameMatch[1]) {
+// 				filename = filenameMatch[1];
+// 			}
+// 		}
+// 		const length = responseHeaders["content-length"];
+// 		// there's no reliable way of finding the top level client that made the request
+// 		// just take the first one and hope
+// 		let clis = await clients.matchAll({
+// 			type: "window",
+// 		});
+// 		// only want controller windows
+// 		clis = clis.filter((e) => !e.url.includes(config.prefix));
+// 		if (clis.length < 1) {
+// 			throw Error("couldn't find a controller client to dispatch download to");
+// 		}
+// 		const download: ScramjetDownload = {
+// 			filename,
+// 			url: url.href,
+// 			type: responseHeaders["content-type"],
+// 			body: response.body,
+// 			length: Number(length),
+// 		};
+// 		clis[0].postMessage(
+// 			{
+// 				scramjet$type: "download",
+// 				download,
+// 			} as MessageW2C,
+// 			[response.body]
+// 		);
+// 		// endless vortex reference
+// 		await new Promise(() => {});
+// 	} else {
+// 		// manually rewrite for regular browser download
+// 		const header = responseHeaders["content-disposition"];
+// 		// validate header and test for filename
+// 		if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
+// 			// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
+// 			// if it"s invalid then we can still possibly test for the attachment/inline type
+// 			const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
+// 			// set the filename
+// 			const [filename] = new URL(response.finalURL).pathname
+// 				.split("/")
+// 				.slice(-1);
+// 			responseHeaders["content-disposition"] =
+// 				`${type}; filename=${JSON.stringify(filename)}`;
+// 		}
+// 	}
+// }
 
 async function handleCookies(
 	context: ScramjetFetchContext,
