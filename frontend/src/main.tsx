@@ -166,11 +166,9 @@ const cfg = {
 const methods = {
 	async fetch(data: ScramjetFetchContext): ScramjetFetchResponse {
 		data.cookieStore = cookiestore;
-		console.log(data);
 		data.rawUrl = new URL(data.rawUrl);
 		if (data.rawClientUrl) data.rawClientUrl = new URL(data.rawClientUrl);
 		let headers = new ScramjetHeaders();
-		console.log(client);
 		for (let [k, v] of Object.entries(data.initialHeaders)) {
 			headers.set(k, v);
 		}
@@ -235,29 +233,34 @@ const methods = {
 };
 window.addEventListener("message", async (event) => {
 	let data = event.data;
-	if (!("$sandboxsw$type" in data)) return;
-	if (data.$sandboxsw$type == "request") {
-		let domain = data.$sandboxsw$domain;
-		let message = data.$sandboxsw$message;
-		let token = data.$sandboxsw$token;
+	if (!(data && "$sandboxsw$type" in data)) return;
 
-		let fn = (methods as any)[domain];
+	try {
+		if (data.$sandboxsw$type == "request") {
+			let domain = data.$sandboxsw$domain;
+			let message = data.$sandboxsw$message;
+			let token = data.$sandboxsw$token;
 
-		let [result, transfer] = await fn(message);
-		framewindow.postMessage(
-			{
-				$sandboxsw$type: "response",
-				$sandboxsw$token: token,
-				$sandboxsw$message: result,
-			},
-			"*",
-			transfer
-		);
-	} else if (data.$sandboxsw$type == "confirm") {
-		let ifrm = (
-			<iframe src="http://localhost:5233/scramjet/https%3A%2F%2Fgoogle.com%2F"></iframe>
-		);
-		app.appendChild(ifrm);
+			let fn = (methods as any)[domain];
+
+			let [result, transfer] = await fn(message);
+			framewindow.postMessage(
+				{
+					$sandboxsw$type: "response",
+					$sandboxsw$token: token,
+					$sandboxsw$message: result,
+				},
+				"*",
+				transfer
+			);
+		} else if (data.$sandboxsw$type == "confirm") {
+			let ifrm = (
+				<iframe src="http://localhost:5233/scramjet/https%3A%2F%2Fgoogle.com%2F"></iframe>
+			);
+			app.appendChild(ifrm);
+		}
+	} catch (e) {
+		console.log(e);
+		console.error("error in response", e);
 	}
-	console.log("recv'd data", data);
 });
