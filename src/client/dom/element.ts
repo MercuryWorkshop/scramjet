@@ -334,10 +334,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Node.prototype.textContent", {
 		set(ctx, value: string) {
-			let newval: string;
 			// TODO: box the instanceofs
 			if (ctx.this instanceof self.HTMLScriptElement) {
-				newval = rewriteJs(
+				const newval: string = rewriteJs(
 					value,
 					"(anonymous script element)",
 					client.meta
@@ -348,11 +347,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 					"scramjet-attr-script-source-src",
 					bytesToBase64(encoder.encode(newval))
 				);
-			} else if (ctx.this instanceof self.HTMLStyleElement) {
-				newval = rewriteCss(value, client.meta);
-			}
 
-			ctx.set(newval);
+				return ctx.set(newval);
+			} else if (ctx.this instanceof self.HTMLStyleElement) {
+				return ctx.set(rewriteCss(value, client.meta));
+			} else {
+				return ctx.set(value);
+			}
 		},
 		get(ctx) {
 			if (ctx.this instanceof self.HTMLScriptElement) {
@@ -474,7 +475,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 			get(ctx) {
 				const realwin = ctx.get() as Window;
 				if (!realwin) return realwin;
-				debugger;
 
 				if (!(SCRAMJETCLIENT in realwin)) {
 					// hook the iframe before the client can start to steal globals out of it
