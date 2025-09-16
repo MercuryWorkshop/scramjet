@@ -16,8 +16,10 @@ import { createMenuCustom, setContextMenu } from "./Menu";
 import { browser } from "../Browser";
 import { SiteInformationPopup } from "./SiteInformationPopup";
 import { emToPx, splitUrl } from "../utils";
+import { fetchSuggestions, type OmniboxResult } from "./suggestions";
 
 export const focusOmnibox = createDelegate<void>();
+
 export function trimUrl(v: URL) {
 	return (
 		(v.protocol === "puter:" ? v.protocol : "") +
@@ -26,13 +28,6 @@ export function trimUrl(v: URL) {
 		v.search
 	);
 }
-
-type OmniboxResult = {
-	kind: "search" | "history" | "bookmark" | "direct";
-	title?: string | null;
-	url: URL;
-	favicon?: string | null;
-};
 
 export const UrlInput: Component<
 	{
@@ -44,11 +39,8 @@ export const UrlInput: Component<
 		active: boolean;
 		justselected: boolean;
 		subtleinput: boolean;
-
 		input: HTMLInputElement;
-
 		focusindex: number;
-
 		overflowItems: OmniboxResult[];
 	}
 > = function (cx) {
@@ -74,110 +66,49 @@ export const UrlInput: Component<
 		}, 10);
 	});
 
-	let lastresults: OmniboxResult[] = [];
-	let lastgoogleresults: OmniboxResult[] = [];
-	const fetchSuggestions = async () => {
-		let search = this.input.value;
-
-		this.overflowItems = lastresults;
-
-		let results: OmniboxResult[] = [];
-		let googleresults: OmniboxResult[] = [];
-
-		for (const entry of browser.globalhistory) {
-			if (!entry.url.href.includes(search) && !entry.title?.includes(search))
-				continue;
-			if (results.some((i) => i.url.href === entry.url.href)) continue;
-
-			results.push({
-				kind: "history",
-				title: entry.title,
-				url: entry.url,
-				favicon: entry.favicon,
-			});
-		}
-		results = results.slice(0, 5);
-		lastresults = results;
-		this.overflowItems = [...results, ...lastgoogleresults];
-
-		if (URL.canParse(search)) {
-			this.overflowItems = [
-				{
-					kind: "direct",
-					url: new URL(search),
-				},
-				...this.overflowItems,
-			];
-			return;
-		}
-
-		let resp = await fetch(
-			scramjet.encodeUrl(
-				`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(search)}`
-			)
-		);
-		let json = await resp.json();
-		for (const item of json[1].slice(0, 5)) {
-			// it's gonna be stuff like "http //fortnite.com/2fa ps5"
-			// these results are generally useless
-			if (item.startsWith("http")) continue;
-
-			googleresults.push({
-				kind: "search",
-				title: item,
-				url: new URL(
-					`https://www.google.com/search?q=${encodeURIComponent(item)}`
-				),
-			});
-		}
-
-		this.overflowItems = [...results, ...googleresults];
-		lastgoogleresults = googleresults;
-	};
-	let currentTimeout: number | null = null;
-	let ratelimiting = false;
-	let interval = 100;
+	let timeout: number | null = null;
 	use(this.value).listen(() => {
 		if (!this.value) {
 			this.overflowItems = [];
 			return;
 		}
-		if (ratelimiting) {
-			if (currentTimeout) return;
-			currentTimeout = setTimeout(() => {
-				ratelimiting = false;
-				fetchSuggestions();
-				currentTimeout = null;
-			}, interval);
-		} else {
-			ratelimiting = true;
-			fetchSuggestions();
-		}
+
+		if (timeout) clearTimeout(timeout);
+		timeout = setTimeout(
+			() =>
+				fetchSuggestions(this.value, (results) => {
+					this.overflowItems = results;
+				}),
+			100
+		);
 	});
+
 	const activate = () => {
 		this.subtleinput = false;
 		this.active = true;
 		browser.unfocusframes = true;
-		const ev = (e: MouseEvent) => {
+
+		const handleClickOutside = (e: MouseEvent) => {
 			this.active = false;
 			browser.unfocusframes = false;
 			e.preventDefault();
 
-			document.body.removeEventListener("click", ev);
-			document.body.removeEventListener("auxclick", ev);
+			document.body.removeEventListener("click", handleClickOutside);
+			document.body.removeEventListener("auxclick", handleClickOutside);
 		};
-		document.body.addEventListener("click", ev);
-		document.body.addEventListener("auxclick", ev);
+
+		document.body.addEventListener("click", handleClickOutside);
+		document.body.addEventListener("auxclick", handleClickOutside);
 
 		if (this.tabUrl.href == "puter://newtab") {
 			this.value = "";
 		} else {
 			this.value = trimUrl(this.tabUrl);
 		}
+
 		this.input.focus();
 		this.input.select();
 		this.justselected = true;
-
 		this.input.scrollLeft = 0;
 	};
 
@@ -197,6 +128,20 @@ export const UrlInput: Component<
 	this.selectContent.listen(() => {
 		activate();
 	});
+
+	const renderResultHighlight = (title: string, inputValue: string) => {
+		if (title.toLowerCase().startsWith(inputValue.toLowerCase())) {
+			return (
+				<>
+					<span style="font-weight: normal; opacity: 0.7;">
+						{title.substring(0, inputValue.length)}
+					</span>
+					<span>{title.substring(inputValue.length)}</span>
+				</>
+			);
+		}
+		return <span style="font-weight: normal; opacity: 0.7;">{title}</span>;
+	};
 
 	return (
 		<div
@@ -224,12 +169,12 @@ export const UrlInput: Component<
 						on:click={() => {
 							this.active = false;
 							this.input.blur();
-
 							browser.activetab.pushNavigate(item.url);
 						}}
 						class:focused={use(this.focusindex).map(
 							(i) => i - 1 === this.overflowItems.indexOf(item)
 						)}
+						title={item.url.href}
 					>
 						{item.kind === "search" ? (
 							<Icon icon={iconSearch}></Icon>
@@ -240,25 +185,14 @@ export const UrlInput: Component<
 								alt="favicon"
 							/>
 						)}
-						{(item.title && (
-							<span class="description">
-								{item.title.startsWith(this.input.value) ? (
-									<>
-										<span style="font-weight: normal; opacity: 0.7;">
-											{item.title.substring(0, this.input.value.length)}
-										</span>
-										<span>{item.title.substring(this.input.value.length)}</span>
-									</>
-								) : (
-									<span style="font-weight: normal; opacity: 0.7;">
-										{item.title}
-									</span>
-								)}
-								<span>{" - "}</span>
-							</span>
-						)) ||
-							""}
-						<span class="url">{decodeURIComponent(trimUrl(item.url))}</span>
+						<div class="result-content">
+							{(item.title && (
+								<span class="description">
+									{renderResultHighlight(item.title, this.input.value)}
+								</span>
+							)) || <span class="description">{trimUrl(item.url)}</span>}
+							{item.title && <span class="url">{trimUrl(item.url)}</span>}
+						</div>
 					</div>
 				))}
 			</div>
@@ -318,11 +252,9 @@ export const UrlInput: Component<
 							}
 							if (e.key === "Enter") {
 								e.preventDefault();
-
 								doSearch();
 							}
 						}}
-						// keyup, we want this to happen after the input has been processed (so the user can delete the whole thing)
 						on:keyup={(e: KeyboardEvent) => {
 							if (!this.justselected) return;
 
@@ -420,6 +352,7 @@ export const UrlInput: Component<
 		</div>
 	);
 };
+
 UrlInput.style = css`
 	:scope {
 		position: relative;
@@ -448,7 +381,6 @@ UrlInput.style = css`
 
 	.optionsbutton {
 		width: 100%;
-		/*height: 100%;*/
 		cursor: pointer;
 		padding: 0;
 		margin: 0;
@@ -487,10 +419,22 @@ UrlInput.style = css`
 		cursor: pointer;
 		gap: 0.5em;
 		padding-left: 0.5em;
+		padding-right: 0.5em;
 		white-space: nowrap;
-
 		color: var(--fg);
+		width: 100%;
+		overflow: hidden;
 	}
+
+	.result-content {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		gap: 2px;
+	}
+
 	.overflowitem .url,
 	.overflowitem .description {
 		text-overflow: ellipsis;
@@ -499,12 +443,27 @@ UrlInput.style = css`
 		overflow: hidden;
 	}
 
+	.overflowitem .description {
+		font-size: 1em;
+		min-width: 0;
+		font-weight: 500;
+	}
+
 	.overflowitem .url {
-		color: var(--fg5);
-		max-width: 50%;
+		color: var(--fg20);
+		font-size: 0.85em;
+		min-width: 0;
+		opacity: 0.6;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
 	}
 	.overflowitem.focused {
 		background: var(--bg04);
+	}
+
+	.overflowitem.focused .description {
+		color: var(--highlight);
 	}
 
 	.overflow.active {
@@ -518,25 +477,18 @@ UrlInput.style = css`
 		border-radius: 4px;
 		margin: 0.25em;
 	}
-	/*:scope:hover .inactivebar {
-		background: var(--bg20);
-	}*/
 	input,
 	.inactiveurl,
 	.placeholder {
 		background: none;
 		border: none;
 		outline: none;
-
 		font-size: 1em;
-
 		height: 100%;
 		width: 100%;
-
 		text-wrap: nowrap;
 		overflow: hidden;
 		font-family: var(--font);
-
 		color: var(--fg);
 	}
 	.inactiveurl {
@@ -563,7 +515,6 @@ UrlInput.style = css`
 		display: flex;
 		z-index: 1;
 		align-items: center;
-
 		padding-left: 0.25em;
 		padding-right: 0.25em;
 	}
