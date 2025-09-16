@@ -176,15 +176,17 @@ export const UrlInput: Component<
 						)}
 						title={item.url.href}
 					>
-						{item.kind === "search" ? (
-							<Icon icon={iconSearch}></Icon>
-						) : (
-							<img
-								class="favicon"
-								src={item.favicon || "/defaultfavicon.png"}
-								alt="favicon"
-							/>
-						)}
+						<div class="result-icon">
+							{item.kind === "search" ? (
+								<Icon icon={iconSearch}></Icon>
+							) : (
+								<img
+									class="favicon"
+									src={item.favicon || "/defaultfavicon.png"}
+									alt="favicon"
+								/>
+							)}
+						</div>
 						<div class="result-content">
 							{(item.title && (
 								<span class="description">
@@ -372,6 +374,11 @@ UrlInput.style = css`
 	.lefticon img {
 		width: 20px;
 		height: 20px;
+	}
+
+	.result-icon {
+		align-self: start;
+		margin-top: 0.4em;
 	}
 
 	.favicon {
