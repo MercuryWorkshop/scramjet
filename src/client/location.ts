@@ -36,7 +36,7 @@ export function createLocationProxy(
 		if (!native) continue;
 
 		const desc: Partial<PropertyDescriptor> = {
-			configurable: true,
+			configurable: false,
 			enumerable: true,
 		};
 		if (native.get) {
