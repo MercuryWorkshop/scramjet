@@ -74,29 +74,31 @@ export const UrlInput: Component<
 		}, 10);
 	});
 
-	let lastgooglesuggestions: OmniboxResult[] = [];
+	let lastresults: OmniboxResult[] = [];
+	let lastgoogleresults: OmniboxResult[] = [];
 	const fetchSuggestions = async () => {
 		let search = this.input.value;
 
-		this.overflowItems = lastgooglesuggestions;
+		this.overflowItems = lastresults;
 
-		let googlesuggestions: OmniboxResult[] = [];
+		let results: OmniboxResult[] = [];
+		let googleresults: OmniboxResult[] = [];
 
 		for (const entry of browser.globalhistory) {
 			if (!entry.url.href.includes(search) && !entry.title?.includes(search))
 				continue;
-			if (googlesuggestions.some((i) => i.url.href === entry.url.href))
-				continue;
+			if (results.some((i) => i.url.href === entry.url.href)) continue;
 
-			googlesuggestions.push({
+			results.push({
 				kind: "history",
 				title: entry.title,
 				url: entry.url,
 				favicon: entry.favicon,
 			});
 		}
-		lastgooglesuggestions = googlesuggestions.slice(0, 5);
-		this.overflowItems = googlesuggestions.slice(0, 5);
+		results = results.slice(0, 5);
+		lastresults = results;
+		this.overflowItems = [...results, ...lastgoogleresults];
 
 		if (URL.canParse(search)) {
 			this.overflowItems = [
@@ -120,7 +122,7 @@ export const UrlInput: Component<
 			// these results are generally useless
 			if (item.startsWith("http")) continue;
 
-			this.overflowItems.push({
+			googleresults.push({
 				kind: "search",
 				title: item,
 				url: new URL(
@@ -129,7 +131,8 @@ export const UrlInput: Component<
 			});
 		}
 
-		this.overflowItems = this.overflowItems;
+		this.overflowItems = [...results, ...googleresults];
+		lastgoogleresults = googleresults;
 	};
 	let currentTimeout: number | null = null;
 	let ratelimiting = false;
@@ -255,7 +258,7 @@ export const UrlInput: Component<
 							</span>
 						)) ||
 							""}
-						<span class="url">{trimUrl(item.url)}</span>
+						<span class="url">{decodeURIComponent(trimUrl(item.url))}</span>
 					</div>
 				))}
 			</div>
@@ -497,7 +500,8 @@ UrlInput.style = css`
 	}
 
 	.overflowitem .url {
-		color: var(--fg20);
+		color: var(--fg5);
+		max-width: 50%;
 	}
 	.overflowitem.focused {
 		background: var(--bg04);
