@@ -36,7 +36,7 @@ export const BookmarksStrip: Component = function (cx) {
 						browser.newTab(new URL(b.url));
 					}}
 					on:contextmenu={(e: MouseEvent) => {
-						createMenu(e.clientX, e.clientY, [
+						createMenu({ left: e.clientX, top: e.clientY }, [
 							{
 								label: "Open",
 								icon: iconLink,
