@@ -3,6 +3,7 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 
+
 if ! [ "${RELEASE:-0}" = "1" ]; then
 	WASMOPTFLAGS="${WASMOPTFLAGS:-} -g"
 	FEATURES="debug,${FEATURES:-}"
