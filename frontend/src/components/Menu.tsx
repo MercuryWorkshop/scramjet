@@ -125,7 +125,7 @@ Menu.style = css`
 		left: var(--x);
 		background: var(--bg02);
 		border: 1px solid var(--fg4);
-		border-radius: var(--radius);
+		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 		z-index: 1000;
 		display: flex;

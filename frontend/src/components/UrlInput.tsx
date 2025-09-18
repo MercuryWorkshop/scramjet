@@ -414,6 +414,7 @@ UrlInput.style = css`
 		width: 100%;
 		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+		border: 1px solid var(--fg5);
 	}
 	.overflow .spacer {
 		display: block;
