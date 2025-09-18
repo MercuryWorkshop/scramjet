@@ -45,7 +45,7 @@ jobs:
           path: |
             rewriter/wasm/out
             dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/**/src/**/*.toml', 'rewriter/**/src/**/*.json', 'rewriter/**/src/**/*.md', 'rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
 
@@ -231,7 +231,7 @@ jobs:
           path: |
             rewriter/wasm/out
             dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/**/src/**/*.toml', 'rewriter/**/src/**/*.json', 'rewriter/**/src/**/*.md', 'rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
 
