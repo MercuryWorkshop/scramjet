@@ -61,6 +61,19 @@ export const DragTab: Component<
 				},
 			},
 		]);
+
+		cx.root.animate(
+			[
+				{
+					width: "0px",
+				},
+				{},
+			],
+			{
+				duration: 100,
+				fill: "forwards",
+			}
+		);
 	};
 
 	let hoverTimeout: number;
@@ -385,15 +398,22 @@ export const Tabs: Component<
 		const afterpos = Math.max(dragpos, currpos);
 		this.afterEl.style.transform = `translateX(${afterpos}px)`;
 	};
+
+	let oldTabs: Tab[] = [];
 	use(this.tabs).listen(() => {
 		setTimeout(() => {
 			layoutTabs(true);
 		}, 10);
-	});
 
-	pushTab.listen((tab) => {
-		// init pos to end
-		tab.pos = getLayoutStart() + getRootWidth();
+		for (let index = 0; index < this.tabs.length; index++) {
+			let tab = this.tabs[index];
+			if (!oldTabs.includes(tab)) {
+				console.log("?", index);
+				tab.pos = getLayoutStart() + index * (getTabWidth() + TAB_PADDING);
+			}
+		}
+
+		oldTabs = [...this.tabs];
 	});
 
 	cx.mount = () => {
