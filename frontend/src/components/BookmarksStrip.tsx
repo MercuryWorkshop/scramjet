@@ -6,7 +6,8 @@ import iconLink from "@ktibow/iconset-ion/link-outline";
 import iconBrush from "@ktibow/iconset-ion/brush-outline";
 import iconTrash from "@ktibow/iconset-ion/trash-outline";
 import { browser } from "../Browser";
-import { createMenu, setContextMenu } from "./Menu";
+import { createMenu, createMenuCustom, setContextMenu } from "./Menu";
+import { BookmarkPopup } from "./BookmarkPopup";
 
 export const BookmarksStrip: Component = function (cx) {
 	cx.mount = () => {
@@ -49,6 +50,18 @@ export const BookmarksStrip: Component = function (cx) {
 							},
 							{
 								label: "Edit Bookmark",
+								action: () => {
+									// doesn't like having the menu open while opening another menu
+									requestAnimationFrame(() => {
+										createMenuCustom(
+											{
+												left: e.clientX,
+												top: e.clientY,
+											},
+											<BookmarkPopup bookmark={b} new={false} />
+										);
+									});
+								},
 								icon: iconBrush,
 							},
 							{
@@ -66,8 +79,8 @@ export const BookmarksStrip: Component = function (cx) {
 						browser.activetab.pushNavigate(new URL(b.url));
 					}}
 				>
-					<img src={b.favicon}></img>
-					<span>{b.title}</span>
+					<img src={use(b.favicon)}></img>
+					<span>{use(b.title)}</span>
 				</button>
 			))}
 		</div>

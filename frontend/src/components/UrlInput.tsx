@@ -1,5 +1,6 @@
 import {
 	createDelegate,
+	createState,
 	css,
 	type Component,
 	type Delegate,
@@ -17,6 +18,7 @@ import { browser } from "../Browser";
 import { SiteInformationPopup } from "./SiteInformationPopup";
 import { emToPx, splitUrl } from "../utils";
 import { fetchSuggestions, type OmniboxResult } from "./suggestions";
+import { BookmarkPopup } from "./BookmarkPopup";
 
 export const focusOmnibox = createDelegate<void>();
 
@@ -217,8 +219,11 @@ export const UrlInput: Component<
 								class="optionsbutton"
 								on:click={(e: MouseEvent) => {
 									createMenuCustom(
-										(e.target as HTMLElement).getBoundingClientRect().left,
-										emToPx(2.5) + 40,
+										{
+											left: (e.target as HTMLElement).getBoundingClientRect()
+												.left,
+											top: emToPx(2.5) + 40,
+										},
 										<SiteInformationPopup
 											tab={browser.activetab}
 										></SiteInformationPopup>
@@ -316,22 +321,29 @@ export const UrlInput: Component<
 								let bookmark = browser.bookmarks.find(
 									(b) => b.url == this.tabUrl.href
 								);
-								if (bookmark) {
-									browser.bookmarks = browser.bookmarks.filter(
-										(b) => b.url !== this.tabUrl.href
-									);
-								} else {
-									browser.bookmarks = [
-										{
-											url: browser.activetab.url.href,
-											favicon: browser.activetab.icon,
-											title:
-												browser.activetab.title ||
-												browser.activetab.url.hostname,
-										},
-										...browser.bookmarks,
-									];
+
+								let isnew = false;
+								if (!bookmark) {
+									bookmark = createState({
+										url: browser.activetab.url.href,
+										favicon: browser.activetab.icon,
+										title:
+											browser.activetab.title || browser.activetab.url.hostname,
+									});
+									isnew = true;
 								}
+
+								createMenuCustom(
+									{
+										right: (e.target as HTMLElement).getBoundingClientRect()
+											.right,
+										top: emToPx(2.5) + 40,
+									},
+									<BookmarkPopup
+										new={isnew}
+										bookmark={bookmark}
+									></BookmarkPopup>
+								);
 							}}
 							icon={use(browser.bookmarks, this.tabUrl).map(() =>
 								browser.bookmarks.some((b) => b.url == this.tabUrl.href)

@@ -27,7 +27,7 @@ export const NewTabPage: Component<
 						<div
 							class="suggestion"
 							on:contextmenu={(e: MouseEvent) => {
-								createMenu(e.clientX, e.clientY, [
+								createMenu({ left: e.clientX, top: e.clientY }, [
 									{
 										label: "Open",
 										action: () => browser.activetab.pushNavigate(entry.url),

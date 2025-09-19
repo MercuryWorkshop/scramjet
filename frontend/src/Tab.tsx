@@ -806,8 +806,7 @@ function injectContextMenu(client: ScramjetClient, tab: Tab) {
 		yoff += y;
 
 		createMenu(
-			xoff + e.clientX,
-			yoff + e.clientY,
+			{ left: xoff + e.clientX, top: yoff + e.clientY },
 			pageContextItems(client, tab, e)
 		);
 		e.preventDefault();
