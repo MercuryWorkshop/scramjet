@@ -33,6 +33,11 @@ export const BookmarkPopup: Component<{
 			<div class="actions">
 				<button
 					on:click={() => {
+						if (!this.new) {
+							browser.bookmarks = browser.bookmarks.filter(
+								(b) => b !== this.bookmark
+							);
+						}
 						closeMenu();
 					}}
 				>
