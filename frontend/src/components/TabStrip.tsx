@@ -10,7 +10,7 @@ import { OmnibarButton } from "./OmnibarButton";
 import type { Tab } from "../Tab";
 // import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
-import { browser, forceScreenshot } from "../Browser";
+import { browser, forceScreenshot, pushTab } from "../Browser";
 
 const isFirefox =
 	navigator.userAgent.includes("Gecko/") &&
@@ -389,6 +389,11 @@ export const Tabs: Component<
 		setTimeout(() => {
 			layoutTabs(true);
 		}, 10);
+	});
+
+	pushTab.listen((tab) => {
+		// init pos to end
+		tab.pos = getLayoutStart() + getRootWidth();
 	});
 
 	cx.mount = () => {
