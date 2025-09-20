@@ -68,6 +68,7 @@ export interface ScramjetConfig {
  * The config for Scramjet initialization.
  */
 export interface ScramjetInitConfig
+	errpage: string;
 	extends Omit<ScramjetConfig, "codec" | "flags"> {
 	flags: Partial<ScramjetFlags>;
 	codec: {
