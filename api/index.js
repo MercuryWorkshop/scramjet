@@ -1,6 +1,6 @@
 const { DataStream } = require("@scramjet/core");
 
-export default async (req, res) => {
+module.exports = async (req, res) => {
   // Example: Echo the incoming request body, transformed by Scramjet DataStream
   const body = req.body || {};
   const stream = DataStream.from([body]);
