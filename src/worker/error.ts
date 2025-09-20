@@ -1,3 +1,7 @@
+import {
+	config,
+} from "@/shared/index";
+
 export function errorTemplate(trace: string, fetchedURL: string) {
 	// turn script into a data URI so we don"t have to escape any HTML values
 	const script = `
@@ -17,7 +21,7 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                 });
         `;
 
-	return `<!DOCTYPE html>
+	return config.errpage || `<!DOCTYPE html>
             <html>
                 <head>
                     <meta charset="utf-8" />

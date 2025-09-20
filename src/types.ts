@@ -36,6 +36,7 @@ export type ScramjetFlags = {
 
 export interface ScramjetConfig {
 	prefix: string;
+	errpage: string;
 	globals: {
 		wrapfn: string;
 		wrappropertybase: string;
@@ -67,6 +68,7 @@ export interface ScramjetConfig {
  * The config for Scramjet initialization.
  */
 export interface ScramjetInitConfig
+	errpage: string;
 	extends Omit<ScramjetConfig, "codec" | "flags"> {
 	flags: Partial<ScramjetFlags>;
 	codec: {
