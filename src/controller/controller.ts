@@ -22,6 +22,7 @@ export class ScramjetController extends EventTarget {
 		super();
 		// sane ish defaults
 		const defaultConfig: ScramjetInitConfig = {
+			
 			// wisp: "/wisp/",
 			prefix: "/scramjet/",
 			globals: {
