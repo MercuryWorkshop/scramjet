@@ -1,4 +1,4 @@
-const { DataStream } = require("@scramjet/core");
+import { DataStream } from "@scramjet/core";
 
 module.exports = async (req, res) => {
   // Example: Echo the incoming request body, transformed by Scramjet DataStream
