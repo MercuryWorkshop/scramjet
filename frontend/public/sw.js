@@ -30,6 +30,7 @@ self.addEventListener("message", ({ data }) => {
 	}
 });
 
+let reqid = 0;
 scramjet.addEventListener("request", (e) => {
 	if (e.url.href.startsWith("https://fake-devtools.invalid")) {
 		// route the fake origin devtools requests to the local static files
@@ -82,6 +83,105 @@ scramjet.addEventListener("request", (e) => {
 		};
 		e.response.finalURL = e.url.toString();
 	} else {
-		return;
+		if (!e.client) {
+			console.warn("dropped req", e.url);
+			return;
+		}
+		e.response = (async () => {
+			let fetchBody = e.body;
+
+			let id = reqid++;
+
+			if (e.body && e.body instanceof ReadableStream) {
+				const [tee1, tee2] = e.body.tee();
+				fetchBody = tee1;
+
+				const requestData = {
+					type: "scramjet-request",
+					data: {
+						url: e.url.href,
+						method: e.method,
+						requestHeaders: e.requestHeaders,
+						destination: e.destination,
+						timestamp: Date.now(),
+						payload: tee2,
+						id,
+					},
+				};
+
+				e.client.postMessage(requestData, [tee2]);
+			} else {
+				const requestData = {
+					type: "scramjet-request",
+					data: {
+						url: e.url.href,
+						method: e.method,
+						requestHeaders: e.requestHeaders,
+						destination: e.destination,
+						timestamp: Date.now(),
+						payload: typeof e.body === "string" ? e.body : null,
+						id,
+					},
+				};
+				e.client.postMessage(requestData);
+			}
+
+			let resp = await e.currentTarget.client.fetch(e.url, {
+				method: e.method,
+				body: fetchBody,
+				headers: e.requestHeaders,
+				credentials: "omit",
+				mode: e.mode === "cors" ? e.mode : "same-origin",
+				cache: e.cache,
+				redirect: "manual",
+				duplex: "half",
+			});
+
+			if (resp.body && resp.body instanceof ReadableStream) {
+				const [tee1, tee2] = resp.body.tee();
+
+				let newresp = new Response(tee1, {
+					status: resp.status,
+					statusText: resp.statusText,
+					headers: resp.headers,
+				});
+				newresp.rawHeaders = resp.rawHeaders;
+				newresp.rawResponse = {
+					body: resp.body,
+					headers: resp.rawHeaders,
+				};
+				newresp.finalURL = resp.url;
+
+				const responseData = {
+					type: "scramjet-response",
+					data: {
+						url: e.url.href,
+						status: resp.status,
+						body: tee2,
+						responseHeaders: Object.fromEntries(resp.headers.entries()),
+						timestamp: Date.now(),
+						id,
+					},
+				};
+				resp = newresp;
+
+				e.client.postMessage(responseData, [tee2]);
+			} else {
+				const responseData = {
+					type: "scramjet-response",
+					data: {
+						url: e.url.href,
+						status: resp.status,
+						responseHeaders: Object.fromEntries(resp.headers.entries()),
+						timestamp: Date.now(),
+						responseBody: resp.body,
+						id,
+					},
+				};
+				e.client.postMessage(responseData);
+			}
+
+			return resp;
+		})();
 	}
 });
