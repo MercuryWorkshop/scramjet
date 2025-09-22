@@ -1,42 +1,42 @@
-Remember web proxies? They were a really cool bit of tech for a quasi-vpn alternative. Instead of hooking your entire system network to a vpn, you would just go to a single website that acted as a tunnel and allowed you to access any other resource.
+# How I ported the Web to the Web
 
-The first major proxy was [phproxy](https://github.com/PHProxy/phproxy), with Glype and .....
+Remember web proxies? They were a cool bit of tech that let you browse the web anonymously or bypass censorship without a full VPN. They were popular in the early 2000s, but have mostly fallen out of use today. In this post I’ll explain how they worked, why they stopped working, and how we built [browser.js](https://github.com/HeyPuter/browser.js), a modern alternative that works on today's complex websites.
 
-All of these services used the same extremely simple mechanism. The user navigates to `https://proxy.com/example.com/`
+# Traditional Web Proxies
 
-When the server recieves the response, instead of serving a normal static page, it will make a request to `https://example.com/` and fetch the contents, recieving some HTML that looks something like this
+Web proxies have been around since the early days of the web.
 
-```
-<html>
-	<head>
-		<title>Example</title>
-		<link rel=”stylesheet” href=”https://example.com/index.css” />
-	</head>
-	<body>
-		<h1>Example Domain</h1>
-		<a href=”https://example.com/more”>more information</a>
-	</body>
-</html>
+Major implementations included [phproxy](https://github.com/PHProxy/phproxy), [CGIProxy](https://www.jmarshall.com/tools/cgiproxy/), and later [Glype](https://github.com/vincentclee/glype). All of these services used the same extremely simple mechanism:
+
+First, the user navigates to `https://proxy.com/example.com/`. When the server recieves the response, instead of serving a normal static page, it will make a request to `https://example.com/` and fetch the contents, recieving some HTML that looks something like this
+
+```html
+<head>
+	<title>Example.com</title>
+	<link rel="stylesheet" href="https://example.com/index.css" />
+</head>
+<body>
+	<h1>Example Domain</h1>
+	<a href="https://example.com/more">more information</a>
+</body>
 ```
 
 The server performs a simple transform, rewriting all URLs found in the html:
 
-```
-<html>
-	<head>
-		<title>Example</title>
-		<link rel=”stylesheet” href=”https://proxy.com/example.com/index.css” />
-	</head>
-	<body>
-		<h1>Example Domain</h1>
-		<a href=”https://proxy.com/example.com/more”>more information</a>
-	</body>
-</html>
+```html
+<head>
+	<title>Example.com</title>
+	<link rel="stylesheet" href="https://proxy.com/example.com/index.css" />
+</head>
+<body>
+	<h1>Example Domain</h1>
+	<a href="https://proxy.com/example.com/more">more information</a>
+</body>
 ```
 
-And then will send it back to the user as the page they requested. Image resources are fetched and served back verbatim, and POST requests from form submissions are forwarded to the original server as well.
+And then will send it back to the user as the page they requested. Image resources are fetched and served back verbatim, and POST requests from form submissions are forwarded to the original server as well. Since the links point back to the proxy server, the user can continue to navigate the web through the proxy.
 
-Back when CGIProxy was first written in 1998, these worked great, you could have a complete anonymized browsing experience without having to set up a full vpn. So what happened?
+Back when CGIProxy was first written in 1998, these worked great, you could have a basically fully-complete anonymized browsing experience without having to set up a full vpn. So what happened?
 
 # Javascript
 
@@ -50,9 +50,11 @@ To give you an idea of just how hard this problem is: can you tell what the foll
 [][(![]+[])[+!+[]]+(!![]+[])[+[]]][([][(![]+[])[+!+[]]+(!![]+[])[+[]]]+[])[!+[]+!+[]+!+[]]+(!![]+[][(![]+[])[+!+[]]+(!![]+[])[+[]]])[+!+[]+[+[]]]+([][[]]+[])[+!+[]]+(![]+[])[!+[]+!+[]+!+[]]+(!![]+[])[+[]]+(!![]+[])[+!+[]]+([][[]]+[])[+[]]+([][(![]+[])[+!+[]]+(!![]+[])[+[]]]+[])[!+[]+!+[]+!+[]]+(!![]+[])[+[]]+(!![]+[][(![]+[])[+!+[]]+(!![]+[])[+[]]])[+!+[]+[+[]]]+(!![]+[])[+!+[]]]((![]+[])[+!+[]]+(![]+[])[!+[]+!+[]]+(!![]+[])[!+[]+!+[]+!+[]]+(!![]+[])[+!+[]]+(!![]+[])[+[]]+([][(![]+[])[+!+[]]+(!![]+[])[+[]]]+[])[+!+[]+[+!+[]]]+(![]+[])[!+[]+!+[]]+(!![]+[][(![]+[])[+!+[]]+(!![]+[])[+[]]])[+!+[]+[+[]]]+([][(![]+[])[+!+[]]+(!![]+[])[+[]]]+[])[!+[]+!+[]+!+[]]+(![]+[])[+!+[]]+(!![]+[])[+[]]+([![]]+[][[]])[+!+[]+[+[]]]+(!![]+[][(![]+[])[+!+[]]+(!![]+[])[+[]]])[+!+[]+[+[]]]+([][[]]+[])[+!+[]]+([]+[]+[][(![]+[])[+!+[]]+(!![]+[])[+[]]])[+!+[]+[!+[]+!+[]]])()
 ```
 
-You won’t be able to find out until you run it, which will use `fetch` to load a resource from example.com, potentially deanonymizing the user. In addition to deanonymizing the user, this will often times break the site completely, especially when CORS restrictions are involved
+This is JSFuck, a "dialect" of javascript that only uses the characters `[]()!+`. It's perfectly valid javascript, but it’s basically impossible to understand what it does without running it.
 
-There was a point where you could simply just disable javascript on the browser. Many sites were only using javascript for progressive enhancement anyway. But as the web grew, more and more responsibilities got moved to javascript. Before long, most modern websites were rendering the entire page content entirely within javascript.
+This is an extreme example, but it demonstrates how complicated javascript can be. There's no reliable way to tell what a piece of javascript will do before loading and executing it. For proxies, this is a huge problem. If the javascript loads resources from the original domain, the user’s browser will make requests directly to the original server bypassing the proxy, deanonymizing the user and in most cases completely breaking the website.
+
+You used to be able to get away this by just blocking javascript entirely, but as the use of javascript shifted away from progressive enhancement towards "reimplement the entire dom as js objects", this became less and less viable.
 
 # Modern Proxies
 
@@ -60,56 +62,61 @@ In [browser.js](https://github.com/HeyPuter/browser.js) we set out to build a mo
 
 The first step of making a modern proxy was leveraging Service Workers: A relatively obscure feature to most web developers, it allows the page to deploy a small bit of persistent javascript that runs in the background, independently from the main window. Importantly, a page’s service worker has **the capability to intercept and handle network traffic made by the page**.
 
-Instead of the page making requests to the backend, it would make it to itself. The service worker can then route requests through a small minimal cors proxy on the backend.
+Instead of the page making requests to the backend, it would make requests to _itself_. The service worker can then route requests through a minimal cors proxy on the backend. By moving away the heavy lifting of parsing and rewriting resources to the client, logic is simplified greatly and hosting a proxy becomes much more scalable.
 
-Moving processing away from the server makes the proxy scalable.
+However, this still leaves the problem of javascript. To deal with this, we need to take a step back and look at what a web proxy is trying to accomplish.
 
-We needed to completely rethink the way proxies worked. We would basically be building a hypervisor for the browser
+Think of a hypervisor. Its purpose is to "trick" the guest OS into thinking it’s running on real hardware, when in reality it’s running on a virtualized layer. The actual instructions are running on the real CPU, but attempts to access hardware are intercepted and emulated.
 
-// put some diagram here?
+We need to do the same thing for the webpage. We need to _trick it into thinking it’s running on the original domain_, when in reality it’s running on the proxy one. Any attempts to access resources or information about the environment need to be intercepted and emulated.
 
-What can we handle by monkeypatching page content, and what can’t we?
+In this case the "cpu" is the native javascript engine, and the "hardware" is the DOM and browser APIs.
 
-The most important thing is window.location
+Javascript has an interesting feature where.
 
-This exposes the real origin of the site. We need to make it _think_ that it’s executing on the original origin. However, this cannot be monkeypatched. The “location” property descriptor of Window is “frozen”, so it can’t be overwritten like others can.
+And then we get to `window.location`, one of the hardest parts.
 
-So javascript can’t be statically analyzed, and this property can’t be changed at runtime
+# Javascript Rewriting
 
-However, what we can do is insert hooks _during static analysis_ that allow us to change runtime behavior
-is this thunking?
+Let's look at this simple snippet of application code, which many sites will use in some form:
 
 ```
 let url = location.href
-console.assert(url == “https://example.com”, “we’re not running on the expected page?”)
+console.assert(url == "https://example.com", "we’re not running on the expected page?")
 ```
 
-After parsing the AST, we can look for the `Identifier` tags that hold “location” and start replacing them.
+This exposes the real origin of the site. We need to make it _think_ that it’s executing on the original origin. However, this cannot be monkeypatched. The "location" property descriptor of Window is marked as non-configurable, so it can’t be overwritten like others can. If this code is ran, it would immediately break out of the proxy and expose the real origin, no matter how many globals we modify.
 
-This can be rewritten to
+However, we don't neccesarily need to run the original code. We control all the resources loaded onto the page, since they all pass through the service worker and the proxy, so we can modify the code before it runs.
+
+And while it's true that javascript can't be truly statically analyzed, (refer back to the JSFuck example), what we can do is insert hooks _during static analysis_ that allow us to inspect and modify runtime behavior. This method, referred to as "JS Rewriting" is the most powerful technique in proxying modern web applications.
+
+After parsing the syntax tree of the loaded script, we can search for `Identifier` tags that hold "location" and start replacing them.
+
+The snippet above will be rewritten to this sandboxed version:
 
 ```
 let url = $proxyWrap(location).href
-console.assert(url == “https://example.com”, “we’re not running on the expected page?”)
+console.assert(url == "https://example.com", "we’re not running on the expected page?")
 ```
 
-The smart thing about this is that proxyWrap knows the original value and can still pass it through if needed. If a variable named `location` happened to be shadowing the real location, the wrap would know not to replace it.
+The critical part about this is that proxyWrap knows the original value and can still pass it through if needed. If a variable named `location` happened to be shadowing the real location, the wrap would know not to replace it.
 
-Property access needs to be handled similarly:
-
-```
-let href = window[“loca” + “tion”].href
-```
-
-Gets rewritten to
+Property access must be handled similarly: A piece of code like
 
 ```
-let href = window[$proxyProp(“loca” + “tion”)].href
+let href = window["loca" + "tion"].href
 ```
 
-The instrumentation allows us to change it at runtime
+Can be safely rewritten to
 
-The only issue with this approach is that AST parsing is expensive. Modern sites can load javascript bundles in excess of 5MB!!
+```
+let href = window[$proxyProp("loca" + "tion")].href
+```
+
+And the property access can be redirected at runtime to point to the emulated one. With powerful rewrites like these, even extremely obfuscated and complex pieces of code like the JSFuck example will be properly handled.
+
+Through a combination of instrumentation through rewriting and monkeypatching globals, we can ensure that webpages . The only issue with this approach is that AST parsing can get expensive. Especially since many modern sites load javascript bundles in excess of 5MB!!
 
 Here’s where Rust and WebAssembly step in: with the amazing oxc project and clever optimizations, we were able to reduce the time it takes to rewrite by >10x, making the overhead almost unnoticable for most webpages.
 
@@ -131,17 +138,6 @@ The browser already ships with a full cryptography stack, including TLS, but oth
 Fortunately, this isn't as hard as it sounds, and leveraging Rust's WebAssembly toolchain again, we were able to run rustls in the browser with surprisingly low overhead, with requests coming close to native speed.
 
 Our stack now looks like this:
+(diagram here)
 
-Request comes from the browser
-https://proxy.com/example.com/secure_data.txt
-
-# Why
-
-Selenium
-
-Puter integrates
-
-[0]
-[1] https://www.jmarshall.com/tools/cgiproxy/
-[3]
-[4]
+You can try out the live demo [here](https://puter.com/app/puter-browser-beta)
