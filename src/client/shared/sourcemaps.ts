@@ -152,6 +152,7 @@ function doUnrewrite(client: ScramjetClient, ctx: ProxyCtx) {
 	}
 
 	newString += stringified.slice(lastpos);
+	newString = newString.replace(`${SCRAMTAG}${tagStart} ${tag}*/`, "");
 
 	return ctx.return(newString);
 }

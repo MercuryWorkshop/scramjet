@@ -1,10 +1,8 @@
 pnpm-lock.yaml
-README.md
-tsconfig.json
-tests/
 dist/
 rewriter/
 frontend/public/chi
 chii/
 chobitsu/
 playwright/
+.rslib/

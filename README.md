@@ -29,7 +29,6 @@ It can be used as:
 - A fast, lightweight, and no-installation alternative to Puppeteer, Playwright, and Selenium
 - An alternative to Ultraviolet, Rammerhead, and other web proxy browsers
 
-
 <br>
 
 ## Getting Started
@@ -40,7 +39,6 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for build instructions
 > Browser.js does not currently have site isolation! Do not use it for sensitive data!
 
 <br>
-
 
 ## Support
 

@@ -6,11 +6,6 @@ const scramjet = new ScramjetController({
 		all: "/scram/scramjet.all.js",
 		sync: "/scram/scramjet.sync.js",
 	},
-	flags: {
-		serviceworkers: true,
-		syncxhr: true,
-		scramitize: true,
-	},
 });
 
 scramjet.init();

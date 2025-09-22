@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { readFileSync } from "node:fs";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const packagemeta = JSON.parse(await readFile("package.json"));
 
@@ -102,6 +103,13 @@ const iifeConfig = defineConfig({
 			: null,
 	],
 	target: "webworker",
+	ignoreWarnings: [
+		{
+			module: /src\/entry\.ts/,
+			message:
+				/Critical dependency: the request of a dependency is an expression/,
+		},
+	],
 });
 
 // Configuration for ES module build
@@ -193,6 +201,13 @@ const moduleConfig = defineConfig({
 	experiments: {
 		outputModule: true,
 	},
+	ignoreWarnings: [
+		{
+			module: /src\/entry\.ts/,
+			message:
+				/Critical dependency: the request of a dependency is an expression/,
+		},
+	],
 });
 
 // Export multiple configurations

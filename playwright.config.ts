@@ -5,7 +5,7 @@ import type { GitHubActionOptions } from "@estruyf/github-actions-reporter";
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-	testDir: "./tests",
+	testDir: "./tests/integration/site",
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: 2,

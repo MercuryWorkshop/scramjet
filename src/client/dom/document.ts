@@ -29,6 +29,12 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
+	client.Trap("Document.prototype.referrer", {
+		get() {
+			return client.url.toString();
+		},
+	});
+
 	client.Proxy("Document.prototype.writeln", {
 		apply(ctx) {
 			if (ctx.args[0])
