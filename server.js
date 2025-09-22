@@ -83,22 +83,23 @@ fastify.register(fastifyStatic, {
 	decorateReply: false,
 });
 
-const PORT = process.env.PORT || 1337;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) || 1337 : 1337;
 
 fastify.listen({
 	port: PORT,
 	host: "0.0.0.0",
 });
+
 fastify.setNotFoundHandler((request, reply) => {
 	console.error("PAGE PUNCHED THROUGH SW - " + request.url);
-	reply.code(593).statusMessage("INVALID").send("punch through");
+	reply.code(593).send("punch through");
 });
 console.log(`Listening on http://localhost:${PORT}/`);
 if (!process.env.CI) {
 	try {
 		writeFileSync(
 			".git/hooks/pre-commit",
-			"pnpm prettier . -w\ngit update-index --again"
+			"pnpm format\ngit update-index --again"
 		);
 		chmodSync(".git/hooks/pre-commit", 0o755);
 	} catch {}
@@ -106,11 +107,13 @@ if (!process.env.CI) {
 	const compiler = rspack(rspackConfig);
 	compiler.watch({}, (err, stats) => {
 		console.log(
-			stats.toString({
-				preset: "minimal",
-				colors: true,
-				version: false,
-			})
+			stats
+				? stats.toString({
+						preset: "minimal",
+						colors: true,
+						version: false,
+					})
+				: ""
 		);
 	});
 }

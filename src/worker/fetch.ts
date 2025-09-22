@@ -228,7 +228,8 @@ export async function handleFetch(
 			request.destination === "iframe" &&
 			request.mode === "navigate" &&
 			request.referrer &&
-			request.referrer !== "no-referrer"
+			request.referrer !== "no-referrer" &&
+			request.referrer !== location.origin + config.prefix + "no-referrer"
 		) {
 			// Trace back through the referrer chain, checking if each was an iframe navigation using the clients, until we find a non-iframe parent on a non-proxy page
 			let currentReferrer = request.referrer;
@@ -286,7 +287,8 @@ export async function handleFetch(
 		if (
 			request.referrer &&
 			request.referrer !== "" &&
-			request.referrer !== "no-referrer"
+			request.referrer !== "no-referrer" &&
+			request.referrer !== location.origin + config.prefix + "no-referrer"
 		) {
 			if (request.referrer.includes(config.prefix)) {
 				const unrewrittenReferrer = unrewriteUrl(request.referrer);

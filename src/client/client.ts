@@ -1,8 +1,5 @@
 import { ScramjetFrame } from "@/controller/frame";
-import {
-	BareClient,
-	type BareClient as BareClientType,
-} from "../bare-mux-custom";
+import { BareClient } from "../bare-mux-custom";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
@@ -67,7 +64,7 @@ export type Trap<T> = {
 export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
-	bare: BareClientType;
+	bare: BareClient;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;

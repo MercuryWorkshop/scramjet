@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		// "allowJs": true,
 		"rootDir": "./src",
 		"target": "ES2022",
 		"moduleResolution": "Bundler",
@@ -10,13 +9,25 @@
 		"declarationDir": "./dist/types",
 		"outDir": "./dist/types",
 		"emitDeclarationOnly": true,
-		"removeComments": false,
+		"lib": ["ES2022", "WebWorker"],
 		"paths": {
 			"@rewriters/*": ["./src/shared/rewriters/*"],
 			"@client/*": ["./src/client/*"],
 			"@/*": ["./src/*"]
-		}
+		},
+		"types": ["node"]
 	},
-	"include": ["src"],
-	"exclude": ["node_modules"]
+	"include": ["src/index.ts", "src/globals.d.ts"],
+	"exclude": [
+		"node_modules",
+		"**/*.spec.ts",
+		"**/*.test.ts",
+		"**/rewriters/**",
+		"**/shared/rewriters/**",
+		"**/client/shared/**",
+		"**/client/swruntime.ts",
+		"**/client/entry.ts",
+		"**/worker/fetch.ts",
+		"**/worker/error.ts"
+	]
 }

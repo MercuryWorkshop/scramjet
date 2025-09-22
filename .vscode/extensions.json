@@ -1,0 +1,17 @@
+{
+	"recommendations": [
+		"ms-vscode.vscode-typescript-next",
+		"johnsoncodehk.vscode-tsconfig-helper",
+		"yoavbls.pretty-ts-errors",
+		"christian-kohler.npm-intellisense",
+		"wix.vscode-import-cost",
+		"iulian-radu-at.find-unused-exports",
+		"jnoortheen.nix-ide",
+		"dunstontc.vscode-gitignore-syntax",
+		"sndst00m.vscode-native-svg-preview",
+		"github.vscode-pull-request-github",
+		"rvest.vs-code-prettier-eslint",
+		"formulahendry.github-actions",
+		"github.vscode-github-actions"
+	]
+}
