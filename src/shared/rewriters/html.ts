@@ -257,7 +257,7 @@ function traverseParsedHtml(
 }
 
 export function rewriteSrcset(srcset: string, meta: URLMeta) {
-	const sources = srcset.split(",").map((src) => src.trim());
+	const sources = srcset.split(/ .*,/).map((src) => src.trim());
 	const rewrittenSources = sources.map((source) => {
 		// Split into URLs and descriptors (if any)
 		// e.g. url0, url1 1.5x, url2 2x

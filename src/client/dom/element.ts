@@ -332,6 +332,51 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Trap("Node.prototype.textContent", {
+		set(ctx, value: string) {
+			// TODO: box the instanceofs
+			if (ctx.this instanceof self.HTMLScriptElement) {
+				const newval: string = rewriteJs(
+					value,
+					"(anonymous script element)",
+					client.meta
+				) as string;
+				client.natives.call(
+					"Element.prototype.setAttribute",
+					ctx.this,
+					"scramjet-attr-script-source-src",
+					bytesToBase64(encoder.encode(newval))
+				);
+
+				return ctx.set(newval);
+			} else if (ctx.this instanceof self.HTMLStyleElement) {
+				return ctx.set(rewriteCss(value, client.meta));
+			} else {
+				return ctx.set(value);
+			}
+		},
+		get(ctx) {
+			if (ctx.this instanceof self.HTMLScriptElement) {
+				const scriptSource = client.natives.call(
+					"Element.prototype.getAttribute",
+					ctx.this,
+					"scramjet-attr-script-source-src"
+				);
+
+				if (scriptSource) {
+					return atob(scriptSource);
+				}
+
+				return ctx.get();
+			}
+			if (ctx.this instanceof self.HTMLStyleElement) {
+				return unrewriteCss(ctx.get() as string);
+			}
+
+			return ctx.get();
+		},
+	});
+
 	client.Trap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
 			ctx.set(rewriteHtml(value, client.cookieStore, client.meta));

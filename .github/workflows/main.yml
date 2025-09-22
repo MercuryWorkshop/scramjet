@@ -2,11 +2,24 @@ name: CI
 
 on:
   push:
-    paths-ignore:
+    paths-ignore: &ci_ignore_paths
       - ".github/workflows/**"
+      - "assets/**"
+      - "scripts/**"
+      # Editor configs
+      - ".zed/**"
+      - ".vscode/**"
+      # Docs
+      - "documentation/**"
+      - "**/*.md"
+      # The README is included in the Typedoc
+      - "!README.md"
+      # Formatters
+      - "eslint.config.json"
+      - "prettier.config.json"
+      - ".editorconfig"
   pull_request:
-    paths-ignore:
-      - ".github/workflows/**"
+    paths-ignore: *ci_ignore_paths
   workflow_dispatch:
 
 concurrency:
@@ -14,6 +27,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  version-check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.exit_code }}
+      new_version: ${{ steps.check.outputs.exit_code }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check the version
+        id: check
+        run: |
+          CURRENT_VERSION=$(jq -r .version package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet versions --json | jq -r '.[-1]' || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     name: Build Scramjet
     runs-on: ubuntu-latest
@@ -45,7 +87,7 @@ jobs:
           path: |
             rewriter/wasm/out
             dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/**/src/**/*.toml', 'rewriter/**/src/**/*.json', 'rewriter/**/src/**/*.md', 'rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
 
@@ -92,7 +134,8 @@ jobs:
   frontend:
     name: Build Frontend
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, package-validation]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -213,11 +256,13 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: pnpm test
+        run: pnpm test:integration
 
   rewritertests:
     name: "Run Rewriter Tests"
     runs-on: ubuntu-latest
+    needs: [build, package-validation]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -231,19 +276,17 @@ jobs:
           path: |
             rewriter/wasm/out
             dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/src/**/*.rs', 'rewriter/**/src/**/*.toml', 'rewriter/**/src/**/*.json', 'rewriter/**/src/**/*.md', 'rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
 
       - name: Cache Rust dependencies
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "rewriter"
           cache-all-crates: true
 
       - name: Run Tests
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
         run: cd rewriter/native && cargo test
 
   # upload:

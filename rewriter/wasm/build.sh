@@ -3,6 +3,7 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 
+
 if ! [ "${RELEASE:-0}" = "1" ]; then
 	WASMOPTFLAGS="${WASMOPTFLAGS:-} -g"
 	FEATURES="debug,${FEATURES:-}"
@@ -14,7 +15,7 @@ fi
 MODE="release"
 if [ "${RELEASE:-0}" != "1" ]; then MODE="debug"; fi
 # shellcheck disable=SC2046
-SRC_HASH=$( (echo "MODE=${MODE}"; sha256sum $(find src -type f -name '*.rs'; echo Cargo.toml; echo build.sh) 2>/dev/null | sort -k2 | sha256sum ) | sha256sum | cut -d' ' -f1 ) || SRC_HASH="unknown"
+SRC_HASH=$( (echo "MODE=${MODE}"; sha256sum $(find src -type f -not -path "*/\.*" -and \( -name "*.rs" -o -name "*.toml" -o -name "*.sh" -o -name "*.json" -o -name "*.md" \); echo Cargo.toml; echo build.sh) 2>/dev/null | sort -k2 | sha256sum ) | sha256sum | cut -d' ' -f1 ) || SRC_HASH="unknown"
 
 if [ -f out/.build-hash ] && [ -f ../../dist/scramjet.wasm.wasm ] && [ "$SRC_HASH" != "unknown" ] && grep -q "$SRC_HASH" out/.build-hash; then
   echo "Rewriter sources unchanged (hash $SRC_HASH); skipping rebuild."

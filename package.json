@@ -1,24 +1,48 @@
 {
 	"name": "@mercuryworkshop/scramjet",
-	"version": "1.0.2-dev",
+	"version": "2.0.0-alpha",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
+	"types": "./dist/types/index.d.ts",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/MercuryWorkshop/scramjet"
 	},
 	"scripts": {
 		"build": "rspack build --mode production",
+		"build:types": "rslib build && rm -rf dist/temp",
+		"build:all": "npm run build && npm run build:types",
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
 		"dev:debug": "DEBUG=1 node server.js",
-		"prepack": "RELEASE=1 npm run rewriter:build && tsc && tsc-alias && npm run build",
+		"prepack": "RELEASE=1 npm run rewriter:build && npm run build:all",
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
-		"test": "npx playwright test",
-		"preinstall": "npx only-allow pnpm"
+		"lint:workflows": "actionlint .github/workflows/*.yml",
+		"lint:all": "npm run lint && npm run lint:workflows",
+		"test": "npm run test:package && npm run test:integration",
+		"test:package": "ava tests/ci/packageValidation.js",
+		"test:integration": "npx playwright test",
+		"preinstall": "npx only-allow pnpm",
+		"docs": "typedoc",
+		"docs:dev": "typedoc --options typedoc.dev-facing.json",
+		"docs:serve": "npx serve _docs; typedoc --watch"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"default": "./lib/noop.js"
+		},
+		"./path": {
+			"types": "./lib/index.d.ts",
+			"default": "./lib/index.cjs"
+		},
+		"./bundled": {
+			"types": "./dist/types/index.d.ts",
+			"default": "./dist/scramjet.bundle.js"
+		}
 	},
 	"exports": {
 		".": {
@@ -35,17 +59,22 @@
 		}
 	},
 	"files": [
-		"dist/*.js",
-		"dist/*.js.map",
-		"dist/*.wasm",
+		"dist",
 		"lib"
 	],
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
+	"ava": {
+		"files": [
+			"tests/ci/**/*.js"
+		],
+		"verbose": true
+	},
 	"devDependencies": {
+		"@8hobbies/typedoc-plugin-plausible": "^2.2.0",
 		"@eslint/eslintrc": "^3.3.1",
-		"@eslint/js": "^9.32.0",
+		"@eslint/js": "^9.35.0",
 		"@estruyf/github-actions-reporter": "^1.10.0",
 		"@fastify/static": "^8.2.0",
 		"@mercuryworkshop/bare-as-module3": "^2.2.5",
@@ -53,33 +82,46 @@
 		"@mercuryworkshop/libcurl-transport": "^1.5.0",
 		"@mercuryworkshop/wisp-js": "^0.3.3",
 		"@nebula-services/bare-server-node": "^2.0.4",
-		"@playwright/test": "^1.54.2",
-		"@rsdoctor/rspack-plugin": "^1.1.5",
-		"@rspack/cli": "^1.4.8",
-		"@rspack/core": "^1.4.8",
+		"@playwright/test": "^1.55.0",
+		"@rsdoctor/rspack-plugin": "^1.2.3",
+		"@rslib/core": "^0.13.2",
+		"@rspack/cli": "^1.5.3",
+		"@rspack/core": "^1.5.3",
 		"@types/eslint": "^9.6.1",
 		"@types/estree": "^1.0.8",
-		"@types/node": "^24.1.0",
-		"@types/serviceworker": "^0.0.148",
-		"@typescript-eslint/eslint-plugin": "^8.38.0",
-		"@typescript-eslint/parser": "^8.38.0",
-		"dotenv": "^17.2.1",
-		"eslint": "^9.32.0",
-		"fastify": "^5.4.0",
-		"playwright": "^1.54.2",
+		"@types/node": "^24.3.1",
+		"@types/serviceworker": "^0.0.152",
+		"@typescript-eslint/eslint-plugin": "^8.43.0",
+		"@typescript-eslint/parser": "^8.43.0",
+		"actionlint": "^2.0.6",
+		"ava": "^6.4.1",
+		"dotenv": "^17.2.2",
+		"eslint": "^9.35.0",
+		"fastify": "^5.6.0",
+		"glob": "^11.0.3",
+		"playwright": "^1.55.0",
 		"prettier": "^3.6.2",
-		"ts-checker-rspack-plugin": "^1.1.4",
+		"ts-checker-rspack-plugin": "^1.1.5",
 		"tsc-alias": "^1.8.16",
 		"tslib": "^2.8.1",
-		"typescript": "^5.9.2"
+		"typedoc-plugin-include-example": "^2.1.2",
+		"typedoc-plugin-markdown": "^4.8.1",
+		"typedoc-plugin-mdn-links": "^5.0.9",
+		"typescript": "^5.9.2",
+		"@catppuccin/vscode": "^3.18.0",
+		"@giancosta86/typedoc-readonly": "^1.0.1",
+		"@shipgirl/typedoc-plugin-versions": "^0.3.2",
+		"@stephansama/catppuccin-typedoc": "^1.0.1"
 	},
 	"dependencies": {
-		"@mercuryworkshop/epoxy-tls": "2.1.18-1",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.2.2",
 		"htmlparser2": "10.0.0",
+		"libcurl.js": "^0.7.2",
 		"parse-domain": "^8.2.2",
-		"set-cookie-parser": "^2.7.1"
+		"set-cookie-parser": "^2.7.1",
+		"typedoc": "^0.28.12",
+		"typedoc-material-theme": "^1.4.0"
 	}
 }

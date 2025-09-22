@@ -14,21 +14,32 @@ import { isPuter } from "../main";
 
 export const closeMenu = createDelegate<void>();
 
+export type PositionConstraints = {
+	left?: number;
+	right?: number;
+	top?: number;
+	bottom?: number;
+};
+
 export const Menu: Component<
 	{
-		x: number;
-		y: number;
+		position: PositionConstraints;
 		items?: MenuItem[];
 		custom?: HTMLElement;
 	},
 	{
 		closing: boolean;
+		x: number;
+		y: number;
 	}
 > = function (cx) {
 	this.closing = true;
 	requestAnimationFrame(() => {
 		this.closing = false;
 	});
+	this.x = 0;
+	this.y = 0;
+
 	const close = () => {
 		browser.unfocusframes = false;
 
@@ -57,10 +68,28 @@ export const Menu: Component<
 		browser.unfocusframes = true;
 		document.body.appendChild(cx.root);
 		const { width, height } = cx.root.getBoundingClientRect();
-		let maxX = document.documentElement.clientWidth - width - emToPx(1);
-		let maxY = document.documentElement.clientHeight - height - emToPx(1);
+		const docWidth = document.documentElement.clientWidth;
+		const docHeight = document.documentElement.clientHeight;
+		const padding = emToPx(1);
+
+		if (this.position.left !== undefined) {
+			this.x = this.position.left;
+		} else if (this.position.right !== undefined) {
+			this.x = this.position.right - width;
+		}
+
+		if (this.position.top !== undefined) {
+			this.y = this.position.top;
+		} else if (this.position.bottom !== undefined) {
+			this.y = this.position.bottom - height;
+		}
+
+		const maxX = docWidth - width - padding;
+		const maxY = docHeight - height - padding;
 		if (this.x > maxX) this.x = maxX;
 		if (this.y > maxY) this.y = maxY;
+		if (this.x < padding) this.x = padding;
+		if (this.y < padding) this.y = padding;
 
 		window.addEventListener("click", ev, { capture: true });
 		window.addEventListener("contextmenu", ev, {
@@ -125,7 +154,7 @@ Menu.style = css`
 		left: var(--x);
 		background: var(--bg02);
 		border: 1px solid var(--fg4);
-		border-radius: var(--radius);
+		border-radius: 4px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 		z-index: 1000;
 		display: flex;
@@ -198,13 +227,12 @@ export function setContextMenu(elm: HTMLElement, items: MenuItem[]) {
 	elm.addEventListener("contextmenu", (e) => {
 		e.preventDefault();
 		e.stopPropagation();
-		createMenu(e.clientX, e.clientY, items);
+		createMenu({ left: e.clientX, top: e.clientY }, items);
 	});
 }
 
 export function createMenu(
-	x: number,
-	y: number,
+	position: PositionConstraints,
 	items: MenuItem[]
 ): DLElement<typeof Menu> {
 	if (isPuter) {
@@ -226,22 +254,25 @@ export function createMenu(
 		closeMenu();
 	}
 
-	let menu = (<Menu x={x} y={y} items={items} />) as DLElement<typeof Menu>;
+	let menu = (<Menu position={position} items={items} />) as DLElement<
+		typeof Menu
+	>;
 	activeMenu = menu;
 
 	return menu;
 }
 
 export function createMenuCustom(
-	x: number,
-	y: number,
+	position: PositionConstraints,
 	custom: HTMLElement
 ): DLElement<typeof Menu> {
 	if (activeMenu) {
 		closeMenu();
 	}
 
-	let menu = (<Menu x={x} y={y} custom={custom} />) as DLElement<typeof Menu>;
+	let menu = (<Menu position={position} custom={custom} />) as DLElement<
+		typeof Menu
+	>;
 	activeMenu = menu;
 
 	return menu;

@@ -6,7 +6,7 @@ import iconExtension from "@ktibow/iconset-ion/extension-puzzle-outline";
 import iconDownload from "@ktibow/iconset-ion/download-outline";
 import iconMore from "@ktibow/iconset-ion/more";
 import iconExit from "@ktibow/iconset-ion/exit-outline";
-import { createMenu } from "./Menu";
+import { createMenu, createMenuCustom } from "./Menu";
 import { OmnibarButton } from "./OmnibarButton";
 import { createDelegate } from "dreamland/core";
 import type { Tab } from "../Tab";
@@ -18,11 +18,12 @@ import iconNew from "@ktibow/iconset-ion/duplicate-outline";
 import iconTime from "@ktibow/iconset-ion/time-outline";
 import iconInfo from "@ktibow/iconset-ion/information-circle-outline";
 import iconSettings from "@ktibow/iconset-ion/settings-outline";
-import { showDownloadsPopup } from "./DownloadsPopup";
 import type { HistoryState } from "../History";
 import { isPuter } from "../main";
+import { DownloadsPopup } from "./DownloadsPopup";
 
 export const animateDownloadFly = createDelegate<void>();
+export const showDownloadsPopup = createDelegate<void>();
 
 export const Spacer: Component = function (cx) {
 	return <div></div>;
@@ -135,30 +136,52 @@ export const Omnibox: Component<{
 
 	const historyMenu = (e: MouseEvent, states: HistoryState[]) => {
 		if (states.length > 0) {
-			createMenu(e.clientX, cx.root.clientTop + cx.root.clientHeight * 2, [
-				...states.map((s) => ({
-					label: s.title || "New Tab",
-					image: s.favicon || "/defaultfavicon.png",
-					action: () => {
-						let rel =
-							browser.activetab.history.states.indexOf(s) -
-							browser.activetab.history.index;
-						browser.activetab.history.go(rel);
+			createMenu(
+				{ left: e.clientX, top: cx.root.clientTop + cx.root.clientHeight * 2 },
+				[
+					...states.map((s) => ({
+						label: s.title || "New Tab",
+						image: s.favicon || "/defaultfavicon.png",
+						action: () => {
+							let rel =
+								browser.activetab.history.states.indexOf(s) -
+								browser.activetab.history.index;
+							browser.activetab.history.go(rel);
+						},
+					})),
+					"-",
+					{
+						icon: iconTime,
+						label: "Show Full History",
+						action: () => {
+							browser.newTab(new URL("puter://history"));
+						},
 					},
-				})),
-				"-",
-				{
-					icon: iconTime,
-					label: "Show Full History",
-					action: () => {
-						browser.newTab(new URL("puter://history"));
-					},
-				},
-			]);
+				]
+			);
 		}
 		e.preventDefault();
 		e.stopPropagation();
 	};
+
+	const downloadsButton = (
+		<OmnibarButton
+			click={() => {
+				showDownloadsPopup();
+			}}
+			icon={iconDownload}
+		></OmnibarButton>
+	);
+	showDownloadsPopup.listen(() => {
+		const { right } = downloadsButton.getBoundingClientRect();
+		createMenuCustom(
+			{
+				top: cx.root.clientTop + cx.root.clientHeight * 2,
+				right,
+			},
+			<DownloadsPopup></DownloadsPopup>
+		);
+	});
 
 	return (
 		<div>
@@ -207,12 +230,8 @@ export const Omnibox: Component<{
 				.map((s) => s.length > 0)
 				.andThen(
 					<div style="position: relative">
-						<OmnibarButton
-							click={() => {
-								showDownloadsPopup();
-							}}
-							icon={iconDownload}
-						></OmnibarButton>
+						{downloadsButton}
+
 						<div class="downloadfly down">
 							<Icon icon={iconDownload}></Icon>
 						</div>
@@ -226,56 +245,59 @@ export const Omnibox: Component<{
 				tooltip="More Options"
 				icon={iconMore}
 				click={(e: MouseEvent) => {
-					createMenu(e.x, cx.root.clientTop + cx.root.clientHeight * 2, [
-						{
-							label: "New Tab",
-							action: () => {
-								browser.newTab(new URL("puter://newtab"), true);
+					createMenu(
+						{ left: e.x, top: cx.root.clientTop + cx.root.clientHeight * 2 },
+						[
+							{
+								label: "New Tab",
+								action: () => {
+									browser.newTab(new URL("puter://newtab"), true);
+								},
+								icon: iconNew,
 							},
-							icon: iconNew,
-						},
-						"-",
-						{
-							label: "History",
-							action: () => {
-								browser.newTab(new URL("puter://history"));
+							"-",
+							{
+								label: "History",
+								action: () => {
+									browser.newTab(new URL("puter://history"));
+								},
+								icon: iconTime,
 							},
-							icon: iconTime,
-						},
-						{
-							label: "Downloads",
-							action: () => {
-								browser.newTab(new URL("puter://downloads"));
+							{
+								label: "Downloads",
+								action: () => {
+									browser.newTab(new URL("puter://downloads"));
+								},
+								icon: iconDownload,
 							},
-							icon: iconDownload,
-						},
-						"-",
-						{
-							label: "About",
-							action: () => {
-								browser.newTab(new URL("puter://version"));
+							"-",
+							{
+								label: "About",
+								action: () => {
+									browser.newTab(new URL("puter://version"));
+								},
+								icon: iconInfo,
 							},
-							icon: iconInfo,
-						},
-						{
-							label: "Settings",
-							action: () => {
-								browser.newTab(new URL("puter://settings"));
+							{
+								label: "Settings",
+								action: () => {
+									browser.newTab(new URL("puter://settings"));
+								},
+								icon: iconSettings,
 							},
-							icon: iconSettings,
-						},
-						...(isPuter
-							? [
-									{
-										label: "Exit",
-										action: () => {
-											puter.exit();
+							...(isPuter
+								? [
+										{
+											label: "Exit",
+											action: () => {
+												puter.exit();
+											},
+											icon: iconExit,
 										},
-										icon: iconExit,
-									},
-								]
-							: []),
-					]);
+									]
+								: []),
+						]
+					);
 					e.stopPropagation();
 				}}
 			></OmnibarButton>

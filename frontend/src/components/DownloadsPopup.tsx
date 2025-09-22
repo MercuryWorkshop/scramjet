@@ -229,11 +229,3 @@ DownloadsPopup.style = css`
 		border-radius: var(--radius);
 	}
 `;
-
-export function showDownloadsPopup() {
-	createMenuCustom(
-		window.innerWidth - 350,
-		80,
-		<DownloadsPopup></DownloadsPopup>
-	);
-}

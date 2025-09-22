@@ -6,20 +6,17 @@
 		"moduleResolution": "Bundler",
 		"module": "ES2022",
 		"skipLibCheck": true,
-    "declaration": true,
-    "declarationDir": "./dist/types",
-    "outDir": "./dist/types",
-    "emitDeclarationOnly": true,
-    "paths": {
-      "@rewriters/*": ["./src/shared/rewriters/*"],
-      "@client/*": ["./src/client/*"],
-      "@/*": ["./src/*"]
-    }
+		"declaration": true,
+		"declarationDir": "./dist/types",
+		"outDir": "./dist/types",
+		"emitDeclarationOnly": true,
+		"removeComments": false,
+		"paths": {
+			"@rewriters/*": ["./src/shared/rewriters/*"],
+			"@client/*": ["./src/client/*"],
+			"@/*": ["./src/*"]
+		}
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src"],
+	"exclude": ["node_modules"]
 }

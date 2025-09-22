@@ -8,13 +8,12 @@ import { focusOmnibox } from "./components/UrlInput";
 
 import * as tldts from "tldts";
 import { isPuter, scramjet } from "./main";
-import { animateDownloadFly } from "./components/Omnibox";
-import { showDownloadsPopup } from "./components/DownloadsPopup";
+import { animateDownloadFly, showDownloadsPopup } from "./components/Omnibox";
 export const pushTab = createDelegate<Tab>();
 export const popTab = createDelegate<Tab>();
 export const forceScreenshot = createDelegate<Tab>();
 import type { ScramjetDownload } from "@mercuryworkshop/scramjet";
-import { deserializeAll, serializeAll } from "./serialize";
+// import { deserializeAll, serializeAll } from "./serialize";
 
 export let browser: Browser;
 
@@ -91,7 +90,7 @@ export class Browser extends StatefulClass {
 	activetab: Tab = null!;
 
 	globalhistory: HistoryState[] = [];
-	bookmarks: BookmarkEntry[] = [];
+	bookmarks: Stateful<BookmarkEntry>[] = [];
 
 	sessionDownloadHistory: Stateful<DownloadEntry>[] = [];
 	globalDownloadHistory: Stateful<DownloadEntry>[] = [];
@@ -224,7 +223,7 @@ export class Browser extends StatefulClass {
 			tab.history.go(0, false);
 		}
 		this.activetab = this.tabs[0];
-		this.bookmarks = de.bookmarks;
+		this.bookmarks = de.bookmarks.map(createState);
 		this.globalDownloadHistory = de.globalDownloadHistory.map(createState);
 		this.settings = createState(de.settings);
 		// this.activetab = this.tabs.find((t) => t.id == de.activetab)!;
@@ -298,25 +297,25 @@ export async function saveBrowserState() {
 		await puter.kv.set("browserstate", JSON.stringify(ser));
 	}
 
-	if (!import.meta.env.VITE_LOCAL) {
-		let data = await serializeAll();
-		await puter.kv.set("browserdata", JSON.stringify(data));
-	}
+	// if (!import.meta.env.VITE_LOCAL) {
+	// 	let data = await serializeAll();
+	// 	await puter.kv.set("browserdata", JSON.stringify(data));
+	// }
 }
 
 export async function initBrowser() {
 	browser = new Browser();
 
-	if (!import.meta.env.VITE_LOCAL) {
-		let de = await puter.kv.get("browserdata");
-		if (de) {
-			try {
-				await deserializeAll(JSON.parse(de));
-			} catch (e) {
-				console.error("Error while loading browser data:", e);
-			}
-		}
-	}
+	// if (!import.meta.env.VITE_LOCAL) {
+	// 	let de = await puter.kv.get("browserdata");
+	// 	if (de) {
+	// 		try {
+	// 			await deserializeAll(JSON.parse(de));
+	// 		} catch (e) {
+	// 			console.error("Error while loading browser data:", e);
+	// 		}
+	// 	}
+	// }
 
 	let de;
 	if (import.meta.env.VITE_LOCAL) {

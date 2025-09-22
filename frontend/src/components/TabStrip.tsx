@@ -10,7 +10,7 @@ import { OmnibarButton } from "./OmnibarButton";
 import type { Tab } from "../Tab";
 // import html2canvas from "html2canvas";
 import { setContextMenu } from "./Menu";
-import { browser, forceScreenshot } from "../Browser";
+import { browser, forceScreenshot, pushTab } from "../Browser";
 
 const isFirefox =
 	navigator.userAgent.includes("Gecko/") &&
@@ -61,6 +61,19 @@ export const DragTab: Component<
 				},
 			},
 		]);
+
+		cx.root.animate(
+			[
+				{
+					width: "0px",
+				},
+				{},
+			],
+			{
+				duration: 100,
+				fill: "forwards",
+			}
+		);
 	};
 
 	let hoverTimeout: number;
@@ -277,9 +290,21 @@ DragTab.style = css`
 	}
 `;
 
+type VisualTab = {
+	tab: Tab;
+	root: HTMLElement;
+	dragoffset: number;
+	dragpos: number;
+	startdragpos: number;
+
+	width: number;
+	pos: number;
+};
+
 export const Tabs: Component<
 	{
 		tabs: Tab[];
+		visualtabs: VisualTab[];
 		activetab: Tab;
 		destroyTab: (tab: Tab) => void;
 		addTab: () => void;
@@ -295,6 +320,7 @@ export const Tabs: Component<
 	{}
 > = function (cx) {
 	this.currentlydragging = -1;
+	this.visualtabs = [];
 
 	const TAB_PADDING = 6;
 	const TAB_MAX_SIZE = 231;
@@ -333,15 +359,15 @@ export const Tabs: Component<
 		let total = getRootWidth();
 
 		// remove padding
-		total -= TAB_PADDING * (this.tabs.length - 1);
+		total -= TAB_PADDING * (this.visualtabs.length - 1);
 
-		const each = total / this.tabs.length;
+		const each = total / this.visualtabs.length;
 
 		return Math.min(TAB_MAX_SIZE, Math.floor(each));
 	};
 
 	const reorderTabs = () => {
-		this.tabs.sort((a, b) => {
+		this.visualtabs.sort((a, b) => {
 			const aCenter = a.pos + a.width / 2;
 
 			const bLeft = b.pos;
@@ -353,10 +379,6 @@ export const Tabs: Component<
 		});
 	};
 
-	const getTabFromIndex = (index: number) => {
-		return cx.root.querySelector(`.tab[data-id='${index}']`) as HTMLElement;
-	};
-
 	const layoutTabs = (transition: boolean) => {
 		const width = getTabWidth();
 
@@ -364,14 +386,13 @@ export const Tabs: Component<
 
 		let dragpos = -1;
 		let currpos = getLayoutStart();
-		for (const tab of this.tabs) {
-			let component = getTabFromIndex(tab.id);
-			component.style.width = width + "px";
+		for (const tab of this.visualtabs) {
+			tab.root.style.width = width + "px";
 
 			const tabPos = tab.dragpos != -1 ? tab.dragpos : currpos;
-			component.style.transform = `translateX(${tabPos}px)`;
+			tab.root.style.transform = `translateX(${tabPos}px)`;
 			if (transition && tab.dragpos == -1 && tab.pos != tabPos) {
-				component.style.transition = `transform ${TAB_TRANSITION}`;
+				tab.root.style.transition = `transform ${TAB_TRANSITION}`;
 				this.afterEl.style.transition = `transform ${TAB_TRANSITION}`;
 				transitioningTabs++;
 			}
@@ -385,10 +406,137 @@ export const Tabs: Component<
 		const afterpos = Math.max(dragpos, currpos);
 		this.afterEl.style.transform = `translateX(${afterpos}px)`;
 	};
+
+	const getMaxDragPos = () => {
+		return getLayoutStart() + getRootWidth();
+	};
+
+	const calcDragPos = (e: MouseEvent, tab: VisualTab) => {
+		const maxPos = getMaxDragPos() - tab.root.offsetWidth;
+
+		const pos = e.clientX - tab.dragoffset - getAbsoluteStart();
+
+		tab.dragpos = Math.min(Math.max(getLayoutStart(), pos), maxPos);
+		layoutTabs(true);
+	};
+
+	window.addEventListener("mousemove", (e: MouseEvent) => {
+		if (this.currentlydragging == -1) return;
+		calcDragPos(
+			e,
+			this.visualtabs.find((tab) => tab.tab.id === this.currentlydragging)!
+		);
+	});
+
+	window.addEventListener("mouseup", () => {
+		if (this.currentlydragging == -1) return;
+		const tab = this.visualtabs.find(
+			(tab) => tab.tab.id === this.currentlydragging
+		)!;
+		const dragroot = tab.root.querySelector(".dragroot") as HTMLElement;
+
+		dragroot.style.width = "";
+		dragroot.style.position = "unset";
+		tab.dragoffset = -1;
+		tab.dragpos = -1;
+		layoutTabs(true);
+		this.currentlydragging = -1;
+	});
+
+	const mouseDown = (e: MouseEvent, tab: VisualTab) => {
+		if (e.button != 0) return;
+		this.currentlydragging = tab.tab.id;
+
+		const rect = tab.root.getBoundingClientRect();
+		tab.root.style.zIndex = "100";
+		const dragroot = tab.root.querySelector(".dragroot") as HTMLElement;
+		dragroot.style.width = rect.width + "px";
+		dragroot.style.position = "absolute";
+		tab.dragoffset = e.clientX - rect.left;
+		tab.startdragpos = rect.left;
+
+		if (tab.dragoffset < 0) throw new Error("dragoffset must be positive");
+
+		calcDragPos(e, tab);
+
+		if (this.activetab != tab.tab) {
+			this.activetab = tab.tab;
+		}
+	};
+
+	const transitionend = () => {
+		transitioningTabs--;
+		if (transitioningTabs == 0) {
+			this.tabs = this.tabs;
+		}
+
+		this.afterEl.style.transition = "";
+	};
+
 	use(this.tabs).listen(() => {
-		setTimeout(() => {
-			layoutTabs(true);
-		}, 10);
+		let newvisualtabs: VisualTab[] = [];
+
+		for (let index = 0; index < this.tabs.length; index++) {
+			let tab = this.tabs[index];
+
+			let visualtab = this.visualtabs.find((t) => t.tab === tab);
+
+			if (!visualtab) {
+				let dt = (
+					<DragTab
+						id={tab.id}
+						tab={tab}
+						active={use(this.activetab).map((x) => x === tab)}
+						mousedown={(e) => mouseDown(e, visualtab!)}
+						destroy={() => {
+							this.destroyTab(tab);
+						}}
+						transitionend={transitionend}
+					/>
+				);
+				visualtab = {
+					tab,
+					root: dt,
+					dragoffset: -1,
+					dragpos: -1,
+					startdragpos: -1,
+					width: 0,
+					pos: getLayoutStart() + index * (getTabWidth() + TAB_PADDING),
+				};
+			}
+
+			newvisualtabs.push(visualtab);
+		}
+
+		for (let vtab of this.visualtabs) {
+			if (!newvisualtabs.includes(vtab)) {
+				let indexof = this.visualtabs.indexOf(vtab);
+				newvisualtabs.splice(indexof, 0, vtab);
+				let anim = vtab.root.animate(
+					[
+						{},
+						{
+							width: "0px",
+						},
+					],
+					{
+						duration: 100,
+						fill: "forwards",
+					}
+				);
+				anim.addEventListener(
+					"finish",
+					() => {
+						this.visualtabs = this.visualtabs.filter((t) => t !== vtab);
+						layoutTabs(false);
+					},
+					{ once: true }
+				);
+			}
+		}
+
+		this.visualtabs = newvisualtabs;
+		setTimeout(() => layoutTabs(true), 10);
 	});
 
 	cx.mount = () => {
@@ -404,95 +552,14 @@ export const Tabs: Component<
 				},
 			},
 		]);
+
+		this.tabs = this.tabs;
 	};
-
-	const getMaxDragPos = () => {
-		return getLayoutStart() + getRootWidth();
-	};
-
-	const calcDragPos = (e: MouseEvent, tab: Tab) => {
-		const root = getTabFromIndex(tab.id);
-		const maxPos = getMaxDragPos() - root.offsetWidth;
-
-		const pos = e.clientX - tab.dragoffset - getAbsoluteStart();
-
-		tab.dragpos = Math.min(Math.max(getLayoutStart(), pos), maxPos);
-		layoutTabs(true);
-	};
-
-	window.addEventListener("mousemove", (e: MouseEvent) => {
-		if (this.currentlydragging == -1) return;
-		calcDragPos(e, this.tabs.find((tab) => tab.id === this.currentlydragging)!);
-	});
-
-	window.addEventListener("mouseup", () => {
-		if (this.currentlydragging == -1) return;
-		const tab = this.tabs.find((tab) => tab.id === this.currentlydragging)!;
-		const root = getTabFromIndex(tab.id);
-		const dragroot = root.querySelector(".dragroot") as HTMLElement;
-
-		dragroot.style.width = "";
-		dragroot.style.position = "unset";
-		tab.dragoffset = -1;
-		tab.dragpos = -1;
-		layoutTabs(true);
-		this.currentlydragging = -1;
-	});
-
-	const mouseDown = (e: MouseEvent, tab: Tab) => {
-		if (e.button != 0) return;
-		this.currentlydragging = tab.id;
-
-		const root = getTabFromIndex(tab.id);
-		const rect = root.getBoundingClientRect();
-		root.style.zIndex = "100";
-		const dragroot = root.querySelector(".dragroot") as HTMLElement;
-		dragroot.style.width = rect.width + "px";
-		dragroot.style.position = "absolute";
-		tab.dragoffset = e.clientX - rect.left;
-		tab.startdragpos = rect.left;
-
-		if (tab.dragoffset < 0) throw new Error("dragoffset must be positive");
-
-		calcDragPos(e, tab);
-
-		if (this.activetab != tab) {
-			this.activetab = tab;
-		}
-	};
-
-	const transitionend = () => {
-		transitioningTabs--;
-		if (transitioningTabs == 0) {
-			this.tabs = this.tabs;
-		}
-
-		this.afterEl.style.transition = "";
-	};
-
-	let tabcache = {};
 
 	return (
 		<div this={use(this.container)}>
 			<div class="extra left" this={use(this.leftEl)}></div>
-			{use(this.tabs).mapEach((tab) =>
-				memoize(
-					() => (
-						<DragTab
-							id={tab.id}
-							tab={tab}
-							active={use(this.activetab).map((x) => x === tab)}
-							mousedown={(e) => mouseDown(e, tab)}
-							destroy={() => {
-								this.destroyTab(tab);
-							}}
-							transitionend={transitionend}
-						/>
-					),
-					tab.id,
-					tabcache
-				)
-			)}
+			{use(this.visualtabs).mapEach((tab) => tab.root)}
 			<div
 				class="extra after"
 				this={use(this.afterEl)}
