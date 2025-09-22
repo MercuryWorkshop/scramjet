@@ -44,6 +44,7 @@ setConfig({
 		interceptDownloads: false,
 		allowInvalidJs: false,
 		allowFailedIntercepts: false,
+		antiAntiDebugger: false,
 	},
 	siteFlags: {},
 	codec: {
