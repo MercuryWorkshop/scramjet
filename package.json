@@ -44,20 +44,6 @@
 			"default": "./dist/scramjet.bundle.js"
 		}
 	},
-	"exports": {
-		".": {
-			"types": "./lib/types.d.ts",
-			"default": "./lib/noop.js"
-		},
-		"./path": {
-			"types": "./lib/index.d.ts",
-			"default": "./lib/index.cjs"
-		},
-		"./bundled": {
-			"types": "./dist/types/index.d.ts",
-			"default": "./dist/scramjet.bundle.js"
-		}
-	},
 	"files": [
 		"dist",
 		"lib"
