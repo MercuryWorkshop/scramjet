@@ -1,0 +1,17 @@
+# Configs
+.vscode/
+
+# Assets
+assets/
+
+# Generated Docs
+_docs/
+_docs-dev/
+_docs-docs/
+existing-typedoc-dev/
+
+# Package Manager
+node_modules/
+
+# Build Directories
+dist/

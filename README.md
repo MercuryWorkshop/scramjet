@@ -52,6 +52,31 @@ pnpm dev
 
 Scramjet should now be running at <http://localhost:1337> and should rebuild upon a file being changed (excluding the rewriter).
 
+### Setting up Typedoc
+
+The official Scramjet Typedoc gets deployed via GitHub Actions along with the demo site [here](https://scramjet.mercurywork.shop/typedoc).
+
+You can run it locally with:
+
+```
+pnpm run docs
+pnpm docs:dev
+pnpm docs:serve
+```
+
+### Set up everything
+
+Do you want to run the Scramjet demo and Typedoc together like what is served on GitHub Pages by the Action?
+
+You can do this by running the serve script:
+
+```sh
+chmod +x scripts/serve-static.sh
+./scripts/serve-static.sh
+```
+
+This essentially simulates the CI pipeline, but in a shell script.
+
 ## Resources
 
 - [TN Docs](https://docs.titaniumnetwork.org/proxies/scramjet) - There's a page on TN's docs for Scramjet, which is structured more like a guide if you are an interested proxy site developer.

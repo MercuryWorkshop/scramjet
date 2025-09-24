@@ -12,6 +12,81 @@ declare const COMMITHASH: string;
 declare const VERSION: string;
 
 /**
+ * @category Window Context
+ */
+export type { ScramjetFlags } from "./types";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetInitConfig } from "./types";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetGlobalEvent } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetGlobalDownloadEvent } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetGlobalEvents } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetDownload } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetEvent } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetEvents } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { NavigateEvent } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { UrlChangeEvent } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetContextEvent } from "./client/events";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetController } from "./controller";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetFrame } from "./controller/frame";
+
+/**
+ * @category Window Context
+ */
+export type { ScramjetClient } from "./client";
+
+/**
+ * @category Service Worker Context
+ */
+export type { ScramjetServiceWorker } from "./worker";
+
+/**
  * @fileoverview Scramjet Entry Point. This module contain global constants and factory functions to load the APIs in the bundle.
  *
  * @categoryDescription Window Context
@@ -115,6 +190,19 @@ export function $scramjetLoadWorker() {
 globalThis.$scramjetRequire = function (path: string) {
 	return require(path);
 };
+
+/**
+ * Version information for the current Scramjet build.
+ * Contains both the semantic version string and the git commit hash for build identification.
+ *
+ * @category Window Context
+ */
+export interface ScramjetVersionInfo {
+	/** The git commit hash that this build was created from */
+	build: string;
+	/** The semantic version */
+	version: string;
+}
 
 /**
  * Version information for the current Scramjet build.
