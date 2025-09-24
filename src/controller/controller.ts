@@ -5,9 +5,10 @@ import {
 	loadCodecs,
 	setConfig,
 } from "@/shared/index";
-import { ScramjetConfig, ScramjetInitConfig } from "@/types";
+import { ScramjetConfig, ScramjetInitConfig, ScramjetDB } from "@/types";
 import { ScramjetFrame } from "@/controller/frame";
 import { MessageW2C } from "@/worker";
+import { openDB, IDBPDatabase } from "idb";
 import {
 	ScramjetEvents,
 	ScramjetGlobalDownloadEvent,
@@ -16,7 +17,7 @@ import {
 } from "@client/events";
 
 export class ScramjetController extends EventTarget {
-	private db: IDBDatabase;
+	private db: IDBPDatabase<ScramjetDB>;
 
 	constructor(config: Partial<ScramjetInitConfig>) {
 		super();
@@ -137,35 +138,30 @@ export class ScramjetController extends EventTarget {
 		return codecDecode(url.slice(prefixed.length));
 	}
 
-	async openIDB(): Promise<IDBDatabase> {
-		const db = indexedDB.open("$scramjet", 1);
-
-		return new Promise<IDBDatabase>((resolve, reject) => {
-			db.onsuccess = async () => {
-				this.db = db.result;
-				await this.#saveConfig();
-				resolve(db.result);
-			};
-			db.onupgradeneeded = () => {
-				const res = db.result;
-				if (!res.objectStoreNames.contains("config")) {
-					res.createObjectStore("config");
+	async openIDB(): Promise<IDBPDatabase<ScramjetDB>> {
+		const db = await openDB<ScramjetDB>("$scramjet", 1, {
+			upgrade(db) {
+				if (!db.objectStoreNames.contains("config")) {
+					db.createObjectStore("config");
 				}
-				if (!res.objectStoreNames.contains("cookies")) {
-					res.createObjectStore("cookies");
+				if (!db.objectStoreNames.contains("cookies")) {
+					db.createObjectStore("cookies");
 				}
-				if (!res.objectStoreNames.contains("redirectTrackers")) {
-					res.createObjectStore("redirectTrackers");
+				if (!db.objectStoreNames.contains("redirectTrackers")) {
+					db.createObjectStore("redirectTrackers");
 				}
-				if (!res.objectStoreNames.contains("referrerPolicies")) {
-					res.createObjectStore("referrerPolicies");
+				if (!db.objectStoreNames.contains("referrerPolicies")) {
+					db.createObjectStore("referrerPolicies");
 				}
-				if (!res.objectStoreNames.contains("publicSuffixList")) {
-					res.createObjectStore("publicSuffixList");
+				if (!db.objectStoreNames.contains("publicSuffixList")) {
+					db.createObjectStore("publicSuffixList");
 				}
-			};
-			db.onerror = () => reject(db.error);
+			},
 		});
+
+		this.db = db;
+		await this.#saveConfig();
+		return db;
 	}
 
 	async #saveConfig() {
@@ -174,14 +170,7 @@ export class ScramjetController extends EventTarget {
 
 			return;
 		}
-		const tx = this.db.transaction("config", "readwrite");
-		const store = tx.objectStore("config");
-		const req = store.put(config, "config");
-
-		return new Promise((resolve, reject) => {
-			req.onsuccess = resolve;
-			req.onerror = reject;
-		});
+		await this.db.put("config", config, "config");
 	}
 
 	async modifyConfig(newconfig: Partial<ScramjetInitConfig>) {

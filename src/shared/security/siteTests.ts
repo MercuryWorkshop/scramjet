@@ -4,6 +4,8 @@ import type {
 	default as BareClient,
 	BareResponseFetch,
 } from "@mercuryworkshop/bare-mux";
+import { ScramjetDB } from "@/types";
+import { openDB, IDBPDatabase } from "idb";
 
 // Cache every hour
 const CACHE_DURATION_MINUTES = 60;
@@ -14,13 +16,8 @@ const CACHE_KEY = "publicSuffixList";
  *
  * @returns Resolves to the database connection
  */
-async function getDB(): Promise<IDBDatabase> {
-	const request = indexedDB.open("$scramjet", 1);
-
-	return new Promise((resolve, reject) => {
-		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
-	});
+async function getDB(): Promise<IDBPDatabase<ScramjetDB>> {
+	return openDB<ScramjetDB>("$scramjet", 1);
 }
 
 /**
@@ -33,14 +30,7 @@ async function getCachedSuffixList(): Promise<{
 	expiry: number;
 } | null> {
 	const db = await getDB();
-	const tx = db.transaction(CACHE_KEY, "readonly");
-	const store = tx.objectStore(CACHE_KEY);
-
-	return new Promise((resolve) => {
-		const request = store.get(CACHE_KEY);
-		request.onsuccess = () => resolve(request.result || null);
-		request.onerror = () => resolve(null);
-	});
+	return (await db.get("publicSuffixList", CACHE_KEY)) || null;
 }
 
 /**
@@ -50,20 +40,14 @@ async function getCachedSuffixList(): Promise<{
  */
 async function setCachedSuffixList(data: string[]): Promise<void> {
 	const db = await getDB();
-	const tx = db.transaction("publicSuffixList", "readwrite");
-	const store = tx.objectStore("publicSuffixList");
-
-	return new Promise((resolve, reject) => {
-		const request = store.put(
-			{
-				data,
-				expiry: Date.now() + CACHE_DURATION_MINUTES * 60 * 1000,
-			},
-			CACHE_KEY
-		);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
-	});
+	await db.put(
+		"publicSuffixList",
+		{
+			data,
+			expiry: Date.now() + CACHE_DURATION_MINUTES * 60 * 1000,
+		},
+		CACHE_KEY
+	);
 }
 
 /**

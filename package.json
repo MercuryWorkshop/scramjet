@@ -116,6 +116,7 @@
 		"domhandler": "^5.0.3",
 		"domutils": "^3.2.2",
 		"htmlparser2": "10.0.0",
+		"idb": "^8.0.3",
 		"parse-domain": "^8.2.2",
 		"set-cookie-parser": "^2.7.1"
 	}

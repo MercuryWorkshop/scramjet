@@ -5,9 +5,10 @@
 import { FakeServiceWorker } from "@/worker/fakesw";
 import { handleFetch } from "@/worker/fetch";
 import BareClient from "@mercuryworkshop/bare-mux";
-import { ScramjetConfig } from "@/types";
+import { ScramjetConfig, ScramjetDB } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
+import { openDB } from "idb";
 import { config, loadCodecs, setConfig } from "@/shared";
 import { ScramjetDownload } from "@client/events";
 export * from "./error";
@@ -54,20 +55,13 @@ export class ScramjetServiceWorker extends EventTarget {
 		super();
 		this.client = new BareClient();
 
-		const db = indexedDB.open("$scramjet", 1);
-
-		db.onsuccess = () => {
-			const res = db.result;
-			const tx = res.transaction("cookies", "readonly");
-			const store = tx.objectStore("cookies");
-			const cookies = store.get("cookies");
-
-			cookies.onsuccess = () => {
-				if (cookies.result) {
-					this.cookieStore.load(cookies.result);
-				}
-			};
-		};
+		(async () => {
+			const db = await openDB<ScramjetDB>("$scramjet", 1);
+			const cookies = await db.get("cookies", "cookies");
+			if (cookies) {
+				this.cookieStore.load(cookies);
+			}
+		})();
 
 		addEventListener("message", async ({ data }: { data: MessageC2W }) => {
 			if (!("scramjet$type" in data)) return;
@@ -89,10 +83,8 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "cookie") {
 				this.cookieStore.setCookies([data.cookie], new URL(data.url));
-				const res = db.result;
-				const tx = res.transaction("cookies", "readwrite");
-				const store = tx.objectStore("cookies");
-				store.put(JSON.parse(this.cookieStore.dump()), "cookies");
+				const db = await openDB<ScramjetDB>("$scramjet", 1);
+				await db.put("cookies", JSON.parse(this.cookieStore.dump()), "cookies");
 			}
 
 			if (data.scramjet$type === "loadConfig") {
@@ -130,28 +122,13 @@ export class ScramjetServiceWorker extends EventTarget {
 	async loadConfig() {
 		if (this.config) return;
 
-		const request = indexedDB.open("$scramjet", 1);
+		const db = await openDB<ScramjetDB>("$scramjet", 1);
+		this.config = await db.get("config", "config");
 
-		return new Promise<void>((resolve, reject) => {
-			request.onsuccess = async () => {
-				const db = request.result;
-				const tx = db.transaction("config", "readonly");
-				const store = tx.objectStore("config");
-				const storedconfig = store.get("config");
-
-				storedconfig.onsuccess = async () => {
-					this.config = storedconfig.result;
-					setConfig(storedconfig.result);
-
-					await asyncSetWasm();
-
-					resolve();
-				};
-				storedconfig.onerror = () => reject(storedconfig.error);
-			};
-
-			request.onerror = () => reject(request.error);
-		});
+		if (this.config) {
+			setConfig(this.config);
+			await asyncSetWasm();
+		}
 	}
 
 	/**
