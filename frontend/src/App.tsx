@@ -6,6 +6,32 @@ import type { Tab } from "./Tab";
 import { BookmarksStrip } from "./components/BookmarksStrip";
 
 export const App: Component = function (cx) {
+	const applyTheme = () => {
+		let theme = browser.settings.theme;
+
+		if (theme === "system") {
+			const prefersDark = window.matchMedia(
+				"(prefers-color-scheme: dark)"
+			).matches;
+			document.body.classList.toggle("light-mode", !prefersDark);
+		} else {
+			document.body.classList.toggle("light-mode", theme === "light");
+		}
+	};
+
+	applyTheme();
+
+	const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+	const handleThemeChange = () => {
+		if (browser.settings.theme === "system") {
+			applyTheme();
+		}
+	};
+
+	mediaQuery.addEventListener("change", handleThemeChange);
+
+	use(browser.settings.theme).listen(applyTheme);
+
 	return (
 		<div id="app">
 			<Tabs

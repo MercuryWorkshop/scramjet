@@ -79,8 +79,23 @@ export type DownloadEntry = {
 };
 
 export type Settings = {
-	theme: "dark" | "light";
+	theme: "system" | "dark" | "light";
+	startupPage: "new-tab" | "continue";
+	defaultZoom: number;
+	showBookmarksBar: boolean;
 	bookmarksPinned: boolean;
+	defaultSearchEngine:
+		| "google"
+		| "bing"
+		| "duckduckgo"
+		| "yahoo"
+		| "ecosia"
+		| "startpage";
+	searchSuggestionsEnabled: boolean;
+	blockTrackers: boolean;
+	clearHistoryOnExit: boolean;
+	doNotTrack: boolean;
+	extensionsDevMode: boolean;
 };
 
 export class Browser extends StatefulClass {
@@ -100,8 +115,17 @@ export class Browser extends StatefulClass {
 	downloadProgress = 0;
 
 	settings: Stateful<Settings> = createState({
-		theme: "light",
+		theme: "system",
+		startupPage: "new-tab",
+		defaultZoom: 100,
+		showBookmarksBar: true,
 		bookmarksPinned: false,
+		defaultSearchEngine: "google",
+		searchSuggestionsEnabled: true,
+		blockTrackers: true,
+		clearHistoryOnExit: false,
+		doNotTrack: true,
+		extensionsDevMode: false,
 	});
 
 	constructor() {

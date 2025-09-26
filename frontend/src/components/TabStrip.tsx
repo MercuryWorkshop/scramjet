@@ -304,12 +304,12 @@ type VisualTab = {
 export const Tabs: Component<
 	{
 		tabs: Tab[];
-		visualtabs: VisualTab[];
 		activetab: Tab;
 		destroyTab: (tab: Tab) => void;
 		addTab: () => void;
 	},
 	{
+		visualtabs: VisualTab[];
 		container: HTMLElement;
 		leftEl: HTMLElement;
 		rightEl: HTMLElement;
