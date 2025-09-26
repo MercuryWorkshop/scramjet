@@ -1,0 +1,269 @@
+import {
+	ScramjetHeaders,
+	ScramjetServiceWorker,
+	type ScramjetInitConfig,
+	type ScramjetFetchContext,
+	ScramjetController,
+	type ScramjetFetchResponse,
+	CookieStore,
+	handleFetch,
+	rewriteUrl,
+	config,
+	ScramjetClient,
+	setConfig,
+} from "@mercuryworkshop/scramjet/bundled";
+
+import * as tldts from "tldts";
+
+const cfg = {
+	wisp: "ws://localhost:1337/",
+	prefix: "/scramjet/",
+	globals: {
+		wrapfn: "$scramjet$wrap",
+		wrappropertybase: "$scramjet__",
+		wrappropertyfn: "$scramjet$prop",
+		cleanrestfn: "$scramjet$clean",
+		importfn: "$scramjet$import",
+		rewritefn: "$scramjet$rewrite",
+		metafn: "$scramjet$meta",
+		setrealmfn: "$scramjet$setrealm",
+		pushsourcemapfn: "$scramjet$pushsourcemap",
+		trysetfn: "$scramjet$tryset",
+		templocid: "$scramjet$temploc",
+		tempunusedid: "$scramjet$tempunused",
+	},
+	files: {
+		wasm: "/scram/scramjet.wasm.wasm",
+		all: "/scram/scramjet.all.js",
+		sync: "/scram/scramjet.sync.js",
+	},
+	flags: {
+		serviceworkers: false,
+		syncxhr: false,
+		strictRewrites: true,
+		rewriterLogs: false,
+		captureErrors: true,
+		cleanErrors: false,
+		scramitize: false,
+		sourcemaps: true,
+		destructureRewrites: true,
+		interceptDownloads: false,
+		allowInvalidJs: false,
+		allowFailedIntercepts: false,
+		antiAntiDebugger: false,
+	},
+	siteFlags: {},
+	codec: {
+		encode: `(url) => {
+						if (!url) return url;
+
+						return encodeURIComponent(url);
+					}`,
+		decode: `(url) => {
+						if (!url) return url;
+
+						return decodeURIComponent(url);
+					}`,
+	},
+};
+
+setConfig(cfg);
+
+const ISOLATION_ORIGIN = "http://localhost:5233";
+
+type Controller = {
+	controllerframe: HTMLIFrameElement;
+	rootdomain: string;
+	window: Window;
+	ready: Promise<void>;
+	readyResolve: () => void;
+};
+
+const controllers: Controller[] = [];
+
+function getBaseUrl(url: URL): string {
+	let originurl = new URL(ISOLATION_ORIGIN);
+
+	let controllerurl = new URL(
+		originurl.protocol +
+			"//" +
+			// TODO hash
+			originurl.host
+	);
+
+	return controllerurl.href;
+}
+
+function getRootDomain(url: URL): string {
+	return tldts.getDomain(url.href) || url.hostname;
+}
+
+function makeController(url: URL): Controller {
+	let frame = document.createElement("iframe");
+	const rootdomain = getRootDomain(url);
+	frame.src = getBaseUrl(url) + "controller.html";
+	frame.style.display = "none";
+	document.body.appendChild(frame);
+
+	let readyResolve;
+	let ready = new Promise<void>((res) => {
+		readyResolve = res;
+	});
+
+	const controller = {
+		controllerframe: frame,
+		window: frame.contentWindow!,
+		rootdomain,
+		ready,
+		readyResolve: readyResolve!,
+	};
+	controllers.push(controller);
+
+	return controller;
+}
+
+export class IsolatedFrame {
+	frame: HTMLIFrameElement;
+	constructor() {
+		this.frame = document.createElement("iframe");
+	}
+
+	async go(url: URL) {
+		let controller = controllers.find((c) => {
+			return c.rootdomain === getRootDomain(url);
+		});
+
+		if (!controller) {
+			controller = makeController(url);
+		}
+		await controller.ready;
+
+		const prefix = new URL("http://localhost:5233" + cfg.prefix);
+
+		console.log(
+			rewriteUrl(url, {
+				origin: prefix,
+				base: prefix,
+				prefix,
+			})
+		);
+
+		this.frame.src = rewriteUrl(url, {
+			origin: prefix,
+			base: prefix,
+			prefix,
+		});
+	}
+}
+
+const methods = {
+	async fetch(data: ScramjetFetchContext): ScramjetFetchResponse {
+		data.cookieStore = cookiestore;
+		data.rawUrl = new URL(data.rawUrl);
+		if (data.rawClientUrl) data.rawClientUrl = new URL(data.rawClientUrl);
+		let headers = new ScramjetHeaders();
+		for (let [k, v] of Object.entries(data.initialHeaders)) {
+			headers.set(k, v);
+		}
+		data.initialHeaders = headers;
+		if (data.rawUrl.pathname === cfg.files.wasm) {
+			return fetch(cfg.files.wasm).then(async (x) => {
+				const buf = await x.arrayBuffer();
+				const b64 = btoa(
+					new Uint8Array(buf)
+						.reduce(
+							(data, byte) => (data.push(String.fromCharCode(byte)), data),
+							[]
+						)
+						.join("")
+				);
+
+				let payload = "";
+				payload +=
+					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+				payload += `self.WASM = '${b64}';`;
+
+				return [
+					{
+						body: payload,
+						headers: { "Content-Type": "application/javascript" },
+						status: 200,
+						statusText: "OK",
+					},
+					undefined,
+				];
+			});
+		} else if (data.rawUrl.pathname === cfg.files.all) {
+			return fetch(cfg.files.all).then(async (x) => {
+				const text = await x.text();
+				return [
+					{
+						body: text,
+						headers: { "Content-Type": "application/javascript" },
+						status: 200,
+						statusText: "OK",
+					},
+					undefined,
+				];
+			});
+		}
+
+		const fetchresponse = await handleFetch.call(
+			tgt as any,
+			data,
+			cfg,
+			client.bare,
+			new URL("http://localhost:5233" + cfg.prefix)
+		);
+		return [
+			fetchresponse,
+			fetchresponse.body instanceof ArrayBuffer ||
+			fetchresponse.body instanceof ReadableStream
+				? [fetchresponse.body]
+				: undefined,
+		];
+	},
+};
+window.addEventListener("message", async (event) => {
+	let data = event.data;
+	if (!(data && "$sandboxsw$type" in data)) return;
+	let controller = controllers.find(
+		(c) => c.controllerframe.contentWindow == event.source
+	);
+	if (!controller) {
+		console.error("No controller found for message", data);
+		return;
+	}
+
+	try {
+		if (data.$sandboxsw$type == "request") {
+			let domain = data.$sandboxsw$domain;
+			let message = data.$sandboxsw$message;
+			let token = data.$sandboxsw$token;
+
+			let fn = (methods as any)[domain];
+
+			let [result, transfer] = await fn(message);
+			controller.window.postMessage(
+				{
+					$sandboxsw$type: "response",
+					$sandboxsw$token: token,
+					$sandboxsw$message: result,
+				},
+				"*",
+				transfer
+			);
+		} else if (data.$sandboxsw$type == "confirm") {
+			controller.readyResolve();
+		}
+	} catch (e) {
+		console.log(e);
+		console.error("error in response", e);
+	}
+});
+
+const tgt = new EventTarget();
+
+const cookiestore = new CookieStore();
+
+let client = new ScramjetClient(self);

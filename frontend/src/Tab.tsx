@@ -24,13 +24,23 @@ import iconLink from "@ktibow/iconset-ion/link-outline";
 import iconAdd from "@ktibow/iconset-ion/duplicate-outline";
 import iconCopy from "@ktibow/iconset-ion/copy-outline";
 import iconSave from "@ktibow/iconset-ion/save-outline";
+import {
+	ScramjetHeaders,
+	ScramjetServiceWorker,
+	type ScramjetInitConfig,
+	type ScramjetFetchContext,
+	ScramjetController,
+	type ScramjetFetchResponse,
+	CookieStore,
+	handleFetch,
+	rewriteUrl,
+	config,
+	ScramjetClient,
+	ScramjetFrame,
+} from "@mercuryworkshop/scramjet/bundled";
+import { IsolatedFrame } from "./IsolatedFrame";
 
 const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
-
-import {
-	type ScramjetClient,
-	type ScramjetFrame,
-} from "@mercuryworkshop/scramjet";
 
 export type SerializedTab = {
 	id: number;
@@ -42,7 +52,7 @@ let id = 100;
 export class Tab extends StatefulClass {
 	id: number;
 	title: string | null;
-	frame: ScramjetFrame;
+	frame: IsolatedFrame;
 	devtoolsFrame: ScramjetFrame;
 	screenshot: string | null = null;
 
@@ -74,26 +84,19 @@ export class Tab extends StatefulClass {
 		this.title = null;
 		this.internalpage = null;
 
-		const frame = scramjet.createFrame();
-		this.frame = frame;
+		this.frame = new IsolatedFrame();
 
 		this.history = new History(this);
 		this.history.push(this.url, undefined);
 
 		this.icon = "/defaultfavicon.png";
 
-		this.dragoffset = -1;
-		this.startdragpos = -1;
-		this.dragpos = -1;
-		this.width = 0;
-		this.pos = 0;
-
 		let resolver: () => void;
 		this.waitForChobitsuInit = new Promise((resolve) => {
 			resolver = resolve;
 		});
 
-		addHistoryListeners(frame, this);
+		// addHistoryListeners(frame, this);
 		let injected = false;
 
 		this.loadProgress = 0;
@@ -119,45 +122,45 @@ export class Tab extends StatefulClass {
 			}
 		}, 16);
 
-		frame.addEventListener("contextInit", (ctx) => {
-			injectContextMenu(ctx.client, this);
-			injectWindowFill(ctx.client, this);
-			injectAnchorHandler(ctx.client, this);
+		// frame.addEventListener("contextInit", (ctx) => {
+		// 	injectContextMenu(ctx.client, this);
+		// 	injectWindowFill(ctx.client, this);
+		// 	injectAnchorHandler(ctx.client, this);
 
-			// make sure it's top level, ctxInit calls for all frames too
-			if (ctx.window == frame.frame.contentWindow) {
-				if (this.history.justTriggeredNavigation) {
-					// url bar was typed in, we triggered this navigation, don't push a new state since we already did
-					this.history.justTriggeredNavigation = false;
-				} else {
-					// the page just loaded on its own (a link was clicked, window.location was set)
-					this.history.push(ctx.client.url, undefined, false);
-				}
+		// 	// make sure it's top level, ctxInit calls for all frames too
+		// 	if (ctx.window == frame.frame.contentWindow) {
+		// 		if (this.history.justTriggeredNavigation) {
+		// 			// url bar was typed in, we triggered this navigation, don't push a new state since we already did
+		// 			this.history.justTriggeredNavigation = false;
+		// 		} else {
+		// 			// the page just loaded on its own (a link was clicked, window.location was set)
+		// 			this.history.push(ctx.client.url, undefined, false);
+		// 		}
 
-				this.loadProgressTarget = 0.2;
-				ctx.client.global.addEventListener("load", (e) => {
-					if (!e.isTrusted) return;
-					finishLoad();
-				});
-				ctx.client.global.addEventListener("DOMContentLoaded", (e) => {
-					if (!e.isTrusted) return;
-					this.loadProgressTarget = 0.8;
-				});
-				setTimeout(() => {
-					finishLoad();
-				}, 5000); // failsafe 5 seconds in case the page just never fires load for some reason
+		// 		this.loadProgressTarget = 0.2;
+		// 		ctx.client.global.addEventListener("load", (e) => {
+		// 			if (!e.isTrusted) return;
+		// 			finishLoad();
+		// 		});
+		// 		ctx.client.global.addEventListener("DOMContentLoaded", (e) => {
+		// 			if (!e.isTrusted) return;
+		// 			this.loadProgressTarget = 0.8;
+		// 		});
+		// 		setTimeout(() => {
+		// 			finishLoad();
+		// 		}, 5000); // failsafe 5 seconds in case the page just never fires load for some reason
 
-				injectChobitsu(ctx.client, this, resolver);
-				injectTitleWatcher(ctx.client, this);
-				injectHistoryEmulation(ctx.client, this);
+		// 		injectChobitsu(ctx.client, this, resolver);
+		// 		injectTitleWatcher(ctx.client, this);
+		// 		injectHistoryEmulation(ctx.client, this);
 
-				use(this.devtoolsOpen).listen((open) => {
-					if (!open || injected) return;
-					injected = true;
-					injectDevtools(ctx.client, this);
-				});
-			}
-		});
+		// 		use(this.devtoolsOpen).listen((open) => {
+		// 			if (!open || injected) return;
+		// 			injected = true;
+		// 			injectDevtools(ctx.client, this);
+		// 		});
+		// 	}
+		// });
 
 		this.devtoolsFrame = scramjet.createFrame();
 	}
