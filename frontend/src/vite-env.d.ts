@@ -3,6 +3,7 @@
 
 interface ImportMetaEnv {
 	readonly VITE_LOCAL: boolean;
+	readonly VITE_ISOLATION_ORIGIN: string;
 }
 
 interface ImportMeta {

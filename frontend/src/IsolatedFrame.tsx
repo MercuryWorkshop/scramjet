@@ -14,8 +14,15 @@ import {
 	unrewriteUrl,
 	type URLMeta,
 } from "@mercuryworkshop/scramjet/bundled";
-
 import * as tldts from "tldts";
+
+const ISOLATION_ORIGIN = import.meta.env.VITE_ISOLATION_ORIGIN;
+
+const tgt = new EventTarget();
+
+const cookiestore = new CookieStore();
+
+let client = new ScramjetClient(self);
 
 const cfg = {
 	wisp: "ws://localhost:1337/",
@@ -70,8 +77,6 @@ const cfg = {
 };
 
 setConfig(cfg);
-
-const ISOLATION_ORIGIN = "http://localhost:5233";
 
 type Controller = {
 	controllerframe: HTMLIFrameElement;
@@ -272,12 +277,6 @@ window.addEventListener("message", async (event) => {
 		console.error("error in response", e);
 	}
 });
-
-const tgt = new EventTarget();
-
-const cookiestore = new CookieStore();
-
-let client = new ScramjetClient(self);
 
 let wasmPayload: string | null = null;
 let allPayload: string | null = null;
