@@ -11,6 +11,8 @@ import {
 	config,
 	ScramjetClient,
 	setConfig,
+	unrewriteUrl,
+	type URLMeta,
 } from "@mercuryworkshop/scramjet/bundled";
 
 import * as tldts from "tldts";
@@ -161,7 +163,7 @@ const methods = {
 	async fetch(
 		data: ScramjetFetchContext,
 		controller: Controller
-	): ScramjetFetchResponse {
+	): Promise<[ScramjetFetchResponse, Transferable[] | undefined]> {
 		data.cookieStore = cookiestore;
 		data.rawUrl = new URL(data.rawUrl);
 		if (data.rawClientUrl) data.rawClientUrl = new URL(data.rawClientUrl);
@@ -171,45 +173,47 @@ const methods = {
 		}
 		data.initialHeaders = headers;
 		if (data.rawUrl.pathname === cfg.files.wasm) {
-			return fetch(cfg.files.wasm).then(async (x) => {
-				const buf = await x.arrayBuffer();
-				const b64 = btoa(
-					new Uint8Array(buf)
-						.reduce(
-							(data, byte) => (data.push(String.fromCharCode(byte)), data),
-							[]
-						)
-						.join("")
-				);
-
-				let payload = "";
-				payload +=
-					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
-				payload += `self.WASM = '${b64}';`;
-
-				return [
-					{
-						body: payload,
-						headers: { "Content-Type": "application/javascript" },
-						status: 200,
-						statusText: "OK",
-					},
-					undefined,
-				];
-			});
+			return [await makeWasmResponse(), undefined];
 		} else if (data.rawUrl.pathname === cfg.files.all) {
-			return fetch(cfg.files.all).then(async (x) => {
-				const text = await x.text();
+			return [await makeAllResponse(), undefined];
+		}
+
+		if (data.destination === "document" || data.destination === "iframe") {
+			const unrewritten = unrewriteUrl(data.rawUrl, {
+				prefix: controller.prefix,
+			} as URLMeta);
+
+			// our controller is bound to a root domain
+			// if a site under the controller tries to iframe a cross-site domain it needs to redirect to that different controller
+			const reqrootdomain = getRootDomain(new URL(unrewritten));
+			if (reqrootdomain !== controller.rootdomain) {
+				let crosscontroller = controllers.find((c) => {
+					return c.rootdomain === reqrootdomain;
+				});
+
+				if (!crosscontroller) {
+					crosscontroller = makeController(new URL(unrewritten));
+				}
+				await crosscontroller.ready;
+
+				// now send a redirect so the browser will load the request from the other controller's sw
 				return [
 					{
-						body: text,
-						headers: { "Content-Type": "application/javascript" },
-						status: 200,
-						statusText: "OK",
+						body: "Redirecting Cross-Origin Frame Request...",
+						status: 302,
+						statusText: "Found",
+						headers: {
+							"Content-Type": "text/plain",
+							Location: rewriteUrl(new URL(unrewritten), {
+								origin: crosscontroller.prefix,
+								base: crosscontroller.prefix,
+								prefix: crosscontroller.prefix,
+							}),
+						},
 					},
 					undefined,
 				];
-			});
+			}
 		}
 
 		const fetchresponse = await handleFetch.call(
@@ -219,13 +223,16 @@ const methods = {
 			client.bare,
 			controller.prefix
 		);
-		return [
-			fetchresponse,
+
+		let transfer = undefined;
+		if (
 			fetchresponse.body instanceof ArrayBuffer ||
 			fetchresponse.body instanceof ReadableStream
-				? [fetchresponse.body]
-				: undefined,
-		];
+		) {
+			transfer = [fetchresponse.body];
+		}
+
+		return [fetchresponse, transfer];
 	},
 };
 window.addEventListener("message", async (event) => {
@@ -254,7 +261,7 @@ window.addEventListener("message", async (event) => {
 					$sandboxsw$token: token,
 					$sandboxsw$message: result,
 				},
-				"*",
+				controller.baseurl.origin,
 				transfer
 			);
 		} else if (data.$sandboxsw$type == "confirm") {
@@ -271,3 +278,48 @@ const tgt = new EventTarget();
 const cookiestore = new CookieStore();
 
 let client = new ScramjetClient(self);
+
+let wasmPayload: string | null = null;
+let allPayload: string | null = null;
+
+async function makeWasmResponse() {
+	if (!wasmPayload) {
+		const resp = await fetch(cfg.files.wasm);
+		const buf = await resp.arrayBuffer();
+		const b64 = btoa(
+			new Uint8Array(buf)
+				.reduce(
+					(data, byte) => (data.push(String.fromCharCode(byte)), data),
+					[] as any
+				)
+				.join("")
+		);
+
+		let payload = "";
+		payload +=
+			"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+		payload += `self.WASM = '${b64}';`;
+		wasmPayload = payload;
+	}
+
+	return {
+		body: wasmPayload,
+		headers: { "Content-Type": "application/javascript" },
+		status: 200,
+		statusText: "OK",
+	};
+}
+
+async function makeAllResponse(): Promise<ScramjetFetchResponse> {
+	if (!allPayload) {
+		const resp = await fetch(cfg.files.all);
+		allPayload = await resp.text();
+	}
+
+	return {
+		body: allPayload,
+		headers: { "Content-Type": "application/javascript" },
+		status: 200,
+		statusText: "OK",
+	};
+}
