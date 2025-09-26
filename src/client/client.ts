@@ -236,15 +236,24 @@ export class ScramjetClient {
 					throw new Error("topFrameName was called from a worker?");
 
 				let currentWin = client.global;
-				if (currentWin.parent.window == currentWin.window) {
-					// we're top level & we don't have a frame name
-					return null;
+
+				try {
+					if (currentWin.parent.window == currentWin.window) {
+						// we're top level & we don't have a frame name
+						return null;
+					}
+				} catch {
+					// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
 				}
 
-				// find the topmost frame that's controlled by scramjet, stopping before the real top frame
-				while (currentWin.parent.window !== currentWin.window) {
-					if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
-					currentWin = currentWin.parent.window;
+				try {
+					// find the topmost frame that's controlled by scramjet, stopping before the real top frame
+					while (currentWin.parent.window !== currentWin.window) {
+						if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
+						currentWin = currentWin.parent.window;
+					}
+				} catch {
+					// doesn't matter if it throws here just means we found the topmost one
 				}
 
 				const curclient = currentWin[SCRAMJETCLIENT];
@@ -254,6 +263,7 @@ export class ScramjetClient {
 				);
 				if (!frame) {
 					// we're inside an iframe, but the top frame is scramjet-controlled and top level, so we can't get a top frame name
+					// or we're cross-origin and frameElement doesn't exist. that's a TODO because this won't work
 					return null;
 				}
 				if (!frame.name) {
@@ -270,12 +280,18 @@ export class ScramjetClient {
 			get parentFrameName() {
 				if (!iswindow)
 					throw new Error("parentFrameName was called from a worker?");
-				if (client.global.parent.window == client.global.window) {
-					// we're top level & we don't have a frame name
+
+				try {
+					if (client.global.parent.window == client.global.window) {
+						// we're top level & we don't have a frame name
+						return null;
+					}
+				} catch {
+					// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
 					return null;
 				}
 
-				let parentWin = client.global.parent.window;
+				const parentWin = client.global.parent.window;
 				if (parentWin[SCRAMJETCLIENT]) {
 					// we're inside an iframe, and the parent is scramjet-controlled
 					const parentClient = parentWin[SCRAMJETCLIENT];
