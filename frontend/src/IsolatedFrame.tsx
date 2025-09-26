@@ -74,34 +74,39 @@ const ISOLATION_ORIGIN = "http://localhost:5233";
 type Controller = {
 	controllerframe: HTMLIFrameElement;
 	rootdomain: string;
+	baseurl: URL;
+	prefix: URL;
 	window: Window;
 	ready: Promise<void>;
 	readyResolve: () => void;
 };
 
-const controllers: Controller[] = [];
-
-function getBaseUrl(url: URL): string {
-	let originurl = new URL(ISOLATION_ORIGIN);
-
-	let controllerurl = new URL(
-		originurl.protocol +
-			"//" +
-			// TODO hash
-			originurl.host
-	);
-
-	return controllerurl.href;
+function hashDomain(domain: string): string {
+	// dbj2
+	// TODO investigate possibility of collisions at some point
+	let hash = 0;
+	for (let i = 0; i < domain.length; i++) {
+		const char = domain.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash;
+	}
+	return Math.abs(hash).toString(36).substring(0, 8);
 }
+
+const controllers: Controller[] = [];
 
 function getRootDomain(url: URL): string {
 	return tldts.getDomain(url.href) || url.hostname;
 }
 
 function makeController(url: URL): Controller {
+	let originurl = new URL(ISOLATION_ORIGIN);
+	let baseurl = new URL(
+		`${originurl.protocol}//${hashDomain(getRootDomain(url))}.${originurl.host}`
+	);
 	let frame = document.createElement("iframe");
 	const rootdomain = getRootDomain(url);
-	frame.src = getBaseUrl(url) + "controller.html";
+	frame.src = baseurl.href + "controller.html";
 	frame.style.display = "none";
 	document.body.appendChild(frame);
 
@@ -110,10 +115,14 @@ function makeController(url: URL): Controller {
 		readyResolve = res;
 	});
 
+	const prefix = new URL(baseurl.protocol + baseurl.host + cfg.prefix);
+
 	const controller = {
 		controllerframe: frame,
 		window: frame.contentWindow!,
 		rootdomain,
+		baseurl,
+		prefix,
 		ready,
 		readyResolve: readyResolve!,
 	};
@@ -138,18 +147,10 @@ export class IsolatedFrame {
 		}
 		await controller.ready;
 
-		const prefix = new URL("http://localhost:5233" + cfg.prefix);
-
-		console.log(
-			rewriteUrl(url, {
-				origin: prefix,
-				base: prefix,
-				prefix,
-			})
-		);
+		const prefix = controller.prefix;
 
 		this.frame.src = rewriteUrl(url, {
-			origin: prefix,
+			origin: prefix, // origin/base don't matter here because we're always sending an absolute URL
 			base: prefix,
 			prefix,
 		});
@@ -157,7 +158,10 @@ export class IsolatedFrame {
 }
 
 const methods = {
-	async fetch(data: ScramjetFetchContext): ScramjetFetchResponse {
+	async fetch(
+		data: ScramjetFetchContext,
+		controller: Controller
+	): ScramjetFetchResponse {
 		data.cookieStore = cookiestore;
 		data.rawUrl = new URL(data.rawUrl);
 		if (data.rawClientUrl) data.rawClientUrl = new URL(data.rawClientUrl);
@@ -213,7 +217,7 @@ const methods = {
 			data,
 			cfg,
 			client.bare,
-			new URL("http://localhost:5233" + cfg.prefix)
+			controller.prefix
 		);
 		return [
 			fetchresponse,
@@ -243,7 +247,7 @@ window.addEventListener("message", async (event) => {
 
 			let fn = (methods as any)[domain];
 
-			let [result, transfer] = await fn(message);
+			let [result, transfer] = await fn(message, controller);
 			controller.window.postMessage(
 				{
 					$sandboxsw$type: "response",
