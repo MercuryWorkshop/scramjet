@@ -54,7 +54,7 @@ export interface ScramjetFetchParsed {
 	scriptType: string;
 }
 
-interface ScramjetFetchResponse {
+export interface ScramjetFetchResponse {
 	body: BodyType;
 	headers: BareHeaders;
 	status: number;
