@@ -44,36 +44,9 @@ class SandboxThing {
 
 let sb = new SandboxThing();
 
-// export interface ScramjetFetchContext {
-// 	rawUrl: URL;
-// 	destination: RequestDestination;
-// 	mode: RequestMode;
-// 	referrer: string;
-// 	method: string;
-// 	body: BodyType | null;
-// 	cache: RequestCache;
-// 	forceCrossOriginIsolated: boolean;
-// 	initialHeaders: ScramjetHeaders;
-// 	cookieStore: CookieStore;
-// 	rawClientUrl?: URL;
-// }
-//
-// interface ScramjetFetchResponse {
-// 	body: BodyType;
-// 	headers: BareHeaders;
-// 	status: number;
-// 	statusText: string;
-// }
 async function handleFetch(event) {
 	const client = await self.clients.get(event.clientId);
 
-	console.log(event.request.body);
-	console.log(
-		event.request.body instanceof ReadableStream ||
-			event.request.body instanceof ArrayBuffer
-			? [event.request.body]
-			: []
-	);
 	let resp = await sb.request(
 		"fetch",
 		{
@@ -144,17 +117,3 @@ self.addEventListener("message", (e) => {
 		);
 	}
 });
-
-// addEventListener("clientschanged", async () => {
-//  const clients = await self.clients.matchAll({ includeUncontrolled: true });
-//  for (const client of clients) {
-//   if (new URL(client.url).pathname.startsWith("/controller")) {
-//    _controller.client = client;
-//    client.postMessage({
-//     $sandboxsw$type: "controller-registered",
-//     timestamp: Date.now()
-//    });
-//    console.log("Controller client registered and notified");
-//   }
-//  }
-// });

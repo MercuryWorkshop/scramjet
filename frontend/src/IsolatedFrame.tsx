@@ -1,28 +1,18 @@
 import {
 	ScramjetHeaders,
-	ScramjetServiceWorker,
-	type ScramjetInitConfig,
 	type ScramjetFetchContext,
-	ScramjetController,
 	type ScramjetFetchResponse,
 	CookieStore,
 	handleFetch,
 	rewriteUrl,
-	config,
-	ScramjetClient,
 	setConfig,
 	unrewriteUrl,
 	type URLMeta,
+	BareClient,
 } from "@mercuryworkshop/scramjet/bundled";
 import * as tldts from "tldts";
 
 const ISOLATION_ORIGIN = import.meta.env.VITE_ISOLATION_ORIGIN;
-
-const tgt = new EventTarget();
-
-const cookiestore = new CookieStore();
-
-let client = new ScramjetClient(self);
 
 const cfg = {
 	wisp: "ws://localhost:1337/",
@@ -77,9 +67,11 @@ const cfg = {
 };
 
 setConfig(cfg);
+const bare = new BareClient();
 
 type Controller = {
 	controllerframe: HTMLIFrameElement;
+	cookiestore: CookieStore;
 	rootdomain: string;
 	baseurl: URL;
 	prefix: URL;
@@ -123,6 +115,7 @@ function makeController(url: URL): Controller {
 	});
 
 	const prefix = new URL(baseurl.protocol + baseurl.host + cfg.prefix);
+	const cookiestore = new CookieStore();
 
 	const controller = {
 		controllerframe: frame,
@@ -132,6 +125,7 @@ function makeController(url: URL): Controller {
 		prefix,
 		ready,
 		readyResolve: readyResolve!,
+		cookiestore,
 	};
 	controllers.push(controller);
 
@@ -169,7 +163,8 @@ const methods = {
 		data: ScramjetFetchContext,
 		controller: Controller
 	): Promise<[ScramjetFetchResponse, Transferable[] | undefined]> {
-		data.cookieStore = cookiestore;
+		// repopulate fetchcontext fields with the items that weren't cloned over postMessage
+		data.cookieStore = controller.cookiestore;
 		data.rawUrl = new URL(data.rawUrl);
 		if (data.rawClientUrl) data.rawClientUrl = new URL(data.rawClientUrl);
 		let headers = new ScramjetHeaders();
@@ -177,6 +172,8 @@ const methods = {
 			headers.set(k, v);
 		}
 		data.initialHeaders = headers;
+
+		// handle scramjet.all.js and scramjet.wasm.js requests
 		if (data.rawUrl.pathname === cfg.files.wasm) {
 			return [await makeWasmResponse(), undefined];
 		} else if (data.rawUrl.pathname === cfg.files.all) {
@@ -221,15 +218,17 @@ const methods = {
 			}
 		}
 
+		// TODO fix eventtarget jank
+		const tgt = new EventTarget();
 		const fetchresponse = await handleFetch.call(
 			tgt as any,
 			data,
 			cfg,
-			client.bare,
+			bare,
 			controller.prefix
 		);
 
-		let transfer = undefined;
+		let transfer: any[] | undefined = undefined;
 		if (
 			fetchresponse.body instanceof ArrayBuffer ||
 			fetchresponse.body instanceof ReadableStream
