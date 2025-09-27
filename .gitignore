@@ -20,7 +20,6 @@ rebuild.sh
 # Typedoc
 _docs/
 _docs-dev/
-_docs-docs/
 existing-typedoc/
 existing-typedoc-dev/
 staticbuild/

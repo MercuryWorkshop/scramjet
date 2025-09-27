@@ -3,7 +3,7 @@
 	"skipErrorChecking": true,
 	"customCss": "./node_modules/@stephansama/catppuccin-typedoc/dist/catppuccin-typedoc.css",
 	"entryPoints": ["src/entry.ts"],
-	"out": "./_docs-docs",
+	"out": "./_docs",
 	"tsconfig": "./tsconfig.user-facing.json",
 	"exclude": [
 		"**/*.spec.ts",
