@@ -1,18 +1,10 @@
-/**
- * IDB is used to persist rather than using a `Map`, because SWs are suicidal
- */
-
-type SiteDirective = "same-origin" | "same-site" | "cross-site" | "none";
-interface RedirectTracker {
-	originalReferrer: string;
-	mostRestrictiveSite: SiteDirective;
-	referrerPolicy: string;
-	chainStarted: number;
-}
-interface ReferrerPolicyData {
-	policy: string;
-	referrer: string;
-}
+import {
+	type RedirectTracker,
+	type ReferrerPolicyData,
+	type SiteDirective,
+	ScramjetDB,
+} from "@/types";
+import { openDB, IDBPDatabase } from "idb";
 
 // Persist the redirect trackers for an hour
 const TRACKER_EXPIRY = 60 * 60 * 1000;
@@ -28,13 +20,8 @@ const SITE_HIERARCHY: Record<SiteDirective, number> = {
  *
  * @returns Promise that resolves to the database connection
  */
-async function getDB(): Promise<IDBDatabase> {
-	const request = indexedDB.open("$scramjet", 1);
-
-	return new Promise((resolve, reject) => {
-		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
-	});
+async function getDB(): Promise<IDBPDatabase<ScramjetDB>> {
+	return openDB<ScramjetDB>("$scramjet", 1);
 }
 
 /**
@@ -45,14 +32,7 @@ async function getDB(): Promise<IDBDatabase> {
  */
 async function getTracker(url: string): Promise<RedirectTracker | null> {
 	const db = await getDB();
-	const tx = db.transaction("redirectTrackers", "readonly");
-	const store = tx.objectStore("redirectTrackers");
-
-	return new Promise((resolve) => {
-		const request = store.get(url);
-		request.onsuccess = () => resolve(request.result || null);
-		request.onerror = () => resolve(null);
-	});
+	return (await db.get("redirectTrackers", url)) || null;
 }
 
 /**
@@ -66,14 +46,7 @@ async function setTracker(
 	tracker: RedirectTracker
 ): Promise<void> {
 	const db = await getDB();
-	const tx = db.transaction("redirectTrackers", "readwrite");
-	const store = tx.objectStore("redirectTrackers");
-
-	return new Promise((resolve, reject) => {
-		const request = store.put(tracker, url);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
-	});
+	await db.put("redirectTrackers", tracker, url);
 }
 
 /**
@@ -83,14 +56,7 @@ async function setTracker(
  */
 async function deleteTracker(url: string): Promise<void> {
 	const db = await getDB();
-	const tx = db.transaction("redirectTrackers", "readwrite");
-	const store = tx.objectStore("redirectTrackers");
-
-	return new Promise((resolve, reject) => {
-		const request = store.delete(url);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
-	});
+	await db.delete("redirectTrackers", url);
 }
 
 /**
@@ -182,20 +148,15 @@ export async function cleanExpiredTrackers(): Promise<void> {
 	const now = Date.now();
 	const db = await getDB();
 	const tx = db.transaction("redirectTrackers", "readwrite");
-	const store = tx.objectStore("redirectTrackers");
 
-	const request = store.openCursor();
-
-	request.onsuccess = (event) => {
-		const cursor = (event.target as IDBRequest).result;
-		if (cursor) {
-			const tracker = cursor.value as RedirectTracker;
-			if (now - tracker.chainStarted > TRACKER_EXPIRY) {
-				cursor.delete();
-			}
-			cursor.continue();
+	for await (const cursor of tx.store) {
+		const tracker = cursor.value as RedirectTracker;
+		if (now - tracker.chainStarted > TRACKER_EXPIRY) {
+			cursor.delete();
 		}
-	};
+	}
+
+	await tx.done;
 }
 
 /**
@@ -211,16 +172,8 @@ export async function storeReferrerPolicy(
 	referrer: string
 ): Promise<void> {
 	const db = await getDB();
-	const tx = db.transaction("referrerPolicies", "readwrite");
-	const store = tx.objectStore("referrerPolicies");
-
 	const data: ReferrerPolicyData = { policy, referrer };
-
-	return new Promise((resolve, reject) => {
-		const request = store.put(data, url);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
-	});
+	await db.put("referrerPolicies", data, url);
 }
 
 /**
@@ -233,12 +186,5 @@ export async function getReferrerPolicy(
 	url: string
 ): Promise<ReferrerPolicyData | null> {
 	const db = await getDB();
-	const tx = db.transaction("referrerPolicies", "readonly");
-	const store = tx.objectStore("referrerPolicies");
-
-	return new Promise((resolve) => {
-		const request = store.get(url);
-		request.onsuccess = () => resolve(request.result || null);
-		request.onerror = () => resolve(null);
-	});
+	return (await db.get("referrerPolicies", url)) || null;
 }
