@@ -9,7 +9,10 @@ import {
 	unrewriteUrl,
 	type URLMeta,
 	BareClient,
+	ScramjetServiceWorker,
 } from "@mercuryworkshop/scramjet/bundled";
+import { ElementType, type Handler, Parser } from "htmlparser2";
+import { type ChildNode, DomHandler, Element, Comment, Node } from "domhandler";
 import * as tldts from "tldts";
 
 const ISOLATION_ORIGIN = import.meta.env.VITE_ISOLATION_ORIGIN;
@@ -158,6 +161,8 @@ export class IsolatedFrame {
 	}
 }
 
+const inject_script = "/page_inject.js";
+
 const methods = {
 	async fetch(
 		data: ScramjetFetchContext,
@@ -178,6 +183,19 @@ const methods = {
 			return [await makeWasmResponse(), undefined];
 		} else if (data.rawUrl.pathname === cfg.files.all) {
 			return [await makeAllResponse(), undefined];
+		} else if (data.rawUrl.pathname === inject_script) {
+			return [
+				await fetch(inject_script).then(async (x) => {
+					const text = await x.text();
+					return {
+						body: text,
+						headers: { "Content-Type": "application/javascript" },
+						status: 200,
+						statusText: "OK",
+					};
+				}),
+				undefined,
+			];
 		}
 
 		if (data.destination === "document" || data.destination === "iframe") {
@@ -220,6 +238,26 @@ const methods = {
 
 		// TODO fix eventtarget jank
 		const tgt = new EventTarget();
+		tgt.addEventListener("htmlPostRewrite", (e: any) => {
+			const handler = e.handler as DomHandler;
+			function findhead(node: Element): Element | null {
+				if (node.type === ElementType.Tag && node.name === "head") {
+					return node as Element;
+				} else if (node.childNodes) {
+					for (const child of node.childNodes) {
+						const head = findhead(child as Element);
+						if (head) return head;
+					}
+				}
+
+				return null;
+			}
+
+			const head = findhead(handler.root as Node as Element)!;
+			console.log(head);
+			head.children.unshift(new Element("script", { src: inject_script }));
+		});
+
 		const fetchresponse = await handleFetch.call(
 			tgt as any,
 			data,
