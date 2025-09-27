@@ -1,4 +1,4 @@
-import { ElementType, Parser } from "htmlparser2";
+import { ElementType, Handler, Parser } from "htmlparser2";
 import { ChildNode, DomHandler, Element, Comment } from "domhandler";
 import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "@rewriters/url";
@@ -36,13 +36,16 @@ function rewriteHtmlInner(
 	html: string,
 	cookieStore: CookieStore,
 	meta: URLMeta,
-	fromTop: boolean = false
+	fromTop: boolean = false,
+	preRewrite?: (handler: DomHandler) => void,
+	postRewrite?: (handler: DomHandler) => void
 ) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
 
 	parser.write(html);
 	parser.end();
+	if (preRewrite) preRewrite(handler);
 	traverseParsedHtml(handler.root, cookieStore, meta);
 
 	function findhead(node) {
@@ -69,6 +72,8 @@ function rewriteHtmlInner(
 		head.children.unshift(...getInjectScripts(cookieStore, script));
 	}
 
+	if (postRewrite) postRewrite(handler);
+
 	return render(handler.root, {
 		encodeEntities: "utf8",
 		decodeEntities: false,
@@ -79,10 +84,19 @@ export function rewriteHtml(
 	html: string,
 	cookieStore: CookieStore,
 	meta: URLMeta,
-	fromTop: boolean = false
+	fromTop: boolean = false,
+	preRewrite?: (handler: DomHandler) => void,
+	postRewrite?: (handler: DomHandler) => void
 ) {
 	const before = performance.now();
-	const ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
+	const ret = rewriteHtmlInner(
+		html,
+		cookieStore,
+		meta,
+		fromTop,
+		preRewrite,
+		postRewrite
+	);
 	dbg.time(meta, before, "html rewrite");
 
 	return ret;

@@ -29,6 +29,7 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetDownload } from "@client/events";
 import { ScramjetConfig } from "@/types";
+import DomHandler from "domhandler";
 
 export interface ScramjetFetchContext {
 	rawUrl: URL;
@@ -150,7 +151,7 @@ export async function handleFetch(
 	// }
 
 	if (response.body && !isRedirect(response)) {
-		responseBody = await rewriteBody(context, parsed, response);
+		responseBody = await rewriteBody.call(this, context, parsed, response);
 	}
 
 	// Clean up tracker if not a redirect
@@ -729,7 +730,23 @@ async function rewriteBody(
 					await response.text(),
 					context.cookieStore,
 					parsed.meta,
-					true
+					true,
+					(handler) => {
+						const evt = new ScramjetHTMLPreRewriteEvent(
+							handler,
+							context,
+							parsed
+						);
+						this.dispatchEvent(evt);
+					},
+					(handler) => {
+						const evt = new ScramjetHTMLPostRewriteEvent(
+							handler,
+							context,
+							parsed
+						);
+						this.dispatchEvent(evt);
+					}
 				);
 			} else {
 				return response.body;
@@ -759,6 +776,26 @@ async function rewriteBody(
 }
 
 type BodyType = string | ArrayBuffer | Blob | ReadableStream<any>;
+
+export class ScramjetHTMLPreRewriteEvent extends Event {
+	constructor(
+		public handler: DomHandler,
+		public context: ScramjetFetchContext,
+		public parsed: ScramjetFetchParsed
+	) {
+		super("htmlPreRewrite");
+	}
+}
+
+export class ScramjetHTMLPostRewriteEvent extends Event {
+	constructor(
+		public handler: DomHandler,
+		public context: ScramjetFetchContext,
+		public parsed: ScramjetFetchParsed
+	) {
+		super("htmlPostRewrite");
+	}
+}
 
 export class ScramjetResponseEvent extends Event {
 	_response?: ScramjetFetchResponse | Promise<ScramjetFetchResponse>;
