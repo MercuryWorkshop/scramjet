@@ -162,6 +162,9 @@ const moduleConfig = defineConfig({
 		libraryTarget: "module",
 		iife: false,
 	},
+	performance: {
+		hints: false,
+	},
 	plugins: [
 		new TsCheckerRspackPlugin(),
 		new rspack.ProvidePlugin({

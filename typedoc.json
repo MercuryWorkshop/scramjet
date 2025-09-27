@@ -2,7 +2,7 @@
 	"$schema": "https://typedoc.org/schema.json",
 	"skipErrorChecking": true,
 	"customCss": "./node_modules/@stephansama/catppuccin-typedoc/dist/catppuccin-typedoc.css",
-	"entryPoints": ["src/index.ts"],
+	"entryPoints": ["src/entry.ts"],
 	"out": "./_docs",
 	"tsconfig": "./tsconfig.user-facing.json",
 	"exclude": [
@@ -24,7 +24,12 @@
 	"plugin": [
 		"@8hobbies/typedoc-plugin-plausible",
 		"@shipgirl/typedoc-plugin-versions",
+		"@8hobbies/typedoc-plugin-404",
 		"@giancosta86/typedoc-readonly",
+		"typedoc-plugin-markdown",
+		"typedoc-plugin-frontmatter",
+		"typedoc-plugin-copy-doc",
+		"typedoc-plugin-dt-links",
 		"typedoc-plugin-include-example",
 		"typedoc-plugin-mdn-links"
 	],
