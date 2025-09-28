@@ -13,13 +13,13 @@ export default defineConfig({
 					dest: "scram/",
 				},
 				{
-					src: "../page_inject/output/page_inject.js",
+					src: "../inject/dist/inject.js",
 					dest: ".",
 				},
-				{
-					src: "../chii/public/*",
-					dest: "chii",
-				},
+				// {
+				// 	src: "../chii/public/*",
+				// 	dest: "chii",
+				// },
 			],
 		}),
 	],

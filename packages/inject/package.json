@@ -1,5 +1,5 @@
 {
-	"name": "page_inject",
+	"name": "inject",
 	"version": "1.0.0",
 	"description": "",
 	"main": "index.js",
@@ -14,10 +14,5 @@
 	"dependencies": {
 		"chobitsu": "workspace:*",
 		"html-to-image": "^1.11.13"
-	},
-	"devDependencies": {
-		"@rollup/plugin-commonjs": "^28.0.6",
-		"@rollup/plugin-node-resolve": "^16.0.1",
-		"rollup": "^4.44.2"
 	}
 }
