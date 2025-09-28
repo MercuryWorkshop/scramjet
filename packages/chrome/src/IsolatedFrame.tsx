@@ -15,6 +15,15 @@ import { ElementType, type Handler, Parser } from "htmlparser2";
 import { type ChildNode, DomHandler, Element, Comment, Node } from "domhandler";
 import * as tldts from "tldts";
 
+import type {
+	Chromebound,
+	ChromeboundMethods,
+	Framebound,
+	FrameboundMethods,
+} from "../../inject/src/types";
+import type { Tab } from "./Tab";
+import { browser } from "./Browser";
+
 const ISOLATION_ORIGIN = import.meta.env.VITE_ISOLATION_ORIGIN;
 
 const cfg = {
@@ -161,7 +170,7 @@ export class IsolatedFrame {
 	}
 }
 
-const inject_script = "/page_inject.js";
+const inject_script = "/inject.js";
 
 const methods = {
 	async fetch(
@@ -254,7 +263,6 @@ const methods = {
 			}
 
 			const head = findhead(handler.root as Node as Element)!;
-			console.log(head);
 			head.children.unshift(new Element("script", { src: inject_script }));
 		});
 
@@ -359,3 +367,88 @@ async function makeAllResponse(): Promise<ScramjetFetchResponse> {
 		statusText: "OK",
 	};
 }
+
+let synctoken = 0;
+let syncPool: { [token: number]: (val: any) => void } = {};
+export function sendFrame<T extends keyof Framebound>(
+	controller: Controller,
+	type: T,
+	message: Framebound[T][0]
+): Promise<Framebound[T][1]> {
+	let token = synctoken++;
+
+	controller.window.postMessage(
+		{
+			$ipc$type: "request",
+			$ipc$token: token,
+			$ipc$message: {
+				type,
+				message,
+			},
+		},
+		"*"
+	);
+
+	return new Promise((res) => {
+		syncPool[token] = res;
+	});
+}
+
+window.addEventListener("message", (event) => {
+	let data = event.data;
+	if (!(data && data.$ipc$type)) return;
+
+	if (data.$ipc$type === "response") {
+		let token = data.$ipc$token;
+		if (typeof token !== "number") return;
+		let cb = syncPool[token];
+		if (cb) {
+			cb(data.$ipc$message);
+			delete syncPool[token];
+		}
+	} else if (data.$ipc$type === "request") {
+		const { type, message } = data.$ipc$message;
+		const token = data.$ipc$token;
+
+		const tab =
+			browser.tabs.find((t) => t.frame.frame.contentWindow === event.source) ||
+			null;
+
+		chromemethods[type as keyof ChromeboundMethods](tab, message).then(
+			(response: any) => {
+				(event.source as Window).postMessage(
+					{
+						$ipc$type: "response",
+						$ipc$token: token,
+						$ipc$message: response,
+					},
+					"*"
+				);
+			}
+		);
+	}
+});
+
+type ChromeboundMethods = {
+	[K in keyof Chromebound]: (
+		tab: Tab | null,
+		arg: Chromebound[K][0]
+	) => Promise<Chromebound[K][1]>;
+};
+
+const chromemethods: ChromeboundMethods = {
+	titlechange: async (tab, { title, icon }) => {
+		console.log("title changed...", tab, title, icon);
+		if (tab) {
+			if (title) {
+				tab.title = title;
+				tab.history.current().title = title;
+			}
+			if (icon) {
+				tab.icon = icon;
+				tab.history.current().favicon = icon;
+			}
+		}
+	},
+	contextmenu: async (controller, { x, y }) => {},
+};
