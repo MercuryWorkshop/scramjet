@@ -8,6 +8,17 @@ import { execSync } from "node:child_process";
 import { join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { readFileSync } from "node:fs";
+import { writeFileSync, chmodSync } from "node:fs";
+
+if (!process.env.CI) {
+	try {
+		writeFileSync(
+			".git/hooks/pre-commit",
+			"pnpm format\ngit update-index --again"
+		);
+		chmodSync(".git/hooks/pre-commit", 0o755);
+	} catch {}
+}
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
