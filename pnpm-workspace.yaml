@@ -2,10 +2,10 @@ ignoredBuiltDependencies:
   - bufferutil
 
 packages:
-  - "./"
-  - "frontend"
-  - "dreamlandjs"
-  - "chii"
-  - "chobitsu"
-  - "page_inject"
-  - "sandbox_demo"
+  - "packages/scramjet"
+  - "packages/chrome"
+  - "packages/cdp"
+  - "packages/devtools"
+  - "packages/sandbox"
+  - "packages/inject"
+  - "external/dreamlandjs"
