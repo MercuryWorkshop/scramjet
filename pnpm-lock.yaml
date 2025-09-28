@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
     devDependencies:
       '@rsdoctor/rspack-plugin':
         specifier: ^1.2.3
