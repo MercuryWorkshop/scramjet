@@ -12,6 +12,7 @@
 	"license": "ISC",
 	"packageManager": "pnpm@10.12.1",
 	"dependencies": {
+		"@mercuryworkshop/scramjet": "link:../scramjet",
 		"chobitsu": "workspace:*",
 		"html-to-image": "^1.11.13"
 	}
