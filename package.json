@@ -7,7 +7,8 @@
 		"dev:chrome": "cd packages/chrome && pnpm dev",
 		"build:chrome": "cd packages/chrome && pnpm build",
 		"build": "rspack build",
-		"watch": "rspack build --watch"
+		"watch": "rspack build --watch",
+		"format": "prettier --write ."
 	},
 	"type": "module",
 	"keywords": [],

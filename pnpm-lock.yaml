@@ -7,7 +7,7 @@ settings:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
       '@rsdoctor/rspack-plugin':
         specifier: ^1.2.3
         version: 1.2.3(@rsbuild/core@1.5.11)(@rspack/core@1.5.6(@swc/helpers@0.5.17))(bufferutil@4.0.9)(webpack@5.101.1)
@@ -245,6 +245,9 @@ importers:
 
   packages/inject:
     dependencies:
+      '@mercuryworkshop/scramjet':
+        specifier: link:../scramjet
+        version: link:../scramjet
       chobitsu:
         specifier: workspace:*
         version: link:../cdp
