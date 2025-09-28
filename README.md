@@ -35,9 +35,6 @@ It can be used as:
 
 See [CONTRIBUTING.md](/CONTRIBUTING.md) for build instructions
 
-> [!WARNING]
-> Browser.js does not currently have site isolation! Do not use it for sensitive data!
-
 <br>
 
 ## Support
