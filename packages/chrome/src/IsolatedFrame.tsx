@@ -15,14 +15,20 @@ import { ElementType, type Handler, Parser } from "htmlparser2";
 import { type ChildNode, DomHandler, Element, Comment, Node } from "domhandler";
 import * as tldts from "tldts";
 
-import type {
-	Chromebound,
-	ChromeboundMethods,
-	Framebound,
-	FrameboundMethods,
-} from "../../inject/src/types";
+import iconBack from "@ktibow/iconset-ion/arrow-back";
+import iconForwards from "@ktibow/iconset-ion/arrow-forward";
+import iconRefresh from "@ktibow/iconset-ion/refresh";
+import iconBookmark from "@ktibow/iconset-ion/bookmark-outline";
+import iconCode from "@ktibow/iconset-ion/code-outline";
+import iconLink from "@ktibow/iconset-ion/link-outline";
+import iconAdd from "@ktibow/iconset-ion/duplicate-outline";
+import iconCopy from "@ktibow/iconset-ion/copy-outline";
+import iconSave from "@ktibow/iconset-ion/save-outline";
+
+import type { Chromebound, Framebound } from "../../inject/src/types";
 import type { Tab } from "./Tab";
 import { browser } from "./Browser";
+import { createMenu } from "./components/Menu";
 
 const ISOLATION_ORIGIN = import.meta.env.VITE_ISOLATION_ORIGIN;
 
@@ -436,6 +442,142 @@ type ChromeboundMethods = {
 	) => Promise<Chromebound[K][1]>;
 };
 
+function pageContextItems(
+	tab: Tab,
+	{ selection, image, anchor }: Chromebound["contextmenu"][0]
+) {
+	if (selection && selection.toString().length > 0) {
+		return [
+			{
+				label: "Search",
+				action: () => {
+					const query = selection.toString();
+					if (query) {
+						tab.pushNavigate(
+							new URL(
+								`https://www.google.com/search?q=${encodeURIComponent(query)}`
+							)
+						);
+					}
+				},
+			},
+			{
+				label: "Copy",
+				action: () => {
+					navigator.clipboard.writeText(selection.toString());
+				},
+			},
+		];
+	}
+
+	if (image) {
+		return [
+			{
+				label: "Open Image in New Tab",
+				action: () => {
+					// TODO: this is broken lol
+					if (image.src) {
+						let newTab = browser.newTab();
+						newTab.pushNavigate(new URL(image.src));
+					}
+				},
+			},
+			{
+				label: "Copy Image URL",
+				action: () => {
+					navigator.clipboard.writeText(image.src);
+				},
+			},
+			{
+				label: "Copy Image",
+				action: () => {
+					// copyImageToClipboard(target);
+				},
+			},
+			{
+				label: "Save Image As...",
+				action: () => {
+					// TODO
+				},
+			},
+		];
+	} else if (anchor) {
+		return [
+			{
+				label: "Open Link",
+				action: () => {
+					if (anchor.href) {
+						browser.activetab.pushNavigate(new URL(anchor.href));
+					}
+				},
+				icon: iconLink,
+			},
+			{
+				label: "Open Link in New Tab",
+				action: () => {
+					if (anchor.href) {
+						browser.newTab(new URL(anchor.href));
+					}
+				},
+				icon: iconAdd,
+			},
+			{
+				label: "Copy Link Address",
+				action: () => {
+					navigator.clipboard.writeText(anchor.href);
+				},
+				icon: iconCopy,
+			},
+			{
+				label: "Save Link As...",
+				action: () => {
+					// TODO
+				},
+				icon: iconSave,
+			},
+		];
+	}
+
+	return [
+		{
+			label: "Back",
+			action: () => {
+				tab.back();
+			},
+			icon: iconBack,
+		},
+		{
+			label: "Forward",
+			action: () => {
+				tab.forward();
+			},
+			icon: iconForwards,
+		},
+		{
+			label: "Reload",
+			action: () => {
+				tab.reload();
+			},
+			icon: iconRefresh,
+		},
+		{
+			label: "Bookmark",
+			action: () => {
+				// TODO:
+				console.log("Bookmarking", tab.title, tab.url);
+			},
+			icon: iconBookmark,
+		},
+		{
+			label: "Inspect",
+			action: () => {
+				tab.devtoolsOpen = true;
+				// if (e.target) requestInspectElement([e.target as HTMLElement, tab]);
+			},
+			icon: iconCode,
+		},
+	];
+}
 const chromemethods: ChromeboundMethods = {
 	titlechange: async (tab, { title, icon }) => {
 		console.log("title changed...", tab, title, icon);
@@ -450,5 +592,15 @@ const chromemethods: ChromeboundMethods = {
 			}
 		}
 	},
-	contextmenu: async (controller, { x, y }) => {},
+	contextmenu: async (tab, msg) => {
+		let offX = 0;
+		let offY = 0;
+		let { x, y } = tab!.frame.frame.getBoundingClientRect();
+		offX += x;
+		offY += y;
+		createMenu(
+			{ left: msg.x + offX, top: msg.y + offY },
+			pageContextItems(tab!, msg)
+		);
+	},
 };

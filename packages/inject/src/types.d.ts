@@ -7,6 +7,20 @@ export type Chromebound = {
 		{
 			x: number;
 			y: number;
+			selection?: string;
+			image?: {
+				src: string;
+				width: number;
+				height: number;
+			};
+			anchor?: {
+				href: string;
+			};
+			video?: {
+				src: string;
+				width: number;
+				height: number;
+			};
 		},
 	];
 	titlechange: [
