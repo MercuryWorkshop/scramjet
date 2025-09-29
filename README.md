@@ -13,17 +13,17 @@
 
 Scramjet is an interception-based web proxy designed to bypass arbitrary web browser restrictions, support a wide range of sites, and act as middleware for open-source projects. It prioritizes security, developer friendliness, and performance.
 
-### Scramjet upstream is NOW frozen. Please do not make PRs to this repository. Refer to <a href="https://github.com/HeyPuter/browser.js">browser.js</a> where this project will now recieve updates outside of just bypassing internet censorship.
+### Scramjet upstream is NOW frozen. Please do not make PRs to this repository. Refer to <a href="https://github.com/HeyPuter/browser.js">browser.js</a> where this project will now receive updates outside of just bypassing internet censorship.
 
 ## Supported Sites
 
-Scrmajet has CAPTCHA support! Some of the popular websites that Scramjet supports include:
+Scramjet has CAPTCHA support! Some of the popular websites that Scramjet supports include:
 
 - [Google](https://google.com)
 - [Twitter](https://twitter.com)
 - [Instagram](https://instagram.com)
 - [Youtube](https://youtube.com)
-- [Spotify](https://spotify.com) (partial)
+- [Spotify](https://spotify.com)
 - [Discord](https://discord.com)
 - [Reddit](https://reddit.com)
 - [GeForce NOW](https://play.geforcenow.com/)
