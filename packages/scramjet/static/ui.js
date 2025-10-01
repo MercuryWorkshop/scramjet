@@ -1,4 +1,8 @@
+import { css, h } from "dreamland/core";
+import { html } from "dreamland/js-runtime";
+import { store } from "./store.js";
 const { ScramjetController } = $scramjetLoadController();
+console.log(store);
 
 const scramjet = new ScramjetController({
 	files: {
@@ -18,55 +22,10 @@ const scramjet = new ScramjetController({
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
-const flex = css`
-	display: flex;
-`;
-const col = css`
-	flex-direction: column;
-`;
-
-function Config() {
-	this.css = `
-    transition: opacity 0.4s ease;
-    :modal[open] {
-        animation: fade 0.4s ease normal;
-    }
-
-    :modal::backdrop {
-     backdrop-filter: blur(3px);
-    }
-
-    .buttons {
-      gap: 0.5em;
-    }
-    .buttons button {
-      border: 1px solid #4c8bf5;
-      background-color: #313131;
-      border-radius: 0.75em;
-      color: #fff;
-      padding: 0.45em;
-    }
-    .input_row input {
-      background-color: rgb(18, 18, 18);
-      border: 2px solid rgb(49, 49, 49);
-      border-radius: 0.75em;
-      color: #fff;
-      outline: none;
-      padding: 0.45em;
-    }
-    .input_row {
-      margin-bottom: 0.5em;
-      margin-top: 0.5em;
-    }
-    .input_row input {
-      flex-grow: 1;
-    }
-    .centered {
-      justify-content: center;
-      align-items: center;
-    }
-  `;
-
+window.html = html;
+window.h = h;
+window.c = Config;
+function Config(cx) {
 	function handleModalClose(modal) {
 		modal.style.opacity = 0;
 		setTimeout(() => {
@@ -76,124 +35,97 @@ function Config() {
 	}
 
 	return html`
-      <dialog class="cfg" style="background-color: #121212; color: white; border-radius: 8px;">
-        <div style="align-self: end">
-          <div class=${[flex, "buttons"]}>
-            <button on:click=${() => {
-							connection.setTransport("/baremod/index.mjs", [store.bareurl]);
-							store.transport = "/baremod/index.mjs";
-						}}>use bare server 3</button>
-            <button on:click=${() => {
-							connection.setTransport("/libcurl/index.mjs", [
-								{ wisp: store.wispurl },
-							]);
-							store.transport = "/libcurl/index.mjs";
-						}}>use libcurl.js</button>
-              <button on:click=${() => {
-								connection.setTransport("/epoxy/index.mjs", [
+       <dialog class="cfg" style="background-color: #121212; color: white; border-radius: 8px;">
+         <div style="align-self: end">
+           <div class="buttons" style="display: flex">
+             <button on:click=${() => {
+								connection.setTransport("/baremod/index.mjs", [store.bareurl]);
+								store.transport = "/baremod/index.mjs";
+							}}>use bare server 3</button>
+             <button on:click=${() => {
+								connection.setTransport("/libcurl/index.mjs", [
 									{ wisp: store.wispurl },
 								]);
-								store.transport = "/epoxy/index.mjs";
-							}}>use epoxy</button>
-          </div>
-        </div>
-        <div class=${[flex, col, "input_row"]}>
-          <label for="wisp_url_input">Wisp URL:</label>
-          <input id="wisp_url_input" bind:value=${use(store.wispurl)} spellcheck="false"></input>
-        </div>
-        <div class=${[flex, col, "input_row"]}>
-          <label for="bare_url_input">Bare URL:</label>
-          <input id="bare_url_input" bind:value=${use(store.bareurl)} spellcheck="false"></input>
-        </div>
-        <div>${use(store.transport)}</div>
-        <div class=${[flex, "buttons", "centered"]}>
-          <button on:click=${() => handleModalClose(this.root)}>close</button>
-        </div>
-      </dialog>
-  `;
+								store.transport = "/libcurl/index.mjs";
+							}}>use libcurl.js</button>
+               <button on:click=${() => {
+									connection.setTransport("/epoxy/index.mjs", [
+										{ wisp: store.wispurl },
+									]);
+									store.transport = "/epoxy/index.mjs";
+								}}>use epoxy</button>
+           </div>
+         </div>
+         <div class="input_row" style="display: flex; flex-direction: column">
+           <label for="wisp_url_input">Wisp URL:</label>
+           <input id="wisp_url_input" value=${use(store.wispurl)} spellcheck="false"></input>
+         </div>
+         <div class="input_row" style="display: flex; flex-direction: column">
+           <label for="bare_url_input">Bare URL:</label>
+           <input id="bare_url_input" value=${use(store.bareurl)} spellcheck="false"></input>
+         </div>
+         <div>${use(store.transport)}</div>
+         <div class="buttons centered" style="display: flex">
+           <button on:click=${() => handleModalClose(cx.root)}>close</button>
+         </div>
+       </dialog>
+   `;
 }
+Config.style = css`
+	:scope {
+		transition: opacity 0.4s ease;
+	}
+	:modal[open] {
+		animation: fade 0.4s ease normal;
+	}
 
-function BrowserApp() {
-	this.css = `
-    width: 100%;
-    height: 100%;
-    color: #e0def4;
-    display: flex;
-    flex-direction: column;
-    padding: 0.5em;
-    padding-top: 0;
-    box-sizing: border-box;
+	:modal::backdrop {
+		backdrop-filter: blur(3px);
+	}
 
-    a {
-      color: #e0def4;
-    }
+	.buttons {
+		gap: 0.5em;
+		display: flex;
+	}
+	.buttons button {
+		border: 1px solid #4c8bf5;
+		background-color: #313131;
+		border-radius: 0.75em;
+		color: #fff;
+		padding: 0.45em;
+	}
+	.input_row input {
+		background-color: rgb(18, 18, 18);
+		border: 2px solid rgb(49, 49, 49);
+		border-radius: 0.75em;
+		color: #fff;
+		outline: none;
+		padding: 0.45em;
+	}
+	.input_row {
+		margin-bottom: 0.5em;
+		margin-top: 0.5em;
+	}
+	.input_row input {
+		flex-grow: 1;
+	}
+	.centered {
+		justify-content: center;
+		align-items: center;
+	}
 
-    input,
-    button {
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-        sans-serif;
-    }
-    .version {
-    }
-    h1 {
-      font-family: "Inter Tight", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-      sans-serif;
-      margin-bottom: 0;
-    }
-    iframe {
-      background-color: #fff;
-      border: none;
-      border-radius: 0.3em;
-      flex: 1;
-      width: 100%;
-    }
+	.flex-column {
+		display: flex;
+		flex-direction: column;
+	}
+`;
 
-    input.bar {
-      font-family: "Inter";
-      padding: 0.1em;
-      padding-left: 0.3em;
-      border: none;
-      outline: none;
-      color: #fff;
-      height: 1.5em;
-      border-radius: 0.3em;
-      flex: 1;
-
-      background-color: #121212;
-      border: 1px solid #313131;
-    }
-    .input_row > label {
-      font-size: 0.7rem;
-      color: gray;
-    }
-    p {
-      margin: 0;
-      margin-top: 0.2em;
-    }
-
-    .nav {
-      padding-top: 0.3em;
-      padding-bottom: 0.3em;
-      gap: 0.3em;
-    }
-    spacer {
-      margin-left: 10em;
-    }
-
-    .nav button {
-      color: #fff;
-      outline: none;
-      border: none;
-      border-radius: 0.30em;
-      background-color: #121212;
-      border: 1px solid #313131;
-    }
-  `;
+function BrowserApp(cx) {
 	this.url = store.url;
 
 	const frame = scramjet.createFrame();
 
-	this.mount = () => {
+	cx.mount = () => {
 		let body = btoa(
 			`<body style="background: #000; color: #fff">Welcome to <i>Scramjet</i>! Type in a URL in the omnibox above and press enter to get started.</body>`
 		);
@@ -216,12 +148,14 @@ function BrowserApp() {
 	};
 
 	const cfg = h(Config);
+	console.log(cfg);
+	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/commit/${$scramjetVersion.build}`;
 	document.body.appendChild(cfg);
 	this.githubURL = `https://github.com/MercuryWorkshop/scramjet/commit/${$scramjetVersion.build}`;
 
 	return html`
       <div>
-      <div class=${[flex, "nav"]}>
+      <div class="nav" style="display: flex">
 
         <button on:click=${() => cfg.showModal()}>config</button>
         <button on:click=${() => frame.back()}>&lt;-</button>
@@ -229,7 +163,7 @@ function BrowserApp() {
         <button on:click=${() => frame.reload()}>&#x21bb;</button>
 
         <input class="bar" autocomplete="off" autocapitalize="off" autocorrect="off"
-        bind:value=${use(this.url)} on:input=${(e) => {
+        value=${use(this.url)} on:input=${(e) => {
 					this.url = e.target.value;
 				}} on:keyup=${(e) => e.keyCode == 13 && (store.url = this.url) && handleSubmit()}></input>
 
@@ -241,8 +175,96 @@ function BrowserApp() {
       </div>
       ${frame.frame}
     </div>
-    `;
+   `;
 }
+
+BrowserApp.style = css`
+	:scope {
+		width: 100%;
+		height: 100%;
+		color: #e0def4;
+		display: flex;
+		flex-direction: column;
+		padding: 0.5em;
+		padding-top: 0;
+		box-sizing: border-box;
+	}
+
+	a {
+		color: #e0def4;
+	}
+
+	input,
+	button {
+		font-family:
+			"Inter",
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			sans-serif;
+	}
+	.version {
+	}
+	h1 {
+		font-family:
+			"Inter Tight",
+			"Inter",
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			sans-serif;
+		margin-bottom: 0;
+	}
+	iframe {
+		background-color: #fff;
+		border: none;
+		border-radius: 0.3em;
+		flex: 1;
+		width: 100%;
+	}
+
+	input.bar {
+		font-family: "Inter";
+		padding: 0.1em;
+		padding-left: 0.3em;
+		border: none;
+		outline: none;
+		color: #fff;
+		height: 1.5em;
+		border-radius: 0.3em;
+		flex: 1;
+
+		background-color: #121212;
+		border: 1px solid #313131;
+	}
+	.input_row > label {
+		font-size: 0.7rem;
+		color: gray;
+	}
+	p {
+		margin: 0;
+		margin-top: 0.2em;
+	}
+
+	.nav {
+		padding-top: 0.3em;
+		padding-bottom: 0.3em;
+		gap: 0.3em;
+		display: flex;
+	}
+	spacer {
+		margin-left: 10em;
+	}
+
+	.nav button {
+		color: #fff;
+		outline: none;
+		border: none;
+		border-radius: 0.3em;
+		background-color: #121212;
+		border: 1px solid #313131;
+	}
+`;
 window.addEventListener("load", async () => {
 	const root = document.getElementById("app");
 	try {

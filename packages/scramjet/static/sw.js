@@ -92,7 +92,7 @@ scramjet.addEventListener("request", async (e) => {
 			forwardToInspector(requestData);
 		}
 
-		let resp = await e.currentTarget.client.fetch(e.url, {
+		let resp = await e.client.fetch(e.url, {
 			method: e.method,
 			body: fetchBody,
 			headers: e.requestHeaders,

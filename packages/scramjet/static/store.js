@@ -1,4 +1,6 @@
-const store = $store(
+import { createStore } from "dreamland/core";
+
+export const store = createStore(
 	{
 		url: "https://google.com",
 		wispurl:
@@ -18,4 +20,3 @@ const store = $store(
 	},
 	{ ident: "settings", backing: "localstorage", autosave: "auto" }
 );
-self.store = store;
