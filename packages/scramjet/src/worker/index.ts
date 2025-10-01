@@ -3,12 +3,12 @@
  */
 
 import { FakeServiceWorker } from "@/worker/fakesw";
-import { handleFetch } from "@/worker/fetch";
+import { handleFetch, ScramjetFetchContext } from "@/worker/fetch";
 import { BareClient } from "../bare-mux-custom";
 import { ScramjetConfig, ScramjetDB } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
-import { setConfig, unrewriteUrl } from "@/shared";
+import { ScramjetHeaders, setConfig, unrewriteUrl } from "@/shared";
 import { openDB } from "idb";
 import { ScramjetDownload } from "@client/events";
 import { renderError } from "./error";
@@ -128,6 +128,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		if (this.config) {
 			setConfig(this.config);
+			this.client = new BareClient();
 			await asyncSetWasm();
 		}
 	}
@@ -197,7 +198,35 @@ export class ScramjetServiceWorker extends EventTarget {
 		}
 
 		try {
-			return handleFetch.call(this, request, this.client);
+			const headers = new ScramjetHeaders();
+			for (const [key, value] of request.headers.entries()) {
+				headers.set(key, value);
+			}
+			const context: ScramjetFetchContext = {
+				rawUrl: new URL(request.url),
+				destination: request.destination,
+				mode: request.mode,
+				referrer: request.referrer,
+				method: request.method,
+				body: request.body,
+				cache: request.cache,
+				forceCrossOriginIsolated: crossOriginIsolated,
+				initialHeaders: headers,
+				cookieStore: this.cookieStore,
+			};
+			const resp = await handleFetch.call(
+				this,
+				context,
+				this.config,
+				this.client,
+				new URL(location.protocol + location.host + this.config.prefix)
+			);
+
+			return new Response(resp.body, {
+				status: resp.status,
+				statusText: resp.statusText,
+				headers: resp.headers,
+			});
 		} catch (err) {
 			const errorDetails = {
 				message: err.message,
