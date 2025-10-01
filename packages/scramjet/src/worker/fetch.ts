@@ -92,7 +92,13 @@ export async function handleFetch(
 		duplex: "half",
 	} as RequestInit;
 
-	const req = new ScramjetRequestEvent(context, parsed.url, parsed, init);
+	const req = new ScramjetRequestEvent(
+		context,
+		parsed.url,
+		parsed,
+		init,
+		client
+	);
 	this.dispatchEvent(req);
 
 	// if the event listener overwrote response with a promise, use that. otherwise fetch normally
@@ -819,7 +825,8 @@ export class ScramjetRequestEvent extends Event {
 		public context: ScramjetFetchContext,
 		public url: URL,
 		public parsed: ScramjetFetchParsed,
-		public init: RequestInit
+		public init: RequestInit,
+		public client: BareClient
 	) {
 		super("request");
 	}
