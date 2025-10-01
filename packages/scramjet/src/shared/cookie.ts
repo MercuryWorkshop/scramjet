@@ -18,7 +18,10 @@ export class CookieStore {
 
 	setCookies(cookies: string[], url: URL) {
 		for (const str of cookies) {
-			const parsed = parse(str);
+			const parsed = parse(str, {
+				// this will fuck stuff up if you set it to true
+				decodeValues: false,
+			});
 			const domain = parsed.domain;
 			const sameSite = parsed.sameSite;
 			const cookie: Cookie = {
