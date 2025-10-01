@@ -48,19 +48,20 @@
 				}
 			}
 		</style>
-		<script
-			defer
-			data-domain="scramjet.mercurywork.shop"
-			src="https://analytics.proudparrot2.com/js/script.js"
-		></script>
-		<script src="https://cdn.jsdelivr.net/npm/dreamland"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"dreamland/core": "https://unpkg.com/dreamland/core",
+					"dreamland/js-runtime": "https://unpkg.com/dreamland/js-runtime"
+				}
+			}
+		</script>
 		<script src="/scram/scramjet.all.js"></script>
 		<script src="config.js"></script>
-		<script src="store.js"></script>
 	</head>
 
 	<body>
 		<div id="app"></div>
-		<script src="ui.js"></script>
+		<script type="module" src="ui.js"></script>
 	</body>
 </html>
