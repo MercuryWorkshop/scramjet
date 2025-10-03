@@ -34,6 +34,21 @@ export type Chromebound = {
 			url: string;
 		},
 	];
+	history_pushState: [
+		{
+			state: any;
+			title: string;
+			url: string;
+		},
+	];
+	history_replaceState: [
+		{
+			state: any;
+			title: string;
+			url: string;
+		},
+	];
+	history_go: [{ delta: number }];
 };
 
 export type Framebound = {
@@ -41,6 +56,6 @@ export type Framebound = {
 		{
 			url: string;
 		},
-		string,
 	];
+	history_go: [{ delta: number }, void];
 };

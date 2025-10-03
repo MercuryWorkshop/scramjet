@@ -9,7 +9,10 @@ export const chromeframe = top!;
 
 export const methods: FrameboundMethods = {
 	async navigate({ url }) {
-		return "a";
+		window.location.href = url;
+	},
+	async history_go({ delta }) {
+		client.natives.call("History.prototype.go", history, delta);
 	},
 };
 
@@ -105,8 +108,56 @@ function setupContextMenu() {
 	});
 }
 
+function setupHistoryEmulation() {
+	client.Proxy("History.prototype.pushState", {
+		apply(ctx) {
+			sendChrome("history_pushState", {
+				state: ctx.args[0],
+				title: ctx.args[1],
+				url: ctx.args[2],
+			});
+
+			ctx.return(undefined);
+		},
+	});
+
+	client.Proxy("History.prototype.replaceState", {
+		apply(ctx) {
+			sendChrome("history_replaceState", {
+				state: ctx.args[0],
+				title: ctx.args[1],
+				url: ctx.args[2],
+			});
+
+			ctx.return(undefined);
+		},
+	});
+	client.Proxy("History.prototype.back", {
+		apply(ctx) {
+			sendChrome("history_go", { delta: -1 });
+
+			ctx.return(undefined);
+		},
+	});
+	client.Proxy("History.prototype.forward", {
+		apply(ctx) {
+			sendChrome("history_go", { delta: 1 });
+
+			ctx.return(undefined);
+		},
+	});
+	client.Proxy("History.prototype.go", {
+		apply(ctx) {
+			sendChrome("history_go", { delta: ctx.args[0] });
+
+			ctx.return(undefined);
+		},
+	});
+}
+
 setupTitleWatcher();
 setupContextMenu();
+setupHistoryEmulation();
 
 // inform	chrome of the current url
 // will happen if you get redirected/click on a link, etc, the chrome will have no idea otherwise

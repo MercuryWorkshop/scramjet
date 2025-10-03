@@ -1,12 +1,7 @@
 import { createDelegate, createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
 import { browser } from "./Browser";
-import {
-	addHistoryListeners,
-	History,
-	injectHistoryEmulation,
-	type SerializedHistory,
-} from "./History";
+import { History, type SerializedHistory } from "./History";
 import { NewTabPage } from "./pages/NewTabPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { createMenu } from "./components/Menu";
@@ -22,7 +17,6 @@ import {
 	type ScramjetFetchContext,
 	ScramjetController,
 	type ScramjetFetchResponse,
-	CookieStore,
 	handleFetch,
 	rewriteUrl,
 	config,
@@ -47,7 +41,7 @@ export class Tab extends StatefulClass {
 	devtoolsFrame: ScramjetFrame;
 	screenshot: string | null = null;
 
-	icon: string;
+	icon: string | null;
 	justCreated: boolean = true;
 
 	history: History;
