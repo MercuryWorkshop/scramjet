@@ -192,6 +192,11 @@ DragTab.style = css`
 		flex-direction: column;
 		gap: 0.1em;
 	}
+	.tooltip .title {
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
 	.tooltip .hostname {
 		font-size: 12px;
 	}

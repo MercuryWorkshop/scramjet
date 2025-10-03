@@ -107,3 +107,13 @@ function setupContextMenu() {
 
 setupTitleWatcher();
 setupContextMenu();
+
+// inform	chrome of the current url
+// will happen if you get redirected/click on a link, etc, the chrome will have no idea otherwise
+sendChrome("load", {
+	url: client.url.href,
+});
+
+console.log("sent load", client.url.href);
+
+// console.log(client);
