@@ -4,11 +4,16 @@
 
 import { FakeServiceWorker } from "@/worker/fakesw";
 import { handleFetch, ScramjetFetchContext } from "@/worker/fetch";
-import { BareClient } from "../bare-mux-custom";
+import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetDB } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieJar } from "@/shared/cookie";
-import { ScramjetHeaders, setConfig, unrewriteUrl } from "@/shared";
+import {
+	bareTransport,
+	ScramjetHeaders,
+	setConfig,
+	unrewriteUrl,
+} from "@/shared";
 import { openDB } from "idb";
 import { ScramjetDownload } from "@client/events";
 import { renderError } from "./error";
@@ -128,7 +133,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		if (this.config) {
 			setConfig(this.config);
-			this.client = new BareClient();
+			this.client = new BareClient(bareTransport!);
 			await asyncSetWasm();
 		}
 	}

@@ -1,5 +1,5 @@
 import { config } from "@/shared";
-import { type BareWebSocket } from "../../../bare-mux-custom";
+import { type BareWebSocket } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetClient } from "@client/index";
 
 type FakeWebSocketState = {

@@ -1,4 +1,8 @@
-import { BareClient, BareHeaders, BareResponseFetch } from "../bare-mux-custom";
+import {
+	BareClient,
+	BareHeaders,
+	BareResponseFetch,
+} from "@mercuryworkshop/bare-mux-custom";
 
 import { MessageW2C, ScramjetServiceWorker } from "@/worker";
 import { renderError } from "@/worker/error";
