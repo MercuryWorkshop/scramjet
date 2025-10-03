@@ -8,4 +8,8 @@ packages:
   - "packages/devtools"
   - "packages/sandbox"
   - "packages/inject"
+  - "packages/scramjetserver"
+  - "packages/bare-mux-custom"
+  - "packages/epoxy-transport"
+  - "packages/libcurl-transport"
   - "external/dreamlandjs"
