@@ -2,7 +2,7 @@ import type {
 	BareHeaders,
 	TransferrableResponse,
 	BareTransport,
-} from "./bare-mux-custom";
+} from "@mercuryworkshop/bare-mux-custom";
 import initEpoxy, {
 	EpoxyClient,
 	EpoxyClientOptions,

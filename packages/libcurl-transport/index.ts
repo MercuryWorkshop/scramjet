@@ -3,7 +3,7 @@ import type {
 	BareResponse,
 	TransferrableResponse,
 	BareTransport,
-} from "./bare-mux-custom";
+} from "@mercuryworkshop/bare-mux-custom";
 import { libcurl } from "libcurl.js/bundled";
 export default class LibcurlClient implements BareTransport {
 	wisp: string;
