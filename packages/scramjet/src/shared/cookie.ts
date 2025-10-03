@@ -13,7 +13,7 @@ export type Cookie = {
 	sameSite?: "strict" | "lax" | "none";
 };
 
-export class CookieStore {
+export class CookieJar {
 	private cookies: Record<string, Cookie> = {};
 
 	setCookies(cookies: string[], url: URL) {

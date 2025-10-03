@@ -7,7 +7,7 @@ import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
 import { config, flagEnabled } from "@/shared";
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
 
@@ -70,7 +70,7 @@ export class ScramjetClient {
 	descriptors: DescriptorStore;
 	wrapfn: (i: any, ...args: any) => any;
 
-	cookieStore = new CookieStore();
+	cookieStore = new CookieJar();
 
 	eventcallbacks: Map<
 		any,

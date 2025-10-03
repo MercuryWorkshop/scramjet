@@ -1,11 +1,11 @@
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
 import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
-	fn: (value: string, meta: URLMeta, cookieStore: CookieStore) => string | null;
+	fn: (value: string, meta: URLMeta, cookieStore: CookieJar) => string | null;
 }[] = [
 	{
 		fn: (value: string, meta: URLMeta) => {
@@ -71,7 +71,7 @@ export const htmlRules: {
 		imagesrcset: ["link"],
 	},
 	{
-		fn: (value: string, meta: URLMeta, cookieStore: CookieStore) =>
+		fn: (value: string, meta: URLMeta, cookieStore: CookieJar) =>
 			rewriteHtml(
 				value,
 				cookieStore,
