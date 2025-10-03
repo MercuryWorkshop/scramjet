@@ -147,15 +147,6 @@ export class ScramjetController extends EventTarget {
 				if (!db.objectStoreNames.contains("cookies")) {
 					db.createObjectStore("cookies");
 				}
-				if (!db.objectStoreNames.contains("redirectTrackers")) {
-					db.createObjectStore("redirectTrackers");
-				}
-				if (!db.objectStoreNames.contains("referrerPolicies")) {
-					db.createObjectStore("referrerPolicies");
-				}
-				if (!db.objectStoreNames.contains("publicSuffixList")) {
-					db.createObjectStore("publicSuffixList");
-				}
 			},
 		});
 
