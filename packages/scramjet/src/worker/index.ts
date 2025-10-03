@@ -7,7 +7,7 @@ import { handleFetch, ScramjetFetchContext } from "@/worker/fetch";
 import { BareClient } from "../bare-mux-custom";
 import { ScramjetConfig, ScramjetDB } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
 import { ScramjetHeaders, setConfig, unrewriteUrl } from "@/shared";
 import { openDB } from "idb";
 import { ScramjetDownload } from "@client/events";
@@ -42,7 +42,7 @@ export class ScramjetServiceWorker extends EventTarget {
 	/**
 	 * Scramjet's cookie jar for cookie emulation through other storage means, connected to a client.
 	 */
-	cookieStore = new CookieStore();
+	cookieStore = new CookieJar();
 
 	/**
 	 * Fake service worker registrations, so that some sites don't complain.

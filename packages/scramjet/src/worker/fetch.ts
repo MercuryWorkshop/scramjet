@@ -3,7 +3,7 @@ import { BareClient, BareHeaders, BareResponseFetch } from "../bare-mux-custom";
 import { MessageW2C, ScramjetServiceWorker } from "@/worker";
 import { renderError } from "@/worker/error";
 import { FakeServiceWorker } from "@/worker/fakesw";
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
 
 import {
 	rewriteUrl,
@@ -32,7 +32,7 @@ export interface ScramjetFetchContext {
 
 	forceCrossOriginIsolated: boolean;
 	initialHeaders: ScramjetHeaders;
-	cookieStore: CookieStore;
+	cookieStore: CookieJar;
 
 	rawClientUrl?: URL;
 }
@@ -584,57 +584,57 @@ export async function rewriteHeaders(
 	// Emulate the referrer policy to set it back to what it should've been without Force Referrer in place
 	if (typeof headers["referer"] === "string") {
 		const referrerUrl = new URL(headers["referer"]);
-		const storedPolicyData = await getReferrerPolicy(referrerUrl.href);
-		if (storedPolicyData) {
-			const storedReferrerPolicy = storedPolicyData.policy
-				.toLowerCase()
-				.split(",")
-				.map((rawDir) => rawDir.trim());
-			if (
-				storedReferrerPolicy.includes("no-referrer") ||
-				(storedReferrerPolicy.includes("no-referrer-when-downgrade") &&
-					parsed.meta.origin.protocol === "http:" &&
-					referrerUrl.protocol === "https:")
-			) {
-				delete headers["referer"];
-			} else if (storedReferrerPolicy.includes("origin")) {
-				headers["referer"] = referrerUrl.origin;
-			} else if (storedReferrerPolicy.includes("origin-when-cross-origin")) {
-				if (referrerUrl.origin !== parsed.meta.origin.origin) {
-					headers["referer"] = referrerUrl.origin;
-				} else {
-					headers["referer"] = referrerUrl.href;
-				}
-			} else if (storedReferrerPolicy.includes("same-origin")) {
-				if (referrerUrl.origin === parsed.meta.origin.origin) {
-					headers["referer"] = referrerUrl.href;
-				} else {
-					delete headers["referer"];
-				}
-			} else if (storedReferrerPolicy.includes("strict-origin")) {
-				if (
-					parsed.meta.origin.protocol === "http:" &&
-					referrerUrl.protocol === "https:"
-				) {
-					delete headers["referer"];
-				} else {
-					headers["referer"] = referrerUrl.origin;
-				}
-			}
-			// `strict-origin-when-cross-origin` is the default behavior anyway
-			else {
-				if (referrerUrl.origin === parsed.meta.origin.origin) {
-					headers["referer"] = referrerUrl.href;
-				} else if (
-					parsed.meta.origin.protocol === "http:" &&
-					referrerUrl.protocol === "https:"
-				) {
-					delete headers["referer"];
-				} else {
-					headers["referer"] = referrerUrl.origin;
-				}
-			}
+		// const storedPolicyData = await getReferrerPolicy(referrerUrl.href);
+		// if (storedPolicyData) {
+		// 	const storedReferrerPolicy = storedPolicyData.policy
+		// 		.toLowerCase()
+		// 		.split(",")
+		// 		.map((rawDir) => rawDir.trim());
+		// 	if (
+		// 		storedReferrerPolicy.includes("no-referrer") ||
+		// 		(storedReferrerPolicy.includes("no-referrer-when-downgrade") &&
+		// 			parsed.meta.origin.protocol === "http:" &&
+		// 			referrerUrl.protocol === "https:")
+		// 	) {
+		// 		delete headers["referer"];
+		// 	} else if (storedReferrerPolicy.includes("origin")) {
+		// 		headers["referer"] = referrerUrl.origin;
+		// 	} else if (storedReferrerPolicy.includes("origin-when-cross-origin")) {
+		// 		if (referrerUrl.origin !== parsed.meta.origin.origin) {
+		// 			headers["referer"] = referrerUrl.origin;
+		// 		} else {
+		// 			headers["referer"] = referrerUrl.href;
+		// 		}
+		// 	} else if (storedReferrerPolicy.includes("same-origin")) {
+		// 		if (referrerUrl.origin === parsed.meta.origin.origin) {
+		// 			headers["referer"] = referrerUrl.href;
+		// 		} else {
+		// 			delete headers["referer"];
+		// 		}
+		// 	} else if (storedReferrerPolicy.includes("strict-origin")) {
+		// 		if (
+		// 			parsed.meta.origin.protocol === "http:" &&
+		// 			referrerUrl.protocol === "https:"
+		// 		) {
+		// 			delete headers["referer"];
+		// 		} else {
+		// 			headers["referer"] = referrerUrl.origin;
+		// 		}
+		// 	}
+		// 	// `strict-origin-when-cross-origin` is the default behavior anyway
+		// 	else {
+		if (referrerUrl.origin === parsed.meta.origin.origin) {
+			headers["referer"] = referrerUrl.href;
+		} else if (
+			parsed.meta.origin.protocol === "http:" &&
+			referrerUrl.protocol === "https:"
+		) {
+			delete headers["referer"];
+		} else {
+			headers["referer"] = referrerUrl.origin;
 		}
+		// }
+		// }
 	}
 	if (
 		typeof headers["sec-fetch-dest"] === "string" &&
@@ -661,18 +661,18 @@ export async function rewriteHeaders(
 		}
 	}
 
-	const isNavigationRequest =
-		context.mode === "navigate" &&
-		["document", "iframe"].includes(context.destination);
+	// const isNavigationRequest =
+	// 	context.mode === "navigate" &&
+	// 	["document", "iframe"].includes(context.destination);
 
 	// Store referrer policy from navigation responses for Force Referrer
-	if (isNavigationRequest && headers["referrer-policy"] && context.referrer) {
-		await storeReferrerPolicy(
-			parsed.url.href,
-			headers["referrer-policy"],
-			context.referrer
-		);
-	}
+	// if (isNavigationRequest && headers["referrer-policy"] && context.referrer) {
+	// 	await storeReferrerPolicy(
+	// 		parsed.url.href,
+	// 		headers["referrer-policy"],
+	// 		context.referrer
+	// 	);
+	// }
 
 	if (headers["accept"] === "text/event-stream") {
 		headers["content-type"] = "text/event-stream";
