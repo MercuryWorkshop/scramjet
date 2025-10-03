@@ -85,7 +85,7 @@ const cfg = {
 };
 
 setConfig(cfg);
-const bare = new BareClient();
+export const bare = new BareClient();
 
 type Controller = {
 	controllerframe: HTMLIFrameElement;
