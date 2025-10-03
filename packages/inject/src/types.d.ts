@@ -29,6 +29,11 @@ export type Chromebound = {
 			icon?: string;
 		},
 	];
+	load: [
+		{
+			url: string;
+		},
+	];
 };
 
 export type Framebound = {

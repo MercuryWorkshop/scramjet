@@ -269,7 +269,9 @@ const methods = {
 			}
 
 			const head = findhead(handler.root as Node as Element)!;
-			head.children.unshift(new Element("script", { src: inject_script }));
+
+			// inject after the scramjet scripts and before the rest of the page
+			head.children.splice(3, 0, new Element("script", { src: inject_script }));
 		});
 
 		const fetchresponse = await handleFetch.call(
@@ -580,7 +582,6 @@ function pageContextItems(
 }
 const chromemethods: ChromeboundMethods = {
 	titlechange: async (tab, { title, icon }) => {
-		console.log("title changed...", tab, title, icon);
 		if (tab) {
 			if (title) {
 				tab.title = title;
@@ -602,5 +603,16 @@ const chromemethods: ChromeboundMethods = {
 			{ left: msg.x + offX, top: msg.y + offY },
 			pageContextItems(tab!, msg)
 		);
+	},
+	load: async (tab, { url }) => {
+		if (!tab) return;
+		console.log("URL", url);
+		if (tab.history.justTriggeredNavigation) {
+			// url bar was typed in, we triggered this navigation, don't push a new state since we already did
+			tab.history.justTriggeredNavigation = false;
+		} else {
+			// the page just loaded on its own (a link was clicked, window.location was set)
+			tab.history.push(new URL(url), undefined, false);
+		}
 	},
 };
