@@ -2,7 +2,7 @@ import {
 	ScramjetHeaders,
 	type ScramjetFetchContext,
 	type ScramjetFetchResponse,
-	CookieStore,
+	CookieJar,
 	handleFetch,
 	rewriteUrl,
 	setConfig,
@@ -89,7 +89,7 @@ export const bare = new BareClient();
 
 type Controller = {
 	controllerframe: HTMLIFrameElement;
-	cookiestore: CookieStore;
+	cookiestore: CookieJar;
 	rootdomain: string;
 	baseurl: URL;
 	prefix: URL;
@@ -133,7 +133,7 @@ function makeController(url: URL): Controller {
 	});
 
 	const prefix = new URL(baseurl.protocol + baseurl.host + cfg.prefix);
-	const cookiestore = new CookieStore();
+	const cookiestore = new CookieJar();
 
 	const controller = {
 		controllerframe: frame,
@@ -379,13 +379,13 @@ async function makeAllResponse(): Promise<ScramjetFetchResponse> {
 let synctoken = 0;
 let syncPool: { [token: number]: (val: any) => void } = {};
 export function sendFrame<T extends keyof Framebound>(
-	controller: Controller,
+	tab: Tab,
 	type: T,
 	message: Framebound[T][0]
 ): Promise<Framebound[T][1]> {
 	let token = synctoken++;
 
-	controller.window.postMessage(
+	tab.frame.frame.contentWindow!.postMessage(
 		{
 			$ipc$type: "request",
 			$ipc$token: token,

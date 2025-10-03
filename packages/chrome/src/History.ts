@@ -2,8 +2,7 @@ import { createState } from "dreamland/core";
 import { browser } from "./Browser";
 import { StatefulClass } from "./StatefulClass";
 import type { Tab } from "./Tab";
-
-import type { ScramjetClient, ScramjetFrame } from "@mercuryworkshop/scramjet";
+import { sendFrame } from "./IsolatedFrame";
 
 // history api emulation
 export class HistoryState extends StatefulClass {
@@ -12,6 +11,8 @@ export class HistoryState extends StatefulClass {
 	title: string | null = null;
 	favicon: string | null = null;
 	timestamp: number;
+
+	virtual: boolean = false; // whether this state was created by pushState and can be navigated to without a full reload
 
 	constructor(partial?: Partial<HistoryState>) {
 		super(createState(Object.create(HistoryState.prototype)));
@@ -126,15 +127,27 @@ export class History {
 			this.index = this.states.length - 1;
 		}
 
-		if (navigate) {
+		let newstate = this.states[this.index];
+
+		if (newstate.virtual) {
+			sendFrame(this.tab, "history_go", {
+				delta,
+			});
+		} else if (navigate) {
 			this.justTriggeredNavigation = true;
-			this.tab._directnavigate(this.states[this.index].url);
+			this.tab._directnavigate(newstate.url);
+		}
+
+		if (newstate.virtual || !navigate) {
+			this.tab.url = newstate.url;
+			this.tab.title = newstate.title;
+			this.tab.icon = newstate.favicon;
 		}
 
 		this.tab.canGoBack = this.canGoBack();
 		this.tab.canGoForward = this.canGoForward();
 
-		return this.states[this.index];
+		return newstate;
 	}
 	canGoBack(): boolean {
 		return this.index > 0;
@@ -143,61 +156,3 @@ export class History {
 		return this.index < this.states.length - 1;
 	}
 }
-
-export function addHistoryListeners(frame: ScramjetFrame, tab: Tab) {
-	frame.addEventListener("navigate", (e) => {
-		console.log("History push from navigate", e, tab.history.states);
-		// this event is fired whenever location.href is set, or similar
-		// importantly not fired when replaceState is called (we overwrite it ourselves in injectContext)
-
-		// behavior here is just to create a new history entry
-		const url = new URL(e.url);
-		tab.history.push(url, undefined, false);
-
-		console.log("History push from navigate", url, tab.history.states);
-	});
-}
-
-export function injectHistoryEmulation(client: ScramjetClient, tab: Tab) {
-	// this is extremely problematic in terms of security but whatever
-	client.global.addEventListener("beforeunload", (e: BeforeUnloadEvent) => {
-		console.log("History beforeunload", e);
-	});
-
-	client.Proxy("History.prototype.pushState", {
-		apply(ctx) {
-			console.log("STATE PUSH", ctx.args);
-			ctx.return(undefined);
-		},
-	});
-
-	client.Proxy("History.prototype.replaceState", {
-		apply(ctx) {
-			console.log("STATE REPLACE", ctx.args);
-			ctx.return(undefined);
-		},
-	});
-	client.Proxy("History.prototype.back", {
-		apply(ctx) {
-			console.log("HISTORY BACK", ctx);
-			tab.history.go(-1);
-			ctx.return(undefined);
-		},
-	});
-	client.Proxy("History.prototype.forward", {
-		apply(ctx) {
-			console.log("HISTORY FORWARD", ctx);
-			tab.history.go(1);
-			ctx.return(undefined);
-		},
-	});
-	client.Proxy("History.prototype.go", {
-		apply(ctx) {
-			console.log("HISTORY GO", ctx);
-			tab.history.go(ctx.args[0]);
-			ctx.return(undefined);
-		},
-	});
-}
-
-export function handleNavigate() {}
