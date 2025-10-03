@@ -5,16 +5,6 @@ import { renderError } from "@/worker/error";
 import { FakeServiceWorker } from "@/worker/fakesw";
 import { CookieStore } from "@/shared/cookie";
 
-import { getSiteDirective } from "@/shared/security/siteTests";
-import {
-	initializeTracker,
-	updateTracker,
-	cleanTracker,
-	getMostRestrictiveSite,
-	storeReferrerPolicy,
-	getReferrerPolicy,
-} from "@/shared/security/forceReferrer";
-
 import {
 	rewriteUrl,
 	unrewriteBlob,
@@ -161,9 +151,9 @@ export async function handleFetch(
 	}
 
 	// Clean up tracker if not a redirect
-	if (!isRedirect(response)) {
-		await cleanTracker(parsed.url.toString());
-	}
+	// if (!isRedirect(response)) {
+	// await cleanTracker(parsed.url.toString());
+	// }
 
 	const resp = new ScramjetResponseEvent(context, parsed, {
 		body: responseBody,
