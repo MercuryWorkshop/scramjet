@@ -1,12 +1,12 @@
 import { ScramjetFrame } from "@/controller/frame";
-import { BareClient } from "../bare-mux-custom";
+import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { config, flagEnabled } from "@/shared";
+import { bareTransport, config, flagEnabled } from "@/shared";
 import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
@@ -121,7 +121,7 @@ export class ScramjetClient {
 
 		this.box.registerClient(this, global as Self);
 
-		this.bare = new BareClient();
+		this.bare = new BareClient(bareTransport!);
 
 		this.serviceWorker = this.global.navigator.serviceWorker;
 

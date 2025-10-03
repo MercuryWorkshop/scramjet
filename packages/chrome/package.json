@@ -15,7 +15,9 @@
 	"dependencies": {
 		"@iconify/types": "^2.0.0",
 		"@ktibow/iconset-ion": "^8.0.13",
-		"@mercuryworkshop/epoxy-transport": "^2.1.27",
+		"@mercuryworkshop/bare-mux-custom": "workspace:*",
+		"@mercuryworkshop/epoxy-transport": "workspace:*",
+		"@mercuryworkshop/libcurl-transport": "workspace:*",
 		"@mercuryworkshop/scramjet": "workspace:scramjet",
 		"devtools-protocol": "^0.0.1339468",
 		"domhandler": "^5.0.3",

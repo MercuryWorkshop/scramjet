@@ -10,5 +10,3 @@ export * from "./worker";
 export * from "./entry";
 export * from "./symbols";
 export * from "./types";
-
-export { BareClient } from "./bare-mux-custom";

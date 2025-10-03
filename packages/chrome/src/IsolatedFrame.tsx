@@ -8,9 +8,9 @@ import {
 	setConfig,
 	unrewriteUrl,
 	type URLMeta,
-	BareClient,
 	ScramjetServiceWorker,
 } from "@mercuryworkshop/scramjet/bundled";
+import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { ElementType, type Handler, Parser } from "htmlparser2";
 import { type ChildNode, DomHandler, Element, Comment, Node } from "domhandler";
 import * as tldts from "tldts";
@@ -31,6 +31,8 @@ import { browser } from "./Browser";
 import { createMenu } from "./components/Menu";
 
 const ISOLATION_ORIGIN = import.meta.env.VITE_ISOLATION_ORIGIN;
+
+import LibcurlClient from "@mercuryworkshop/libcurl-transport";
 
 const cfg = {
 	wisp: "ws://localhost:1337/",
@@ -85,7 +87,11 @@ const cfg = {
 };
 
 setConfig(cfg);
-export const bare = new BareClient();
+export const bare = new BareClient(
+	new LibcurlClient({
+		wisp: cfg.wisp,
+	})
+);
 
 type Controller = {
 	controllerframe: HTMLIFrameElement;
