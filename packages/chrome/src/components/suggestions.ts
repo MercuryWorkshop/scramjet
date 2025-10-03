@@ -1,4 +1,5 @@
 import { browser } from "../Browser";
+import { bare } from "../IsolatedFrame";
 import { scramjet } from "../main";
 
 export type OmniboxResult = {
@@ -114,10 +115,8 @@ const fetchGoogleSuggestions = async (
 	if (!query) return [];
 
 	try {
-		const resp = await fetch(
-			scramjet.encodeUrl(
-				`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`
-			)
+		const resp = await bare.fetch(
+			`http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`
 		);
 
 		const json = await resp.json();
