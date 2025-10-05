@@ -61,6 +61,41 @@ export type Trap<T> = {
 	set?: (ctx: TrapCtx<T>, v: T) => void;
 };
 
+function findBox(global: Window, seen: Window[]): SingletonBox | null {
+	if (seen.includes(global)) return null;
+	seen.push(global);
+
+	try {
+		if ((SCRAMJETCLIENT in global) as any) {
+			return global[SCRAMJETCLIENT].box;
+		}
+	} catch {}
+
+	try {
+		const b = findBox(global.parent, seen);
+		if (b) return b;
+	} catch {}
+
+	try {
+		const b = findBox(global.top, seen);
+		if (b) return b;
+	} catch {}
+
+	try {
+		if (global.opener) {
+			const b = findBox(global.opener, seen);
+			if (b) return b;
+		}
+	} catch {}
+
+	for (let i = 0; i < global.length; i++) {
+		try {
+			const b = findBox(global[i], seen);
+			if (b) return b;
+		} catch {}
+	}
+}
+
 export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
@@ -96,26 +131,13 @@ export class ScramjetClient {
 		}
 
 		if (iswindow) {
-			try {
-				if (SCRAMJETCLIENT in global.parent) {
-					this.box = global.parent[SCRAMJETCLIENT].box;
-				}
-			} catch {}
-			try {
-				if (SCRAMJETCLIENT in global.top) {
-					this.box = global.top[SCRAMJETCLIENT].box;
-				}
-			} catch {}
-			try {
-				if (global.opener && SCRAMJETCLIENT in global.opener) {
-					this.box = global.opener[SCRAMJETCLIENT].box;
-				}
-			} catch {}
-			if (!this.box) {
-				dbg.warn("Creating SingletonBox");
-				this.box = new SingletonBox(this);
+			const b = findBox(global as unknown as Window, []);
+			if (b) {
+				this.box = b;
 			}
-		} else {
+		}
+
+		if (!this.box) {
 			this.box = new SingletonBox(this);
 		}
 
