@@ -21,7 +21,6 @@ export interface ScramjetVersionInfo {
  * Scramjet Feature Flags, configured at build time
  */
 export type ScramjetFlags = {
-	serviceworkers: boolean;
 	syncxhr: boolean;
 	strictRewrites: boolean;
 	rewriterLogs: boolean;

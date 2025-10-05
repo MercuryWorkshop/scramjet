@@ -57,7 +57,6 @@ const cfg = {
 		sync: "/scram/scramjet.sync.js",
 	},
 	flags: {
-		serviceworkers: false,
 		syncxhr: false,
 		strictRewrites: true,
 		rewriterLogs: false,

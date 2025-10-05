@@ -27,11 +27,7 @@ const scramjetcfg: Partial<ScramjetInitConfig> = {
 		captureErrors: false,
 		interceptDownloads: true,
 	},
-	siteFlags: {
-		"https://worker-playground.glitch.me/.*": {
-			serviceworkers: true,
-		},
-	},
+	siteFlags: {},
 };
 
 export const scramjet = new ScramjetController(scramjetcfg);

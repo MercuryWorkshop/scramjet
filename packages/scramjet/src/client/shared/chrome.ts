@@ -1,7 +1,7 @@
 // delete all chrome specific apis, or apis that are not supported by any browser other than chrome
 // these are not worth emulating and typically cause issues
 
-import { isemulatedsw, iswindow } from "@client/entry";
+import { iswindow } from "@client/entry";
 import { ScramjetClient } from "@client/index";
 
 // type self as any here, most of these are not defined in the types
@@ -17,6 +17,8 @@ export default function (client: ScramjetClient, self: any) {
 		}
 	};
 
+	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
+
 	// obviously
 	// del("chrome");
 
@@ -28,10 +30,6 @@ export default function (client: ScramjetClient, self: any) {
 	// background synchronization api
 	if (iswindow) {
 		del("ServiceWorkerRegistration.prototype.sync");
-	}
-	if (isemulatedsw) {
-		del("SyncManager");
-		del("SyncEvent");
 	}
 
 	// trustedtypes
