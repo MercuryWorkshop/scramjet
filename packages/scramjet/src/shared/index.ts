@@ -1,4 +1,4 @@
-import { BareTransport } from "@/bare-mux-custom";
+import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetFlags } from "@/types";
 
 export * from "./cookie";

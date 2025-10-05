@@ -1,4 +1,3 @@
-import { isemulatedsw } from "@client/entry";
 import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 
@@ -7,8 +6,6 @@ export default function (client: ScramjetClient) {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
 				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
-
-				if (isemulatedsw) ctx.args[0] += "?from=swruntime";
 			}
 		},
 	});
@@ -17,8 +14,6 @@ export default function (client: ScramjetClient) {
 		construct(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
 				ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
-
-				if (isemulatedsw) ctx.args[0] += "?from=swruntime";
 			}
 		},
 	});

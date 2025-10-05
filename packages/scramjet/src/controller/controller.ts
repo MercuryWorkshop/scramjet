@@ -45,7 +45,6 @@ export class ScramjetController extends EventTarget {
 				sync: "/scramjet.sync.js",
 			},
 			flags: {
-				serviceworkers: false,
 				syncxhr: false,
 				strictRewrites: true,
 				rewriterLogs: false,

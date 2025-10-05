@@ -2,7 +2,6 @@
  * @fileoverview Contains the core Service Worker logic for Scramjet, which handles the initial request interception and handles client management for the Scramjet service.
  */
 
-import { FakeServiceWorker } from "@/worker/fakesw";
 import { handleFetch, ScramjetFetchContext } from "@/worker/fetch";
 import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetDB } from "@/types";
@@ -20,7 +19,6 @@ import { renderError } from "./error";
 
 export * from "./error";
 export * from "./fetch";
-export * from "./fakesw";
 
 /**
  * Main `ScramjetServiceWorker` class created by the `$scramjetLoadWorker` factory, which handles routing the proxy and contains the core logic for request interception.
@@ -50,12 +48,6 @@ export class ScramjetServiceWorker extends EventTarget {
 	cookieStore = new CookieJar();
 
 	/**
-	 * Fake service worker registrations, so that some sites don't complain.
-	 * This will eventually be replaced with a NestedSW feature under a flag in the future, but this will remain for stability even then.
-	 */
-	serviceWorkers: FakeServiceWorker[] = [];
-
-	/**
 	 * Initializes the `BareClient` Scramjet uses to fetch requests under a chosen proxy transport, the cookie jar store for proxifying cookies, and inits the listeners for emulation features and dynamic configs set through the Scramjet Controller.
 	 */
 	constructor() {
@@ -77,12 +69,6 @@ export class ScramjetServiceWorker extends EventTarget {
 				const cb = this.syncPool[data.scramjet$token];
 				delete this.syncPool[data.scramjet$token];
 				cb(data);
-
-				return;
-			}
-
-			if (data.scramjet$type === "registerServiceWorker") {
-				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
 
 				return;
 			}

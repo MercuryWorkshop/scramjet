@@ -25,7 +25,6 @@
 		"**/rewriters/**",
 		"**/shared/rewriters/**",
 		"**/client/shared/**",
-		"**/client/swruntime.ts",
 		"**/client/entry.ts",
 		"**/worker/fetch.ts",
 		"**/worker/error.ts"
