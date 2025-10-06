@@ -476,10 +476,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 				const realwin = ctx.get() as Window;
 				if (!realwin) return realwin;
 
-				if (!(SCRAMJETCLIENT in realwin)) {
-					// hook the iframe before the client can start to steal globals out of it
-					const newclient = new ScramjetClient(realwin);
-					newclient.hook();
+				try {
+					if (!(SCRAMJETCLIENT in realwin)) {
+						// hook the iframe before the client can start to steal globals out of it
+						const newclient = new ScramjetClient(realwin);
+						newclient.hook();
+					}
+				} catch {
+					// cross-origin iframe, can't do anything here
+					return realwin;
 				}
 
 				return realwin;
