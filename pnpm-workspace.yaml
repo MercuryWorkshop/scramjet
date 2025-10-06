@@ -1,8 +1,0 @@
-ignoredBuiltDependencies:
-  - bufferutil
-
-packages:
-  - "./"
-
-overrides:
-  "entities@4.5.0": "6.0.1"

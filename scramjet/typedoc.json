@@ -1,0 +1,42 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+	"skipErrorChecking": true,
+	"customCss": "./node_modules/@stephansama/catppuccin-typedoc/dist/catppuccin-typedoc.css",
+	"entryPoints": ["src/entry.ts"],
+	"out": "./_docs",
+	"tsconfig": "./tsconfig.user-facing.json",
+	"exclude": [
+		"**/*.spec.ts",
+		"**/*.test.ts",
+		"**/rewriters/**",
+		"**/shared/rewriters/**",
+		"**/worker/fetch/**",
+		"**/worker/rewrite/**",
+		"**/worker/fakesw.ts"
+	],
+	"excludePrivate": true,
+	"excludeInternal": true,
+	"categoryOrder": ["Window Context", "Service Worker Context"],
+	"defaultCategory": "Window Context",
+	"lightHighlightTheme": "catppuccin-latte",
+	"darkHighlightTheme": "catppuccin-mocha",
+	"hostedBaseUrl": "https://scramjet.mercurywork.shop/typedoc",
+	"plugin": [
+		"@8hobbies/typedoc-plugin-plausible",
+		"@shipgirl/typedoc-plugin-versions",
+		"@8hobbies/typedoc-plugin-404",
+		"@giancosta86/typedoc-readonly",
+		"typedoc-plugin-markdown",
+		"typedoc-plugin-frontmatter",
+		"typedoc-plugin-copy-doc",
+		"typedoc-plugin-dt-links",
+		"typedoc-plugin-include-example",
+		"typedoc-plugin-mdn-links"
+	],
+	"versions": {
+		"stable": "auto",
+		"dev": "auto"
+	},
+	"plausibleSiteDomain": "scramjet.mercurywork.shop",
+	"plausibleSiteOrigin": "https://analytics.proudparrot2.com/js/"
+}

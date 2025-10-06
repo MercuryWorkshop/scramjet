@@ -1,0 +1,372 @@
+name: CI
+
+on:
+  push:
+    paths-ignore: &ci_ignore_paths
+      - ".github/workflows/**"
+      - "assets/**"
+      - "scripts/**"
+      # Editor configs
+      - ".zed/**"
+      - ".vscode/**"
+      # Docs
+      - "documentation/**"
+      - "**/*.md"
+      # The README is included in the Typedoc
+      - "!README.md"
+      # Formatters
+      - "eslint.config.json"
+      - "prettier.config.json"
+      - ".editorconfig"
+  pull_request:
+    paths-ignore: *ci_ignore_paths
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.exit_code }}
+      new_version: ${{ steps.check.outputs.exit_code }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check the version
+        id: check
+        run: |
+          CURRENT_VERSION=$(jq -r .version package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet versions --json | jq -r '.[-1]' || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build Scramjet
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install pnpm dependencies
+        run: pnpm install
+
+      - name: Cache rewriter build artifacts
+        uses: actions/cache@v4
+        id: rewriter-cache
+        with:
+          path: |
+            rewriter/wasm/out
+            dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('rewriter/wasm/Cargo.toml', 'rewriter/wasm/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          restore-keys: |
+            rewriter-release-
+
+      - name: Cache Rust dependencies
+        if: steps.rewriter-cache.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "rewriter"
+          cache-all-crates: true
+
+      - name: Install wbg
+        if: steps.rewriter-cache.outputs.cache-hit != 'true'
+        uses: jetli/wasm-bindgen-action@v0.2.0
+        with:
+          version: "0.2.100"
+
+      - name: Setup Binaryen
+        if: steps.rewriter-cache.outputs.cache-hit != 'true'
+        uses: Aandreba/setup-binaryen@v1.0.0
+        with:
+          token: ${{ github.token }}
+
+      - name: Setup wasm-snip
+        if: steps.rewriter-cache.outputs.cache-hit != 'true'
+        run: "cargo install --git https://github.com/r58playz/wasm-snip"
+
+      - name: Pack Scramjet
+        run: pnpm pack
+
+      - name: Upload Artifact (pnpm pack)
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: mercuryworkshop-scramjet-*.tgz
+
+      - name: Upload Artifact (dist)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scramjet
+          path: |
+            dist/*.js
+            dist/*.js.map
+            dist/*.wasm
+
+  package-validation:
+    name: Validate Package Structure
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: .
+
+      - name: Extract package
+        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+
+      - name: Run package validation tests
+        run: pnpm test:package
+  tests:
+    name: Run Scramjet Tests
+    runs-on: ubuntu-latest
+    needs: [build, package-validation]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet
+          path: dist
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: pnpm test:integration
+
+  rewritertests:
+    name: "Run Rewriter Tests"
+    runs-on: ubuntu-latest
+    needs: [build, package-validation]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache rewriter build artifacts
+        uses: actions/cache@v4
+        id: rewriter-cache
+        with:
+          path: |
+            rewriter/wasm/out
+            dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('rewriter/wasm/Cargo.toml', 'rewriter/wasm/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+          restore-keys: |
+            rewriter-release-
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "rewriter"
+          cache-all-crates: true
+
+      - name: Run Tests
+        run: cd rewriter/native && cargo test
+
+  upload:
+    name: Upload release
+    runs-on: ubuntu-latest
+    needs: [version-check, build, package-validation, rewritertests, tests]
+    permissions: write-all
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Delete old release and tag
+        uses: dev-drprasad/delete-tag-and-release@v1.1
+        with:
+          delete_release: true
+          tag_name: latest
+          github_token: ${{ github.token }}
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: .
+
+      - name: Release unstable build to GitHub
+        uses: ncipollo/release-action@v1
+        with:
+          name: Continuous Build
+          tag: latest
+          commit: main
+          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
+          artifacts: "mercuryworkshop-scramjet-*.tgz"
+          prerelease: true
+
+      - name: Release tagged version to GitHub
+        if: needs.version-check.outputs.version_changed == 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          name: "${{ needs.version-check.outputs.new_version }}"
+          tag: "v${{ needs.version-check.outputs.new_version }}"
+          commit: main
+          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
+          artifacts: "mercuryworkshop-scramjet-*.tgz"
+
+  publish:
+    name: Publish Scramjet to NPM
+    runs-on: ubuntu-latest
+    needs: [version-check, build, package-validation, rewritertests, tests]
+    permissions: write-all
+    if: ${{ (needs.version-check.outputs.version_changed == 'true') && (github.ref == 'refs/heads/main') }}
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-scramjet
+          path: .
+
+      - name: Extract package
+        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+
+      - name: Publish
+        run: npm publish --access public --no-git-checks
+
+  pages:
+    name: Upload to Github Pages
+    runs-on: ubuntu-latest
+    needs: [build, package-validation, rewritertests, tests]
+    permissions: write-all
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet
+          path: dist
+
+      - name: Setup GitHub CLI
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download existing TypeDoc history
+        run: bash ./ci/download-existing-docs.sh
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build TypeDoc documentation with versioning
+        continue-on-error: true
+        run: bash ./ci/build-docs.sh
+
+      - name: Upload TypeDoc user-facing artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: typedoc-current
+          path: typedoc-*.tar.gz
+
+      - name: Upload TypeDoc dev-facing artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: typedoc-current-dev
+          path: typedoc-*.tar.gz-dev
+
+      - name: Build static assets
+        run: bash ./ci/build-static.sh
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./staticbuild"
+
+      - name: Deploy to github
+        id: deployment
+        uses: actions/deploy-pages@v4
