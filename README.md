@@ -1,60 +1,91 @@
-<h3 align="center"><img width="80" alt="Browser.js" src="./assets/icon-256.png"></h3>
+<h1 align="center">Scramjet</h1>
+<div align="center">
+  <img src="assets/scramjet.png" height="200" />
+</div>
 
-<h3 align="center">Highly Configurable Browser Environment for the Web</h3>
+<div align="center">
+  <a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
+  <img src="https://img.shields.io/github/issues/MercuryWorkshop/scramjet?style=flat&color=orange" />
+  <img src="https://img.shields.io/github/stars/MercuryWorkshop/scramjet?style=flat&color=orange" />
+</div>
 
-<p align="center">
-    <a href="https://puter.com/app/puter-browser-beta"><strong>« LIVE DEMO »</strong></a>
-    <br />
-    <br />
-    <a href="https://puter.com">Puter.com</a>
-    ·
-    <a href="https://discord.com/invite/PQcx7Teh8u">Discord</a>
-    ·
-    <a href="https://reddit.com/r/puter">Reddit</a>
-    ·
-    <a href="https://twitter.com/HeyPuter">X</a>
-</p>
-<h3 align="center"><img style="border-radius:5px;" alt="screenshot" src="./assets/screenshot.png"></h3>
+---
 
-<br>
+Scramjet is an interception-based web proxy designed to bypass arbitrary web browser restrictions, support a wide range of sites, and act as middleware for open-source projects. It prioritizes security, developer friendliness, and performance.
 
-# Browser.js
+### Scramjet upstream is NOW frozen. Please do not make PRs to this repository. Refer to <a href="https://github.com/HeyPuter/browser.js">browser.js</a> where this project will now receive updates outside of just bypassing internet censorship.
 
-"A browser in a browser!", Browser.js is a highly configurable browser environment for the web.
+## Supported Sites
 
-It can be used as:
+Scramjet has CAPTCHA support! Some of the popular websites that Scramjet supports include:
 
-- An end-to-end encrypted, cloud-based browser accessible from any device at anytime
-- A headless browser that can be embedded in other websites and applications
-- A fast, lightweight, and no-installation alternative to Puppeteer, Playwright, and Selenium
-- An alternative to Ultraviolet, Rammerhead, and other web proxy browsers
+- [Google](https://google.com)
+- [Twitter](https://twitter.com)
+- [Instagram](https://instagram.com)
+- [Youtube](https://youtube.com)
+- [Spotify](https://spotify.com)
+- [Discord](https://discord.com)
+- [Reddit](https://reddit.com)
+- [GeForce NOW](https://play.geforcenow.com/)
 
-<br>
+Ensure you are not hosting on a datacenter IP for CAPTCHAs to work reliably along with YouTube. Heavy amounts of traffic will make some sites NOT work on a single IP. Consider rotating IPs or routing through Wireguard using a project like <a href="https://github.com/whyvl/wireproxy">wireproxy</a>.
 
-## Getting Started
+An easy to deploy version of Scramjet can be found at [Scramjet-App](https://github.com/MercuryWorkshop/scramjet-app).
 
-See [CONTRIBUTING.md](/CONTRIBUTING.md) for build instructions
+## Development
 
-<br>
+### Dependencies
 
-## Support
+- Recent versions of `node.js` and `pnpm`
+- `rustup`
+- `wasm-bindgen`
+- [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
+- [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
 
-Connect with the maintainers and community through these channels:
+#### Building
 
-- Bug report or feature request? Please [open an issue](https://github.com/HeyPuter/browser.js/issues/new/choose).
-- Discord: [discord.com/invite/PQcx7Teh8u](https://discord.com/invite/PQcx7Teh8u)
-- X (Twitter): [x.com/HeyPuter](https://x.com/HeyPuter)
-- Reddit: [reddit.com/r/puter/](https://www.reddit.com/r/puter/)
-- Mastodon: [mastodon.social/@puter](https://mastodon.social/@puter)
-- Security issues? [security@puter.com](mailto:security@puter.com)
-- Email maintainers at [hi@puter.com](mailto:hi@puter.com)
+- Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
+- Install the dependencies with `pnpm i`
+- Build the rewriter with `pnpm rewriter:build`
+- Build Scramjet with `pnpm build`
 
-We are always happy to help you with any questions you may have. Don't hesitate to ask!
+### Running Scramjet Locally
 
-<br/>
+You can run the Scramjet dev server with the command
 
-## License
+```sh
+pnpm dev
+```
 
-This repository, including all its contents, sub-projects, modules, and components, is licensed under [AGPL-3.0](https://github.com/HeyPuter/puter/blob/main/LICENSE.txt) unless explicitly stated otherwise. Third-party libraries included in this repository may be subject to their own licenses.
+Scramjet should now be running at <http://localhost:1337> and should rebuild upon a file being changed (excluding the rewriter).
 
-<br/>
+### Setting up Typedoc
+
+The official Scramjet Typedoc gets deployed via GitHub Actions along with the demo site [here](https://scramjet.mercurywork.shop/typedoc).
+
+You can run it locally with:
+
+```
+pnpm run docs
+pnpm docs:dev
+pnpm docs:serve
+```
+
+### Set up everything
+
+Do you want to run the Scramjet demo and Typedoc together like what is served on GitHub Pages by the Action?
+
+You can do this by running the serve script:
+
+```sh
+chmod +x scripts/serve-static.sh
+./scripts/serve-static.sh
+```
+
+This essentially simulates the CI pipeline, but in a shell script.
+
+## Resources
+
+- [TN Docs](https://docs.titaniumnetwork.org/proxies/scramjet) - There's a page on TN's docs for Scramjet, which is structured more like a guide if you are an interested proxy site developer.
+- [Scramjet Typedocs](https://scramjet.mercurywork.shop/typedoc) - Contains documentation for Scramjet APIs. This is useful for any proxy site developer.
+- [Scramjet-App](https://github.com/MercuryWorkshop/scramjet-app) - A simple example of a proxy site, which uses Scramjet in a mass-deployable manner. This is based on [Ultraviolet-App](https://github.com/titaniumnetwork-dev/ultraviolet-app) for familiarity.

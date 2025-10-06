@@ -38,7 +38,7 @@ export default [
 			"no-unused-labels": "warn",
 			quotes: ["error", "double"],
 			"getter-return": "error",
-			"newline-before-return": "off",
+			"newline-before-return": "error",
 			"no-multiple-empty-lines": "error",
 			"no-var": "error",
 			"no-this-before-super": "warn",
