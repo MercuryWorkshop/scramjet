@@ -33,7 +33,7 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/types/index.d.ts",
+			"types": "./dist/types/types.d.ts",
 			"default": "./lib/noop.js"
 		},
 		"./path": {
@@ -88,6 +88,7 @@
 		"@typescript-eslint/parser": "^8.43.0",
 		"actionlint": "^2.0.6",
 		"ava": "^6.4.1",
+		"@mercuryworkshop/bare-mux-custom": "workspace:*",
 		"dotenv": "^17.2.2",
 		"eslint": "^9.35.0",
 		"fastify": "^5.6.0",
@@ -111,7 +112,6 @@
 		"typescript": "^5.9.2"
 	},
 	"dependencies": {
-		"@mercuryworkshop/bare-mux": "^2.1.7",
 		"dom-serializer": "^2.0.0",
 		"domhandler": "^5.0.3",
 		"domutils": "^3.2.2",

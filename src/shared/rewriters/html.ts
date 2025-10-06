@@ -1,15 +1,15 @@
-import { ElementType, Parser } from "htmlparser2";
+import { ElementType, Handler, Parser } from "htmlparser2";
 import { ChildNode, DomHandler, Element, Comment } from "domhandler";
 import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
 import { config } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 
 export function getInjectScripts<T>(
-	cookieStore: CookieStore,
+	cookieStore: CookieJar,
 	script: (src: string) => T
 ): T[] {
 	const dump = JSON.stringify(cookieStore.dump());
@@ -34,15 +34,18 @@ export function getInjectScripts<T>(
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
 	html: string,
-	cookieStore: CookieStore,
+	cookieStore: CookieJar,
 	meta: URLMeta,
-	fromTop: boolean = false
+	fromTop: boolean = false,
+	preRewrite?: (handler: DomHandler) => void,
+	postRewrite?: (handler: DomHandler) => void
 ) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
 
 	parser.write(html);
 	parser.end();
+	if (preRewrite) preRewrite(handler);
 	traverseParsedHtml(handler.root, cookieStore, meta);
 
 	function findhead(node) {
@@ -69,6 +72,8 @@ function rewriteHtmlInner(
 		head.children.unshift(...getInjectScripts(cookieStore, script));
 	}
 
+	if (postRewrite) postRewrite(handler);
+
 	return render(handler.root, {
 		encodeEntities: "utf8",
 		decodeEntities: false,
@@ -77,12 +82,21 @@ function rewriteHtmlInner(
 
 export function rewriteHtml(
 	html: string,
-	cookieStore: CookieStore,
+	cookieStore: CookieJar,
 	meta: URLMeta,
-	fromTop: boolean = false
+	fromTop: boolean = false,
+	preRewrite?: (handler: DomHandler) => void,
+	postRewrite?: (handler: DomHandler) => void
 ) {
 	const before = performance.now();
-	const ret = rewriteHtmlInner(html, cookieStore, meta, fromTop);
+	const ret = rewriteHtmlInner(
+		html,
+		cookieStore,
+		meta,
+		fromTop,
+		preRewrite,
+		postRewrite
+	);
 	dbg.time(meta, before, "html rewrite");
 
 	return ret;
@@ -132,11 +146,7 @@ export function unrewriteHtml(html: string) {
 
 // i need to add the attributes in during rewriting
 
-function traverseParsedHtml(
-	node: any,
-	cookieStore: CookieStore,
-	meta: URLMeta
-) {
+function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 	if (node.name === "base" && node.attribs.href !== undefined) {
 		meta.base = new URL(node.attribs.href, meta.origin);
 	}

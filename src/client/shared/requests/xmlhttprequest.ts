@@ -123,7 +123,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string);
+			return unrewriteUrl(ctx.get() as string, client.meta);
 		},
 	});
 }

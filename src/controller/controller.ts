@@ -23,7 +23,7 @@ export class ScramjetController extends EventTarget {
 		super();
 		// sane ish defaults
 		const defaultConfig: ScramjetInitConfig = {
-			// wisp: "/wisp/",
+			wisp: "/wisp/",
 			prefix: "/scramjet/",
 			globals: {
 				wrapfn: "$scramjet$wrap",
@@ -45,7 +45,6 @@ export class ScramjetController extends EventTarget {
 				sync: "/scramjet.sync.js",
 			},
 			flags: {
-				serviceworkers: false,
 				syncxhr: false,
 				strictRewrites: true,
 				rewriterLogs: false,
@@ -146,15 +145,6 @@ export class ScramjetController extends EventTarget {
 				}
 				if (!db.objectStoreNames.contains("cookies")) {
 					db.createObjectStore("cookies");
-				}
-				if (!db.objectStoreNames.contains("redirectTrackers")) {
-					db.createObjectStore("redirectTrackers");
-				}
-				if (!db.objectStoreNames.contains("referrerPolicies")) {
-					db.createObjectStore("referrerPolicies");
-				}
-				if (!db.objectStoreNames.contains("publicSuffixList")) {
-					db.createObjectStore("publicSuffixList");
 				}
 			},
 		});

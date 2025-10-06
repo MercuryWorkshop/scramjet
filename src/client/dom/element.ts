@@ -70,7 +70,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			Object.defineProperty(element.prototype, attr, {
 				get() {
 					if (["src", "data", "href", "action", "formaction"].includes(attr)) {
-						return unrewriteUrl(descriptor.get.call(this));
+						return unrewriteUrl(descriptor.get.call(this), client.meta);
 					}
 
 					return descriptor.get.call(this);
@@ -103,7 +103,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					const href = desc.get.call(ctx.this);
 					if (!href) return href;
 
-					const url = new URL(unrewriteUrl(href));
+					const url = new URL(unrewriteUrl(href, client.meta));
 
 					return url[prop];
 				},
@@ -241,7 +241,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const href = ctx.get() as string;
 			if (!href) return href;
 
-			return unrewriteUrl(href);
+			return unrewriteUrl(href, client.meta);
 		},
 		set(ctx, val: string) {
 			ctx.set(rewriteUrl(val, client.meta));
@@ -252,7 +252,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const href = ctx.get() as string;
 			if (!href) return href;
 
-			return unrewriteUrl(href);
+			return unrewriteUrl(href, client.meta);
 		},
 		// it has no setter
 	});

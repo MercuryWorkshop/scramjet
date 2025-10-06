@@ -2,18 +2,23 @@
  * @fileoverview Contains the core Service Worker logic for Scramjet, which handles the initial request interception and handles client management for the Scramjet service.
  */
 
-import { FakeServiceWorker } from "@/worker/fakesw";
-import { handleFetch } from "@/worker/fetch";
-import BareClient from "@mercuryworkshop/bare-mux";
+import { handleFetch, ScramjetFetchContext } from "@/worker/fetch";
+import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetDB } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
+import {
+	bareTransport,
+	ScramjetHeaders,
+	setConfig,
+	unrewriteUrl,
+} from "@/shared";
 import { openDB } from "idb";
-import { config, loadCodecs, setConfig } from "@/shared";
 import { ScramjetDownload } from "@client/events";
+import { renderError } from "./error";
+
 export * from "./error";
 export * from "./fetch";
-export * from "./fakesw";
 
 /**
  * Main `ScramjetServiceWorker` class created by the `$scramjetLoadWorker` factory, which handles routing the proxy and contains the core logic for request interception.
@@ -40,20 +45,13 @@ export class ScramjetServiceWorker extends EventTarget {
 	/**
 	 * Scramjet's cookie jar for cookie emulation through other storage means, connected to a client.
 	 */
-	cookieStore = new CookieStore();
-
-	/**
-	 * Fake service worker registrations, so that some sites don't complain.
-	 * This will eventually be replaced with a NestedSW feature under a flag in the future, but this will remain for stability even then.
-	 */
-	serviceWorkers: FakeServiceWorker[] = [];
+	cookieStore = new CookieJar();
 
 	/**
 	 * Initializes the `BareClient` Scramjet uses to fetch requests under a chosen proxy transport, the cookie jar store for proxifying cookies, and inits the listeners for emulation features and dynamic configs set through the Scramjet Controller.
 	 */
 	constructor() {
 		super();
-		this.client = new BareClient();
 
 		(async () => {
 			const db = await openDB<ScramjetDB>("$scramjet", 1);
@@ -71,12 +69,6 @@ export class ScramjetServiceWorker extends EventTarget {
 				const cb = this.syncPool[data.scramjet$token];
 				delete this.syncPool[data.scramjet$token];
 				cb(data);
-
-				return;
-			}
-
-			if (data.scramjet$type === "registerServiceWorker") {
-				this.serviceWorkers.push(new FakeServiceWorker(data.port, data.origin));
 
 				return;
 			}
@@ -127,6 +119,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 		if (this.config) {
 			setConfig(this.config);
+			this.client = new BareClient(bareTransport!);
 			await asyncSetWasm();
 		}
 	}
@@ -165,12 +158,96 @@ export class ScramjetServiceWorker extends EventTarget {
 	 *   }
 	 * });
 	 */
-	async fetch({ request, clientId }: FetchEvent) {
+	async fetch({ request }: FetchEvent) {
 		if (!this.config) await this.loadConfig();
 
-		const client = await self.clients.get(clientId);
+		// const client = await self.clients.get(clientId);
 
-		return handleFetch.call(this, request, client);
+		let url = new URL(request.url);
+
+		if (url.pathname === this.config.files.wasm) {
+			return fetch(this.config.files.wasm).then(async (x) => {
+				const buf = await x.arrayBuffer();
+				const b64 = btoa(
+					new Uint8Array(buf)
+						.reduce(
+							(data, byte) => (data.push(String.fromCharCode(byte)), data),
+							[]
+						)
+						.join("")
+				);
+
+				let payload = "";
+				payload +=
+					"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+				payload += `self.WASM = '${b64}';`;
+
+				return new Response(payload, {
+					headers: { "content-type": "text/javascript" },
+				});
+			});
+		}
+
+		try {
+			const headers = new ScramjetHeaders();
+			for (const [key, value] of request.headers.entries()) {
+				headers.set(key, value);
+			}
+			const context: ScramjetFetchContext = {
+				rawUrl: new URL(request.url),
+				destination: request.destination,
+				mode: request.mode,
+				referrer: request.referrer,
+				method: request.method,
+				body: request.body,
+				cache: request.cache,
+				forceCrossOriginIsolated: crossOriginIsolated,
+				initialHeaders: headers,
+				cookieStore: this.cookieStore,
+			};
+			const resp = await handleFetch.call(
+				this,
+				context,
+				this.config,
+				this.client,
+				new URL(location.protocol + location.host + this.config.prefix)
+			);
+
+			return new Response(resp.body, {
+				status: resp.status,
+				statusText: resp.statusText,
+				headers: resp.headers,
+			});
+		} catch (err) {
+			const errorDetails = {
+				message: err.message,
+				url: request.url,
+				destination: request.destination,
+			};
+			if (err.stack) {
+				errorDetails["stack"] = err.stack;
+			}
+
+			console.error("ERROR FROM SERVICE WORKER FETCH: ", errorDetails);
+			console.error(err);
+
+			if (!["document", "iframe"].includes(request.destination))
+				return new Response(undefined, { status: 500 });
+
+			const formattedError = Object.entries(errorDetails)
+				.map(
+					([key, value]) =>
+						`${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`
+				)
+				.join("\n\n");
+
+			return renderError(
+				formattedError,
+				unrewriteUrl(request.url, {
+					prefix: location.origin + this.config.prefix,
+				} as any)
+			);
+		}
 	}
 }
 

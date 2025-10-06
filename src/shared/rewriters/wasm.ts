@@ -10,7 +10,7 @@ import { htmlRules } from "@/shared/htmlRules";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { getInjectScripts } from "@rewriters/html";
-import { CookieStore } from "@/shared/cookie";
+import { CookieJar } from "@/shared/cookie";
 
 let wasm_u8: Uint8Array<ArrayBuffer>;
 
@@ -64,11 +64,12 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 					rewriteUrl,
 					rewriteCss,
 					rewriteJs,
-					getHtmlInjectCode(cookieStore: CookieStore, foundHead: boolean) {
+					getHtmlInjectCode(cookieStore: CookieJar, foundHead: boolean) {
 						let inject = getInjectScripts(
 							cookieStore,
 							(src) => `<script src="${src}"></script>`
 						).join("");
+
 						return foundHead ? `<head>${inject}</head>` : inject;
 					},
 				},

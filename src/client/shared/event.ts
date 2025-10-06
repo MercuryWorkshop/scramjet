@@ -45,10 +45,10 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 		hashchange: {
 			oldURL() {
-				return unrewriteUrl(this.oldURL);
+				return unrewriteUrl(this.oldURL, client.meta);
 			},
 			newURL() {
-				return unrewriteUrl(this.newURL);
+				return unrewriteUrl(this.newURL, client.meta);
 			},
 		},
 		storage: {
@@ -59,7 +59,7 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.key.substring(this.key.indexOf("@") + 1);
 			},
 			url() {
-				return unrewriteUrl(this.url);
+				return unrewriteUrl(this.url, client.meta);
 			},
 		},
 	};

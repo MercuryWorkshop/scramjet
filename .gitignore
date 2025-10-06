@@ -1,5 +1,3 @@
-node_modules
-dist
 static/scramjet*
 static/bare-mux.js
 static/bare-client.js
@@ -11,20 +9,3 @@ rewriter/target
 rewriter/wasm/out
 static/wasm.js
 rewriter/*.js
-playwright-report
-test-results
-*.tgz
-package-lock.json
-rebuild.sh
-
-# Typedoc
-_docs/
-_docs-dev/
-existing-typedoc/
-existing-typedoc-dev/
-staticbuild/
-typedoc-*.tar.gz
-typedoc-*.tar.gz-dev
-
-# Rslib (For global type generation)
-.rslib/

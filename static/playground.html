@@ -48,7 +48,16 @@
 				}
 			}
 		</style>
-		<script src="https://cdn.jsdelivr.net/npm/dreamland@0.0.25"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"dreamland/core": "https://cdn.jsdelivr.net/npm/dreamland/core",
+					"dreamland/js-runtime": "https://cdn.jsdelivr.net/npm/dreamland/js-runtime"
+				}
+			}
+		</script>
+		<script src="https://cdn.jsdelivr.net/npm/dreamland/core"></script>
+		<script src="https://cdn.jsdelivr.net/npm/dreamland/js-runtime"></script>
 		<script src="/baremux/index.js"></script>
 		<script src="/scram/scramjet.all.js"></script>
 		<script src="config.js"></script>

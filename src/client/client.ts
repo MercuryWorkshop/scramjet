@@ -1,15 +1,15 @@
 import { ScramjetFrame } from "@/controller/frame";
+import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { config, flagEnabled } from "@/shared";
-import { CookieStore } from "@/shared/cookie";
+import { bareTransport, config, flagEnabled } from "@/shared";
+import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
-import BareClient from "@mercuryworkshop/bare-mux";
 
 type NativeStore = {
 	store: Record<string, any>;
@@ -61,17 +61,51 @@ export type Trap<T> = {
 	set?: (ctx: TrapCtx<T>, v: T) => void;
 };
 
+function findBox(global: Window, seen: Window[]): SingletonBox | null {
+	if (seen.includes(global)) return null;
+	seen.push(global);
+
+	try {
+		if ((SCRAMJETCLIENT in global) as any) {
+			return global[SCRAMJETCLIENT].box;
+		}
+	} catch {}
+
+	try {
+		const b = findBox(global.parent, seen);
+		if (b) return b;
+	} catch {}
+
+	try {
+		const b = findBox(global.top, seen);
+		if (b) return b;
+	} catch {}
+
+	try {
+		if (global.opener) {
+			const b = findBox(global.opener, seen);
+			if (b) return b;
+		}
+	} catch {}
+
+	for (let i = 0; i < global.length; i++) {
+		try {
+			const b = findBox(global[i], seen);
+			if (b) return b;
+		} catch {}
+	}
+}
+
 export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
-	// epoxy: EpoxyClient;
 	bare: BareClient;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
 	wrapfn: (i: any, ...args: any) => any;
 
-	cookieStore = new CookieStore();
+	cookieStore = new CookieJar();
 
 	eventcallbacks: Map<
 		any,
@@ -97,57 +131,19 @@ export class ScramjetClient {
 		}
 
 		if (iswindow) {
-			try {
-				if (SCRAMJETCLIENT in global.parent) {
-					this.box = global.parent[SCRAMJETCLIENT].box;
-				}
-			} catch {}
-			try {
-				if (SCRAMJETCLIENT in global.top) {
-					this.box = global.top[SCRAMJETCLIENT].box;
-				}
-			} catch {}
-			try {
-				if (global.opener && SCRAMJETCLIENT in global.opener) {
-					this.box = global.opener[SCRAMJETCLIENT].box;
-				}
-			} catch {}
-			if (!this.box) {
-				dbg.warn("Creating SingletonBox");
-				this.box = new SingletonBox(this);
+			const b = findBox(global as unknown as Window, []);
+			if (b) {
+				this.box = b;
 			}
-		} else {
+		}
+
+		if (!this.box) {
 			this.box = new SingletonBox(this);
 		}
 
 		this.box.registerClient(this, global as Self);
 
-		/*
-		initEpoxy().then(() => {
-			let options = new EpoxyClientOptions();
-			options.user_agent = navigator.userAgent;
-			this.epoxy = new EpoxyClient(config.wisp, options);
-		});
-		*/
-
-		if (iswindow) {
-			// this.bare = new EpoxyClient();
-			this.bare = new BareClient();
-		} else {
-			this.bare = new BareClient(
-				new Promise((resolve) => {
-					addEventListener("message", ({ data }) => {
-						if (typeof data !== "object") return;
-						if (
-							"$scramjet$type" in data &&
-							data.$scramjet$type === "baremuxinit"
-						) {
-							resolve(data.port);
-						}
-					});
-				})
-			);
-		}
+		this.bare = new BareClient(bareTransport!);
 
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
@@ -262,15 +258,24 @@ export class ScramjetClient {
 					throw new Error("topFrameName was called from a worker?");
 
 				let currentWin = client.global;
-				if (currentWin.parent.window == currentWin.window) {
-					// we're top level & we don't have a frame name
-					return null;
+
+				try {
+					if (currentWin.parent.window == currentWin.window) {
+						// we're top level & we don't have a frame name
+						return null;
+					}
+				} catch {
+					// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
 				}
 
-				// find the topmost frame that's controlled by scramjet, stopping before the real top frame
-				while (currentWin.parent.window !== currentWin.window) {
-					if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
-					currentWin = currentWin.parent.window;
+				try {
+					// find the topmost frame that's controlled by scramjet, stopping before the real top frame
+					while (currentWin.parent.window !== currentWin.window) {
+						if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
+						currentWin = currentWin.parent.window;
+					}
+				} catch {
+					// doesn't matter if it throws here just means we found the topmost one
 				}
 
 				const curclient = currentWin[SCRAMJETCLIENT];
@@ -280,6 +285,7 @@ export class ScramjetClient {
 				);
 				if (!frame) {
 					// we're inside an iframe, but the top frame is scramjet-controlled and top level, so we can't get a top frame name
+					// or we're cross-origin and frameElement doesn't exist. that's a TODO because this won't work
 					return null;
 				}
 				if (!frame.name) {
@@ -296,12 +302,18 @@ export class ScramjetClient {
 			get parentFrameName() {
 				if (!iswindow)
 					throw new Error("parentFrameName was called from a worker?");
-				if (client.global.parent.window == client.global.window) {
-					// we're top level & we don't have a frame name
+
+				try {
+					if (client.global.parent.window == client.global.window) {
+						// we're top level & we don't have a frame name
+						return null;
+					}
+				} catch {
+					// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
 					return null;
 				}
 
-				let parentWin = client.global.parent.window;
+				const parentWin = client.global.parent.window;
 				if (parentWin[SCRAMJETCLIENT]) {
 					// we're inside an iframe, and the parent is scramjet-controlled
 					const parentClient = parentWin[SCRAMJETCLIENT];
@@ -344,6 +356,7 @@ export class ScramjetClient {
 					return frame.name;
 				}
 			},
+			prefix: new URL(location.origin + config.prefix),
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
@@ -424,7 +437,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(unrewriteUrl(this.global.location.href));
+		return new URL(unrewriteUrl(this.global.location.href, this.meta));
 	}
 
 	set url(url: URL | string) {

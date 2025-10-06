@@ -1,4 +1,3 @@
-import { BareMuxConnection } from "@mercuryworkshop/bare-mux";
 import { rewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 
@@ -12,20 +11,20 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 			}
 
 			const worker = ctx.call();
-			const conn = new BareMuxConnection();
+			// const conn = new BareMuxConnection();
 
-			(async () => {
-				const port = await conn.getInnerPort();
-				client.natives.call(
-					"Worker.prototype.postMessage",
-					worker,
-					{
-						$scramjet$type: "baremuxinit",
-						port,
-					},
-					[port]
-				);
-			})();
+			// (async () => {
+			// 	const port = await conn.getInnerPort();
+			// 	client.natives.call(
+			// 		"Worker.prototype.postMessage",
+			// 		worker,
+			// 		{
+			// 			$scramjet$type: "baremuxinit",
+			// 			port,
+			// 		},
+			// 		[port]
+			// 	);
+			// })();
 		},
 	});
 
@@ -48,20 +47,20 @@ export default function (client: ScramjetClient, _self: typeof globalThis) {
 			}
 
 			const worker = ctx.call();
-			const conn = new BareMuxConnection();
+			// const conn = new BareMuxConnection();
 
-			(async () => {
-				const port = await conn.getInnerPort();
-				client.natives.call(
-					"MessagePort.prototype.postMessage",
-					worker.port,
-					{
-						$scramjet$type: "baremuxinit",
-						port,
-					},
-					[port]
-				);
-			})();
+			// (async () => {
+			// 	const port = await conn.getInnerPort();
+			// 	client.natives.call(
+			// 		"MessagePort.prototype.postMessage",
+			// 		worker.port,
+			// 		{
+			// 			$scramjet$type: "baremuxinit",
+			// 			port,
+			// 		},
+			// 		[port]
+			// 	);
+			// })();
 		},
 	});
 

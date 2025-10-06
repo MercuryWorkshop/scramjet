@@ -1,5 +1,6 @@
 const { ScramjetController } = $scramjetLoadController();
 const scramjet = new ScramjetController({
+	wisp: "ws://localhost:1337/",
 	files: {
 		wasm: "/scram/scramjet.wasm.wasm",
 		all: "/scram/scramjet.all.js",
@@ -10,7 +11,8 @@ const scramjet = new ScramjetController({
 scramjet.init();
 navigator.serviceWorker.register("./sw.js");
 
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+import { css } from "dreamland/core";
+
 const flex = css`
 	display: flex;
 `;
@@ -18,62 +20,9 @@ const col = css`
 	flex-direction: column;
 `;
 
-connection.setTransport(store.transport, [{ wisp: store.wispurl }]);
-
-function PlaygroundApp() {
-	this.css = `
-    width: 100%;
-    height: 100%;
-    color: #f0fef4;
-    display: flex;
-    padding: 0.5em;
-    box-sizing: border-box;
-    gap: 0.5em;
-
-
-    .codesplit {
-      width: 50%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-
-      gap: 0.5em;
-    }
-
-    .mcontainer {
-      background: #1e1e1e;
-      h2 {
-        margin: 0.1em;
-      }
-
-      border: 1px solid #313131;
-      flex-basis: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-    .monaco {
-      flex: 1;
-    }
-
-    .frame {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5em;
-      iframe {
-        width: 100%;
-      	border: 1px solid #313131;
-      }
-    }
-    .config {
-      border: 1px solid #313131;
-      background: #1e1e1e;
-      padding: 0.5em;
-    }
-  `;
-
-	this.fakeorigin = "https://sandboxedorigin.com";
-	this.mount = async () => {
+function PlaygroundApp(cx) {
+	cx.fakeorigin = "https://sandboxedorigin.com";
+	cx.mount = async () => {
 		const monaco = await import(
 			"https://cdn.jsdelivr.net/npm/monaco-editor/+esm"
 		);
@@ -222,3 +171,55 @@ window.addEventListener("load", async () => {
 		throw e;
 	}
 });
+
+PlaygroundApp.style = css`
+	:scope {
+		width: 100%;
+		height: 100%;
+		color: #f0fef4;
+		display: flex;
+		padding: 0.5em;
+		box-sizing: border-box;
+		gap: 0.5em;
+	}
+
+	.codesplit {
+		width: 50%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+
+		gap: 0.5em;
+	}
+
+	.mcontainer {
+		background: #1e1e1e;
+		h2 {
+			margin: 0.1em;
+		}
+
+		border: 1px solid #313131;
+		flex-basis: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+	.monaco {
+		flex: 1;
+	}
+
+	.frame {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5em;
+		iframe {
+			width: 100%;
+			border: 1px solid #313131;
+		}
+	}
+	.config {
+		border: 1px solid #313131;
+		background: #1e1e1e;
+		padding: 0.5em;
+	}
+`;

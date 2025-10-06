@@ -9,7 +9,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			const name = ctx.get() as string;
 
 			if (name && name.startsWith(location.origin + config.prefix)) {
-				return unrewriteUrl(name);
+				return unrewriteUrl(name, client.meta);
 			}
 
 			return name;

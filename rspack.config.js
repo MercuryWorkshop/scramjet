@@ -11,6 +11,11 @@ import { readFileSync } from "node:fs";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const packagemeta = JSON.parse(await readFile("package.json"));
 
+let wasmB64 = null;
+const wasmPath = join(__dirname, "rewriter/wasm/out/wasm_bg.wasm");
+const wasmBuf = await readFile(wasmPath);
+wasmB64 = wasmBuf.toString("base64");
+
 // Configuration for standard IIFE builds
 const iifeConfig = defineConfig({
 	mode: "development",
@@ -169,16 +174,7 @@ const moduleConfig = defineConfig({
 			VERSION: JSON.stringify(packagemeta.version),
 		}),
 		new rspack.DefinePlugin({
-			REWRITERWASM: (() => {
-				try {
-					const wasmPath = join(__dirname, "dist/scramjet.wasm.wasm");
-					const wasmBuf = readFileSync(wasmPath);
-					const wasmB64 = wasmBuf.toString("base64");
-					return JSON.stringify(wasmB64);
-				} catch {
-					return "undefined";
-				}
-			})(),
+			REWRITERWASM: JSON.stringify(wasmB64),
 		}),
 		new rspack.DefinePlugin({
 			COMMITHASH: (() => {

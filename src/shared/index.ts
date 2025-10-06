@@ -1,3 +1,4 @@
+import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetFlags } from "@/types";
 
 export * from "./cookie";
@@ -31,4 +32,9 @@ export let config: ScramjetConfig;
 export function setConfig(newConfig: ScramjetConfig) {
 	config = newConfig;
 	loadCodecs();
+}
+
+export let bareTransport: BareTransport | null = null;
+export function setBareTransport(transport: BareTransport) {
+	bareTransport = transport;
 }

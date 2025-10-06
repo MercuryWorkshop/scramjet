@@ -13,12 +13,15 @@ export type Cookie = {
 	sameSite?: "strict" | "lax" | "none";
 };
 
-export class CookieStore {
+export class CookieJar {
 	private cookies: Record<string, Cookie> = {};
 
 	setCookies(cookies: string[], url: URL) {
 		for (const str of cookies) {
-			const parsed = parse(str);
+			const parsed = parse(str, {
+				// this will fuck stuff up if you set it to true
+				decodeValues: false,
+			});
 			const domain = parsed.domain;
 			const sameSite = parsed.sameSite;
 			const cookie: Cookie = {
