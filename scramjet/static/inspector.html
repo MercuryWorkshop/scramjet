@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Scramjet Request Inspector</title>
+		<link rel="stylesheet" href="inspector.css" />
+	</head>
+	<body class="chrome-devtools">
+		<div class="toolbar">
+			<button id="clear-btn">Clear</button>
+			<button id="refresh-btn">Refresh</button>
+		</div>
+
+		<div class="main-content">
+			<div class="request-table-container">
+				<table class="request-table">
+					<thead>
+						<tr>
+							<th>URL</th>
+							<th>Status</th>
+							<th>Type</th>
+							<th>Size</th>
+							<th>Time</th>
+						</tr>
+					</thead>
+					<tbody id="request-table-body">
+						<tr>
+							<td colspan="5">
+								<div class="empty-state">No requests captured yet</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="resizer" id="resizer"></div>
+
+			<div class="request-details">
+				<div class="details-tabs">
+					<div class="details-tab active" data-tab="headers">Headers</div>
+					<div class="details-tab" data-tab="preview">Preview</div>
+					<div class="details-tab" data-tab="response">Response</div>
+				</div>
+
+				<div class="details-content">
+					<!-- Headers Tab Content -->
+					<div class="tab-content active" id="headers-tab">
+						<div class="details-section">
+							<div class="section-header" data-section="general">
+								<div class="section-arrow"></div>
+								<h3 class="section-title">General</h3>
+							</div>
+							<div class="section-content" id="general-content">
+								<div class="details-grid">
+									<div class="label">Request URL:</div>
+									<div id="detail-url">-</div>
+
+									<div class="label">Request Method:</div>
+									<div id="detail-method">-</div>
+
+									<div class="label">Status Code:</div>
+									<div id="detail-status">-</div>
+
+									<div class="label">Remote Address:</div>
+									<div id="detail-address">-</div>
+
+									<div class="label">Referrer Policy:</div>
+									<div id="detail-referrer">-</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="details-section">
+							<div class="section-header" data-section="request-headers">
+								<div class="section-arrow"></div>
+								<h3 class="section-title">Request Headers</h3>
+							</div>
+							<div class="section-content" id="request-headers-content">
+								<div id="request-headers" class="header-list">No headers</div>
+							</div>
+						</div>
+
+						<div class="details-section">
+							<div class="section-header" data-section="response-headers">
+								<div class="section-arrow"></div>
+								<h3 class="section-title">Response Headers</h3>
+							</div>
+							<div class="section-content" id="response-headers-content">
+								<div id="response-headers" class="header-list">No headers</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Preview Tab Content -->
+					<div class="tab-content" id="preview-tab">
+						<div class="details-section">
+							<h3>Preview</h3>
+							<div id="preview-content" class="payload-content">
+								Select a request to view preview
+							</div>
+						</div>
+					</div>
+
+					<!-- Response Tab Content -->
+					<div class="tab-content" id="response-tab">
+						<div class="details-section">
+							<h3>Response</h3>
+							<div id="response-content" class="payload-content">
+								Select a request to view response
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="inspector.js"></script>
+	</body>
+</html>

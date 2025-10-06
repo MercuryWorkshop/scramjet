@@ -1,0 +1,17 @@
+[package]
+name = "js"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+oxc = { workspace = true }
+smallvec = "1.15.0"
+thiserror = "2.0.12"
+transform = { version = "0.1.0", path = "../transform" }
+
+[features]
+default = ["debug"]
+debug = ["transform/debug"]

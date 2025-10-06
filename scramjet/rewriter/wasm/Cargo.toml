@@ -1,0 +1,22 @@
+[package]
+name = "wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+js-sys = "0.3.77"
+oxc = { workspace = true }
+js = { version = "0.1.0", path = "../js", default-features = false }
+thiserror = "2.0.12"
+wasm-bindgen = "0.2.100"
+web-sys = { version = "0.3.77", features = ["Url","UrlSearchParams"] }
+
+[features]
+default = ["debug"]
+debug = ["js/debug"]

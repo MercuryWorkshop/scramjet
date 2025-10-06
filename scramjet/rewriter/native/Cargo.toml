@@ -1,0 +1,22 @@
+[package]
+name = "native"
+version = "0.1.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1.0.97"
+bytes = "1.10.1"
+oxc = { workspace = true }
+js = { version = "0.1.0", path = "../js", default-features = false }
+url = "2.5.4"
+urlencoding = "2.1.3"
+clap = { version = "4.5.39", features = ["cargo", "derive"] }
+
+[features]
+debug = ["js/debug"]
+
+[dev-dependencies]
+boa_engine = "0.20.0"

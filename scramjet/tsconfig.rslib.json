@@ -1,0 +1,25 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"declarationDir": "./lib/generated-types",
+		"removeComments": false,
+		"skipLibCheck": true,
+		"noEmitOnError": false,
+		"types": ["@types/serviceworker"],
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"noEmit": false
+	},
+	"include": ["src/index.ts", "src/global.d.ts", "src/rslib/buildGlobals.d.ts"],
+	"exclude": [
+		"**/*.test.ts",
+		"node_modules",
+		"src/worker/**",
+		"src/client/entry.ts",
+		"src/client/dom/**",
+		"src/client/shared/**",
+		"src/shared/rewriters/**"
+	]
+}
