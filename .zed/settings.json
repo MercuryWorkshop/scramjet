@@ -5,9 +5,5 @@
 		}
 	},
 	"format_on_save": "on",
-	"formatter": "prettier",
-	"file_scan_exclusions": [
-		"external/*",
-		"packages/scramjet/rewriter/native/sample/*"
-	]
+	"formatter": "prettier"
 }

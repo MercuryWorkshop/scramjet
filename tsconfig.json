@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		// "allowJs": true,
+		"rootDir": "./src",
+		"target": "ES2022",
+		"moduleResolution": "Bundler",
+		"module": "ES2022",
+		"skipLibCheck": true,
+		"declaration": true,
+		"declarationDir": "./dist/types",
+		"outDir": "./dist/types",
+		"emitDeclarationOnly": true,
+		"removeComments": false,
+		"paths": {
+			"@rewriters/*": ["./src/shared/rewriters/*"],
+			"@client/*": ["./src/client/*"],
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

@@ -2,14 +2,7 @@ ignoredBuiltDependencies:
   - bufferutil
 
 packages:
-  - "packages/scramjet"
-  - "packages/chrome"
-  - "packages/cdp"
-  - "packages/devtools"
-  - "packages/sandbox"
-  - "packages/inject"
-  - "packages/scramjetserver"
-  - "packages/bare-mux-custom"
-  - "packages/epoxy-transport"
-  - "packages/libcurl-transport"
-  - "external/dreamlandjs"
+  - "./"
+
+overrides:
+  "entities@4.5.0": "6.0.1"
