@@ -2,7 +2,7 @@
  * @fileoverview Contains the core Service Worker logic for Scramjet, which handles the initial request interception and handles client management for the Scramjet service.
  */
 
-import { handleFetch, ScramjetFetchContext } from "@/worker/fetch";
+import { ScramjetFetchContext } from "@/worker/fetch";
 import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetDB } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
@@ -73,11 +73,11 @@ export class ScramjetServiceWorker extends EventTarget {
 				return;
 			}
 
-			if (data.scramjet$type === "cookie") {
-				this.cookieStore.setCookies([data.cookie], new URL(data.url));
-				const db = await openDB<ScramjetDB>("$scramjet", 1);
-				await db.put("cookies", JSON.parse(this.cookieStore.dump()), "cookies");
-			}
+			// if (data.scramjet$type === "cookie") {
+			// 	this.cookieStore.setCookies([data.cookie], new URL(data.url));
+			// 	const db = await openDB<ScramjetDB>("$scramjet", 1);
+			// 	await db.put("cookies", JSON.parse(this.cookieStore.dump()), "cookies");
+			// }
 
 			if (data.scramjet$type === "loadConfig") {
 				this.config = data.config;
@@ -205,19 +205,19 @@ export class ScramjetServiceWorker extends EventTarget {
 				initialHeaders: headers,
 				cookieStore: this.cookieStore,
 			};
-			const resp = await handleFetch.call(
-				this,
-				context,
-				this.config,
-				this.client,
-				new URL(location.protocol + location.host + this.config.prefix)
-			);
+			// const resp = await handleFetch.call(
+			// 	this,
+			// 	context,
+			// 	this.config,
+			// 	this.client,
+			// 	new URL(location.protocol + location.host + this.config.prefix)
+			// );
 
-			return new Response(resp.body, {
-				status: resp.status,
-				statusText: resp.statusText,
-				headers: resp.headers,
-			});
+			// return new Response(resp.body, {
+			// 	status: resp.status,
+			// 	statusText: resp.statusText,
+			// 	headers: resp.headers,
+			// });
 		} catch (err) {
 			const errorDetails = {
 				message: err.message,
