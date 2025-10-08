@@ -38,3 +38,51 @@ export let bareTransport: BareTransport | null = null;
 export function setBareTransport(transport: BareTransport) {
 	bareTransport = transport;
 }
+
+export type Clientbound = {
+	setCookie: [
+		{
+			cookie: string;
+			url: string;
+		},
+	];
+};
+
+export type Serverbound = {
+	setCookie: [
+		{
+			cookie: string;
+			url: string;
+		},
+	];
+	blobData: [
+		{
+			id: string;
+			data: Blob;
+		},
+	];
+};
+
+export type ScramjetInterface = {
+	sendServerbound<K extends keyof Serverbound>(
+		type: K,
+		msg: Serverbound[K][0]
+	): Promise<Serverbound[K][1]>;
+	onClientbound<K extends keyof Clientbound>(
+		type: K,
+		listener: (msg: Clientbound[K][0]) => Promise<Clientbound[K][1]>
+	): () => void;
+	sendClientbound<K extends keyof Clientbound>(
+		type: K,
+		msg: Clientbound[K][0]
+	): Promise<Clientbound[K][1]>;
+	onServerbound<K extends keyof Serverbound>(
+		type: K,
+		listener: (msg: Serverbound[K][0]) => Promise<Serverbound[K][1]>
+	): () => void;
+};
+
+export let iface: ScramjetInterface = null!;
+export function setInterface(newIface: ScramjetInterface) {
+	iface = newIface;
+}

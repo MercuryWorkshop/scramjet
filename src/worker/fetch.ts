@@ -15,7 +15,7 @@ import {
 } from "@rewriters/url";
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetHeaders } from "@/shared/headers";
-import { config, flagEnabled } from "@/shared";
+import { config, flagEnabled, iface } from "@/shared";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
@@ -54,20 +54,51 @@ export interface ScramjetFetchResponse {
 	statusText: string;
 }
 
-export async function handleFetch(
-	this: ScramjetServiceWorker,
-	context: ScramjetFetchContext,
-	config: ScramjetConfig,
-	client: BareClient,
-	prefix: URL
+export type FetchHandler = {
+	client: BareClient;
+	cookieJar: CookieJar;
+	crossOriginIsolated?: boolean;
+	prefix: URL;
+};
+
+export class ScramjetFetchHandler extends EventTarget {
+	public client: BareClient;
+	public cookieJar: CookieJar;
+	public crossOriginIsolated: boolean = false;
+	public prefix: URL;
+
+	constructor(init: FetchHandler) {
+		super();
+		this.client = init.client;
+		this.cookieJar = init.cookieJar;
+		this.crossOriginIsolated = init.crossOriginIsolated || false;
+		this.prefix = init.prefix;
+
+		iface.onServerbound("setCookie", ({ cookie, url }) => {
+			this.cookieJar.setCookies([cookie], new URL(url));
+
+			return undefined;
+		});
+	}
+
+	async handleFetch(
+		context: ScramjetFetchContext
+	): Promise<ScramjetFetchResponse> {
+		return doHandleFetch(this, context);
+	}
+}
+
+async function doHandleFetch(
+	handler: ScramjetFetchHandler,
+	context: ScramjetFetchContext
 ): Promise<ScramjetFetchResponse> {
-	const parsed = parseRequest(context, prefix);
+	const parsed = parseRequest(context, handler.prefix);
 
 	if (
 		context.rawUrl.pathname.startsWith(`${config.prefix}blob:`) ||
 		context.rawUrl.pathname.startsWith(`${config.prefix}data:`)
 	) {
-		return handleBlobOrDataUrlFetch(config, context, parsed);
+		return handleBlobOrDataUrlFetch(handler, context, parsed);
 	}
 
 	const newheaders = rewriteRequestHeaders(context, parsed);
@@ -89,14 +120,14 @@ export async function handleFetch(
 		parsed.url,
 		parsed,
 		init,
-		client
+		handler.client
 	);
-	this.dispatchEvent(req);
+	handler.dispatchEvent(req);
 
 	// if the event listener overwrote response with a promise, use that. otherwise fetch normally
 	const response =
 		(await req._response) ||
-		((await client.fetch(req.url, req.init)) as BareResponseFetch);
+		((await handler.client.fetch(req.url, req.init)) as BareResponseFetch);
 
 	response.finalURL = req.parsed.url.href;
 
@@ -149,7 +180,7 @@ export async function handleFetch(
 	// }
 
 	if (response.body && !isRedirect(response)) {
-		responseBody = await rewriteBody.call(this, context, parsed, response);
+		responseBody = await rewriteBody(handler, context, parsed, response);
 	}
 
 	// Clean up tracker if not a redirect
@@ -163,7 +194,7 @@ export async function handleFetch(
 		status: response.status,
 		statusText: response.statusText,
 	});
-	this.dispatchEvent(resp);
+	handler.dispatchEvent(resp);
 
 	let r = resp.response;
 	if (resp._response) r = await resp._response;
@@ -402,7 +433,7 @@ function rewriteRequestHeaders(
 }
 
 async function handleBlobOrDataUrlFetch(
-	config: ScramjetConfig,
+	handler: ScramjetFetchHandler,
 	context: ScramjetFetchContext,
 	parsed: ScramjetFetchParsed
 ): Promise<ScramjetFetchResponse> {
@@ -415,7 +446,12 @@ async function handleBlobOrDataUrlFetch(
 	response.finalURL = url;
 	let body: BodyType;
 	if (response.body) {
-		body = await rewriteBody(context, parsed, response as BareResponseFetch);
+		body = await rewriteBody(
+			handler,
+			context,
+			parsed,
+			response as BareResponseFetch
+		);
 	}
 	const headers = Object.fromEntries(response.headers.entries());
 	if (context.forceCrossOriginIsolated) {
@@ -702,6 +738,7 @@ export async function rewriteHeaders(
 }
 
 async function rewriteBody(
+	handler: ScramjetFetchHandler,
 	context: ScramjetFetchContext,
 	parsed: ScramjetFetchParsed,
 	response: BareResponseFetch
@@ -729,21 +766,21 @@ async function rewriteBody(
 					context.cookieStore,
 					parsed.meta,
 					true,
-					(handler) => {
+					(domhandler) => {
 						const evt = new ScramjetHTMLPreRewriteEvent(
-							handler,
+							domhandler,
 							context,
 							parsed
 						);
-						this.dispatchEvent(evt);
+						handler.dispatchEvent(evt);
 					},
-					(handler) => {
+					(domhandler) => {
 						const evt = new ScramjetHTMLPostRewriteEvent(
-							handler,
+							domhandler,
 							context,
 							parsed
 						);
-						this.dispatchEvent(evt);
+						handler.dispatchEvent(evt);
 					}
 				);
 			} else {
