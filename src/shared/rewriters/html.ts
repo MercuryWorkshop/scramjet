@@ -5,36 +5,13 @@ import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { CookieJar } from "@/shared/cookie";
-import { config } from "@/shared";
+import { config, iface } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
-
-export function getInjectScripts<T>(
-	cookieStore: CookieJar,
-	script: (src: string) => T
-): T[] {
-	const dump = JSON.stringify(cookieStore.dump());
-	const injected = `
-		self.COOKIE = ${dump};
-		$scramjetLoadClient().loadAndHook(${JSON.stringify(config)});
-		if ("document" in self && document?.currentScript) {
-			document.currentScript.remove();
-		}
-	`;
-
-	// for compatibility purpose
-	const base64Injected = bytesToBase64(encoder.encode(injected));
-
-	return [
-		script(config.files.wasm),
-		script(config.files.all),
-		script("data:application/javascript;base64," + base64Injected),
-	];
-}
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
 	html: string,
-	cookieStore: CookieJar,
+	cookieJar: CookieJar,
 	meta: URLMeta,
 	fromTop: boolean = false,
 	preRewrite?: (handler: DomHandler) => void,
@@ -46,7 +23,7 @@ function rewriteHtmlInner(
 	parser.write(html);
 	parser.end();
 	if (preRewrite) preRewrite(handler);
-	traverseParsedHtml(handler.root, cookieStore, meta);
+	traverseParsedHtml(handler.root, cookieJar, meta);
 
 	function findhead(node) {
 		if (node.type === ElementType.Tag && node.name === "head") {
@@ -69,7 +46,9 @@ function rewriteHtmlInner(
 		}
 
 		const script = (src: string) => new Element("script", { src });
-		head.children.unshift(...getInjectScripts(cookieStore, script));
+		head.children.unshift(
+			...iface.getInjectScripts(meta, handler, config, cookieJar, script)
+		);
 	}
 
 	if (postRewrite) postRewrite(handler);

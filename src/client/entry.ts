@@ -1,10 +1,17 @@
 // entrypoint for scramjet.client.js
 
-import { loadCodecs, setConfig } from "@/shared/index";
+import {
+	loadCodecs,
+	ScramjetInterface,
+	setBareTransport,
+	setConfig,
+	setInterface,
+} from "@/shared/index";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { ScramjetContextEvent, UrlChangeEvent } from "@client/events";
 import { ScramjetConfig } from "@/types";
+import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
 
 export const iswindow = "window" in globalThis && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in globalThis;
@@ -19,8 +26,16 @@ function createFrameId() {
 		.join("")}`;
 }
 
-export function loadAndHook(config: ScramjetConfig) {
-	setConfig(config);
+export type ScramjetClientEntryInit = {
+	config: ScramjetConfig;
+	interface: ScramjetInterface;
+	transport: BareTransport;
+};
+export function loadAndHook(init: ScramjetClientEntryInit) {
+	setConfig(init.config);
+	setInterface(init.interface);
+	setBareTransport(init.transport);
+
 	dbg.log("initializing scramjet client");
 	// if it already exists, that means the handlers have probably already been setup by the parent document
 	if (!(SCRAMJETCLIENT in <Partial<typeof self>>globalThis)) {
