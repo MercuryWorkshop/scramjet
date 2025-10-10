@@ -1,5 +1,8 @@
 import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetFlags } from "@/types";
+import DomHandler, { Element } from "domhandler";
+import { URLMeta } from "@rewriters/url";
+import { CookieJar } from "./cookie";
 
 export * from "./cookie";
 export * from "./headers";
@@ -64,22 +67,29 @@ export type Serverbound = {
 };
 
 export type ScramjetInterface = {
-	sendServerbound<K extends keyof Serverbound>(
+	sendServerbound?<K extends keyof Serverbound>(
 		type: K,
 		msg: Serverbound[K][0]
 	): Promise<Serverbound[K][1]>;
-	onClientbound<K extends keyof Clientbound>(
+	onClientbound?<K extends keyof Clientbound>(
 		type: K,
 		listener: (msg: Clientbound[K][0]) => Promise<Clientbound[K][1]>
 	): () => void;
-	sendClientbound<K extends keyof Clientbound>(
+	sendClientbound?<K extends keyof Clientbound>(
 		type: K,
 		msg: Clientbound[K][0]
 	): Promise<Clientbound[K][1]>;
-	onServerbound<K extends keyof Serverbound>(
+	onServerbound?<K extends keyof Serverbound>(
 		type: K,
 		listener: (msg: Serverbound[K][0]) => Promise<Serverbound[K][1]>
 	): () => void;
+	getInjectScripts(
+		meta: URLMeta,
+		handler: DomHandler,
+		config: ScramjetConfig,
+		cookieJar: CookieJar,
+		script: (src: string) => Element
+	): Element[];
 };
 
 export let iface: ScramjetInterface = null!;

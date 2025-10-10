@@ -1,7 +1,7 @@
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { JsRewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
-import { codecDecode, codecEncode, config, flagEnabled } from "@/shared";
+import { codecDecode, codecEncode, config, flagEnabled, iface } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
@@ -9,7 +9,6 @@ import { rewriteUrl, URLMeta } from "@rewriters/url";
 import { htmlRules } from "@/shared/htmlRules";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
-import { getInjectScripts } from "@rewriters/html";
 import { CookieJar } from "@/shared/cookie";
 
 let wasm_u8: Uint8Array<ArrayBuffer>;
@@ -64,14 +63,6 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 					rewriteUrl,
 					rewriteCss,
 					rewriteJs,
-					getHtmlInjectCode(cookieStore: CookieJar, foundHead: boolean) {
-						let inject = getInjectScripts(
-							cookieStore,
-							(src) => `<script src="${src}"></script>`
-						).join("");
-
-						return foundHead ? `<head>${inject}</head>` : inject;
-					},
 				},
 			},
 			flagEnabled,
