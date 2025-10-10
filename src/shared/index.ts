@@ -90,6 +90,13 @@ export type ScramjetInterface = {
 		cookieJar: CookieJar,
 		script: (src: string) => Element
 	): Element[];
+	getWorkerInjectScripts?(
+		meta: URLMeta,
+		js: string | Uint8Array,
+		config: ScramjetConfig,
+		type: string,
+		url: string
+	): string;
 };
 
 export let iface: ScramjetInterface = null!;

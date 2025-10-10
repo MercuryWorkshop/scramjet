@@ -1,4 +1,4 @@
-import { config } from "@/shared";
+import { config, iface } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 import { URLMeta } from "@rewriters/url";
 
@@ -8,20 +8,8 @@ export function rewriteWorkers(
 	url: string,
 	meta: URLMeta
 ) {
-	let str = "";
 	const module = type === "module";
-	const script = (script) => {
-		if (module) {
-			str += `import "${config.files[script]}"\n`;
-		} else {
-			str += `importScripts("${config.files[script]}");\n`;
-		}
-	};
-
-	script("wasm");
-	script("all");
-	str += `$scramjetLoadClient().loadAndHook(${JSON.stringify(config)});`;
-
+	let str = iface.getWorkerInjectScripts(meta, js, config, type, url);
 	let rewritten = rewriteJs(js, url, meta, module);
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);
