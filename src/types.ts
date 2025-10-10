@@ -81,7 +81,6 @@ declare global {
 	var $scramjetLoadWorker: () => typeof worker;
 	var $scramjetVersion: ScramjetVersionInfo;
 	interface Window {
-		COOKIE: string;
 		WASM: string;
 		REAL_WASM: Uint8Array;
 

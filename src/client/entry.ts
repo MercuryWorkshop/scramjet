@@ -30,6 +30,7 @@ export type ScramjetClientEntryInit = {
 	config: ScramjetConfig;
 	interface: ScramjetInterface;
 	transport: BareTransport;
+	cookies: string;
 };
 export function loadAndHook(init: ScramjetClientEntryInit) {
 	setConfig(init.config);
@@ -49,7 +50,7 @@ export function loadAndHook(init: ScramjetClientEntryInit) {
 			frame.name = createFrameId();
 		}
 
-		if (globalThis.COOKIE) client.loadcookies(globalThis.COOKIE);
+		client.loadcookies(init.cookies);
 
 		client.hook();
 
@@ -60,5 +61,4 @@ export function loadAndHook(init: ScramjetClientEntryInit) {
 	}
 
 	Reflect.deleteProperty(globalThis, "WASM");
-	Reflect.deleteProperty(globalThis, "COOKIE");
 }
