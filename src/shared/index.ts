@@ -74,7 +74,7 @@ export type ScramjetInterface = {
 	onClientbound?<K extends keyof Clientbound>(
 		type: K,
 		listener: (msg: Clientbound[K][0]) => Promise<Clientbound[K][1]>
-	): () => void;
+	): void;
 	sendClientbound?<K extends keyof Clientbound>(
 		type: K,
 		msg: Clientbound[K][0]
@@ -82,7 +82,7 @@ export type ScramjetInterface = {
 	onServerbound?<K extends keyof Serverbound>(
 		type: K,
 		listener: (msg: Serverbound[K][0]) => Promise<Serverbound[K][1]>
-	): () => void;
+	): void;
 	getInjectScripts(
 		meta: URLMeta,
 		handler: DomHandler,
