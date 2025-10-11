@@ -583,15 +583,17 @@ where
 					false,
 					&mut location_assigned,
 				);
-				self.jschanges.add(rewrite!(
-					h.body.body[0].span(),
-					CleanFunction {
-						restids,
-						expression: false,
-						location_assigned,
-						wrap: false,
-					}
-				));
+				if h.body.body.len() > 0 {
+					self.jschanges.add(rewrite!(
+						h.body.body[0].span(),
+						CleanFunction {
+							restids,
+							expression: false,
+							location_assigned,
+							wrap: false,
+						}
+					));
+				}
 			}
 			walk::walk_block_statement(self, &h.body);
 		}
