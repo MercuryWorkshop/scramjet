@@ -302,6 +302,16 @@ where
 								}
 							}
 						}
+						PropertyKey::StringLiteral(id) => {
+							// const { "location": x } = self;
+							// this cannot be shorthand, so we can use the easy path
+							if UNSAFE_GLOBALS.contains(&id.value.to_string().as_str()) {
+								self.jschanges.add(rewrite!(
+									id.span.shrink(1),
+									RewriteProperty { ident: id.value }
+								));
+							}
+						}
 						PropertyKey::PrivateIdentifier(_) => {
 							// doesn't matter
 						}
