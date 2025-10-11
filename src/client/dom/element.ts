@@ -418,6 +418,37 @@ export default function (client: ScramjetClient, self: typeof window) {
 				} catch {}
 		},
 	});
+
+	// TODO: this needs to be done for all insert methods
+	client.Proxy(["Element.prototype.appendChild", "Element.prototype.append"], {
+		apply(ctx) {
+			if (ctx.this instanceof self.HTMLStyleElement) {
+				for (const node of ctx.args) {
+					if (node instanceof self.Text) {
+						node.data = rewriteCss(ctx.args[0].data, client.meta);
+					}
+				}
+			} else if (ctx.this instanceof self.HTMLScriptElement) {
+				for (const node of ctx.args) {
+					if (node instanceof self.Text) {
+						const newval: string = rewriteJs(
+							node.data,
+							"(anonymous script element)",
+							client.meta
+						) as string;
+						client.natives.call(
+							"Element.prototype.setAttribute",
+							ctx.this,
+							"scramjet-attr-script-source-src",
+							bytesToBase64(encoder.encode(newval))
+						);
+						node.data = newval;
+					}
+				}
+			}
+		},
+	});
+
 	client.Proxy("Audio", {
 		construct(ctx) {
 			if (ctx.args[0]) ctx.args[0] = rewriteUrl(ctx.args[0], client.meta);
