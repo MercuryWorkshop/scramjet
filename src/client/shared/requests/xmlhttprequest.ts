@@ -1,5 +1,5 @@
 import { config, flagEnabled } from "@/shared";
-import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
+import { rewriteUrl, unrewriteUrl, URLMeta } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: Self) {
@@ -116,7 +116,6 @@ export default function (client: ScramjetClient, self: Self) {
 				},
 			});
 
-			// send has no return value right
 			ctx.return(undefined);
 		},
 	});
@@ -126,4 +125,39 @@ export default function (client: ScramjetClient, self: Self) {
 			return unrewriteUrl(ctx.get() as string, client.meta);
 		},
 	});
+
+	client.Proxy("XMLHttpRequest.prototype.getAllResponseHeaders", {
+		apply(ctx) {
+			const headerstring = ctx.fn.call(ctx.this) as string;
+			if (!headerstring) return headerstring;
+			const headers = headerstring.split("\r\n");
+
+			for (const [i, header] of headers.entries()) {
+				if (header.toLowerCase().startsWith("link:")) {
+					headers[i] = `Link: ${unrewriteLinkHeader(
+						header.slice(5).trim(),
+						client.meta
+					)}`;
+				}
+			}
+
+			ctx.return(headers.join("\r\n"));
+		},
+	});
+	client.Proxy("XMLHttpRequest.prototype.getResponseHeader", {
+		apply(ctx) {
+			const header = ctx.fn.call(ctx.this, ctx.args[0]) as string | null;
+			if (!header) return header;
+			if (ctx.args[0].toLowerCase() === "link") {
+				ctx.return(unrewriteLinkHeader(header, client.meta));
+			}
+		},
+	});
+}
+
+export function unrewriteLinkHeader(header: string, meta: URLMeta) {
+	return header.replace(
+		/<([^>]+)>/gi,
+		(match) => `${unrewriteUrl(match, meta)}`
+	);
 }
