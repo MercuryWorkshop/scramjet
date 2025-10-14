@@ -2,11 +2,18 @@
 // as such it exports everything in scramjet
 // the entry point for scramjet.all.js (what most sites wil use) is entry.ts
 
+import { setWasm } from "@rewriters/wasm";
 import "./global.d";
 export * from "./client";
 export * from "./controller";
 export * from "./shared";
 export * from "./worker";
-export * from "./entry";
 export * from "./symbols";
 export * from "./types";
+
+declare const REWRITERWASM: string | undefined;
+
+// bundled build will have the wasm binary inlined as a base64 string
+if (REWRITERWASM) {
+	setWasm(Uint8Array.from(atob(REWRITERWASM), (c) => c.charCodeAt(0)));
+}

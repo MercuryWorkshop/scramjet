@@ -11,18 +11,9 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { CookieJar } from "@/shared/cookie";
 
-let wasm_u8: Uint8Array<ArrayBuffer>;
-
-declare const REWRITERWASM: string | undefined;
-if (REWRITERWASM)
-	wasm_u8 = Uint8Array.from(atob(REWRITERWASM), (c) => c.charCodeAt(0));
-else if (self.WASM)
-	wasm_u8 = Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0));
-
-// only use in sw
-export async function asyncSetWasm() {
-	const buf = await fetch(config.files.wasm).then((r) => r.arrayBuffer());
-	wasm_u8 = new Uint8Array(buf);
+let wasm_u8: Uint8Array;
+export function setWasm(u8: Uint8Array | ArrayBuffer) {
+	wasm_u8 = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8);
 }
 
 export const textDecoder = new TextDecoder();
@@ -30,7 +21,7 @@ let MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
 
 function initWasm() {
 	if (!(wasm_u8 instanceof Uint8Array))
-		throw new Error("rewriter wasm not found (was it fetched correctly?)");
+		throw new Error("rewriter wasm not found (was setWasm called?)");
 
 	if (![...wasm_u8.slice(0, 4)].every((x, i) => x === MAGIC[i]))
 		throw new Error(
@@ -39,7 +30,7 @@ function initWasm() {
 		);
 
 	initSync({
-		module: new WebAssembly.Module(wasm_u8),
+		module: new WebAssembly.Module(wasm_u8 as unknown as BufferSource),
 	});
 }
 

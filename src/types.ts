@@ -76,10 +76,6 @@ export interface ScramjetInitConfig
 	};
 }
 declare global {
-	var $scramjetLoadController: () => typeof controller;
-	var $scramjetLoadClient: () => typeof client;
-	var $scramjetLoadWorker: () => typeof worker;
-	var $scramjetVersion: ScramjetVersionInfo;
 	interface Window {
 		WASM: string;
 		REAL_WASM: Uint8Array;
