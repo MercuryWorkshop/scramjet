@@ -5,11 +5,10 @@
 import { setWasm } from "@rewriters/wasm";
 import "./global.d";
 export * from "./client";
-export * from "./controller";
 export * from "./shared";
-export * from "./worker";
 export * from "./symbols";
 export * from "./types";
+export * from "./fetch";
 
 declare const REWRITERWASM: string | undefined;
 

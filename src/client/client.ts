@@ -1,4 +1,4 @@
-import { ScramjetFrame } from "@/controller/frame";
+type ScramjetFrame = any;
 import { BareClient } from "@mercuryworkshop/bare-mux-custom";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";

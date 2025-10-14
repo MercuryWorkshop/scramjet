@@ -1,5 +1,4 @@
 import { iface } from "@/shared";
-import type { MessageC2W, MessageW2C } from "@/worker";
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: typeof window) {

@@ -4,7 +4,6 @@ import {
 	BareResponseFetch,
 } from "@mercuryworkshop/bare-mux-custom";
 
-import { MessageW2C, ScramjetServiceWorker } from "@/worker";
 import { CookieJar } from "@/shared/cookie";
 
 import {
