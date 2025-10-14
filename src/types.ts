@@ -1,9 +1,6 @@
 import { ScramjetClient } from "@client/index";
-import { ScramjetFrame } from "@/controller/frame";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
-import * as controller from "@/controller/index";
 import * as client from "@/client/entry";
-import * as worker from "@/worker/index";
 import { DBSchema } from "idb";
 
 /**
@@ -51,11 +48,7 @@ export interface ScramjetConfig {
 		templocid: string;
 		tempunusedid: string;
 	};
-	files: {
-		wasm: string;
-		all: string;
-		sync: string;
-	};
+	maskedfiles: string[];
 	flags: ScramjetFlags;
 	siteFlags: Record<string, Partial<ScramjetFlags>>;
 	codec: {
@@ -97,7 +90,7 @@ declare global {
 		/**
 		 * The event target belonging to an iframe element holding an encoded URL.
 		 */
-		[SCRAMJETFRAME]: ScramjetFrame;
+		// [SCRAMJETFRAME]: ScramjetFrame;
 	}
 }
 
