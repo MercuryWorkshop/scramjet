@@ -18,8 +18,8 @@ export default function (client: ScramjetClient, _self: Self) {
 
 	const filterEntries = (entries: PerformanceEntry[]) => {
 		return entries.filter((entry) => {
-			for (const file of Object.values(config.files)) {
-				if (entry.name.startsWith(location.origin + file)) {
+			for (const file of config.maskedfiles) {
+				if (entry.name.endsWith(file)) {
 					return false;
 				}
 			}

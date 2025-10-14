@@ -4,9 +4,9 @@ import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: Self) {
 	let worker;
-	if (self.Worker && flagEnabled("syncxhr", client.url)) {
-		worker = client.natives.construct("Worker", config.files.sync);
-	}
+	// if (self.Worker && flagEnabled("syncxhr", client.url)) {
+	// 	worker = client.natives.construct("Worker", config.files.sync);
+	// }
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
 
