@@ -59,6 +59,4 @@ export function loadAndHook(init: ScramjetClientEntryInit) {
 		const urlchangeev = new UrlChangeEvent(client.url.href);
 		if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 	}
-
-	Reflect.deleteProperty(globalThis, "WASM");
 }
