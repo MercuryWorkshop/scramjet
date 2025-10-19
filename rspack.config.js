@@ -12,7 +12,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const packagemeta = JSON.parse(await readFile("package.json"));
 
 let wasmB64 = null;
-const wasmPath = join(__dirname, "rewriter/wasm/out/wasm_bg.wasm");
+const wasmPath = join(__dirname, "rewriter/wasm/out/optimized.wasm");
 const wasmBuf = await readFile(wasmPath);
 wasmB64 = wasmBuf.toString("base64");
 
