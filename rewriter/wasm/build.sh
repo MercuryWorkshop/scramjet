@@ -38,7 +38,7 @@ fi
 	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
 		export RUSTFLAGS="${RUSTFLAGS} -C opt-level=z"
 	fi
-	STD_FEATURES="panic_immediate_abort"
+	STD_FEATURES=""
 	if [ "${OPTIMIZE_FOR_SPEED:-0}" = "0" ]; then
 		STD_FEATURES="${STD_FEATURES},optimize_for_size"
 	fi
