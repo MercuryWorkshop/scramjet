@@ -1,0 +1,17 @@
+{
+	"name": "scramjetserver",
+	"version": "1.0.0",
+	"description": "",
+	"type": "module",
+	"scripts": {
+		"start": "node index.ts"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"packageManager": "pnpm@10.12.1",
+	"dependencies": {
+		"@mercuryworkshop/scramjet": "workspace:*",
+		"@nebula-services/bare-server-node": "^2.0.4"
+	}
+}
