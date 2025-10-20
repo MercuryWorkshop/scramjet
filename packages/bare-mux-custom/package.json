@@ -1,0 +1,7 @@
+{
+	"name": "@mercuryworkshop/bare-mux-custom",
+	"version": "1.0.0",
+	"type": "module",
+	"packageManager": "pnpm@10.12.1",
+	"main": "index.ts"
+}
