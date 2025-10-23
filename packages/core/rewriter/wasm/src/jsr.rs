@@ -56,7 +56,7 @@ fn get_config(scramjet: &Object) -> Result<Config> {
 		importfn: get_str(globals, "importfn")?,
 		rewritefn: get_str(globals, "rewritefn")?,
 		metafn: get_str(globals, "metafn")?,
-		setrealmfn: get_str(globals, "setrealmfn")?,
+		wrappostmessagefn: get_str(globals, "wrappostmessagefn")?,
 		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
 		trysetfn: get_str(globals, "trysetfn")?,
 		templocid: get_str(globals, "templocid")?,

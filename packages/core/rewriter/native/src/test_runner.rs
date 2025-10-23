@@ -114,7 +114,7 @@ function check(val) {
 			importfn: String::from("$import"),
 			rewritefn: String::from("$rewrite"),
 			metafn: String::from("$meta"),
-			setrealmfn: String::from("$setrealm"),
+			wrappostmessage: String::from("$wrapPostMessage"),
 			pushsourcemapfn: String::from("$pushsourcemap"),
 			trysetfn: String::from("$tryset"),
 			templocid: String::from("$temploc"),
