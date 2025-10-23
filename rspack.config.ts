@@ -81,11 +81,11 @@ const createScramjetConfig = (options) => {
 		},
 		output,
 		plugins: [
-			new TsCheckerRspackPlugin({
-				typescript: {
-					configFile: resolve(scramjetdir, "tsconfig.json"),
-				},
-			}),
+			// new TsCheckerRspackPlugin({
+			// 	typescript: {
+			// 		configFile: resolve(scramjetdir, "tsconfig.json"),
+			// 	},
+			// }),
 			new rspack.ProvidePlugin({
 				dbg: [join(scramjetdir, "src/log.ts"), "default"],
 			}),
