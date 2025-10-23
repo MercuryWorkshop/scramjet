@@ -42,7 +42,7 @@ export interface ScramjetConfig {
 		importfn: string;
 		rewritefn: string;
 		metafn: string;
-		setrealmfn: string;
+		wrappostmessagefn: string;
 		pushsourcemapfn: string;
 		trysetfn: string;
 		templocid: string;

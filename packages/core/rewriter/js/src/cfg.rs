@@ -22,7 +22,7 @@ pub struct Config {
 	pub cleanrestfn: String,
 	pub importfn: String,
 	pub rewritefn: String,
-	pub setrealmfn: String,
+	pub wrappostmessagefn: String,
 	pub metafn: String,
 	pub pushsourcemapfn: String,
 

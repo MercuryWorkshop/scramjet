@@ -58,7 +58,7 @@ impl NativeRewriter {
 				importfn: cfg.importfn.clone(),
 				rewritefn: cfg.rewritefn.clone(),
 				metafn: cfg.metafn.clone(),
-				setrealmfn: cfg.setrealmfn.clone(),
+				wrappostmessagefn: cfg.wrappostmessage.clone(),
 				pushsourcemapfn: cfg.pushsourcemapfn.clone(),
 				trysetfn: cfg.trysetfn.clone(),
 				templocid: cfg.templocid.clone(),

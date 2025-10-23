@@ -470,9 +470,12 @@ where
 				// however this code only exists because of recaptcha whatever
 				// and it would slow down js execution a lot
 				if s.property.name == "postMessage" {
-					self.jschanges.add(rewrite!(s.property.span, SetRealmFn));
+					self.jschanges.add(rewrite!(s.span, WrapPostMessage {
+						// include the "postMessage" and the dot before it (-1)
+						inner: Span::new(s.property.span.start - 1, s.property.span.end),
+					}));
 
-					walk::walk_expression(self, &s.object);
+					// walk::walk_expression(self, &s.object);
 					return; // unwise to walk the rest of the tree
 				}
 
