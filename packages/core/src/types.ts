@@ -26,7 +26,6 @@ export type ScramjetFlags = {
 	scramitize: boolean;
 	sourcemaps: boolean;
 	destructureRewrites: boolean;
-	interceptDownloads: boolean;
 	allowInvalidJs: boolean;
 	allowFailedIntercepts: boolean;
 };
