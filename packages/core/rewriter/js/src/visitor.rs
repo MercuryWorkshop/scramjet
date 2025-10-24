@@ -470,9 +470,12 @@ where
 				// however this code only exists because of recaptcha whatever
 				// and it would slow down js execution a lot
 				if s.property.name == "postMessage" {
+					// include the "postMessage" and the dot before it in the inner span
+					// if `postMessage?.` remove the dot and the question mark
+					let offset = if s.optional { 1 } else { 2 };
+
 					self.jschanges.add(rewrite!(s.span, WrapPostMessage {
-						// include the "postMessage" and the dot before it (-1)
-						inner: Span::new(s.property.span.start - 1, s.property.span.end),
+						inner: Span::new(s.property.span.start - offset, s.property.span.end),
 					}));
 
 					// walk::walk_expression(self, &s.object);
