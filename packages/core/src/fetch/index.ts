@@ -171,13 +171,6 @@ async function doHandleFetch(
 		}
 	}
 
-	// if (
-	// 	isDownload(responseHeaders, context.destination) &&
-	// 	!isRedirect(response)
-	// ) {
-	// 	// handleDownload();
-	// }
-
 	if (response.body && !isRedirect(response)) {
 		responseBody = await rewriteBody(handler, context, parsed, response);
 	}
@@ -203,49 +196,6 @@ async function doHandleFetch(
 
 function isRedirect(response: BareResponseFetch) {
 	return response.status >= 300 && response.status < 400;
-}
-
-function isDownload(responseHeaders: object, destination: string): boolean {
-	if (["document", "iframe"].includes(destination)) {
-		const header = responseHeaders["content-disposition"];
-		if (header) {
-			if (header === "inline") {
-				return false; // force it to show in browser
-			} else {
-				return true;
-			}
-		} else {
-			// check mime type as fallback
-			const displayableMimes = [
-				// Text types
-				"text/html",
-				"text/plain",
-				"text/css",
-				"text/javascript",
-				"text/xml",
-				"application/javascript",
-				"application/json",
-				"application/xml",
-				"application/pdf",
-			];
-			const contentType = responseHeaders["content-type"]
-				?.split(";")[0]
-				.trim()
-				.toLowerCase();
-			if (
-				contentType &&
-				!displayableMimes.includes(contentType) &&
-				!contentType.startsWith("text") &&
-				!contentType.startsWith("image") &&
-				!contentType.startsWith("font") &&
-				!contentType.startsWith("video")
-			) {
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 export function parseRequest(
