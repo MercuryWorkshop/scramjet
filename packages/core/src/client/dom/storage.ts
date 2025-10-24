@@ -57,6 +57,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return true;
 		},
 
+		has(target, prop) {
+			return target.getItem(client.url.host + "@" + (prop as string)) !== null;
+		},
+
 		ownKeys(target) {
 			return Reflect.ownKeys(target)
 				.filter((f) => typeof f === "string" && f.startsWith(client.url.host))
@@ -66,6 +70,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 
 		getOwnPropertyDescriptor(target, property) {
+			// TODO: probably not right
+			if (
+				target.getItem(client.url.host + "@" + (property as string)) === null
+			) {
+				return undefined;
+			}
+
 			return {
 				value: target.getItem(client.url.host + "@" + (property as string)),
 				enumerable: true,
