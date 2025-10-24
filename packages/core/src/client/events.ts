@@ -1,39 +1,6 @@
 import { ScramjetClient } from "@client/index";
 
 /**
- * Union type for all global Scramjet events.
- */
-export type ScramjetGlobalEvent = ScramjetGlobalDownloadEvent;
-
-/**
- * Event class for proxified download interception.
- */
-export class ScramjetGlobalDownloadEvent extends Event {
-	type = "download";
-	constructor(public download: ScramjetDownload) {
-		super("download");
-	}
-}
-
-/**
- * Map for all global Scramjet events with their corresponding event types.
- */
-export type ScramjetGlobalEvents = {
-	download: ScramjetGlobalDownloadEvent;
-};
-
-/**
- * Event for proxified download interception.
- */
-export type ScramjetDownload = {
-	filename?: string;
-	url: string;
-	type: string;
-	body: ReadableStream<Uint8Array>;
-	length: number;
-};
-
-/**
  * Union type for all Scramjet proxified navigation events.
  */
 export type ScramjetEvent =
