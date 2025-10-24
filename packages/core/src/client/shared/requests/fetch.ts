@@ -44,6 +44,8 @@ export default function (client: ScramjetClient) {
 					newHeaders.append(key, value);
 				}
 			}
+
+			return newHeaders;
 		},
 	});
 }

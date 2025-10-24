@@ -472,7 +472,7 @@ where
 				if s.property.name == "postMessage" {
 					// include the "postMessage" and the dot before it in the inner span
 					// if `postMessage?.` remove the dot and the question mark
-					let offset = if s.optional { 1 } else { 2 };
+					let offset = if s.optional { 2 } else { 1 };
 
 					self.jschanges.add(rewrite!(s.span, WrapPostMessage {
 						inner: Span::new(s.property.span.start - offset, s.property.span.end),
