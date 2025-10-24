@@ -290,7 +290,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
 			let newval;
-			if (ctx.this instanceof self.HTMLScriptElement) {
+			if (
+				ctx.this instanceof self.HTMLScriptElement &&
+				/(application|text)\/javascript|module|undefined/.test(ctx.this.type)
+			) {
 				newval = rewriteJs(value, "(anonymous script element)", client.meta);
 				client.natives.call(
 					"Element.prototype.setAttribute",
@@ -335,7 +338,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Node.prototype.textContent", {
 		set(ctx, value: string) {
 			// TODO: box the instanceofs
-			if (ctx.this instanceof self.HTMLScriptElement) {
+			if (
+				ctx.this instanceof self.HTMLScriptElement &&
+				/(application|text)\/javascript|module|undefined/.test(ctx.this.type)
+			) {
 				const newval: string = rewriteJs(
 					value,
 					"(anonymous script element)",
