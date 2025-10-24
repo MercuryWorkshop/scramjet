@@ -44,7 +44,6 @@ const config = {
 		scramitize: false,
 		sourcemaps: true,
 		destructureRewrites: false,
-		interceptDownloads: false,
 		allowInvalidJs: false,
 		allowFailedIntercepts: false,
 		antiAntiDebugger: false,
