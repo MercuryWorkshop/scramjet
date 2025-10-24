@@ -3,9 +3,9 @@ import { defineConfig } from "@rslib/core";
 export default defineConfig({
 	source: {
 		entry: {
-			index: "./src/index.ts",
+			index: "./packages/core/src/index.ts",
 		},
-		tsconfigPath: "./tsconfig.rslib.json",
+		tsconfigPath: "./packages/core/tsconfig.rslib.json",
 	},
 	lib: [
 		{
@@ -13,12 +13,12 @@ export default defineConfig({
 			bundle: false,
 			dts: {
 				bundle: false,
-				distPath: "./dist/types",
+				distPath: "./packages/core/dist/types",
 				abortOnError: false,
 			},
 			output: {
 				distPath: {
-					root: "./dist/temp",
+					root: "./packages/core/dist/temp",
 				},
 				cleanDistPath: true,
 			},

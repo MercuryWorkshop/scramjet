@@ -18,7 +18,6 @@ import { config, flagEnabled, iface } from "@/shared";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
-import { ScramjetDownload } from "@client/events";
 import { ScramjetConfig } from "@/types";
 import DomHandler from "domhandler";
 
