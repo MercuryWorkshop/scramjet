@@ -8,7 +8,8 @@ declare const dbg: {
 	time: (meta: URLMeta, before: number, type: string) => void;
 };
 
-declare const COMMITHASH: string;
 declare const VERSION: string;
+declare const COMMITHASH: string;
+declare const BUILDDATE: string;
 
 declare type Self = Window & typeof globalThis;
