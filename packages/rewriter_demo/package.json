@@ -1,0 +1,20 @@
+{
+	"name": "sandbox_demo",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"devDependencies": {
+		"vite": "^7.1.2"
+	},
+	"dependencies": {
+		"@mercuryworkshop/scramjet": "workspace:*",
+		"dreamland": "workspace:*",
+		"monaco-editor": "^0.52.2",
+		"vite-plugin-static-copy": "^3.1.1"
+	}
+}

@@ -4,3 +4,5 @@ packages:
   - "packages/bare-mux-custom"
   - "packages/epoxy-transport"
   - "packages/libcurl-transport"
+  - "packages/demo"
+  - "packages/rewriter_demo"
