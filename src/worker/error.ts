@@ -17,6 +17,22 @@ export function errorTemplate(trace: string, fetchedURL: string) {
                 });
         `;
 
+	try {
+			const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+			for (const client of clients) {
+					client.postMessage({
+							scramjet$type: 'fetchError', // A unique identifier for our error message
+							error: {
+									message: i.message || 'Unknown fetch error',
+									stack: i.stack,
+									url: e.url // The original request URL that failed
+							}
+					});
+			}
+	} catch (broadcastError) {
+			console.error('Scramjet: Failed to broadcast fetch error.', broadcastError);
+	}
+
 	return `<!DOCTYPE html>
             <html>
                 <head>
