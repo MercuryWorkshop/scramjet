@@ -90,10 +90,10 @@ const createScramjetConfig = (options) => {
 				dbg: [join(scramjetdir, "src/log.ts"), "default"],
 			}),
 			new rspack.DefinePlugin({
-				VERSION: JSON.stringify(sjpackagemeta.version),
+				REWRITERWASM: rewriterWasm,
 			}),
 			new rspack.DefinePlugin({
-				REWRITERWASM: rewriterWasm,
+				VERSION: JSON.stringify(sjpackagemeta.version),
 			}),
 			new rspack.DefinePlugin({
 				COMMITHASH: (() => {
@@ -109,6 +109,9 @@ const createScramjetConfig = (options) => {
 						return "unknown";
 					}
 				})(),
+			}),
+			new rspack.DefinePlugin({
+				BUILDDATE: JSON.stringify(new Date().toISOString()),
 			}),
 			process.env.DEBUG
 				? new RsdoctorRspackPlugin({

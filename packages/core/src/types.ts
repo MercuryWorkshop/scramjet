@@ -8,10 +8,12 @@ import { DBSchema } from "idb";
  * Contains both the semantic version string and the git commit hash for build identification.
  */
 export interface ScramjetVersionInfo {
-	/** The git commit hash that this build was created from */
-	build: string;
 	/** The semantic version */
 	version: string;
+	/** The git commit hash that this build was created from */
+	build: string;
+	/** The date of the build */
+	date: string;
 }
 
 /**

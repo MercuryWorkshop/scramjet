@@ -1,5 +1,5 @@
 import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
-import { ScramjetConfig, ScramjetFlags } from "@/types";
+import { ScramjetConfig, ScramjetFlags, ScramjetVersionInfo } from "@/types";
 import DomHandler, { Element } from "domhandler";
 import { URLMeta } from "@rewriters/url";
 import { CookieJar } from "./cookie";
@@ -103,3 +103,9 @@ export let iface: ScramjetInterface = null!;
 export function setInterface(newIface: ScramjetInterface) {
 	iface = newIface;
 }
+
+export const versionInfo: ScramjetVersionInfo = {
+	version: VERSION,
+	build: COMMITHASH,
+	date: BUILDDATE,
+};
