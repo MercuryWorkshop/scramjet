@@ -1,18 +1,18 @@
 {
 	"name": "@mercuryworkshop/epoxy-transport",
-	"version": "2.0.0",
-	"description": "a bare transport that implements end-to-end encryption with libcurl.js and wisp",
-	"author": "ading2210",
-	"license": "AGPL-3.0-only",
+	"version": "2.1.28",
+	"description": "a bare transport that implements end-to-end encryption with epoxy-tls and wisp",
 	"type": "module",
+	"main": "index.ts",
+	"keywords": [],
+	"author": "r58playz",
+	"license": "AGPL-3.0-only",
 	"scripts": {
 		"build": "node esbuild.bundle.mjs; cp dist/index.cjs dist/index.js",
 		"prepack": "npm run build"
 	},
 	"dependencies": {
 		"@mercuryworkshop/bare-mux-custom": "workspace:*",
-		"@mercuryworkshop/epoxy-tls": "2.1.18-1",
-		"libcurl.js": "^0.7.1"
-	},
-	"main": "index.ts"
+		"@mercuryworkshop/epoxy-tls": "2.1.18-1"
+	}
 }

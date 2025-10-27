@@ -2,16 +2,17 @@
 	"name": "@mercuryworkshop/libcurl-transport",
 	"version": "2.0.0",
 	"description": "a bare transport that implements end-to-end encryption with libcurl.js and wisp",
+	"type": "module",
+	"main": "index.ts",
+	"keywords": [],
 	"author": "ading2210",
 	"license": "AGPL-3.0-only",
-	"type": "module",
 	"scripts": {
 		"build": "node esbuild.bundle.mjs; cp dist/index.cjs dist/index.js",
 		"prepack": "npm run build"
 	},
 	"dependencies": {
 		"@mercuryworkshop/bare-mux-custom": "workspace:*",
-		"libcurl.js": "^0.7.1"
-	},
-	"main": "index.ts"
+		"libcurl.js": "^0.7.2"
+	}
 }
