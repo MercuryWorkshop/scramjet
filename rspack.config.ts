@@ -130,6 +130,15 @@ const createScramjetConfig = (options) => {
 					/Critical dependency: the request of a dependency is an expression/,
 			},
 		],
+		optimization: {
+			minimizer: [
+				new rspack.SwcJsMinimizerRspackPlugin({
+					minimizerOptions: {
+						module: output.libraryTarget === "module",
+					},
+				}),
+			],
+		},
 		...extraConfig,
 	});
 };

@@ -9,8 +9,8 @@
 		"url": "https://github.com/MercuryWorkshop/scramjet"
 	},
 	"scripts": {
-		"build": "rspack build --mode production",
-		"build:types": "rslib build && rm -rf dist/temp",
+		"build": "cd ../.. && rspack build --mode production",
+		"build:types": "cd ../.. && rslib build && rm -rf packages/core/dist/temp",
 		"build:all": "npm run build && npm run build:types",
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
