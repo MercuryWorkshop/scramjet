@@ -29,7 +29,7 @@ const scramjetdir = join(__dirname, "packages/core");
 const sjpackagemeta = JSON.parse(
 	await readFile(join(scramjetdir, "package.json"), "utf-8")
 );
-const wasmPath = join(scramjetdir, "rewriter/wasm/out/optimized.wasm");
+const wasmPath = join(scramjetdir, "dist/scramjet.wasm.wasm");
 let wasmB64: string;
 const wasmBuf = await readFile(wasmPath);
 wasmB64 = wasmBuf.toString("base64");
