@@ -1,5 +1,7 @@
 packages:
   - "packages/core"
+  - "packages/bootstrap"
+  - "packages/controller"
   - "packages/scramjetserver"
   - "packages/bare-mux-custom"
   - "packages/epoxy-transport"
