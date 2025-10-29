@@ -10,12 +10,12 @@ workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-js-sys = "0.3.77"
+js-sys = "0.3.82"
 oxc = { workspace = true }
 js = { version = "0.1.0", path = "../js", default-features = false }
-thiserror = "2.0.12"
-wasm-bindgen = "0.2.100"
-web-sys = { version = "0.3.77", features = ["Url","UrlSearchParams"] }
+thiserror = "2.0.17"
+wasm-bindgen = "0.2.105"
+web-sys = { version = "0.3.82", features = ["Url","UrlSearchParams"] }
 
 [features]
 default = ["debug"]
