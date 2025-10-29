@@ -1,0 +1,11 @@
+{
+	"name": "@mercuryworkshop/proxy-bootstrap",
+	"version": "0.0.1",
+	"type": "module",
+	"packageManager": "pnpm@10.12.1",
+	"main": "./dist/bootstrap.js",
+	"dependencies": {
+		"server": "link:@mercuryworkshop/wisp-js/server",
+		"tar": "^7.5.1"
+	}
+}

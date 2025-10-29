@@ -1,7 +1,8 @@
 import { defineConfig } from "@rspack/cli";
-import { rspack } from "@rspack/core";
+import { rspack, type RspackOptions } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
+import nodeExternals from "webpack-node-externals";
 
 import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
@@ -24,6 +25,8 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // Project directories
 const scramjetdir = join(__dirname, "packages/core");
+const controllerdir = join(__dirname, "packages/controller");
+const bootstrapdir = join(__dirname, "packages/bootstrap");
 
 // Load WASM for rewriter
 const sjpackagemeta = JSON.parse(
@@ -54,21 +57,31 @@ export const tsloader = {
 	type: "javascript/auto",
 };
 
-// Common configuration options for scramjet builds
-const createScramjetConfig = (options) => {
-	const { entry, output, rewriterWasm, extraConfig = {} } = options;
+function deepmerge(target, source) {
+	const output = { ...target };
+	if (isObject(target) && isObject(source)) {
+		Object.keys(source).forEach((key) => {
+			if (isObject(source[key])) {
+				if (!(key in target)) Object.assign(output, { [key]: source[key] });
+				else output[key] = deepmerge(target[key], source[key]);
+			} else {
+				Object.assign(output, { [key]: source[key] });
+			}
+		});
+	}
+	return output;
+}
 
-	return defineConfig({
-		mode: "development",
+function isObject(item) {
+	return item && typeof item === "object" && !Array.isArray(item);
+}
+
+const createGenericConfig = (options) => {
+	const def: RspackOptions = {
 		devtool: "source-map",
-		entry,
+		mode: "development",
 		resolve: {
 			extensions: [".ts", ".js"],
-			alias: {
-				"@rewriters": join(scramjetdir, "src/shared/rewriters"),
-				"@client": join(scramjetdir, "src/client"),
-				"@": join(scramjetdir, "src"),
-			},
 		},
 		module: {
 			rules: [tsloader],
@@ -77,6 +90,32 @@ const createScramjetConfig = (options) => {
 					overrideStrict: "non-strict",
 					dynamicImportMode: "eager",
 				},
+			},
+		},
+		optimization: {
+			minimizer: [
+				new rspack.SwcJsMinimizerRspackPlugin({
+					minimizerOptions: {
+						module: options.output.libraryTarget === "module",
+					},
+				}),
+			],
+		},
+	};
+	return defineConfig(deepmerge(def, options));
+};
+
+// Common configuration options for scramjet builds
+const createScramjetConfig = (options) => {
+	const { entry, output, rewriterWasm, extraConfig = {} } = options;
+
+	return createGenericConfig({
+		entry,
+		resolve: {
+			alias: {
+				"@rewriters": join(scramjetdir, "src/shared/rewriters"),
+				"@client": join(scramjetdir, "src/client"),
+				"@": join(scramjetdir, "src"),
 			},
 		},
 		output,
@@ -130,15 +169,6 @@ const createScramjetConfig = (options) => {
 					/Critical dependency: the request of a dependency is an expression/,
 			},
 		],
-		optimization: {
-			minimizer: [
-				new rspack.SwcJsMinimizerRspackPlugin({
-					minimizerOptions: {
-						module: output.libraryTarget === "module",
-					},
-				}),
-			],
-		},
 		...extraConfig,
 	});
 };
@@ -228,9 +258,50 @@ const moduleConfig = createScramjetConfig({
 	},
 });
 
+const bootstrapConfig = createGenericConfig({
+	entry: {
+		main: join(bootstrapdir, "src/index.ts"),
+	},
+	output: {
+		filename: "bootstrap.js",
+		path: join(bootstrapdir, "dist"),
+		iife: false,
+		libraryTarget: "module",
+	},
+	experiments: {
+		outputModule: true,
+	},
+	target: "node",
+	externals: [
+		function ({ context, request }, callback) {
+			console.log(request);
+			if (!/^(\.|\/)/.test(request)) {
+				// Externalize to a commonjs module using the request path
+				return callback(null, request);
+			}
+
+			// Continue without externalizing the import
+			callback();
+		},
+	],
+});
+
+const controllerConfig = createGenericConfig({
+	entry: {
+		main: join(controllerdir, "src/index.ts"),
+	},
+	output: {
+		filename: "controller.js",
+		path: join(controllerdir, "dist"),
+		iife: true,
+	},
+});
+
 export default [
 	iifeConfig,
 	iifeBundledConfig,
 	moduleConfig,
 	moduleBundledConfig,
+	bootstrapConfig,
+	controllerConfig,
 ];
