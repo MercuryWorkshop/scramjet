@@ -3,9 +3,9 @@
 	"skipErrorChecking": true,
 	"customCss": "./node_modules/@stephansama/catppuccin-typedoc/dist/catppuccin-typedoc.css",
 	"entryPointStrategy": "expand",
-	"entryPoints": ["src/"],
+	"entryPoints": ["../core/src"],
 	"out": "./_docs-dev",
-	"tsconfig": "./tsconfig.json",
+	"tsconfig": "../core/tsconfig.json",
 	"excludeExternals": false,
 	"exclude": ["**/*.spec.ts", "**/*.test.ts", "**/node_modules/**"],
 	"excludePrivate": false,
@@ -38,7 +38,8 @@
 	"versions": {
 		"stable": "auto",
 		"dev": "auto",
-		"makeRelativeLinks": false
+		"makeRelativeLinks": false,
+		"packageFile": "../core/package.json"
 	},
 	"plausibleSiteDomain": "scramjet.mercurywork.shop",
 	"plausibleSiteOrigin": "https://analytics.proudparrot2.com/js/"
