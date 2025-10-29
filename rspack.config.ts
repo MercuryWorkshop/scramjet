@@ -288,10 +288,11 @@ const bootstrapConfig = createGenericConfig({
 
 const controllerConfig = createGenericConfig({
 	entry: {
-		main: join(controllerdir, "src/index.ts"),
+		api: join(controllerdir, "src/index.ts"),
+		sw: join(controllerdir, "src/sw.ts"),
 	},
 	output: {
-		filename: "controller.js",
+		filename: "controller.[name].js",
 		path: join(controllerdir, "dist"),
 		iife: true,
 	},
