@@ -2,9 +2,9 @@
 	"$schema": "https://typedoc.org/schema.json",
 	"skipErrorChecking": true,
 	"customCss": "./node_modules/@stephansama/catppuccin-typedoc/dist/catppuccin-typedoc.css",
-	"entryPoints": ["src/entry.ts"],
+	"entryPoints": ["../core/src/entry.ts"],
 	"out": "./_docs",
-	"tsconfig": "./tsconfig.user-facing.json",
+	"tsconfig": "../core/tsconfig.user-facing.json",
 	"exclude": [
 		"**/*.spec.ts",
 		"**/*.test.ts",
@@ -24,18 +24,17 @@
 	"plugin": [
 		"@8hobbies/typedoc-plugin-plausible",
 		"@shipgirl/typedoc-plugin-versions",
-		"@8hobbies/typedoc-plugin-404",
 		"@giancosta86/typedoc-readonly",
 		"typedoc-plugin-markdown",
 		"typedoc-plugin-frontmatter",
-		"typedoc-plugin-copy-doc",
-		"typedoc-plugin-dt-links",
+		"@reside-ic/typedoc-plugin-copy-doc",
 		"typedoc-plugin-include-example",
 		"typedoc-plugin-mdn-links"
 	],
 	"versions": {
 		"stable": "auto",
-		"dev": "auto"
+		"dev": "auto",
+		"packageFile": "../core/package.json"
 	},
 	"plausibleSiteDomain": "scramjet.mercurywork.shop",
 	"plausibleSiteOrigin": "https://analytics.proudparrot2.com/js/"

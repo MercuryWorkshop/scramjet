@@ -26,10 +26,7 @@
 		"test": "npm run test:package && npm run test:integration",
 		"test:package": "ava tests/ci/packageValidation.js",
 		"test:integration": "npx playwright test",
-		"preinstall": "npx only-allow pnpm",
-		"docs": "typedoc",
-		"docs:dev": "typedoc --options typedoc.dev-facing.json",
-		"docs:serve": "npx serve _docs; typedoc --watch"
+		"preinstall": "npx only-allow pnpm"
 	},
 	"exports": {
 		".": {
@@ -59,23 +56,16 @@
 		"verbose": true
 	},
 	"devDependencies": {
-		"@8hobbies/typedoc-plugin-404": "^3.2.1",
-		"@8hobbies/typedoc-plugin-plausible": "^2.2.0",
-		"@catppuccin/vscode": "^3.18.0",
 		"@eslint/eslintrc": "^3.3.1",
 		"@eslint/js": "^9.35.0",
 		"@estruyf/github-actions-reporter": "^1.10.0",
 		"@fastify/static": "^8.2.0",
-		"@giancosta86/typedoc-readonly": "^1.0.1",
 		"@mercuryworkshop/bare-as-module3": "^2.2.5",
 		"@mercuryworkshop/epoxy-transport": "^2.1.28",
 		"@mercuryworkshop/libcurl-transport": "^1.5.0",
 		"@mercuryworkshop/wisp-js": "^0.4.0",
 		"@nebula-services/bare-server-node": "^2.0.4",
 		"@playwright/test": "^1.55.0",
-		"@reside-ic/typedoc-plugin-copy-doc": "^1.1.2",
-		"@shipgirl/typedoc-plugin-versions": "^0.3.2",
-		"@stephansama/catppuccin-typedoc": "^1.0.1",
 		"@types/eslint": "^9.6.1",
 		"@types/estree": "^1.0.8",
 		"@types/node": "^24.3.1",
@@ -99,12 +89,6 @@
 		"ts-checker-rspack-plugin": "^1.1.5",
 		"tsc-alias": "^1.8.16",
 		"tslib": "^2.8.1",
-		"typedoc": "^0.28.12",
-		"typedoc-material-theme": "^1.4.0",
-		"typedoc-plugin-frontmatter": "^1.3.0",
-		"typedoc-plugin-include-example": "^3.0.2",
-		"typedoc-plugin-markdown": "^4.8.1",
-		"typedoc-plugin-mdn-links": "^5.0.9",
 		"typescript": "^5.9.2"
 	},
 	"dependencies": {

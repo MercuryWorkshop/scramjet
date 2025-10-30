@@ -2,7 +2,7 @@ import { defineConfig } from "@rspack/cli";
 import { rspack, type RspackOptions } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
-import nodeExternals from "webpack-node-externals";
+// import nodeExternals from "webpack-node-externals";
 
 import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
