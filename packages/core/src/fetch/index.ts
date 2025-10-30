@@ -2,6 +2,7 @@ import {
 	BareClient,
 	BareHeaders,
 	BareResponseFetch,
+	TransferrableResponse,
 } from "@mercuryworkshop/bare-mux-custom";
 
 import { CookieJar } from "@/shared/cookie";
@@ -14,7 +15,7 @@ import {
 } from "@rewriters/url";
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetHeaders } from "@/shared/headers";
-import { config, flagEnabled, iface } from "@/shared";
+import { Clientbound, config, flagEnabled, iface, Serverbound } from "@/shared";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
@@ -57,6 +58,17 @@ export type FetchHandler = {
 	cookieJar: CookieJar;
 	crossOriginIsolated?: boolean;
 	prefix: URL;
+
+	sendClientbound<K extends keyof Clientbound>(
+		type: K,
+		msg: Clientbound[K][0]
+	): Promise<Clientbound[K][1]>;
+	onServerbound<K extends keyof Serverbound>(
+		type: K,
+		listener: (msg: Serverbound[K][0]) => Promise<Serverbound[K][1]>
+	): void;
+	fetchDataUrl(dataUrl: string): Promise<BareResponseFetch>;
+	fetchBlobUrl(blobUrl: string): Promise<BareResponseFetch>;
 };
 
 export class ScramjetFetchHandler extends EventTarget {
@@ -65,14 +77,25 @@ export class ScramjetFetchHandler extends EventTarget {
 	public crossOriginIsolated: boolean = false;
 	public prefix: URL;
 
+	public sendClientbound: <K extends keyof Clientbound>(
+		type: K,
+		msg: Clientbound[K][0]
+	) => Promise<Clientbound[K][1]>;
+
+	public fetchDataUrl: (dataUrl: string) => Promise<BareResponseFetch>;
+	public fetchBlobUrl: (blobUrl: string) => Promise<BareResponseFetch>;
+
 	constructor(init: FetchHandler) {
 		super();
 		this.client = init.client;
 		this.cookieJar = init.cookieJar;
 		this.crossOriginIsolated = init.crossOriginIsolated || false;
 		this.prefix = init.prefix;
+		this.sendClientbound = init.sendClientbound;
+		this.fetchDataUrl = init.fetchDataUrl;
+		this.fetchBlobUrl = init.fetchBlobUrl;
 
-		iface.onServerbound("setCookie", ({ cookie, url }) => {
+		init.onServerbound("setCookie", ({ cookie, url }) => {
 			console.log("recv'd cookies");
 			this.cookieJar.setCookies([cookie], new URL(url));
 
@@ -387,12 +410,18 @@ async function handleBlobOrDataUrlFetch(
 	parsed: ScramjetFetchParsed
 ): Promise<ScramjetFetchResponse> {
 	let dataUrl = context.rawUrl.pathname.substring(config.prefix.length);
+	let response: BareResponseFetch;
+
 	if (dataUrl.startsWith("blob:")) {
 		dataUrl = unrewriteBlob(dataUrl, parsed.meta);
+		response = await handler.fetchBlobUrl(dataUrl);
+	} else {
+		response = await handler.fetchDataUrl(dataUrl);
 	}
-	const response: Partial<BareResponseFetch> = await fetch(dataUrl, {});
+
 	const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
 	response.finalURL = url;
+
 	let body: BodyType;
 	if (response.body) {
 		body = await rewriteBody(
@@ -415,66 +444,6 @@ async function handleBlobOrDataUrlFetch(
 		headers: headers,
 	};
 }
-// async function handleDownload(
-// 	context: ScramjetFetchContext,
-// 	parsed: ScramjetFetchParsed
-// ) {
-// 	if (flagEnabled("interceptDownloads", parsed.url)) {
-// 		if (!client) {
-// 			throw new Error("cant find client");
-// 		}
-// 		let filename: string | null = null;
-// 		const disp = responseHeaders["content-disposition"];
-// 		if (typeof disp === "string") {
-// 			const filenameMatch = disp.match(/filename=["']?([^"';\n]*)["']?/i);
-// 			if (filenameMatch && filenameMatch[1]) {
-// 				filename = filenameMatch[1];
-// 			}
-// 		}
-// 		const length = responseHeaders["content-length"];
-// 		// there's no reliable way of finding the top level client that made the request
-// 		// just take the first one and hope
-// 		let clis = await clients.matchAll({
-// 			type: "window",
-// 		});
-// 		// only want controller windows
-// 		clis = clis.filter((e) => !e.url.includes(config.prefix));
-// 		if (clis.length < 1) {
-// 			throw Error("couldn't find a controller client to dispatch download to");
-// 		}
-// 		const download: ScramjetDownload = {
-// 			filename,
-// 			url: url.href,
-// 			type: responseHeaders["content-type"],
-// 			body: response.body,
-// 			length: Number(length),
-// 		};
-// 		clis[0].postMessage(
-// 			{
-// 				scramjet$type: "download",
-// 				download,
-// 			} as MessageW2C,
-// 			[response.body]
-// 		);
-// 		// endless vortex reference
-// 		await new Promise(() => {});
-// 	} else {
-// 		// manually rewrite for regular browser download
-// 		const header = responseHeaders["content-disposition"];
-// 		// validate header and test for filename
-// 		if (!/\s*?((inline|attachment);\s*?)filename=/i.test(header)) {
-// 			// if filename= wasn"t specified then maybe the remote specified to download this as an attachment?
-// 			// if it"s invalid then we can still possibly test for the attachment/inline type
-// 			const type = /^\s*?attachment/i.test(header) ? "attachment" : "inline";
-// 			// set the filename
-// 			const [filename] = new URL(response.finalURL).pathname
-// 				.split("/")
-// 				.slice(-1);
-// 			responseHeaders["content-disposition"] =
-// 				`${type}; filename=${JSON.stringify(filename)}`;
-// 		}
-// 	}
-// }
 
 async function handleCookies(
 	context: ScramjetFetchContext,
