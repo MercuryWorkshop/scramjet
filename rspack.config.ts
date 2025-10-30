@@ -2,7 +2,14 @@ import { defineConfig } from "@rspack/cli";
 import { rspack, type RspackOptions } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
-// import nodeExternals from "webpack-node-externals";
+
+function nodeExternals({ context, request }, callback) {
+	if (!/^(\.|\/)/.test(request)) {
+		return callback(null, request);
+	}
+
+	callback();
+}
 
 import { readFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
@@ -272,18 +279,7 @@ const bootstrapConfig = createGenericConfig({
 		outputModule: true,
 	},
 	target: "node",
-	externals: [
-		function ({ context, request }, callback) {
-			console.log(request);
-			if (!/^(\.|\/)/.test(request)) {
-				// Externalize to a commonjs module using the request path
-				return callback(null, request);
-			}
-
-			// Continue without externalizing the import
-			callback();
-		},
-	],
+	externals: [nodeExternals],
 });
 
 const controllerConfig = createGenericConfig({
