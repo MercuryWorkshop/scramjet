@@ -25,7 +25,7 @@ type Frame = {
 	fetchHandler: ScramjetFetchHandler;
 };
 
-const frames: Record<string, Frame>;
+const frames: Record<string, Frame> = {};
 
 function shouldRoute(fetch: FetchEvent): boolean {
 	const url = new URL(fetch.request.url);
@@ -42,14 +42,36 @@ function shouldRoute(fetch: FetchEvent): boolean {
 	return false;
 }
 
-async function handleFetch(fetch: FetchEvent) {
-	if (fetch.request.url.startsWith(config.prefix + config.virtualWasmPath)) {
-		return await makeWasmResponse();
+let wasmPayload: string | null = null;
+async function handleFetch(ev: FetchEvent): Promise<Response> {
+	if (ev.request.url.startsWith(config.prefix + config.virtualWasmPath)) {
+		if (!wasmPayload) {
+			const resp = await fetch(config.wasmPath);
+			const buf = await resp.arrayBuffer();
+			const b64 = btoa(
+				new Uint8Array(buf)
+					.reduce(
+						(data, byte) => (data.push(String.fromCharCode(byte)), data),
+						[] as any
+					)
+					.join("")
+			);
+
+			let payload = "";
+			payload +=
+				"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+			payload += `self.WASM = '${b64}';`;
+			wasmPayload = payload;
+		}
+
+		return new Response(wasmPayload, {
+			headers: { "Content-Type": "application/javascript" },
+		});
 	}
 
-	let frame;
+	let frame: Frame;
 	for (let id in frames) {
-		if (fetch.request.url.startsWith(config.prefix + "/" + id + "/")) {
+		if (ev.request.url.startsWith(config.prefix + "/" + id + "/")) {
 			frame = frames[id];
 			break;
 		}
@@ -59,119 +81,39 @@ async function handleFetch(fetch: FetchEvent) {
 	// create fetch context
 
 	let headers = new ScramjetHeaders();
-	for (let [k, v] of Object.entries(fetch.request.headers)) {
+	for (let [k, v] of Object.entries(ev.request.headers)) {
 		headers.set(k, v);
 	}
 
-	const client = await clients.get(fetch.clientId);
+	const client = await clients.get(ev.clientId);
 
 	const context: ScramjetFetchContext = {
 		initialHeaders: headers,
 		rawClientUrl: new URL(client.url),
-		rawUrl: new URL(fetch.request.url),
-		destination: fetch.request.destination,
-		method: fetch.request.method,
-		mode: fetch.request.mode,
-		referrer: fetch.request.referrer,
+		rawUrl: new URL(ev.request.url),
+		destination: ev.request.destination,
+		method: ev.request.method,
+		mode: ev.request.mode,
+		referrer: ev.request.referrer,
 		forceCrossOriginIsolated: crossOriginIsolated,
-		body: fetch.request.body,
-		cache: fetch.request.cache,
+		body: ev.request.body,
+		cache: ev.request.cache,
 		cookieStore: cookieJar,
 	};
 
 	const fetchresponse = await frame.fetchHandler.handleFetch(context);
-}
-window.addEventListener("message", async (event) => {
-	let data = event.data;
-	if (!(data && "$sandboxsw$type" in data)) return;
-	let controller = controllers.find(
-		(c) => c.controllerframe.contentWindow == event.source
-	);
-	if (!controller) {
-		console.error("No controller found for message", data);
-		return;
-	}
 
-	try {
-		if (data.$sandboxsw$type == "request") {
-			let domain = data.$sandboxsw$domain;
-			let message = data.$sandboxsw$message;
-			let token = data.$sandboxsw$token;
-
-			let fn = (methods as any)[domain];
-
-			let [result, transfer] = await fn(message, controller);
-			controller.window.postMessage(
-				{
-					$sandboxsw$type: "response",
-					$sandboxsw$token: token,
-					$sandboxsw$message: result,
-				},
-				controller.baseurl.origin,
-				transfer
-			);
-		} else if (data.$sandboxsw$type == "confirm") {
-			console.log(controller.rootdomain + " controller activated");
-			controller.readyResolve();
+	const respHeaders = new Headers();
+	for (let [k, v] of Object.entries(fetchresponse.headers)) {
+		let val = typeof v === "string" ? v : (v?.[0] ?? undefined);
+		if (val !== undefined) {
+			respHeaders.set(k, val);
 		}
-	} catch (e) {
-		console.log(e);
-		console.error("error in response", e);
-	}
-});
-
-let wasmPayload: string | null = null;
-
-async function makeWasmResponse() {
-	if (!wasmPayload) {
-		const resp = await fetch(scramjetWASM);
-		const buf = await resp.arrayBuffer();
-		const b64 = btoa(
-			new Uint8Array(buf)
-				.reduce(
-					(data, byte) => (data.push(String.fromCharCode(byte)), data),
-					[] as any
-				)
-				.join("")
-		);
-
-		let payload = "";
-		payload +=
-			"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
-		payload += `self.WASM = '${b64}';`;
-		wasmPayload = payload;
 	}
 
-	return {
-		body: wasmPayload,
-		headers: { "Content-Type": "application/javascript" },
-		status: 200,
-		statusText: "OK",
-	};
-}
-
-let synctoken = 0;
-let syncPool: { [token: number]: (val: any) => void } = {};
-export function sendFrame<T extends keyof Framebound>(
-	tab: Tab,
-	type: T,
-	message: Framebound[T][0]
-): Promise<Framebound[T][1]> {
-	let token = synctoken++;
-
-	tab.frame.frame.contentWindow!.postMessage(
-		{
-			$ipc$type: "request",
-			$ipc$token: token,
-			$ipc$message: {
-				type,
-				message,
-			},
-		},
-		"*"
-	);
-
-	return new Promise((res) => {
-		syncPool[token] = res;
+	return new Response(fetchresponse.body, {
+		status: fetchresponse.status,
+		statusText: fetchresponse.statusText,
+		headers: respHeaders,
 	});
 }
