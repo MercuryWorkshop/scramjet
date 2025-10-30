@@ -25,30 +25,86 @@ function rewriteHtmlInner(
 	if (preRewrite) preRewrite(handler);
 	traverseParsedHtml(handler.root, cookieJar, meta);
 
-	function findhead(node) {
-		if (node.type === ElementType.Tag && node.name === "head") {
-			return node as Element;
-		} else if (node.childNodes) {
-			for (const child of node.childNodes) {
-				const head = findhead(child);
-				if (head) return head;
+	let htmlRoot: Element | undefined;
+	let headElement: Element | undefined;
+	let bodyElement: Element | undefined;
+
+	function detectQuirks() {
+		for (const child of handler.root.childNodes) {
+			if (
+				child.type === ElementType.Directive ||
+				child.type === ElementType.Comment ||
+				child.type === ElementType.Text
+			) {
+				continue;
+			}
+
+			if (child.type === ElementType.Tag && child.name === "html") {
+				htmlRoot = child as Element;
+			} else {
+				// there's a child of the root that isn't an html element or a doctype/comment/text
+				return true;
 			}
 		}
 
-		return null;
+		if (!htmlRoot) return true; // no html tag or it's somewhere else other than first child
+
+		for (const child of htmlRoot.childNodes) {
+			if (
+				child.type === ElementType.Directive ||
+				child.type === ElementType.Comment ||
+				child.type === ElementType.Text
+			) {
+				continue;
+			}
+
+			if (child.type === ElementType.Tag && child.name === "head") {
+				if (bodyElement) {
+					// head comes after body
+					return true;
+				}
+				headElement = child as Element;
+			} else if (child.type === ElementType.Tag && child.name === "body") {
+				bodyElement = child as Element;
+			} else {
+				// there's a child of html that isn't head or body
+				// fine if head already exists, bad if it doesn't
+				if (!headElement) {
+					return true;
+				}
+			}
+
+			return false;
+		}
 	}
 
-	if (fromTop) {
-		let head = findhead(handler.root);
-		if (!head) {
-			head = new Element("head", {}, []);
-			handler.root.children.unshift(head);
-		}
+	let isQuirky = detectQuirks();
 
+	if (fromTop) {
 		const script = (src: string) => new Element("script", { src });
-		head.children.unshift(
-			...iface.getInjectScripts(meta, handler, config, cookieJar, script)
+		const injectScripts = iface.getInjectScripts(
+			meta,
+			handler,
+			config,
+			cookieJar,
+			script
 		);
+
+		if (isQuirky) {
+			dbg.warn(
+				`detected quirky document structure parsing @ ${meta.origin.href}!`
+			);
+			// there's weird stuff going on with the document that could result in page scripts being loaded before our inject scripts
+			// so inject them at position 0
+			handler.root.children.unshift(...injectScripts);
+		} else {
+			if (!headElement) {
+				headElement = new Element("head", {}, []);
+				htmlRoot.children.unshift(headElement);
+			}
+
+			headElement.children.unshift(...injectScripts);
+		}
 	}
 
 	if (postRewrite) postRewrite(handler);
