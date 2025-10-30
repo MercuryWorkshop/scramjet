@@ -9,7 +9,7 @@
 		"declarationDir": "./dist/types",
 		"outDir": "./dist/types",
 		"emitDeclarationOnly": true,
-		"lib": ["ES2022", "WebWorker"],
+		"lib": ["ES2022"],
 		"paths": {
 			"@rewriters/*": ["./src/shared/rewriters/*"],
 			"@client/*": ["./src/client/*"],
