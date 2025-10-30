@@ -25,7 +25,7 @@ type Frame = {
 	fetchHandler: ScramjetFetchHandler;
 };
 
-const frames: Record<string, Frame>;
+let frames: Record<string, Frame>;
 
 function shouldRoute(fetch: FetchEvent): boolean {
 	const url = new URL(fetch.request.url);
