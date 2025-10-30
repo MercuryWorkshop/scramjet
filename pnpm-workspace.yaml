@@ -8,4 +8,5 @@ packages:
   - "packages/libcurl-transport"
   - "packages/demo"
   - "packages/rewriter_demo"
+  - "packages/rpc"
   - "packages/typedoc"
