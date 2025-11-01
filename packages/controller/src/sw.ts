@@ -1,119 +1,87 @@
-import {
-	CookieJar,
-	ScramjetFetchHandler,
-	ScramjetHeaders,
-	type ScramjetFetchContext,
-} from "@mercuryworkshop/scramjet";
-
 declare var clients: Clients;
+import { RpcHelper } from "@mercuryworkshop/rpc";
+import { Controllerbound, SWbound } from "./types";
+import type { BareHeaders } from "@mercuryworkshop/bare-mux-custom";
 
-const cookieJar = new CookieJar();
+class Tab {
+	rpc: RpcHelper<SWbound, Controllerbound>;
 
-type Config = {
-	wasmPath: string;
-	scramjetPath: string;
-	virtualWasmPath: string;
-	prefix: string;
-};
+	constructor(
+		public prefix: string,
+		public id: string,
+		port: MessagePort
+	) {
+		this.rpc = new RpcHelper({}, "tabchannel" + id, (data, transfer) => {
+			port.postMessage(data, transfer);
+		});
+		port.addEventListener("message", (e) => {
+			this.rpc.recieve(e.data);
+		});
 
-const config: Config = {
-	prefix: "~/sj",
-	virtualWasmPath: "/scramjet.wasm.js",
-};
-
-type Frame = {
-	fetchHandler: ScramjetFetchHandler;
-};
-
-const frames: Record<string, Frame> = {};
-
-function shouldRoute(fetch: FetchEvent): boolean {
-	const url = new URL(fetch.request.url);
-	if (url.pathname === config.prefix + config.virtualWasmPath) {
-		return true;
+		this.rpc.call("ready", null);
 	}
-
-	for (let id in frames) {
-		if (url.pathname.startsWith(config.prefix + "/" + id + "/")) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
-let wasmPayload: string | null = null;
-async function handleFetch(ev: FetchEvent): Promise<Response> {
-	if (ev.request.url.startsWith(config.prefix + config.virtualWasmPath)) {
-		if (!wasmPayload) {
-			const resp = await fetch(config.wasmPath);
-			const buf = await resp.arrayBuffer();
-			const b64 = btoa(
-				new Uint8Array(buf)
-					.reduce(
-						(data, byte) => (data.push(String.fromCharCode(byte)), data),
-						[] as any
-					)
-					.join("")
-			);
+const tabs: Tab[] = [];
 
-			let payload = "";
-			payload +=
-				"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
-			payload += `self.WASM = '${b64}';`;
-			wasmPayload = payload;
-		}
+addEventListener("message", (e) => {
+	if (!e.data) return;
+	if (typeof e.data != "object") return;
+	if (!e.data.$controller$init) return;
+	if (typeof e.data.$controller$init != "object") return;
+	const init = e.data.$controller$init;
 
-		return new Response(wasmPayload, {
-			headers: { "Content-Type": "application/javascript" },
-		});
+	tabs.push(new Tab(init.prefix, init.id, e.ports[0]));
+});
+
+function shouldRoute(event: FetchEvent): boolean {
+	const tab = tabs.find((tab) => event.request.url.startsWith(tab.prefix));
+	return tab !== undefined;
+}
+
+async function route(event: FetchEvent): Promise<Response> {
+	const tab = tabs.find((tab) => event.request.url.startsWith(tab.prefix))!;
+	const client = await clients.get(event.clientId);
+
+	const bareheaders: BareHeaders = {};
+
+	// @ts-expect-error for some reason it thinks headers.entries doesn't exist?
+	for (const [key, value] of event.request.headers.entries()) {
+		bareheaders[key] = [value];
 	}
 
-	let frame: Frame;
-	for (let id in frames) {
-		if (ev.request.url.startsWith(config.prefix + "/" + id + "/")) {
-			frame = frames[id];
-			break;
-		}
-	}
-	if (!frame) throw new Error("No frame found for fetch");
+	const response = await tab.rpc.call(
+		"request",
+		{
+			rawUrl: event.request.url,
+			destination: event.request.destination,
+			mode: event.request.mode,
+			referrer: event.request.referrer,
+			method: event.request.method,
+			body: event.request.body,
+			cache: event.request.cache,
+			forceCrossOriginIsolated: false,
+			initialHeaders: bareheaders,
+			rawClientUrl: client ? client.url : undefined,
+		},
+		event.request.body instanceof ReadableStream ||
+			// @ts-expect-error the types for fetchevent are messed up
+			event.request.body instanceof ArrayBuffer
+			? [event.request.body]
+			: undefined
+	);
 
-	// create fetch context
-
-	let headers = new ScramjetHeaders();
-	for (let [k, v] of Object.entries(ev.request.headers)) {
-		headers.set(k, v);
-	}
-
-	const client = await clients.get(ev.clientId);
-
-	const context: ScramjetFetchContext = {
-		initialHeaders: headers,
-		rawClientUrl: new URL(client.url),
-		rawUrl: new URL(ev.request.url),
-		destination: ev.request.destination,
-		method: ev.request.method,
-		mode: ev.request.mode,
-		referrer: ev.request.referrer,
-		forceCrossOriginIsolated: crossOriginIsolated,
-		body: ev.request.body,
-		cache: ev.request.cache,
-		cookieStore: cookieJar,
-	};
-
-	const fetchresponse = await frame.fetchHandler.handleFetch(context);
-
-	const respHeaders = new Headers();
-	for (let [k, v] of Object.entries(fetchresponse.headers)) {
-		let val = typeof v === "string" ? v : (v?.[0] ?? undefined);
+	const realHeaders = new Headers();
+	for (const [key, values] of Object.entries(response.headers)) {
+		let val = typeof values === "string" ? values : (values?.[0] ?? undefined);
 		if (val !== undefined) {
-			respHeaders.set(k, val);
+			realHeaders.set(key, val);
 		}
 	}
 
-	return new Response(fetchresponse.body, {
-		status: fetchresponse.status,
-		statusText: fetchresponse.statusText,
-		headers: respHeaders,
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers: realHeaders,
 	});
 }
