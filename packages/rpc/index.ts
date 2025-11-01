@@ -12,20 +12,17 @@ export type RpcDescription = {
 	[method: string]: [args: any, returnType: any] | [args: any] | [];
 };
 
-export type MethodsDefinition<Description extends RpcDescription, Meta> = {
+export type MethodsDefinition<Description extends RpcDescription> = {
 	[Method in keyof Description]: (
-		...args: Description[Method] extends [infer A, ...any[]]
-			? [Meta, A]
-			: [Meta]
-	) => Description[Method] extends [...any[], infer R]
+		...args: Description[Method] extends [infer A, ...any[]] ? [A] : []
+	) => Description[Method] extends [any, infer R]
 		? Promise<[R, Transferable[]]>
 		: Promise<void>;
 };
 
-class RpcHelper<
+export class RpcHelper<
 	Local extends RpcDescription,
 	Remote extends RpcDescription,
-	Meta,
 > {
 	counter: number = 0;
 	promiseCallbacks: Map<
@@ -33,12 +30,12 @@ class RpcHelper<
 		{ resolve: (value: any) => void; reject: (reason?: any) => void }
 	> = new Map();
 	constructor(
-		private methods: MethodsDefinition<Local, Meta>,
+		private methods: MethodsDefinition<Local>,
 		private id: string,
 		private sendRaw: (data: any, transfer: Transferable[]) => void
 	) {}
 
-	recieve(data: any, meta: Meta) {
+	recieve(data: any) {
 		if (data === undefined || data === null || typeof data !== "object") return;
 		const dt = data[this.id];
 		if (dt === undefined || dt === null || typeof dt !== "object") return;
@@ -60,7 +57,7 @@ class RpcHelper<
 		} else if (type === "request") {
 			const method = dt.$method as keyof Local;
 			const args = dt.$args as Local[typeof method][0];
-			(this.methods[method] as any)(meta, args)
+			(this.methods[method] as any)(args)
 				.then(([res, transfer]) => {
 					this.sendRaw(
 						{
@@ -91,7 +88,7 @@ class RpcHelper<
 	call<Method extends keyof Remote>(
 		method: Method,
 		args: Remote[Method][0],
-		transfer: Transferable[]
+		transfer: Transferable[] = []
 	): Promise<Remote[Method][1]> {
 		let token = this.counter++;
 		return new Promise((resolve, reject) => {
