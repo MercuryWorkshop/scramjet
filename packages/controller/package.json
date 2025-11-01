@@ -5,6 +5,8 @@
 	"packageManager": "pnpm@10.12.1",
 	"main": "index.ts",
 	"dependencies": {
-		"@mercuryworkshop/scramjet": "workspace:*"
+		"@mercuryworkshop/scramjet": "workspace:*",
+		"@mercuryworkshop/rpc": "workspace:*",
+		"@mercuryworkshop/bare-mux-custom": "workspace:*"
 	}
 }
