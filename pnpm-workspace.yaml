@@ -10,3 +10,4 @@ packages:
   - "packages/rewriter_demo"
   - "packages/rpc"
   - "packages/typedoc"
+  - "packages/create-proxy-app"
