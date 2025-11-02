@@ -1,11 +1,23 @@
 import { MethodsDefinition, RpcHelper } from "@mercuryworkshop/rpc";
 import {
+	codecDecode,
 	CookieJar,
+	rewriteUrl,
 	ScramjetFetchHandler,
 	ScramjetHeaders,
+	setConfig,
 	type ScramjetFetchContext,
 } from "@mercuryworkshop/scramjet";
 import { Controllerbound, SWbound } from "./types";
+import LibcurlClient from "@mercuryworkshop/libcurl-transport";
+import { BareClient } from "@mercuryworkshop/bare-mux-custom";
+
+let lc = new LibcurlClient({
+	wisp: "wss://anura.pro/",
+});
+const client = new BareClient(lc);
+console.log(lc);
+console.log(client);
 
 const cookieJar = new CookieJar();
 
@@ -16,10 +28,57 @@ type Config = {
 	prefix: string;
 };
 
-const config: Config = {
+export const config: Config = {
 	prefix: "/~/sj",
 	virtualWasmPath: "/scramjet.wasm.js",
 };
+
+const cfg = {
+	prefix: "/scramjet/",
+	globals: {
+		wrapfn: "$scramjet$wrap",
+		wrappropertybase: "$scramjet__",
+		wrappropertyfn: "$scramjet$prop",
+		cleanrestfn: "$scramjet$clean",
+		importfn: "$scramjet$import",
+		rewritefn: "$scramjet$rewrite",
+		metafn: "$scramjet$meta",
+		wrappostmessagefn: "$scramjet$wrappostmessage",
+		pushsourcemapfn: "$scramjet$pushsourcemap",
+		trysetfn: "$scramjet$tryset",
+		templocid: "$scramjet$temploc",
+		tempunusedid: "$scramjet$tempunused",
+	},
+	flags: {
+		syncxhr: false,
+		strictRewrites: true,
+		rewriterLogs: false,
+		captureErrors: true,
+		cleanErrors: false,
+		scramitize: false,
+		sourcemaps: true,
+		destructureRewrites: false,
+		allowInvalidJs: false,
+		allowFailedIntercepts: false,
+		antiAntiDebugger: false,
+	},
+	siteFlags: {},
+	codec: {
+		encode: `(url) => {
+						if (!url) return url;
+
+						return encodeURIComponent(url);
+					}`,
+		decode: `(url) => {
+						if (!url) return url;
+
+						return decodeURIComponent(url);
+					}`,
+	},
+	maskedfiles: ["inject.js", "scramjet.wasm.js"],
+};
+
+setConfig(cfg);
 
 const frames: Record<string, Frame> = {};
 
@@ -29,7 +88,7 @@ function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
 }
 
-class Controller {
+export class Controller {
 	id: string;
 	prefix: string;
 	frames: Frame[] = [];
@@ -44,9 +103,11 @@ class Controller {
 			this.readyResolve();
 		},
 		request: async (data) => {
+			console.log("REQUEST", data);
 			let path = new URL(data.rawUrl).pathname;
 			const frame = this.frames.find((f) => path.startsWith(f.prefix));
 			if (!frame) throw new Error("No frame found for request");
+			console.log("?");
 
 			if (path.startsWith(frame.prefix + "/" + config.virtualWasmPath)) {
 				if (!wasmPayload) {
@@ -88,6 +149,8 @@ class Controller {
 				}
 			}
 
+			console.log("fR");
+
 			const fetchresponse = await frame.fetchHandler.handleFetch({
 				initialHeaders: sjheaders,
 				rawClientUrl: data.rawClientUrl
@@ -103,6 +166,8 @@ class Controller {
 				cache: data.cache,
 				cookieStore: this.cookieJar,
 			});
+
+			console.log("???");
 
 			return [
 				{
@@ -130,7 +195,7 @@ class Controller {
 		let channel = new MessageChannel();
 		this.rpc = new RpcHelper<Controllerbound, SWbound>(
 			this.methods,
-			"swchannel",
+			"tabchannel-" + this.id,
 			(data, transfer) => {
 				channel.port1.postMessage(data, transfer);
 			}
@@ -151,8 +216,9 @@ class Controller {
 		);
 	}
 
-	createFrame(): Frame {
-		const frame = new Frame(this);
+	createFrame(element?: HTMLIFrameElement): Frame {
+		element ??= document.createElement("iframe");
+		const frame = new Frame(this, element);
 		this.frames.push(frame);
 		return frame;
 	}
@@ -167,12 +233,15 @@ class Frame {
 	id: string;
 	prefix: string;
 
-	constructor(public controller: Controller) {
+	constructor(
+		public controller: Controller,
+		public element: HTMLIFrameElement
+	) {
 		this.id = makeId();
-		this.prefix = this.controller.prefix + "/" + this.id;
+		this.prefix = this.controller.prefix + "/" + this.id + "/";
 
 		this.fetchHandler = new ScramjetFetchHandler({
-			client: null,
+			client,
 			cookieJar: this.controller.cookieJar,
 			prefix: new URL(
 				config.prefix + "/" + this.controller.id + "/" + this.id,
@@ -181,5 +250,15 @@ class Frame {
 			sendClientbound: (type, msg) => {},
 			onServerbound: (type, listener) => {},
 		});
+	}
+
+	go(url: string) {
+		const encoded = rewriteUrl(url, {
+			prefix: new URL(this.prefix, location.href),
+			origin: new URL(location.href),
+			base: new URL(location.href),
+		});
+		console.log(encoded);
+		this.element.src = encoded;
 	}
 }
