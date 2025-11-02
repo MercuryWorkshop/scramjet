@@ -41,6 +41,9 @@ importers:
       '@mercuryworkshop/bare-mux-custom':
         specifier: workspace:*
         version: link:../bare-mux-custom
+      '@mercuryworkshop/libcurl-transport':
+        specifier: workspace:*
+        version: link:../libcurl-transport
       '@mercuryworkshop/rpc':
         specifier: workspace:*
         version: link:../rpc
@@ -207,6 +210,9 @@ importers:
 
   packages/demo:
     dependencies:
+      '@mercuryworkshop/scramjet':
+        specifier: workspace:*
+        version: link:../core
       '@mercuryworkshop/scramjet-controller':
         specifier: workspace:*
         version: link:../controller
@@ -219,6 +225,13 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.1.0
+    devDependencies:
+      vite:
+        specifier: ^7.1.12
+        version: 7.1.12(@types/node@24.9.1)(jiti@2.6.1)(yaml@2.8.1)
+      vite-plugin-static-copy:
+        specifier: ^3.1.4
+        version: 3.1.4(vite@7.1.12(@types/node@24.9.1)(jiti@2.6.1)(yaml@2.8.1))
 
   packages/epoxy-transport:
     dependencies:
