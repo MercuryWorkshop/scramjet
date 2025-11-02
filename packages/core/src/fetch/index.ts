@@ -162,7 +162,7 @@ async function doHandleFetch(
 		parsed,
 		response.rawHeaders
 	);
-	await handleCookies(context, parsed, responseHeaders);
+	await handleCookies(handler, context, parsed, responseHeaders);
 
 	if (isRedirect(response)) {
 		const redirectUrl = new URL(
@@ -446,24 +446,30 @@ async function handleBlobOrDataUrlFetch(
 }
 
 async function handleCookies(
+	handler: ScramjetFetchHandler,
 	context: ScramjetFetchContext,
 	parsed: ScramjetFetchParsed,
 	responseHeaders: BareHeaders
 ) {
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
-	// if (Array.isArray(maybeHeaders))
-	// 	for (const cookie in maybeHeaders) {
-	// 		if (client) {
-	// 			const promise = swtarget.dispatch(client, {
-	// 				scramjet$type: "cookie",
-	// 				cookie,
-	// 				url: url.href,
-	// 			});
-	// 			if (destination !== "document" && destination !== "iframe") {
-	// 				await promise;
-	// 			}
-	// 		}
-	// 	}
+	if (Array.isArray(maybeHeaders)) {
+		for (const cookie of maybeHeaders) {
+			const promise = handler.sendClientbound("setCookie", {
+				cookie,
+				url: parsed.url.href,
+			});
+
+			if (
+				context.destination !== "document" &&
+				context.destination !== "iframe"
+			) {
+				await promise;
+
+				// TODO: fix with proper callback from client
+				await new Promise((resolve) => setTimeout(resolve, 100));
+			}
+		}
+	}
 
 	context.cookieStore.setCookies(
 		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
