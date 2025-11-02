@@ -11,7 +11,7 @@ class Tab {
 		public id: string,
 		port: MessagePort
 	) {
-		this.rpc = new RpcHelper({}, "tabchannel" + id, (data, transfer) => {
+		this.rpc = new RpcHelper({}, "tabchannel-" + id, (data, transfer) => {
 			port.postMessage(data, transfer);
 		});
 		port.addEventListener("message", (e) => {
@@ -34,13 +34,15 @@ addEventListener("message", (e) => {
 	tabs.push(new Tab(init.prefix, init.id, e.ports[0]));
 });
 
-function shouldRoute(event: FetchEvent): boolean {
-	const tab = tabs.find((tab) => event.request.url.startsWith(tab.prefix));
+export function shouldRoute(event: FetchEvent): boolean {
+	const url = new URL(event.request.url);
+	const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix));
 	return tab !== undefined;
 }
 
-async function route(event: FetchEvent): Promise<Response> {
-	const tab = tabs.find((tab) => event.request.url.startsWith(tab.prefix))!;
+export async function route(event: FetchEvent): Promise<Response> {
+	const url = new URL(event.request.url);
+	const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix))!;
 	const client = await clients.get(event.clientId);
 
 	const bareheaders: BareHeaders = {};
