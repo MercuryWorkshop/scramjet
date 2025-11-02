@@ -291,6 +291,10 @@ const controllerConfig = createGenericConfig({
 		filename: "controller.[name].js",
 		path: join(controllerdir, "dist"),
 		iife: true,
+		library: {
+			type: "var",
+			name: "$scramjetController",
+		},
 	},
 });
 
