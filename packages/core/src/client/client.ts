@@ -6,7 +6,14 @@ import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { bareTransport, config, flagEnabled } from "@/shared";
+import {
+	bareTransport,
+	ClientRPCDefs,
+	config,
+	flagEnabled,
+	ScramjetContext,
+	ScramjetInterface,
+} from "@/shared";
 import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
@@ -100,6 +107,8 @@ export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
 	bare: BareClient;
+	context: ScramjetContext;
+	rpc: ClientRPCDefs;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
@@ -356,7 +365,6 @@ export class ScramjetClient {
 					return frame.name;
 				}
 			},
-			prefix: new URL(location.origin + config.prefix),
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
@@ -437,7 +445,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(unrewriteUrl(this.global.location.href, this.meta));
+		return new URL(unrewriteUrl(this.global.location.href, this.context));
 	}
 
 	set url(url: URL | string) {
@@ -449,7 +457,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		this.global.location.href = rewriteUrl(ev.url, this.meta);
+		this.global.location.href = rewriteUrl(ev.url, this.context, this.meta);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs
@@ -547,10 +555,11 @@ export class ScramjetClient {
 
 				const pst = Error.prepareStackTrace;
 
+				let client = this;
 				Error.prepareStackTrace = function (err, s) {
 					if (
 						s[0].getFileName() &&
-						!s[0].getFileName().startsWith(location.origin + config.prefix)
+						!s[0].getFileName().startsWith(client.context.prefix.href)
 					) {
 						return { stack: err.stack };
 					}

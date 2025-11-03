@@ -33,8 +33,6 @@ export type ScramjetFlags = {
 };
 
 export interface ScramjetConfig {
-	wisp: string;
-	prefix: string;
 	globals: {
 		wrapfn: string;
 		wrappropertybase: string;
@@ -50,12 +48,9 @@ export interface ScramjetConfig {
 		tempunusedid: string;
 	};
 	maskedfiles: string[];
+	allowedwebsockets: string[];
 	flags: ScramjetFlags;
 	siteFlags: Record<string, Partial<ScramjetFlags>>;
-	codec: {
-		encode: string;
-		decode: string;
-	};
 }
 
 /**

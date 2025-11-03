@@ -5,13 +5,13 @@ import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { CookieJar } from "@/shared/cookie";
-import { config, iface } from "@/shared";
+import { config, ScramjetContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
 	html: string,
-	cookieJar: CookieJar,
+	context: ScramjetContext,
 	meta: URLMeta,
 	fromTop: boolean = false,
 	preRewrite?: (handler: DomHandler) => void,
@@ -23,7 +23,7 @@ function rewriteHtmlInner(
 	parser.write(html);
 	parser.end();
 	if (preRewrite) preRewrite(handler);
-	traverseParsedHtml(handler.root, cookieJar, meta);
+	traverseParsedHtml(handler.root, context, meta);
 
 	let htmlRoot: Element | undefined;
 	let headElement: Element | undefined;
@@ -82,11 +82,9 @@ function rewriteHtmlInner(
 
 	if (fromTop) {
 		const script = (src: string) => new Element("script", { src });
-		const injectScripts = iface.getInjectScripts(
+		const injectScripts = context.interface.getInjectScripts(
 			meta,
 			handler,
-			config,
-			cookieJar,
 			script
 		);
 
@@ -117,7 +115,7 @@ function rewriteHtmlInner(
 
 export function rewriteHtml(
 	html: string,
-	cookieStore: CookieJar,
+	context: ScramjetContext,
 	meta: URLMeta,
 	fromTop: boolean = false,
 	preRewrite?: (handler: DomHandler) => void,
@@ -126,7 +124,7 @@ export function rewriteHtml(
 	const before = performance.now();
 	const ret = rewriteHtmlInner(
 		html,
-		cookieStore,
+		context,
 		meta,
 		fromTop,
 		preRewrite,
@@ -181,7 +179,11 @@ export function unrewriteHtml(html: string) {
 
 // i need to add the attributes in during rewriting
 
-function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
+function traverseParsedHtml(
+	node: any,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
 	if (node.name === "base" && node.attribs.href !== undefined) {
 		meta.base = new URL(node.attribs.href, meta.origin);
 	}
@@ -195,7 +197,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 				if (sel === "*" || sel.includes(node.name)) {
 					if (node.attribs[attr] !== undefined) {
 						const value = node.attribs[attr];
-						const v = rule.fn(value, meta, cookieStore);
+						const v = rule.fn(value, context, meta);
 
 						if (v === null) delete node.attribs[attr];
 						else {
@@ -219,7 +221,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 	}
 
 	if (node.name === "style" && node.children[0] !== undefined)
-		node.children[0].data = rewriteCss(node.children[0].data, meta);
+		node.children[0].data = rewriteCss(node.children[0].data, context, meta);
 
 	if (
 		node.name === "script" &&
@@ -240,7 +242,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 				for (const key in map.imports) {
 					let url = map.imports[key];
 					if (typeof url === "string") {
-						url = rewriteUrl(url, meta);
+						url = rewriteUrl(url, context, meta);
 						map.imports[key] = url;
 					}
 				}
@@ -283,7 +285,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 		) {
 			const contentArray = node.attribs.content.split("url=");
 			if (contentArray[1])
-				contentArray[1] = rewriteUrl(contentArray[1].trim(), meta);
+				contentArray[1] = rewriteUrl(contentArray[1].trim(), context, meta);
 			node.attribs.content = contentArray.join("url=");
 		}
 	}
@@ -292,7 +294,7 @@ function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 		for (const childNode in node.childNodes) {
 			node.childNodes[childNode] = traverseParsedHtml(
 				node.childNodes[childNode],
-				cookieStore,
+				context,
 				meta
 			);
 		}
@@ -301,7 +303,11 @@ function traverseParsedHtml(node: any, cookieStore: CookieJar, meta: URLMeta) {
 	return node;
 }
 
-export function rewriteSrcset(srcset: string, meta: URLMeta) {
+export function rewriteSrcset(
+	srcset: string,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
 	const sources = srcset.split(/ .*,/).map((src) => src.trim());
 	const rewrittenSources = sources.map((source) => {
 		// Split into URLs and descriptors (if any)
@@ -309,7 +315,7 @@ export function rewriteSrcset(srcset: string, meta: URLMeta) {
 		const [url, ...descriptors] = source.split(/\s+/);
 
 		// Rewrite the URLs and keep the descriptors (if any)
-		const rewrittenUrl = rewriteUrl(url.trim(), meta);
+		const rewrittenUrl = rewriteUrl(url.trim(), context, meta);
 
 		return descriptors.length > 0
 			? `${rewrittenUrl} ${descriptors.join(" ")}`

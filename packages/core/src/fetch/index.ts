@@ -15,14 +15,20 @@ import {
 } from "@rewriters/url";
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetHeaders } from "@/shared/headers";
-import { Clientbound, config, flagEnabled, iface, Serverbound } from "@/shared";
+import {
+	Clientbound,
+	config,
+	flagEnabled,
+	ScramjetContext,
+	Serverbound,
+} from "@/shared";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetConfig } from "@/types";
 import DomHandler from "domhandler";
 
-export interface ScramjetFetchContext {
+export interface ScramjetFetchRequest {
 	rawUrl: URL;
 	destination: RequestDestination;
 	mode: RequestMode;
@@ -31,9 +37,7 @@ export interface ScramjetFetchContext {
 	body: BodyType | null;
 	cache: RequestCache;
 
-	forceCrossOriginIsolated: boolean;
 	initialHeaders: ScramjetHeaders;
-	cookieStore: CookieJar;
 
 	rawClientUrl?: URL;
 }
@@ -53,11 +57,11 @@ export interface ScramjetFetchResponse {
 	statusText: string;
 }
 
-export type FetchHandler = {
+export type FetchHandlerInit = {
 	client: BareClient;
-	cookieJar: CookieJar;
+	context: ScramjetContext;
 	crossOriginIsolated?: boolean;
-	prefix: URL;
+	cookieJar: CookieJar;
 
 	sendClientbound<K extends keyof Clientbound>(
 		type: K,
@@ -73,9 +77,9 @@ export type FetchHandler = {
 
 export class ScramjetFetchHandler extends EventTarget {
 	public client: BareClient;
-	public cookieJar: CookieJar;
 	public crossOriginIsolated: boolean = false;
-	public prefix: URL;
+	public context: ScramjetContext;
+	public cookieJar: CookieJar;
 
 	public sendClientbound: <K extends keyof Clientbound>(
 		type: K,
@@ -85,60 +89,60 @@ export class ScramjetFetchHandler extends EventTarget {
 	public fetchDataUrl: (dataUrl: string) => Promise<BareResponseFetch>;
 	public fetchBlobUrl: (blobUrl: string) => Promise<BareResponseFetch>;
 
-	constructor(init: FetchHandler) {
+	constructor(init: FetchHandlerInit) {
 		super();
 		this.client = init.client;
-		this.cookieJar = init.cookieJar;
+		this.context = init.context;
 		this.crossOriginIsolated = init.crossOriginIsolated || false;
-		this.prefix = init.prefix;
+		this.cookieJar = init.cookieJar;
 		this.sendClientbound = init.sendClientbound;
 		this.fetchDataUrl = init.fetchDataUrl;
 		this.fetchBlobUrl = init.fetchBlobUrl;
 
 		init.onServerbound("setCookie", ({ cookie, url }) => {
 			console.log("recv'd cookies");
-			this.cookieJar.setCookies([cookie], new URL(url));
+			this.context.cookieJar.setCookies([cookie], new URL(url));
 
 			return undefined;
 		});
 	}
 
 	async handleFetch(
-		context: ScramjetFetchContext
+		request: ScramjetFetchRequest
 	): Promise<ScramjetFetchResponse> {
-		return doHandleFetch(this, context);
+		return doHandleFetch(this, request);
 	}
 }
 
 async function doHandleFetch(
 	handler: ScramjetFetchHandler,
-	context: ScramjetFetchContext
+	request: ScramjetFetchRequest
 ): Promise<ScramjetFetchResponse> {
-	const parsed = parseRequest(context, handler.prefix);
+	const parsed = parseRequest(request, handler);
 
 	if (
-		context.rawUrl.pathname.startsWith(`${config.prefix}blob:`) ||
-		context.rawUrl.pathname.startsWith(`${config.prefix}data:`)
+		request.rawUrl.pathname.startsWith(`${handler.context.prefix}blob:`) ||
+		request.rawUrl.pathname.startsWith(`${handler.context.prefix}data:`)
 	) {
-		return handleBlobOrDataUrlFetch(handler, context, parsed);
+		return handleBlobOrDataUrlFetch(handler, request, parsed);
 	}
 
-	const newheaders = rewriteRequestHeaders(context, parsed);
+	const newheaders = rewriteRequestHeaders(request, handler, parsed);
 
 	const init = {
-		method: context.method,
-		body: context.body,
+		method: request.method,
+		body: request.body,
 		headers: newheaders.headers,
 		credentials: "omit",
-		mode: context.mode === "cors" ? context.mode : "same-origin",
-		cache: context.cache,
+		mode: request.mode === "cors" ? request.mode : "same-origin",
+		cache: request.cache,
 		redirect: "manual",
 		// @ts-ignore why the fuck is this not typed microsoft
 		duplex: "half",
 	} as RequestInit;
 
 	const req = new ScramjetRequestEvent(
-		context,
+		request,
 		parsed.url,
 		parsed,
 		init,
@@ -158,15 +162,16 @@ async function doHandleFetch(
 	// multi headers only needed here everything else should be flat
 
 	const responseHeaders = await rewriteHeaders(
-		context,
+		handler,
+		request,
 		parsed,
 		response.rawHeaders
 	);
-	await handleCookies(handler, context, parsed, responseHeaders);
+	await handleCookies(handler, request, parsed, responseHeaders);
 
 	if (isRedirect(response)) {
 		const redirectUrl = new URL(
-			unrewriteUrl(responseHeaders["location"], parsed.meta)
+			unrewriteUrl(responseHeaders["location"], handler.context)
 		);
 
 		// await updateTracker(
@@ -195,7 +200,7 @@ async function doHandleFetch(
 	}
 
 	if (response.body && !isRedirect(response)) {
-		responseBody = await rewriteBody(handler, context, parsed, response);
+		responseBody = await rewriteBody(handler, request, parsed, response);
 	}
 
 	// Clean up tracker if not a redirect
@@ -203,7 +208,7 @@ async function doHandleFetch(
 	// await cleanTracker(parsed.url.toString());
 	// }
 
-	const resp = new ScramjetResponseEvent(context, parsed, {
+	const resp = new ScramjetResponseEvent(request, parsed, {
 		body: responseBody,
 		headers: responseHeaders,
 		status: response.status,
@@ -222,8 +227,8 @@ function isRedirect(response: BareResponseFetch) {
 }
 
 export function parseRequest(
-	request: ScramjetFetchContext,
-	prefix: URL
+	request: ScramjetFetchRequest,
+	handler: ScramjetFetchHandler
 ): ScramjetFetchParsed {
 	const strippedUrl = new URL(request.rawUrl.href);
 	const extraParams: Record<string, string> = {};
@@ -255,7 +260,7 @@ export function parseRequest(
 		strippedUrl.searchParams.delete(param);
 	}
 
-	const url = new URL(unrewriteUrl(strippedUrl, { prefix } as URLMeta));
+	const url = new URL(unrewriteUrl(strippedUrl, handler.context));
 
 	if (url.origin === new URL(request.rawUrl).origin) {
 		// uh oh!
@@ -275,7 +280,6 @@ export function parseRequest(
 		base: url,
 		topFrameName,
 		parentFrameName,
-		prefix,
 	};
 
 	const parsed: ScramjetFetchParsed = {
@@ -286,24 +290,29 @@ export function parseRequest(
 
 	if (request.rawClientUrl) {
 		// TODO: probably need to make a meta for it
-		parsed.clientUrl = new URL(unrewriteUrl(request.rawClientUrl, parsed.meta));
+		parsed.clientUrl = new URL(
+			unrewriteUrl(request.rawClientUrl, handler.context)
+		);
 	}
 
 	return parsed;
 }
 
 function rewriteRequestHeaders(
-	context: ScramjetFetchContext,
+	request: ScramjetFetchRequest,
+	handler: ScramjetFetchHandler,
 	parsed: ScramjetFetchParsed
 ): ScramjetHeaders {
-	const headers = context.initialHeaders.clone();
+	const headers = request.initialHeaders.clone();
 
 	if (
-		context.rawClientUrl &&
-		context.rawClientUrl.pathname.startsWith(config.prefix)
+		request.rawClientUrl &&
+		request.rawClientUrl.pathname.startsWith(handler.context.prefix.pathname)
 	) {
 		// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-		const clientURL = new URL(unrewriteUrl(context.rawClientUrl, parsed.meta));
+		const clientURL = new URL(
+			unrewriteUrl(request.rawClientUrl, handler.context)
+		);
 		if (clientURL.toString().includes("youtube.com")) {
 			// console.log(headers);
 		} else {
@@ -313,7 +322,7 @@ function rewriteRequestHeaders(
 		}
 	}
 
-	const cookies = context.cookieStore.getCookies(parsed.url, false);
+	const cookies = handler.cookieJar.getCookies(parsed.url, false);
 
 	if (cookies.length) {
 		headers.set("Cookie", cookies);
@@ -406,14 +415,16 @@ function rewriteRequestHeaders(
 
 async function handleBlobOrDataUrlFetch(
 	handler: ScramjetFetchHandler,
-	context: ScramjetFetchContext,
+	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed
 ): Promise<ScramjetFetchResponse> {
-	let dataUrl = context.rawUrl.pathname.substring(config.prefix.length);
+	let dataUrl = request.rawUrl.pathname.substring(
+		handler.context.prefix.pathname.length
+	);
 	let response: BareResponseFetch;
 
 	if (dataUrl.startsWith("blob:")) {
-		dataUrl = unrewriteBlob(dataUrl, parsed.meta);
+		dataUrl = unrewriteBlob(dataUrl, handler.context, parsed.meta);
 		response = await handler.fetchBlobUrl(dataUrl);
 	} else {
 		response = await handler.fetchDataUrl(dataUrl);
@@ -426,13 +437,13 @@ async function handleBlobOrDataUrlFetch(
 	if (response.body) {
 		body = await rewriteBody(
 			handler,
-			context,
+			request,
 			parsed,
 			response as BareResponseFetch
 		);
 	}
 	const headers = Object.fromEntries(response.headers.entries());
-	if (context.forceCrossOriginIsolated) {
+	if (handler.crossOriginIsolated) {
 		headers["Cross-Origin-Opener-Policy"] = "same-origin";
 		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
 	}
@@ -447,7 +458,7 @@ async function handleBlobOrDataUrlFetch(
 
 async function handleCookies(
 	handler: ScramjetFetchHandler,
-	context: ScramjetFetchContext,
+	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
 	responseHeaders: BareHeaders
 ) {
@@ -460,8 +471,8 @@ async function handleCookies(
 			});
 
 			if (
-				context.destination !== "document" &&
-				context.destination !== "iframe"
+				request.destination !== "document" &&
+				request.destination !== "iframe"
 			) {
 				await promise;
 
@@ -471,7 +482,7 @@ async function handleCookies(
 		}
 	}
 
-	context.cookieStore.setCookies(
+	handler.cookieJar.setCookies(
 		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
 		parsed.url
 	);
@@ -507,12 +518,20 @@ const SEC_HEADERS = new Set([
  */
 const URL_HEADERS = new Set(["location", "content-location", "referer"]);
 
-function rewriteLinkHeader(link: string, meta: URLMeta) {
-	return link.replace(/<([^>]+)>/gi, (match) => `<${rewriteUrl(match, meta)}>`);
+function rewriteLinkHeader(
+	link: string,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
+	return link.replace(
+		/<([^>]+)>/gi,
+		(match) => `<${rewriteUrl(match, context, meta)}>`
+	);
 }
 
 export async function rewriteHeaders(
-	context: ScramjetFetchContext,
+	handler: ScramjetFetchHandler,
+	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
 	rawHeaders: BareHeaders
 ) {
@@ -531,15 +550,20 @@ export async function rewriteHeaders(
 		if (headers[urlHeader])
 			headers[urlHeader] = rewriteUrl(
 				headers[urlHeader]?.toString() as string,
+				handler.context,
 				parsed.meta
 			);
 	}
 
 	if (typeof headers["link"] === "string") {
-		headers["link"] = rewriteLinkHeader(headers["link"], parsed.meta);
+		headers["link"] = rewriteLinkHeader(
+			headers["link"],
+			handler.context,
+			parsed.meta
+		);
 	} else if (Array.isArray(headers["link"])) {
 		headers["link"] = headers["link"].map((link) =>
-			rewriteLinkHeader(link, parsed.meta)
+			rewriteLinkHeader(link, handler.context, parsed.meta)
 		);
 	}
 
@@ -644,7 +668,7 @@ export async function rewriteHeaders(
 	delete headers["permissions-policy"];
 
 	if (
-		context.forceCrossOriginIsolated &&
+		handler.crossOriginIsolated &&
 		[
 			"document",
 			"iframe",
@@ -652,7 +676,7 @@ export async function rewriteHeaders(
 			"sharedworker",
 			"style",
 			"script",
-		].includes(context.destination)
+		].includes(request.destination)
 	) {
 		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
 		headers["Cross-Origin-Opener-Policy"] = "same-origin";
@@ -663,11 +687,11 @@ export async function rewriteHeaders(
 
 async function rewriteBody(
 	handler: ScramjetFetchHandler,
-	context: ScramjetFetchContext,
+	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
 	response: BareResponseFetch
 ): Promise<BodyType> {
-	switch (context.destination) {
+	switch (request.destination) {
 		case "iframe":
 		case "document":
 			if (response.headers.get("content-type")?.startsWith("text/html")) {
@@ -687,13 +711,13 @@ async function rewriteBody(
         */
 				return rewriteHtml(
 					await response.text(),
-					context.cookieStore,
+					handler.context,
 					parsed.meta,
 					true,
 					(domhandler) => {
 						const evt = new ScramjetHTMLPreRewriteEvent(
 							domhandler,
-							context,
+							request,
 							parsed
 						);
 						handler.dispatchEvent(evt);
@@ -701,7 +725,7 @@ async function rewriteBody(
 					(domhandler) => {
 						const evt = new ScramjetHTMLPostRewriteEvent(
 							domhandler,
-							context,
+							request,
 							parsed
 						);
 						handler.dispatchEvent(evt);
@@ -719,7 +743,7 @@ async function rewriteBody(
 			) as unknown as ArrayBuffer;
 		}
 		case "style":
-			return rewriteCss(await response.text(), parsed.meta);
+			return rewriteCss(await response.text(), handler.context, parsed.meta);
 		case "sharedworker":
 		case "worker":
 			return rewriteWorkers(
@@ -739,7 +763,7 @@ type BodyType = string | ArrayBuffer | Blob | ReadableStream<any>;
 export class ScramjetHTMLPreRewriteEvent extends Event {
 	constructor(
 		public handler: DomHandler,
-		public context: ScramjetFetchContext,
+		public context: ScramjetFetchRequest,
 		public parsed: ScramjetFetchParsed
 	) {
 		super("htmlPreRewrite");
@@ -749,7 +773,7 @@ export class ScramjetHTMLPreRewriteEvent extends Event {
 export class ScramjetHTMLPostRewriteEvent extends Event {
 	constructor(
 		public handler: DomHandler,
-		public context: ScramjetFetchContext,
+		public context: ScramjetFetchRequest,
 		public parsed: ScramjetFetchParsed
 	) {
 		super("htmlPostRewrite");
@@ -759,7 +783,7 @@ export class ScramjetHTMLPostRewriteEvent extends Event {
 export class ScramjetResponseEvent extends Event {
 	_response?: ScramjetFetchResponse | Promise<ScramjetFetchResponse>;
 	constructor(
-		public context: ScramjetFetchContext,
+		public context: ScramjetFetchRequest,
 		public parsed: ScramjetFetchParsed,
 		public response: ScramjetFetchResponse
 	) {
@@ -775,7 +799,7 @@ export class ScramjetResponseEvent extends Event {
 export class ScramjetRequestEvent extends Event {
 	_response?: BareResponseFetch | Promise<BareResponseFetch>;
 	constructor(
-		public context: ScramjetFetchContext,
+		public context: ScramjetFetchRequest,
 		public url: URL,
 		public parsed: ScramjetFetchParsed,
 		public init: RequestInit,
