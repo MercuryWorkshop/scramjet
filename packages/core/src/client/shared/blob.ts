@@ -6,7 +6,7 @@ export default function (client: ScramjetClient) {
 		apply(ctx) {
 			const url: string = ctx.call();
 			if (url.startsWith("blob:")) {
-				ctx.return(rewriteBlob(url, client.meta));
+				ctx.return(rewriteBlob(url, client.context, client.meta));
 			} else {
 				ctx.return(url);
 			}
@@ -23,7 +23,7 @@ export default function (client: ScramjetClient) {
 				// for some reason this is not an issue natively
 				// simple delay is enough
 				// TODO: find a way to make this not necessary
-				ctx.args[0] = unrewriteBlob(ctx.args[0], client.meta);
+				ctx.args[0] = unrewriteBlob(ctx.args[0], client.context, client.meta);
 				ctx.call();
 			}, 1000);
 			ctx.return(undefined);
