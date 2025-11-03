@@ -1,4 +1,4 @@
-import { config, flagEnabled } from "@/shared";
+import { config, flagEnabled, ScramjetContext } from "@/shared";
 import { rewriteUrl, unrewriteUrl, URLMeta } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 
@@ -12,7 +12,8 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
-			if (ctx.args[1]) ctx.args[1] = rewriteUrl(ctx.args[1], client.meta);
+			if (ctx.args[1])
+				ctx.args[1] = rewriteUrl(ctx.args[1], client.context, client.meta);
 			if (ctx.args[2] === undefined) ctx.args[2] = true;
 			ctx.this[ARGS] = ctx.args;
 		},
@@ -122,7 +123,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string, client.meta);
+			return unrewriteUrl(ctx.get() as string, client.context);
 		},
 	});
 
@@ -136,7 +137,7 @@ export default function (client: ScramjetClient, self: Self) {
 				if (header.toLowerCase().startsWith("link:")) {
 					headers[i] = `Link: ${unrewriteLinkHeader(
 						header.slice(5).trim(),
-						client.meta
+						client.context
 					)}`;
 				}
 			}
@@ -149,15 +150,15 @@ export default function (client: ScramjetClient, self: Self) {
 			const header = ctx.fn.call(ctx.this, ctx.args[0]) as string | null;
 			if (!header) return header;
 			if (ctx.args[0].toLowerCase() === "link") {
-				ctx.return(unrewriteLinkHeader(header, client.meta));
+				ctx.return(unrewriteLinkHeader(header, client.context));
 			}
 		},
 	});
 }
 
-export function unrewriteLinkHeader(header: string, meta: URLMeta) {
+export function unrewriteLinkHeader(header: string, context: ScramjetContext) {
 	return header.replace(
 		/<([^>]+)>/gi,
-		(match) => `${unrewriteUrl(match, meta)}`
+		(match) => `${unrewriteUrl(match, context)}`
 	);
 }
