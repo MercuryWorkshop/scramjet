@@ -1,11 +1,11 @@
 // entrypoint for scramjet.client.js
 
 import {
-	loadCodecs,
+	ClientRPCDefs,
+	ScramjetContext,
 	ScramjetInterface,
 	setBareTransport,
 	setConfig,
-	setInterface,
 } from "@/shared/index";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
@@ -28,21 +28,23 @@ function createFrameId() {
 
 export type ScramjetClientEntryInit = {
 	config: ScramjetConfig;
-	interface: ScramjetInterface;
+	context: ScramjetContext;
+	rpc: ClientRPCDefs;
 	transport: BareTransport;
 	cookies: string;
 };
+
 export function loadAndHook(init: ScramjetClientEntryInit) {
 	setConfig(init.config);
-	setInterface(init.interface);
 	setBareTransport(init.transport);
 
 	dbg.log("initializing scramjet client");
 	// if it already exists, that means the handlers have probably already been setup by the parent document
 	if (!(SCRAMJETCLIENT in <Partial<typeof self>>globalThis)) {
-		loadCodecs();
-
 		const client = new ScramjetClient(globalThis);
+		client.context = init.context;
+		client.rpc = init.rpc;
+
 		const frame: HTMLIFrameElement =
 			globalThis.frameElement as HTMLIFrameElement;
 		if (frame && !frame.name) {

@@ -1,9 +1,7 @@
-import { codecDecode, codecEncode } from "@/shared";
-import { config } from "@/shared";
+import { config, ScramjetContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 
 export type URLMeta = {
-	prefix: URL;
 	origin: URL;
 	base: URL;
 	topFrameName?: string;
@@ -18,19 +16,31 @@ function tryCanParseURL(url: string, origin?: string | URL): URL | null {
 	}
 }
 
-export function rewriteBlob(url: string, meta: URLMeta) {
+export function rewriteBlob(
+	url: string,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
 	const blob = new URL(url.substring("blob:".length));
 
 	return "blob:" + meta.origin.origin + blob.pathname;
 }
 
-export function unrewriteBlob(url: string, meta: URLMeta) {
+export function unrewriteBlob(
+	url: string,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
 	const blob = new URL(url.substring("blob:".length));
 
-	return "blob:" + meta.prefix.origin + blob.pathname;
+	return "blob:" + context.prefix.origin + blob.pathname;
 }
 
-export function rewriteUrl(url: string | URL, meta: URLMeta) {
+export function rewriteUrl(
+	url: string | URL,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
 	if (url instanceof URL) url = url.toString();
 
 	if (url.startsWith("javascript:")) {
@@ -39,27 +49,31 @@ export function rewriteUrl(url: string | URL, meta: URLMeta) {
 			rewriteJs(url.slice("javascript:".length), "(javascript: url)", meta)
 		);
 	} else if (url.startsWith("blob:")) {
-		return meta.prefix.href + url;
+		return context.prefix.href + url;
 	} else if (url.startsWith("data:")) {
-		return meta.prefix.href + url;
+		return context.prefix.href + url;
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else {
 		let base = meta.base.href;
 
 		if (base.startsWith("about:"))
-			base = unrewriteUrl(self.location.href, meta); // jank!!!!! weird jank!!!
+			base = unrewriteUrl(self.location.href, context); // jank!!!!! weird jank!!!
 		const realUrl = tryCanParseURL(url, base);
 		if (!realUrl) return url;
-		const encodedHash = codecEncode(realUrl.hash.slice(1));
+		const encodedHash = context.interface.codecEncode(realUrl.hash.slice(1));
 		const realHash = encodedHash ? "#" + encodedHash : "";
 		realUrl.hash = "";
 
-		return meta.prefix.href + codecEncode(realUrl.href) + realHash;
+		return (
+			context.prefix.href +
+			context.interface.codecEncode(realUrl.href) +
+			realHash
+		);
 	}
 }
 
-export function unrewriteUrl(url: string | URL, meta: URLMeta) {
+export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 	if (url instanceof URL) url = url.toString();
 	// remove query string
 	// if (url.includes("?")) {
@@ -72,19 +86,21 @@ export function unrewriteUrl(url: string | URL, meta: URLMeta) {
 	} else if (url.startsWith("blob:")) {
 		// realistically this shouldn't happen
 		return url;
-	} else if (url.startsWith(meta.prefix.href + "blob:")) {
-		return url.substring(meta.prefix.href.length);
-	} else if (url.startsWith(meta.prefix.href + "data:")) {
-		return url.substring(meta.prefix.href.length);
+	} else if (url.startsWith(context.prefix.href + "blob:")) {
+		return url.substring(context.prefix.href.length);
+	} else if (url.startsWith(context.prefix.href + "data:")) {
+		return url.substring(context.prefix.href.length);
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
 	} else {
 		const realUrl = tryCanParseURL(url);
 		if (!realUrl) return url;
-		const decodedHash = codecDecode(realUrl.hash.slice(1));
+		const decodedHash = context.interface.codecDecode(realUrl.hash.slice(1));
 		const realHash = decodedHash ? "#" + decodedHash : "";
 		realUrl.hash = "";
 
-		return codecDecode(realUrl.href.slice(meta.prefix.href.length) + realHash);
+		return context.interface.codecDecode(
+			realUrl.href.slice(context.prefix.href.length) + realHash
+		);
 	}
 }

@@ -2,14 +2,15 @@ import { CookieJar } from "@/shared/cookie";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
 import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
+import { ScramjetContext } from "@/shared";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
-	fn: (value: string, meta: URLMeta, cookieStore: CookieJar) => string | null;
+	fn: (value: string, context: ScramjetContext, meta: URLMeta) => string | null;
 }[] = [
 	{
-		fn: (value: string, meta: URLMeta) => {
-			return rewriteUrl(value, meta);
+		fn: (value, context, meta) => {
+			return rewriteUrl(value, context, meta);
 		},
 
 		// url rewrites
@@ -22,8 +23,8 @@ export const htmlRules: {
 		"xlink:href": ["image"],
 	},
 	{
-		fn: (value: string, meta: URLMeta) => {
-			let url = rewriteUrl(value, meta);
+		fn: (value, context, meta) => {
+			let url = rewriteUrl(value, context, meta);
 			// if (meta.topFrameName)
 			// 	url += `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`;
 
@@ -33,20 +34,20 @@ export const htmlRules: {
 	},
 	{
 		// is this a good idea?
-		fn: (value: string, meta: URLMeta) => {
+		fn: (value, context, meta) => {
 			return null;
 		},
 		sandbox: ["iframe"],
 	},
 	{
-		fn: (value: string, meta: URLMeta) => {
+		fn: (value, context, meta) => {
 			if (value.startsWith("blob:")) {
 				// for media elements specifically they must take the original blob
 				// because they can't be fetch'd
-				return unrewriteBlob(value, meta);
+				return unrewriteBlob(value, context, meta);
 			}
 
-			return rewriteUrl(value, meta);
+			return rewriteUrl(value, context, meta);
 		},
 		src: ["video", "audio"],
 	},
@@ -64,22 +65,21 @@ export const htmlRules: {
 		credentialless: ["iframe"],
 	},
 	{
-		fn: (value: string, meta: URLMeta) => rewriteSrcset(value, meta),
+		fn: (value, context, meta) => rewriteSrcset(value, context, meta),
 
 		// srcset
 		srcset: ["img", "source"],
 		imagesrcset: ["link"],
 	},
 	{
-		fn: (value: string, meta: URLMeta, cookieStore: CookieJar) =>
+		fn: (value, context, meta) =>
 			rewriteHtml(
 				value,
-				cookieStore,
+				context,
 				{
 					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
 					origin: new URL(meta.origin.origin),
 					base: new URL(meta.origin.origin),
-					prefix: meta.prefix,
 				},
 				true
 			),
@@ -88,11 +88,11 @@ export const htmlRules: {
 		srcdoc: ["iframe"],
 	},
 	{
-		fn: (value: string, meta: URLMeta) => rewriteCss(value, meta),
+		fn: (value, context, meta) => rewriteCss(value, context, meta),
 		style: "*",
 	},
 	{
-		fn: (value: string, meta: URLMeta) => {
+		fn: (value, context, meta) => {
 			if (value === "_top" || value === "_unfencedTop")
 				return meta.topFrameName;
 			else if (value === "_parent") return meta.parentFrameName;

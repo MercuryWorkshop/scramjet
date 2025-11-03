@@ -1,7 +1,7 @@
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { JsRewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
-import { codecDecode, codecEncode, config, flagEnabled, iface } from "@/shared";
+import { config, flagEnabled } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
@@ -57,10 +57,6 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 				},
 			},
 			flagEnabled,
-			codec: {
-				encode: codecEncode,
-				decode: codecDecode,
-			},
 		});
 		obj = { rewriter, inUse: false };
 		rewriters.push(obj);

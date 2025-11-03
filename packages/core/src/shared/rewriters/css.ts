@@ -1,14 +1,24 @@
 import { URLMeta, rewriteUrl, unrewriteUrl } from "@rewriters/url";
+import { ScramjetContext } from "@/shared";
 
-export function rewriteCss(css: string, meta: URLMeta) {
-	return handleCss("rewrite", css, meta);
+export function rewriteCss(
+	css: string,
+	context: ScramjetContext,
+	meta: URLMeta
+) {
+	return handleCss("rewrite", css, context, meta);
 }
 
 export function unrewriteCss(css: string) {
 	return handleCss("unrewrite", css);
 }
 
-function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
+function handleCss(
+	type: "rewrite" | "unrewrite",
+	css: string,
+	context?: ScramjetContext,
+	meta?: URLMeta
+) {
 	// regex from vk6 (https://github.com/ading2210)
 	const urlRegex = /url\(['"]?(.+?)['"]?\)/gm;
 	const Atruleregex =
@@ -17,8 +27,8 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 	css = css.replace(urlRegex, (match, url) => {
 		const encodedUrl =
 			type === "rewrite"
-				? rewriteUrl(url.trim(), meta)
-				: unrewriteUrl(url.trim(), meta);
+				? rewriteUrl(url.trim(), context, meta)
+				: unrewriteUrl(url.trim(), context);
 
 		return match.replace(url, encodedUrl);
 	});
@@ -33,8 +43,8 @@ function handleCss(type: "rewrite" | "unrewrite", css: string, meta?: URLMeta) {
 					}
 					const encodedUrl =
 						type === "rewrite"
-							? rewriteUrl(url.trim(), meta)
-							: unrewriteUrl(url.trim(), meta);
+							? rewriteUrl(url.trim(), context, meta)
+							: unrewriteUrl(url.trim(), context);
 
 					return `${firstQuote}${encodedUrl}${endQuote}`;
 				}
