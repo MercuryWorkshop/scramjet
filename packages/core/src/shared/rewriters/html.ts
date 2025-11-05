@@ -214,6 +214,7 @@ function traverseParsedHtml(
 				node.attribs[attr] = rewriteJs(
 					value as string,
 					`(inline ${attr} on element)`,
+					context,
 					meta
 				);
 			}
@@ -268,6 +269,7 @@ function traverseParsedHtml(
 		node.children[0].data = rewriteJs(
 			js,
 			"(inline script element)",
+			context,
 			meta,
 			module
 		);

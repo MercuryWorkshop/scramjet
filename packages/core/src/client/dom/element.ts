@@ -294,7 +294,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 				ctx.this instanceof self.HTMLScriptElement &&
 				/(application|text)\/javascript|module|undefined/.test(ctx.this.type)
 			) {
-				newval = rewriteJs(value, "(anonymous script element)", client.meta);
+				newval = rewriteJs(
+					value,
+					"(anonymous script element)",
+					client.context,
+					client.meta
+				);
 				client.natives.call(
 					"Element.prototype.setAttribute",
 					ctx.this,
@@ -345,6 +350,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				const newval: string = rewriteJs(
 					value,
 					"(anonymous script element)",
+					client.context,
 					client.meta
 				) as string;
 				client.natives.call(
@@ -444,6 +450,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 						const newval: string = rewriteJs(
 							node.data,
 							"(anonymous script element)",
+							client.context,
 							client.meta
 						) as string;
 						client.natives.call(

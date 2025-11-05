@@ -9,7 +9,12 @@ export default function (client: ScramjetClient, self: Self) {
 		value: function (js: any) {
 			if (typeof js !== "string") return js;
 
-			const rewritten = rewriteJs(js, "(direct eval proxy)", client.meta);
+			const rewritten = rewriteJs(
+				js,
+				"(direct eval proxy)",
+				client.context,
+				client.meta
+			);
 
 			return rewritten;
 		},
@@ -34,6 +39,6 @@ export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 	}
 
 	return indirection(
-		rewriteJs(js, "(indirect eval proxy)", this.meta) as string
+		rewriteJs(js, "(indirect eval proxy)", this.context, this.meta) as string
 	);
 }

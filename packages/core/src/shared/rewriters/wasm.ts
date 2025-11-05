@@ -1,7 +1,7 @@
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { JsRewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
-import { config, flagEnabled } from "@/shared";
+import { config, flagEnabled, ScramjetContext } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
@@ -35,7 +35,10 @@ function initWasm() {
 }
 
 let rewriters = [];
-export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
+export function getRewriter(
+	context: ScramjetContext,
+	meta: URLMeta
+): [Rewriter, () => void] {
 	initWasm();
 
 	let obj: { rewriter: Rewriter; inUse: boolean };
@@ -43,7 +46,7 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 	let len = rewriters.length;
 
 	if (index === -1) {
-		if (flagEnabled("rewriterLogs", meta.base))
+		if (flagEnabled("rewriterLogs", context, meta.base))
 			console.log(`creating new rewriter, ${len} rewriters made already`);
 
 		let rewriter = new Rewriter({
@@ -61,7 +64,7 @@ export function getRewriter(meta: URLMeta): [Rewriter, () => void] {
 		obj = { rewriter, inUse: false };
 		rewriters.push(obj);
 	} else {
-		if (flagEnabled("rewriterLogs", meta.base))
+		if (flagEnabled("rewriterLogs", context, meta.base))
 			console.log(
 				`using cached rewriter ${index} from list of ${len} rewriters`
 			);

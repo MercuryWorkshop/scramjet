@@ -46,7 +46,12 @@ export function rewriteUrl(
 	if (url.startsWith("javascript:")) {
 		return (
 			"javascript:" +
-			rewriteJs(url.slice("javascript:".length), "(javascript: url)", meta)
+			rewriteJs(
+				url.slice("javascript:".length),
+				"(javascript: url)",
+				context,
+				meta
+			)
 		);
 	} else if (url.startsWith("blob:")) {
 		return context.prefix.href + url;
