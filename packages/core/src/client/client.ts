@@ -445,7 +445,7 @@ export class ScramjetClient {
 	}
 
 	get url(): URL {
-		return new URL(unrewriteUrl(this.global.location.href, this.context));
+		return new URL(this.unrewriteUrl(this.global.location.href));
 	}
 
 	set url(url: URL | string) {
@@ -457,7 +457,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		this.global.location.href = rewriteUrl(ev.url, this.context, this.meta);
+		this.global.location.href = this.rewriteUrl(ev.url);
 	}
 
 	// below are the utilities for proxying and trapping dom APIs
@@ -682,5 +682,13 @@ export class ScramjetClient {
 		Object.defineProperty(target, prop, desc);
 
 		return oldDescriptor;
+	}
+
+	rewriteUrl(url: string | URL): string {
+		return rewriteUrl(url, this.context, this.meta);
+	}
+
+	unrewriteUrl(url: string | URL): string {
+		return unrewriteUrl(url, this.context);
 	}
 }

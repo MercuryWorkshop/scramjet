@@ -12,8 +12,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Proxy("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
-			if (ctx.args[1])
-				ctx.args[1] = rewriteUrl(ctx.args[1], client.context, client.meta);
+			if (ctx.args[1]) ctx.args[1] = client.rewriteUrl(ctx.args[1]);
 			if (ctx.args[2] === undefined) ctx.args[2] = true;
 			ctx.this[ARGS] = ctx.args;
 		},
@@ -123,7 +122,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	client.Trap("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string, client.context);
+			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 

@@ -6,7 +6,7 @@ export default function (client: ScramjetClient) {
 	client.Proxy("fetch", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0], client.context, client.meta);
+				ctx.args[0] = client.rewriteUrl(ctx.args[0]);
 			}
 		},
 	});
@@ -14,20 +14,20 @@ export default function (client: ScramjetClient) {
 	client.Proxy("Request", {
 		construct(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = rewriteUrl(ctx.args[0], client.context, client.meta);
+				ctx.args[0] = client.rewriteUrl(ctx.args[0]);
 			}
 		},
 	});
 
 	client.Trap("Response.prototype.url", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string, client.context);
+			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 
 	client.Trap("Request.prototype.url", {
 		get(ctx) {
-			return unrewriteUrl(ctx.get() as string, client.context);
+			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 
