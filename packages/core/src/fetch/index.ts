@@ -61,7 +61,6 @@ export type FetchHandlerInit = {
 	client: BareClient;
 	context: ScramjetContext;
 	crossOriginIsolated?: boolean;
-	cookieJar: CookieJar;
 
 	sendClientbound<K extends keyof Clientbound>(
 		type: K,
@@ -79,7 +78,6 @@ export class ScramjetFetchHandler extends EventTarget {
 	public client: BareClient;
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
-	public cookieJar: CookieJar;
 
 	public sendClientbound: <K extends keyof Clientbound>(
 		type: K,
@@ -94,7 +92,6 @@ export class ScramjetFetchHandler extends EventTarget {
 		this.client = init.client;
 		this.context = init.context;
 		this.crossOriginIsolated = init.crossOriginIsolated || false;
-		this.cookieJar = init.cookieJar;
 		this.sendClientbound = init.sendClientbound;
 		this.fetchDataUrl = init.fetchDataUrl;
 		this.fetchBlobUrl = init.fetchBlobUrl;
@@ -322,7 +319,7 @@ function rewriteRequestHeaders(
 		}
 	}
 
-	const cookies = handler.cookieJar.getCookies(parsed.url, false);
+	const cookies = handler.context.cookieJar.getCookies(parsed.url, false);
 
 	if (cookies.length) {
 		headers.set("Cookie", cookies);
@@ -482,7 +479,7 @@ async function handleCookies(
 		}
 	}
 
-	handler.cookieJar.setCookies(
+	handler.context.cookieJar.setCookies(
 		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
 		parsed.url
 	);
@@ -747,6 +744,7 @@ async function rewriteBody(
 		case "sharedworker":
 		case "worker":
 			return rewriteWorkers(
+				handler.context,
 				new Uint8Array(await response.arrayBuffer()),
 				// TODO: this takes a scriptType and rewritejs takes a bool..
 				parsed.scriptType,
