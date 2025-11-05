@@ -5,6 +5,7 @@ import type {
 	BareTransport,
 } from "@mercuryworkshop/bare-mux-custom";
 import { libcurl } from "libcurl.js/bundled";
+
 export default class LibcurlClient implements BareTransport {
 	wisp: string;
 	proxy: string;
@@ -39,13 +40,15 @@ export default class LibcurlClient implements BareTransport {
 
 	async init() {
 		if (this.transport) libcurl.transport = this.transport;
-		await new Promise((resolve, reject) => {
-			libcurl.onload = () => {
-				console.log("loaded libcurl.js v" + libcurl.version.lib);
-				this.ready = true;
-				resolve(null);
-			};
-		});
+		if (!libcurl.ready) {
+			await new Promise((resolve, reject) => {
+				libcurl.onload = () => {
+					console.log("loaded libcurl.js v" + libcurl.version.lib);
+					this.ready = true;
+					resolve(null);
+				};
+			});
+		}
 
 		libcurl.set_websocket(this.wisp);
 		this.session = new libcurl.HTTPSession({
