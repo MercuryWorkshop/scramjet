@@ -1,8 +1,7 @@
-import { iface } from "@/shared";
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: typeof window) {
-	iface.onClientbound("setCookie", ({ cookie, url }) => {
+	client.rpc.onClientbound("setCookie", ({ cookie, url }) => {
 		client.cookieStore.setCookies([cookie], new URL(url));
 		return undefined;
 	});
@@ -12,7 +11,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return client.cookieStore.getCookies(client.url, true);
 		},
 		set(ctx, value: string) {
-			iface.sendServerbound("setCookie", {
+			client.rpc.sendServerbound("setCookie", {
 				cookie: value,
 				url: client.url.href,
 			});

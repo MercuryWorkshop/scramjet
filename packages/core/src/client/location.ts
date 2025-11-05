@@ -1,6 +1,5 @@
 import { ScramjetClient } from "@client/index";
 import { UrlChangeEvent } from "@client/events";
-import { rewriteUrl } from "@rewriters/url";
 import { iswindow } from "@client/entry";
 
 export function createLocationProxy(
@@ -87,7 +86,7 @@ export function createLocationProxy(
 	if (self.location.assign)
 		fakeLocation.assign = new Proxy(self.location.assign, {
 			apply(target, that, args) {
-				args[0] = rewriteUrl(args[0], client.meta);
+				args[0] = client.rewriteUrl(args[0]);
 				Reflect.apply(target, self.location, args);
 
 				const urlchangeev = new UrlChangeEvent(client.url.href);
@@ -103,7 +102,7 @@ export function createLocationProxy(
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
 			apply(target, that, args) {
-				args[0] = rewriteUrl(args[0], client.meta);
+				args[0] = client.rewriteUrl(args[0]);
 				Reflect.apply(target, self.location, args);
 
 				const urlchangeev = new UrlChangeEvent(client.url.href);

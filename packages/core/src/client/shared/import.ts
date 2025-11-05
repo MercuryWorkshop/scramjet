@@ -1,6 +1,5 @@
 import { ScramjetClient } from "@client/index";
 import { config } from "@/shared";
-import { rewriteUrl } from "@rewriters/url";
 
 export default function (client: ScramjetClient, self: Self) {
 	const boundimport = client.natives.call(
@@ -21,7 +20,7 @@ export default function (client: ScramjetClient, self: Self) {
 				url.startsWith("..")
 			) {
 				// this is a url
-				return boundimport(`${rewriteUrl(resolved, client.meta)}?type=module`);
+				return boundimport(`${client.rewriteUrl(resolved)}?type=module`);
 			} else {
 				// this is a specifier handled by importmaps
 				return boundimport(url);

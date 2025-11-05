@@ -8,7 +8,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			// name is going to be a url typically
 			const name = ctx.get() as string;
 
-			if (name && name.startsWith(location.origin + config.prefix)) {
+			if (name && name.startsWith(client.context.prefix.href)) {
 				return unrewriteUrl(name, client.meta);
 			}
 

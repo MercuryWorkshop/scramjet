@@ -1,4 +1,3 @@
-import { rewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 import { UrlChangeEvent } from "@client/events";
 import { SCRAMJETCLIENT } from "@/symbols";
@@ -9,7 +8,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		{
 			apply(ctx) {
 				if (ctx.args[2] || ctx.args[2] === "")
-					ctx.args[2] = rewriteUrl(ctx.args[2], client.meta);
+					ctx.args[2] = client.rewriteUrl(ctx.args[2]);
 				ctx.call();
 				const {
 					constructor: { constructor: Function },
