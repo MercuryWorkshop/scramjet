@@ -10,10 +10,14 @@ export * from "./htmlRules";
 export * from "./rewriters";
 export * from "./security";
 
-export function flagEnabled(flag: keyof ScramjetFlags, url: URL): boolean {
-	const value = config.flags[flag];
-	for (const regex in config.siteFlags) {
-		const partialflags = config.siteFlags[regex];
+export function flagEnabled(
+	flag: keyof ScramjetFlags,
+	context: ScramjetContext,
+	url: URL
+): boolean {
+	const value = context.config.flags[flag];
+	for (const regex in context.config.siteFlags) {
+		const partialflags = context.config.siteFlags[regex];
 		if (new RegExp(regex).test(url.href) && flag in partialflags) {
 			return partialflags[flag];
 		}

@@ -1,4 +1,4 @@
-import { config, flagEnabled } from "@/shared";
+import { config, flagEnabled, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput, textDecoder } from "@rewriters/wasm";
@@ -76,6 +76,7 @@ export function rewriteJsInner(
 export function rewriteJs(
 	js: string | Uint8Array,
 	url: string | null,
+	context: ScramjetContext,
 	meta: URLMeta,
 	module = false
 ): string | Uint8Array {
@@ -83,15 +84,15 @@ export function rewriteJs(
 		const res = rewriteJsInner(js, url, meta, module);
 		let newjs = res.js;
 
-		if (flagEnabled("sourcemaps", meta.base)) {
-			const pushmap = globalThis[config.globals.pushsourcemapfn];
+		if (flagEnabled("sourcemaps", context, meta.base)) {
+			const pushmap = globalThis[context.config.globals.pushsourcemapfn];
 			if (pushmap) {
 				pushmap(Array.from(res.map), res.tag);
 			} else {
 				if (newjs instanceof Uint8Array) {
 					newjs = new TextDecoder().decode(newjs);
 				}
-				const sourcemapfn = `${config.globals.pushsourcemapfn}([${res.map.join(",")}], "${res.tag}");`;
+				const sourcemapfn = `${context.config.globals.pushsourcemapfn}([${res.map.join(",")}], "${res.tag}");`;
 
 				// don't put the sourcemap call before "use strict"
 				const strictMode = /^\s*(['"])use strict\1;?/;
@@ -103,7 +104,7 @@ export function rewriteJs(
 			}
 		}
 
-		if (flagEnabled("rewriterLogs", meta.base)) {
+		if (flagEnabled("rewriterLogs", context, meta.base)) {
 			for (const error of res.errors) {
 				console.error("oxc parse error", error);
 			}
@@ -117,7 +118,7 @@ export function rewriteJs(
 			err.message,
 			js instanceof Uint8Array ? textDecoder.decode(js) : js
 		);
-		if (flagEnabled("allowInvalidJs", meta.base)) {
+		if (flagEnabled("allowInvalidJs", context, meta.base)) {
 			return js;
 		} else {
 			throw err;
