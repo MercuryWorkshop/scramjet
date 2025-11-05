@@ -2,7 +2,7 @@ import { flagEnabled } from "@/shared";
 import { ScramjetClient } from "@client/index";
 
 export const enabled = (client: ScramjetClient) =>
-	flagEnabled("captureErrors", client.url);
+	client.flagEnabled("captureErrors");
 export function argdbg(arg, recurse = []) {
 	switch (typeof arg) {
 		case "string":

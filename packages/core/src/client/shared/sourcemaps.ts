@@ -158,7 +158,7 @@ function doUnrewrite(client: ScramjetClient, ctx: ProxyCtx) {
 }
 
 export const enabled = (client: ScramjetClient) =>
-	flagEnabled("sourcemaps", client.url);
+	client.flagEnabled("sourcemaps");
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap

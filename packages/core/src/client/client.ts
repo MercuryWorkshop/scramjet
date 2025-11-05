@@ -17,6 +17,7 @@ import {
 import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
+import { ScramjetConfig } from "@/types";
 
 type NativeStore = {
 	store: Record<string, any>;
@@ -573,7 +574,7 @@ export class ScramjetClient {
 							//@ts-expect-error i'm not going to explain this
 							err.stack = err.stack.stack;
 							console.error("ERROR FROM SCRAMJET INTERNALS", err);
-							if (!flagEnabled("allowFailedIntercepts", this.url)) {
+							if (!this.flagEnabled("allowFailedIntercepts")) {
 								throw err;
 							}
 						} else {
@@ -690,5 +691,9 @@ export class ScramjetClient {
 
 	unrewriteUrl(url: string | URL): string {
 		return unrewriteUrl(url, this.context);
+	}
+
+	flagEnabled(flag: keyof ScramjetConfig["flags"]): boolean {
+		return flagEnabled(flag, this.context, this.url);
 	}
 }
