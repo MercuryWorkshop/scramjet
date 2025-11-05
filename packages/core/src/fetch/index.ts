@@ -735,6 +735,7 @@ async function rewriteBody(
 			return rewriteJs(
 				new Uint8Array(await response.arrayBuffer()),
 				response.finalURL,
+				handler.context,
 				parsed.meta,
 				parsed.scriptType === "module"
 			) as unknown as ArrayBuffer;

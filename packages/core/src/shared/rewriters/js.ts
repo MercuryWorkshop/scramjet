@@ -14,10 +14,11 @@ type RewriterResult = {
 function rewriteJsWasm(
 	input: string | Uint8Array,
 	source: string | null,
+	context: ScramjetContext,
 	meta: URLMeta,
 	module: boolean
 ): RewriterResult {
-	let [rewriter, ret] = getRewriter(meta);
+	let [rewriter, ret] = getRewriter(context, meta);
 
 	try {
 		let out: JsRewriterOutput;
@@ -67,10 +68,11 @@ function rewriteJsWasm(
 export function rewriteJsInner(
 	js: string | Uint8Array,
 	url: string | null,
+	context: ScramjetContext,
 	meta: URLMeta,
 	module = false
 ) {
-	return rewriteJsWasm(js, url, meta, module);
+	return rewriteJsWasm(js, url, context, meta, module);
 }
 
 export function rewriteJs(
@@ -81,7 +83,7 @@ export function rewriteJs(
 	module = false
 ): string | Uint8Array {
 	try {
-		const res = rewriteJsInner(js, url, meta, module);
+		const res = rewriteJsInner(js, url, context, meta, module);
 		let newjs = res.js;
 
 		if (flagEnabled("sourcemaps", context, meta.base)) {

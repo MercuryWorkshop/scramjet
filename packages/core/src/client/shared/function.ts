@@ -7,6 +7,7 @@ function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 	const content = rewriteJs(
 		`return ${stringifiedFunction}`,
 		"(function proxy)",
+		client.context,
 		client.meta
 	);
 	ctx.return(ctx.fn(content)());

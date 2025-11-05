@@ -8,6 +8,7 @@ export default function (client: ScramjetClient, self: Self) {
 				ctx.args[0] = rewriteJs(
 					ctx.args[0],
 					"(setTimeout string eval)",
+					client.context,
 					client.meta
 				);
 			}
