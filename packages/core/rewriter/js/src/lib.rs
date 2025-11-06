@@ -46,14 +46,11 @@ pub struct RewriteResult<'alloc> {
 	pub flags: Flags,
 }
 
-pub struct Rewriter<E: UrlRewriter> {
-	cfg: Config,
-	url: E,
-
+pub struct Rewriter {
 	changes: RefCell<Option<JsChanges<'static, 'static>>>,
 }
 
-impl<E: UrlRewriter> Rewriter<E> {
+impl Rewriter {
 	fn take_changes<'alloc: 'data, 'data>(
 		&'data self,
 		alloc: &'alloc Allocator,
@@ -104,19 +101,19 @@ impl<E: UrlRewriter> Rewriter<E> {
 		}
 	}
 
-	pub fn new(cfg: Config, url_rewriter: E) -> Self {
+	pub fn new() -> Self {
 		Self {
-			cfg,
-			url: url_rewriter,
 			changes: RefCell::new(Some(JsChanges::new())),
 		}
 	}
 
-	pub fn rewrite<'alloc: 'data, 'data>(
+	pub fn rewrite<'alloc: 'data, 'data, E: UrlRewriter>(
 		&'data self,
 		alloc: &'alloc Allocator,
 		js: &'data str,
+		config: Config,
 		flags: Flags,
+		rewriter: &E,
 	) -> Result<RewriteResult<'alloc>, RewriterError> {
 		let source_type = SourceType::unambiguous()
 			.with_javascript(true)
@@ -147,8 +144,8 @@ impl<E: UrlRewriter> Rewriter<E> {
 			jschanges,
 			error: None,
 
-			config: &self.cfg,
-			rewriter: &self.url,
+			config: &config,
+			rewriter: rewriter,
 			flags,
 		};
 		visitor.visit_program(&parsed.program);
@@ -157,7 +154,7 @@ impl<E: UrlRewriter> Rewriter<E> {
 		}
 		let mut jschanges = visitor.jschanges;
 
-		let changed = jschanges.perform(js, &self.cfg, &visitor.flags)?;
+		let changed = jschanges.perform(js, &config, &visitor.flags)?;
 
 		self.put_changes(jschanges)?;
 
