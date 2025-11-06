@@ -11,7 +11,7 @@ use web_sys::Url;
 
 use crate::{
 	error::{Result, RewriterError},
-	get_flag, get_obj, get_str, set_obj,
+	 get_obj, get_str, set_obj,
 };
 
 // slightly modified https://github.com/ungap/random-uuid/blob/main/index.js
@@ -96,37 +96,18 @@ impl UrlRewriter for WasmUrlRewriter {
 	}
 }
 
-fn get_url_rewriter(scramjet: &Object) -> Result<WasmUrlRewriter> {
-	let codec = &get_obj(scramjet, "codec")?;
+pub type JsRewriter = Rewriter;
+
+pub fn create_js() -> Result<JsRewriter> {
+	Ok(Rewriter::new())
+}
+
+pub fn get_url_rewriter(func: Object) -> Result<WasmUrlRewriter> {
 	Ok(WasmUrlRewriter(
-		get_obj(codec, "encode")?
+		func
 			.dyn_into()
 			.map_err(|_| RewriterError::not_fn("scramjet.codec.encode"))?,
 	))
-}
-
-pub type JsRewriter = Rewriter<WasmUrlRewriter>;
-
-pub fn create_js(scramjet: &Object) -> Result<JsRewriter> {
-	let cfg = get_config(scramjet)?;
-	let url_rewriter = get_url_rewriter(scramjet)?;
-
-	Ok(Rewriter::new(cfg, url_rewriter))
-}
-
-pub fn get_js_flags(scramjet: &Object, base: String, is_module: bool) -> Result<Flags> {
-	Ok(Flags {
-		is_module,
-		sourcetag: scramtag(),
-
-		do_sourcemaps: get_flag(scramjet, &base, "sourcemaps")?,
-		capture_errors: get_flag(scramjet, &base, "captureErrors")?,
-		scramitize: get_flag(scramjet, &base, "scramitize")?,
-		strict_rewrites: get_flag(scramjet, &base, "strictRewrites")?,
-		destructure_rewrites: get_flag(scramjet, &base, "destructureRewrites")?,
-
-		base,
-	})
 }
 
 pub fn create_js_output(out: RewriteResult, url: String, src: String) -> Result<JsRewriterOutput> {

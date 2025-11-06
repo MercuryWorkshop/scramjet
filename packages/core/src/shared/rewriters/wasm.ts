@@ -49,18 +49,7 @@ export function getRewriter(
 		if (flagEnabled("rewriterLogs", context, meta.base))
 			console.log(`creating new rewriter, ${len} rewriters made already`);
 
-		let rewriter = new Rewriter({
-			config,
-			shared: {
-				rewrite: {
-					htmlRules,
-					rewriteUrl,
-					rewriteCss,
-					rewriteJs,
-				},
-			},
-			flagEnabled,
-		});
+		let rewriter = new Rewriter({});
 		obj = { rewriter, inUse: false };
 		rewriters.push(obj);
 	} else {

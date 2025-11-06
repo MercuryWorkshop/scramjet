@@ -20,12 +20,23 @@ function rewriteJsWasm(
 ): RewriterResult {
 	let [rewriter, ret] = getRewriter(context, meta);
 
+	let flagsobj = {};
+	for (const flag of Object.keys(context.config.flags)) {
+		flagsobj[flag] = flagEnabled(flag as any, context, meta.base);
+	}
+
 	try {
 		let out: JsRewriterOutput;
 		const before = performance.now();
 		// try {
 		if (typeof input === "string") {
 			out = rewriter.rewrite_js(
+				{
+					...context.config.globals,
+					prefix: context.prefix.pathname,
+				},
+				flagsobj,
+				context.interface.codecEncode,
 				input,
 				meta.base.href,
 				source || "(unknown)",
@@ -33,6 +44,12 @@ function rewriteJsWasm(
 			);
 		} else {
 			out = rewriter.rewrite_js_bytes(
+				{
+					...context.config.globals,
+					prefix: context.prefix.pathname,
+				},
+				flagsobj,
+				context.interface.codecEncode,
 				input,
 				meta.base.href,
 				source || "(unknown)",
