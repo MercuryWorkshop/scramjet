@@ -115,8 +115,6 @@ export class ScramjetClient {
 	descriptors: DescriptorStore;
 	wrapfn: (i: any, ...args: any) => any;
 
-	cookieStore = new CookieJar();
-
 	eventcallbacks: Map<
 		any,
 		[
@@ -407,9 +405,6 @@ export class ScramjetClient {
 		if (!sframe) return true;
 
 		return false;
-	}
-	loadcookies(cookiestr: string) {
-		this.cookieStore.load(cookiestr);
 	}
 
 	hook() {

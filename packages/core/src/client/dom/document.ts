@@ -21,7 +21,7 @@ export default function (client: ScramjetClient, _self: Self) {
 				try {
 					ctx.args[0] = rewriteHtml(
 						ctx.args[0],
-						client.cookieStore,
+						client.context,
 						client.meta,
 						false
 					);
@@ -41,7 +41,7 @@ export default function (client: ScramjetClient, _self: Self) {
 				try {
 					ctx.args[0] = rewriteHtml(
 						ctx.args[0],
-						client.cookieStore,
+						client.context,
 						client.meta,
 						false
 					);
@@ -55,7 +55,7 @@ export default function (client: ScramjetClient, _self: Self) {
 				try {
 					ctx.args[0] = rewriteHtml(
 						ctx.args[0],
-						client.cookieStore,
+						client.context,
 						client.meta,
 						false
 					);

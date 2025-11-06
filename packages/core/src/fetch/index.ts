@@ -118,8 +118,12 @@ async function doHandleFetch(
 	const parsed = parseRequest(request, handler);
 
 	if (
-		request.rawUrl.pathname.startsWith(`${handler.context.prefix}blob:`) ||
-		request.rawUrl.pathname.startsWith(`${handler.context.prefix}data:`)
+		request.rawUrl.pathname.startsWith(
+			`${handler.context.prefix.pathname}blob:`
+		) ||
+		request.rawUrl.pathname.startsWith(
+			`${handler.context.prefix.pathname}data:`
+		)
 	) {
 		return handleBlobOrDataUrlFetch(handler, request, parsed);
 	}

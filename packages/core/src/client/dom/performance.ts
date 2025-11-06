@@ -1,4 +1,3 @@
-import { unrewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 import { config } from "@/shared";
 
@@ -9,7 +8,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			const name = ctx.get() as string;
 
 			if (name && name.startsWith(client.context.prefix.href)) {
-				return unrewriteUrl(name, client.meta);
+				return client.unrewriteUrl(name);
 			}
 
 			return name;
