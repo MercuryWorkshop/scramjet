@@ -5,7 +5,7 @@ export default function (client: ScramjetClient) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
-			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
+			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
 		},
 	});
 
@@ -19,7 +19,7 @@ export default function (client: ScramjetClient) {
 
 	client.Trap("CSSStyleDeclaration.prototype.cssText", {
 		set(ctx, value: string) {
-			ctx.set(rewriteCss(value, client.meta));
+			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
 		get(ctx) {
 			return unrewriteCss(ctx.get());
@@ -28,25 +28,25 @@ export default function (client: ScramjetClient) {
 
 	client.Proxy("CSSStyleSheet.prototype.insertRule", {
 		apply(ctx) {
-			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
 	client.Proxy("CSSStyleSheet.prototype.replace", {
 		apply(ctx) {
-			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
 	client.Proxy("CSSStyleSheet.prototype.replaceSync", {
 		apply(ctx) {
-			ctx.args[0] = rewriteCss(ctx.args[0], client.meta);
+			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
 	client.Trap("CSSRule.prototype.cssText", {
 		set(ctx, value: string) {
-			ctx.set(rewriteCss(value, client.meta));
+			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
 		get(ctx) {
 			return unrewriteCss(ctx.get());
@@ -56,7 +56,7 @@ export default function (client: ScramjetClient) {
 	client.Proxy("CSSStyleValue.parse", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
-			ctx.args[1] = rewriteCss(ctx.args[1], client.meta);
+			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
 		},
 	});
 
@@ -89,7 +89,11 @@ export default function (client: ScramjetClient) {
 						return Reflect.set(target, prop, value);
 					}
 
-					return Reflect.set(target, prop, rewriteCss(value, client.meta));
+					return Reflect.set(
+						target,
+						prop,
+						rewriteCss(value, client.context, client.meta)
+					);
 				},
 			});
 		},

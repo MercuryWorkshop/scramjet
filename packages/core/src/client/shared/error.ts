@@ -25,7 +25,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			} catch {}
 
 			try {
-				newstack = newstack.replaceAll(url, unrewriteUrl(url, client.meta));
+				newstack = newstack.replaceAll(url, unrewriteUrl(url, client.context));
 			} catch {}
 		}
 
