@@ -527,7 +527,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 				try {
 					if (!(SCRAMJETCLIENT in realwin)) {
 						// hook the iframe before the client can start to steal globals out of it
-						const newclient = new ScramjetClient(realwin);
+						const newclient = new ScramjetClient(
+							realwin,
+							client.context,
+							client.rpc
+						);
 						newclient.hook();
 					}
 				} catch {
@@ -556,7 +560,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (!realwin) return realwin;
 
 				if (!(SCRAMJETCLIENT in realwin)) {
-					const newclient = new ScramjetClient(realwin);
+					const newclient = new ScramjetClient(
+						realwin,
+						client.context,
+						client.rpc
+					);
 					newclient.hook();
 				}
 

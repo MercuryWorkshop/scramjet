@@ -108,8 +108,6 @@ export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
 	bare: BareClient;
-	context: ScramjetContext;
-	rpc: ClientRPCDefs;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
@@ -130,7 +128,11 @@ export class ScramjetClient {
 
 	box: SingletonBox;
 
-	constructor(public global: typeof globalThis) {
+	constructor(
+		public global: typeof globalThis,
+		public context: ScramjetContext,
+		public rpc: ClientRPCDefs
+	) {
 		if (SCRAMJETCLIENT in global) {
 			console.error(
 				"attempted to initialize a scramjet client, but one is already loaded - this is very bad"

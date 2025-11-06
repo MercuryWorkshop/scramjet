@@ -40,9 +40,7 @@ export function loadAndHook(init: ScramjetClientEntryInit) {
 	dbg.log("initializing scramjet client");
 	// if it already exists, that means the handlers have probably already been setup by the parent document
 	if (!(SCRAMJETCLIENT in <Partial<typeof self>>globalThis)) {
-		const client = new ScramjetClient(globalThis);
-		client.context = init.context;
-		client.rpc = init.rpc;
+		const client = new ScramjetClient(globalThis, init.context, init.rpc);
 
 		const frame: HTMLIFrameElement =
 			globalThis.frameElement as HTMLIFrameElement;
