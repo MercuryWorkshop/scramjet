@@ -261,6 +261,9 @@ export function parseRequest(
 		strippedUrl.searchParams.delete(param);
 	}
 
+	if (!URL.canParse(unrewriteUrl(strippedUrl, handler.context))) {
+		throw new Error(`unable to parse rewritten url: ${strippedUrl.href}`);
+	}
 	const url = new URL(unrewriteUrl(strippedUrl, handler.context));
 
 	if (url.origin === new URL(request.rawUrl).origin) {
