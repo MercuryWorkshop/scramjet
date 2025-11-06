@@ -27,7 +27,6 @@ function createFrameId() {
 }
 
 export type ScramjetClientEntryInit = {
-	config: ScramjetConfig;
 	context: ScramjetContext;
 	rpc: ClientRPCDefs;
 	transport: BareTransport;
@@ -35,7 +34,7 @@ export type ScramjetClientEntryInit = {
 };
 
 export function loadAndHook(init: ScramjetClientEntryInit) {
-	setConfig(init.config);
+	setConfig(init.context.config);
 	setBareTransport(init.transport);
 
 	dbg.log("initializing scramjet client");
@@ -51,8 +50,6 @@ export function loadAndHook(init: ScramjetClientEntryInit) {
 			// all frames need to be named for our logic to work
 			frame.name = createFrameId();
 		}
-
-		client.loadcookies(init.cookies);
 
 		client.hook();
 
