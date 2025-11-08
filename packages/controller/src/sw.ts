@@ -17,6 +17,7 @@ class Tab {
 		port.addEventListener("message", (e) => {
 			this.rpc.recieve(e.data);
 		});
+		port.onmessageerror = console.error;
 
 		this.rpc.call("ready", null);
 	}
