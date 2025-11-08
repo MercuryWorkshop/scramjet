@@ -1,13 +1,17 @@
 import { MethodsDefinition, RpcHelper } from "@mercuryworkshop/rpc";
-import {
-	codecDecode,
-	CookieJar,
+import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
+
+declare const $scramjet: typeof ScramjetGlobal;
+const {
+	setWasm,
+	setConfig,
+	setInterface,
 	rewriteUrl,
 	ScramjetFetchHandler,
 	ScramjetHeaders,
-	setConfig,
-	type ScramjetFetchContext,
-} from "@mercuryworkshop/scramjet";
+	CookieJar,
+} = $scramjet;
+
 import { Controllerbound, SWbound } from "./types";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
 import { BareClient } from "@mercuryworkshop/bare-mux-custom";
@@ -16,8 +20,6 @@ let lc = new LibcurlClient({
 	wisp: "wss://anura.pro/",
 });
 const client = new BareClient(lc);
-console.log(lc);
-console.log(client);
 
 const cookieJar = new CookieJar();
 
@@ -28,9 +30,14 @@ type Config = {
 	prefix: string;
 };
 
+fetch("/scramjet/scramjet.wasm.wasm").then(async (resp) => {
+	setWasm(await resp.arrayBuffer());
+});
+
 export const config: Config = {
 	prefix: "/~/sj",
 	virtualWasmPath: "/scramjet.wasm.js",
+	scramjetPath: "/scramjet/scramjet.js",
 };
 
 const cfg = {
@@ -80,6 +87,47 @@ const cfg = {
 
 setConfig(cfg);
 
+const getInjectScripts = (meta, handler, cfg, cookiejar, script) => {
+	return [
+		script(config.scramjetPath),
+		script(
+			meta.prefix.href.substring(0, meta.prefix.href.length - 1) +
+				config.virtualWasmPath
+		),
+		script(
+			"data:text/javascript;base64," +
+				btoa(`
+					console.log("execute me twin");
+				$scramjet.setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
+				delete self.WASM;
+
+				$scramjet.loadAndHook({
+					interface: {
+						getInjectScripts: ${getInjectScripts.toString()},
+						onClientbound: async (type, msg) => {
+						},
+						sendServerbound: async (type, msg) => {
+						},
+					},
+					config: ${JSON.stringify(cfg)},
+					cookies: ${cookiejar.dump()},
+					transport: null,
+				})
+
+				document.currentScript.remove();
+			`)
+		),
+	];
+};
+setInterface({
+	getInjectScripts,
+	onClientbound() {},
+	sendServerbound(type, data) {},
+	async fetchDataUrl(dataUrl: string) {
+		return await fetch(dataUrl);
+	},
+});
+
 const frames: Record<string, Frame> = {};
 
 let wasmPayload: string | null = null;
@@ -103,84 +151,90 @@ export class Controller {
 			this.readyResolve();
 		},
 		request: async (data) => {
-			console.log("REQUEST", data);
-			let path = new URL(data.rawUrl).pathname;
-			const frame = this.frames.find((f) => path.startsWith(f.prefix));
-			if (!frame) throw new Error("No frame found for request");
-			console.log("?");
+			try {
+				let path = new URL(data.rawUrl).pathname;
+				const frame = this.frames.find((f) => path.startsWith(f.prefix));
+				if (!frame) throw new Error("No frame found for request");
 
-			if (path.startsWith(frame.prefix + "/" + config.virtualWasmPath)) {
-				if (!wasmPayload) {
-					const resp = await fetch(config.wasmPath);
-					const buf = await resp.arrayBuffer();
-					const b64 = btoa(
-						new Uint8Array(buf)
-							.reduce(
-								(data, byte) => (data.push(String.fromCharCode(byte)), data),
-								[] as any
-							)
-							.join("")
-					);
+				console.log(path, frame.prefix + config.virtualWasmPath);
+				if (
+					path.startsWith(
+						frame.prefix.substring(0, frame.prefix.length - 1) +
+							config.virtualWasmPath
+					)
+				) {
+					console.log("???");
+					if (!wasmPayload) {
+						const resp = await fetch(config.wasmPath);
+						const buf = await resp.arrayBuffer();
+						const b64 = btoa(
+							new Uint8Array(buf)
+								.reduce(
+									(data, byte) => (data.push(String.fromCharCode(byte)), data),
+									[] as any
+								)
+								.join("")
+						);
 
-					let payload = "";
-					payload +=
-						"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
-					payload += `self.WASM = '${b64}';`;
-					wasmPayload = payload;
+						let payload = "";
+						payload +=
+							"console.warn('WTF'); if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+						payload += `self.WASM = '${b64}';`;
+						wasmPayload = payload;
+					}
+
+					return [
+						{
+							body: wasmPayload,
+							status: 200,
+							statusText: "OK",
+							headers: {
+								"Content-Type": ["application/javascript"],
+							},
+						},
+						[],
+					];
 				}
+
+				let sjheaders = new ScramjetHeaders();
+				for (let [k, v] of Object.entries(data.initialHeaders)) {
+					for (let vv of v) {
+						sjheaders.set(k, vv);
+					}
+				}
+
+				const fetchresponse = await frame.fetchHandler.handleFetch({
+					initialHeaders: sjheaders,
+					rawClientUrl: data.rawClientUrl
+						? new URL(data.rawClientUrl)
+						: undefined,
+					rawUrl: new URL(data.rawUrl),
+					destination: data.destination,
+					method: data.method,
+					mode: data.mode,
+					referrer: data.referrer,
+					forceCrossOriginIsolated: data.forceCrossOriginIsolated,
+					body: data.body,
+					cache: data.cache,
+					cookieStore: this.cookieJar,
+				});
 
 				return [
 					{
-						body: wasmPayload,
-						status: 200,
-						statusText: "OK",
-						headers: {
-							"Content-Type": ["application/javascript"],
-						},
+						body: fetchresponse.body,
+						status: fetchresponse.status,
+						statusText: fetchresponse.statusText,
+						headers: fetchresponse.headers,
 					},
-					[],
+					fetchresponse.body instanceof ReadableStream ||
+					fetchresponse.body instanceof ArrayBuffer
+						? [fetchresponse.body]
+						: [],
 				];
+			} catch (e) {
+				console.error("Error in controller request handler:", e);
+				throw e;
 			}
-
-			let sjheaders = new ScramjetHeaders();
-			for (let [k, v] of Object.entries(data.initialHeaders)) {
-				for (let vv of v) {
-					sjheaders.set(k, vv);
-				}
-			}
-
-			console.log("fR");
-
-			const fetchresponse = await frame.fetchHandler.handleFetch({
-				initialHeaders: sjheaders,
-				rawClientUrl: data.rawClientUrl
-					? new URL(data.rawClientUrl)
-					: undefined,
-				rawUrl: new URL(data.rawUrl),
-				destination: data.destination,
-				method: data.method,
-				mode: data.mode,
-				referrer: data.referrer,
-				forceCrossOriginIsolated: data.forceCrossOriginIsolated,
-				body: data.body,
-				cache: data.cache,
-				cookieStore: this.cookieJar,
-			});
-
-			console.log("???");
-
-			return [
-				{
-					body: fetchresponse.body,
-					status: fetchresponse.status,
-					statusText: fetchresponse.statusText,
-					headers: fetchresponse.headers,
-				},
-				fetchresponse.body instanceof ReadableStream ||
-				fetchresponse.body instanceof ArrayBuffer
-					? [fetchresponse.body]
-					: [],
-			];
 		},
 	};
 
@@ -203,6 +257,7 @@ export class Controller {
 		channel.port1.addEventListener("message", (e) => {
 			this.rpc.recieve(e.data);
 		});
+		console.log(channel.port2);
 		channel.port1.start();
 
 		serviceworker.postMessage(
@@ -243,10 +298,7 @@ class Frame {
 		this.fetchHandler = new ScramjetFetchHandler({
 			client,
 			cookieJar: this.controller.cookieJar,
-			prefix: new URL(
-				config.prefix + "/" + this.controller.id + "/" + this.id,
-				location.href
-			),
+			prefix: new URL(this.prefix, location.href),
 			sendClientbound: (type, msg) => {},
 			onServerbound: (type, listener) => {},
 		});
