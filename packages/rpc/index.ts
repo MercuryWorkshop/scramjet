@@ -58,16 +58,16 @@ export class RpcHelper<
 			const method = dt.$method as keyof Local;
 			const args = dt.$args as Local[typeof method][0];
 			(this.methods[method] as any)(args)
-				.then(([res, transfer]) => {
+				.then((r: any) => {
 					this.sendRaw(
 						{
 							[this.id]: {
 								$type: "response",
 								$token: dt.$token,
-								$data: res,
+								$data: r?.[0],
 							},
 						},
-						transfer
+						r?.[1]
 					);
 				})
 				.catch((err: any) => {
