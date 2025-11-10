@@ -210,6 +210,9 @@ importers:
 
   packages/demo:
     dependencies:
+      '@mercuryworkshop/libcurl-transport':
+        specifier: workspace:*
+        version: link:../libcurl-transport
       '@mercuryworkshop/scramjet':
         specifier: workspace:*
         version: link:../core

@@ -10,6 +10,10 @@ export default {
 					dest: "scramjet",
 				},
 				{
+					src: "node_modules/@mercuryworkshop/libcurl-transport/dist/*",
+					dest: "libcurl-transport",
+				},
+				{
 					src: "node_modules/@mercuryworkshop/scramjet-controller/dist/*",
 					dest: "controller",
 				},
