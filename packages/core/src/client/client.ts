@@ -7,15 +7,13 @@ import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
 import {
-	bareTransport,
-	ClientRPCDefs,
 	config,
 	flagEnabled,
 	ScramjetContext,
 	ScramjetInterface,
 } from "@/shared";
 import { CookieJar } from "@/shared/cookie";
-import { iswindow } from "./entry";
+import { iswindow, ScramjetClientInit } from "./entry";
 import { SingletonBox } from "./singletonbox";
 import { ScramjetConfig } from "@/types";
 
@@ -128,10 +126,13 @@ export class ScramjetClient {
 
 	box: SingletonBox;
 
+	context: ScramjetContext;
+
+	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+
 	constructor(
 		public global: typeof globalThis,
-		public context: ScramjetContext,
-		public rpc: ClientRPCDefs
+		public init: ScramjetClientInit
 	) {
 		if (SCRAMJETCLIENT in global) {
 			console.error(
@@ -153,7 +154,9 @@ export class ScramjetClient {
 
 		this.box.registerClient(this, global as Self);
 
-		this.bare = new BareClient(bareTransport!);
+		this.context = init.context;
+		this.bare = new BareClient(init.transport);
+		this.sendSetCookie = init.sendSetCookie;
 
 		this.serviceWorker = this.global.navigator.serviceWorker;
 

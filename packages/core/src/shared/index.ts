@@ -31,35 +31,6 @@ export function setConfig(newConfig: ScramjetConfig) {
 	config = newConfig;
 }
 
-export let bareTransport: BareTransport | null = null;
-export function setBareTransport(transport: BareTransport) {
-	bareTransport = transport;
-}
-
-export type Clientbound = {
-	setCookie: [
-		{
-			cookie: string;
-			url: string;
-		},
-	];
-};
-
-export type Serverbound = {
-	setCookie: [
-		{
-			cookie: string;
-			url: string;
-		},
-	];
-	blobData: [
-		{
-			id: string;
-			data: Blob;
-		},
-	];
-};
-
 export type ScramjetInterface = {
 	codecEncode: (input: string) => string;
 	codecDecode: (input: string) => string;
@@ -75,17 +46,6 @@ export type ScramjetInterface = {
 		type: string,
 		url: string
 	): string;
-};
-
-export type ClientRPCDefs = {
-	sendServerbound?<K extends keyof Serverbound>(
-		type: K,
-		msg: Serverbound[K][0]
-	): Promise<Serverbound[K][1]>;
-	onClientbound?<K extends keyof Clientbound>(
-		type: K,
-		listener: (msg: Clientbound[K][0]) => Promise<Clientbound[K][1]>
-	): void;
 };
 
 export type ScramjetContext = {

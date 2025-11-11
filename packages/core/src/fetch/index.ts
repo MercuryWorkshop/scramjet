@@ -2,10 +2,9 @@ import {
 	BareClient,
 	BareHeaders,
 	BareResponseFetch,
+	BareTransport,
 	TransferrableResponse,
 } from "@mercuryworkshop/bare-mux-custom";
-
-import { CookieJar } from "@/shared/cookie";
 
 import {
 	rewriteUrl,
@@ -15,13 +14,7 @@ import {
 } from "@rewriters/url";
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetHeaders } from "@/shared/headers";
-import {
-	Clientbound,
-	config,
-	flagEnabled,
-	ScramjetContext,
-	Serverbound,
-} from "@/shared";
+import { config, flagEnabled, ScramjetContext } from "@/shared";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
@@ -58,18 +51,11 @@ export interface ScramjetFetchResponse {
 }
 
 export type FetchHandlerInit = {
-	client: BareClient;
+	transport: BareTransport;
 	context: ScramjetContext;
 	crossOriginIsolated?: boolean;
 
-	sendClientbound<K extends keyof Clientbound>(
-		type: K,
-		msg: Clientbound[K][0]
-	): Promise<Clientbound[K][1]>;
-	onServerbound<K extends keyof Serverbound>(
-		type: K,
-		listener: (msg: Serverbound[K][0]) => Promise<Serverbound[K][1]>
-	): void;
+	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
 	fetchDataUrl(dataUrl: string): Promise<BareResponseFetch>;
 	fetchBlobUrl(blobUrl: string): Promise<BareResponseFetch>;
 };
@@ -79,29 +65,18 @@ export class ScramjetFetchHandler extends EventTarget {
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
 
-	public sendClientbound: <K extends keyof Clientbound>(
-		type: K,
-		msg: Clientbound[K][0]
-	) => Promise<Clientbound[K][1]>;
-
 	public fetchDataUrl: (dataUrl: string) => Promise<BareResponseFetch>;
 	public fetchBlobUrl: (blobUrl: string) => Promise<BareResponseFetch>;
+	public sendSetCookie: (url: URL, cookie: string) => Promise<void>;
 
 	constructor(init: FetchHandlerInit) {
 		super();
-		this.client = init.client;
+		this.client = new BareClient(init.transport);
 		this.context = init.context;
 		this.crossOriginIsolated = init.crossOriginIsolated || false;
-		this.sendClientbound = init.sendClientbound;
+		this.sendSetCookie = init.sendSetCookie;
 		this.fetchDataUrl = init.fetchDataUrl;
 		this.fetchBlobUrl = init.fetchBlobUrl;
-
-		init.onServerbound("setCookie", ({ cookie, url }) => {
-			console.log("recv'd cookies");
-			this.context.cookieJar.setCookies([cookie], new URL(url));
-
-			return undefined;
-		});
 	}
 
 	async handleFetch(
@@ -469,19 +444,15 @@ async function handleCookies(
 	const maybeHeaders = responseHeaders["set-cookie"] || [];
 	if (Array.isArray(maybeHeaders)) {
 		for (const cookie of maybeHeaders) {
-			const promise = handler.sendClientbound("setCookie", {
-				cookie,
-				url: parsed.url.href,
-			});
+			const promise = handler.sendSetCookie(parsed.url, cookie);
 
+			// we want the client to have the cookies before fetch returns
+			// for navigations though, there's no race since we send the entire cookie dump in the same request
 			if (
 				request.destination !== "document" &&
 				request.destination !== "iframe"
 			) {
 				await promise;
-
-				// TODO: fix with proper callback from client
-				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 		}
 	}
