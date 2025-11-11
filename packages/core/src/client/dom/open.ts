@@ -19,11 +19,7 @@ export default function (client: ScramjetClient) {
 			if (SCRAMJETCLIENT in realwin) {
 				return ctx.return(realwin[SCRAMJETCLIENT].global);
 			} else {
-				const newclient = new ScramjetClient(
-					realwin,
-					client.context,
-					client.rpc
-				);
+				const newclient = new ScramjetClient(realwin, client.init);
 				// hook the opened window
 				newclient.hook();
 

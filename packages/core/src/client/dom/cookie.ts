@@ -1,20 +1,13 @@
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: typeof window) {
-	client.rpc.onClientbound("setCookie", ({ cookie, url }) => {
-		client.context.cookieJar.setCookies([cookie], new URL(url));
-		return undefined;
-	});
-
 	client.Trap("Document.prototype.cookie", {
 		get() {
 			return client.context.cookieJar.getCookies(client.url, true);
 		},
 		set(ctx, value: string) {
-			client.rpc.sendServerbound("setCookie", {
-				cookie: value,
-				url: client.url.href,
-			});
+			client.context.cookieJar.setCookies([value], client.url);
+			client.sendSetCookie(client.url, value);
 		},
 	});
 
