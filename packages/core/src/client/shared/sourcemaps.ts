@@ -1,4 +1,3 @@
-import { config, flagEnabled } from "@/shared";
 import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
 import { ProxyCtx, ScramjetClient } from "@client/index";
 
@@ -162,7 +161,7 @@ export const enabled = (client: ScramjetClient) =>
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
-	Object.defineProperty(self, config.globals.pushsourcemapfn, {
+	Object.defineProperty(self, client.config.globals.pushsourcemapfn, {
 		value: (buf: Array<number>, tag: string) => {
 			const before = performance.now();
 			registerRewrites(client, buf, tag);

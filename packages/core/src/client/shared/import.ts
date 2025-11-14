@@ -1,5 +1,4 @@
 import { ScramjetClient } from "@client/index";
-import { config } from "@/shared";
 
 export default function (client: ScramjetClient, self: Self) {
 	const boundimport = client.natives.call(
@@ -30,7 +29,7 @@ export default function (client: ScramjetClient, self: Self) {
 		configurable: false,
 		enumerable: false,
 	});
-	Object.defineProperty(self, config.globals.metafn, {
+	Object.defineProperty(self, client.config.globals.metafn, {
 		value: function (metaobj: any, base: string) {
 			metaobj.url = base;
 			metaobj.resolve = function (url: string) {

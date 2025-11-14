@@ -1,5 +1,4 @@
 import { ScramjetClient } from "@client/index";
-import { config } from "@/shared";
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Trap("PerformanceEntry.prototype.name", {
@@ -17,7 +16,7 @@ export default function (client: ScramjetClient, _self: Self) {
 
 	const filterEntries = (entries: PerformanceEntry[]) => {
 		return entries.filter((entry) => {
-			for (const file of config.maskedfiles) {
+			for (const file of client.config.maskedfiles) {
 				if (entry.name.endsWith(file)) {
 					return false;
 				}

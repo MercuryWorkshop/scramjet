@@ -1,4 +1,3 @@
-import { config } from "@/shared";
 import { type BareWebSocket } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetClient } from "@client/index";
 
@@ -31,7 +30,9 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		new WeakMap();
 	client.Proxy("WebSocket", {
 		construct(ctx) {
-			if (config.allowedwebsockets.some((w) => ctx.args[0].startsWith(w))) {
+			if (
+				client.config.allowedwebsockets.some((w) => ctx.args[0].startsWith(w))
+			) {
 				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
 			}
 			const fakeWebSocket = new EventTarget() as WebSocket;

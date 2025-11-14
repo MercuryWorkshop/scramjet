@@ -1,7 +1,6 @@
 import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
-import { config } from "@/shared";
 // import { argdbg } from "@client/shared/err";
 import { indirectEval } from "@client/shared/eval";
 
@@ -55,13 +54,13 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 
 export const order = 4;
 export default function (client: ScramjetClient, self: typeof globalThis) {
-	Object.defineProperty(self, config.globals.wrapfn, {
+	Object.defineProperty(self, client.config.globals.wrapfn, {
 		value: client.wrapfn,
 		writable: false,
 		configurable: false,
 		enumerable: false,
 	});
-	Object.defineProperty(self, config.globals.wrappropertyfn, {
+	Object.defineProperty(self, client.config.globals.wrappropertyfn, {
 		value: function (str) {
 			if (
 				str === "location" ||
@@ -69,7 +68,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				str === "top" ||
 				str === "eval"
 			)
-				return config.globals.wrappropertybase + str;
+				return client.config.globals.wrappropertybase + str;
 
 			return str;
 		},
@@ -77,7 +76,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		configurable: false,
 		enumerable: false,
 	});
-	Object.defineProperty(self, config.globals.cleanrestfn, {
+	Object.defineProperty(self, client.config.globals.cleanrestfn, {
 		value: function (obj) {
 			// TODO
 		},
@@ -88,7 +87,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 
 	Object.defineProperty(
 		self.Object.prototype,
-		config.globals.wrappropertybase + "location",
+		client.config.globals.wrappropertybase + "location",
 		{
 			get: function () {
 				// if (this.location.constructor.toString().includes("Location")) {
@@ -113,7 +112,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	);
 	Object.defineProperty(
 		self.Object.prototype,
-		config.globals.wrappropertybase + "parent",
+		client.config.globals.wrappropertybase + "parent",
 		{
 			get: function () {
 				return client.wrapfn(this.parent, false);
@@ -128,7 +127,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	);
 	Object.defineProperty(
 		self.Object.prototype,
-		config.globals.wrappropertybase + "top",
+		client.config.globals.wrappropertybase + "top",
 		{
 			get: function () {
 				return client.wrapfn(this.top, false);
@@ -142,7 +141,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	);
 	Object.defineProperty(
 		self.Object.prototype,
-		config.globals.wrappropertybase + "eval",
+		client.config.globals.wrappropertybase + "eval",
 		{
 			get: function () {
 				return client.wrapfn(this.eval, true);
@@ -172,7 +171,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 	// ((t)=>$scramjet$tryset(location,"+=",t)||location+=t)(...);
 	// it has to be a discrete function because there's always the possibility that "location" is a local variable
 	// we have to use an IIFE to avoid duplicating side-effects in the getter
-	Object.defineProperty(self, config.globals.trysetfn, {
+	Object.defineProperty(self, client.config.globals.trysetfn, {
 		value: function (lhs: any, op: string, rhs: any) {
 			// TODO: not cross frame safe
 			if (lhs instanceof self.Location) {

@@ -432,39 +432,39 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	// TODO: this needs to be done for all insert methods
-	client.Proxy(["Element.prototype.appendChild", "Element.prototype.append"], {
-		apply(ctx) {
-			if (ctx.this instanceof self.HTMLStyleElement) {
-				for (const node of ctx.args) {
-					if (node instanceof self.Text) {
-						node.data = rewriteCss(
-							ctx.args[0].data,
-							client.context,
-							client.meta
-						);
-					}
-				}
-			} else if (ctx.this instanceof self.HTMLScriptElement) {
-				for (const node of ctx.args) {
-					if (node instanceof self.Text) {
-						const newval: string = rewriteJs(
-							node.data,
-							"(anonymous script element)",
-							client.context,
-							client.meta
-						) as string;
-						client.natives.call(
-							"Element.prototype.setAttribute",
-							ctx.this,
-							"scramjet-attr-script-source-src",
-							bytesToBase64(encoder.encode(newval))
-						);
-						node.data = newval;
-					}
-				}
-			}
-		},
-	});
+	// client.Proxy(["Element.prototype.appendChild", "Element.prototype.append"], {
+	// 	apply(ctx) {
+	// 		if (ctx.this instanceof self.HTMLStyleElement) {
+	// 			for (const node of ctx.args) {
+	// 				if (node instanceof self.Text) {
+	// 					node.data = rewriteCss(
+	// 						ctx.args[0].data,
+	// 						client.context,
+	// 						client.meta
+	// 					);
+	// 				}
+	// 			}
+	// 		} else if (ctx.this instanceof self.HTMLScriptElement) {
+	// 			for (const node of ctx.args) {
+	// 				if (node instanceof self.Text) {
+	// 					const newval: string = rewriteJs(
+	// 						node.data,
+	// 						"(anonymous script element)",
+	// 						client.context,
+	// 						client.meta
+	// 					) as string;
+	// 					client.natives.call(
+	// 						"Element.prototype.setAttribute",
+	// 						ctx.this,
+	// 						"scramjet-attr-script-source-src",
+	// 						bytesToBase64(encoder.encode(newval))
+	// 					);
+	// 					node.data = newval;
+	// 				}
+	// 			}
+	// 		}
+	// 	},
+	// });
 
 	client.Proxy("Audio", {
 		construct(ctx) {
@@ -527,11 +527,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				try {
 					if (!(SCRAMJETCLIENT in realwin)) {
 						// hook the iframe before the client can start to steal globals out of it
-						const newclient = new ScramjetClient(
-							realwin,
-							client.context,
-							client.rpc
-						);
+						const newclient = new ScramjetClient(realwin, client.init);
 						newclient.hook();
 					}
 				} catch {
@@ -560,11 +556,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (!realwin) return realwin;
 
 				if (!(SCRAMJETCLIENT in realwin)) {
-					const newclient = new ScramjetClient(
-						realwin,
-						client.context,
-						client.rpc
-					);
+					const newclient = new ScramjetClient(realwin, client.init);
 					newclient.hook();
 				}
 

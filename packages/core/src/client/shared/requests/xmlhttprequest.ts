@@ -1,4 +1,4 @@
-import { config, flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, ScramjetContext } from "@/shared";
 import { rewriteUrl, unrewriteUrl, URLMeta } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 

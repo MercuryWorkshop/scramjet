@@ -1,4 +1,4 @@
-import { config, flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput, textDecoder } from "@rewriters/wasm";

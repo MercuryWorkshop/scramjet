@@ -25,12 +25,6 @@ export function flagEnabled(
 
 	return value;
 }
-
-export let config: ScramjetConfig;
-export function setConfig(newConfig: ScramjetConfig) {
-	config = newConfig;
-}
-
 export type ScramjetInterface = {
 	codecEncode: (input: string) => string;
 	codecDecode: (input: string) => string;
