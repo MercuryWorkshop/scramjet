@@ -296,13 +296,14 @@ class Frame {
 	getInjectScripts(meta, handler, script) {}
 
 	get context() {
+		let sjcfg = {
+			...$scramjet.defaultConfig,
+			...cfg,
+		};
 		return {
 			cookieJar,
 			prefix: new URL(this.prefix, location.href),
-			config: {
-				...$scramjet.defaultConfig,
-				...cfg,
-			},
+			config: sjcfg,
 			interface: {
 				getInjectScripts: yieldGetInjectScripts(
 					this.controller.cookieJar,
@@ -310,7 +311,52 @@ class Frame {
 					{ ...$scramjet.defaultConfig, ...cfg },
 					new URL(this.prefix, location.href)
 				),
-				getWorkerInjectScripts: () => "",
+				getWorkerInjectScripts: (type: string) => {
+					const module = type === "module";
+					let str = "";
+					const script = (script: string) => {
+						if (module) {
+							str += `import "${script}"\n`;
+						} else {
+							str += `importScripts("${script}");\n`;
+						}
+					};
+
+					script(config.scramjetPath);
+					script(this.prefix + config.virtualWasmPath);
+					str += `
+					(()=>{
+						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
+
+						setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
+						delete self.WASM;
+
+						const sjconfig = ${JSON.stringify(sjcfg)};
+						const prefix = new URL("${this.prefix}", location.href);
+
+						const context = {
+							interface: {
+								codecEncode: ${codecEncode.toString()},
+								codecDecode: ${codecDecode.toString()},
+							},
+							prefix,
+							config: sjconfig
+						};
+
+						const client = new ScramjetClient(globalThis, {
+							context,
+							transport: null,
+							shouldPassthroughWebsocket: (url) => {
+								return url === "wss://anura.pro/";
+							}
+						});
+
+						client.hook();
+					})();
+					`;
+
+					return str;
+				},
 				codecEncode,
 				codecDecode,
 			},
