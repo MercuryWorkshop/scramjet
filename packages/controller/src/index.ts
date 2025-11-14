@@ -73,7 +73,7 @@ export class Controller {
 	frames: Frame[] = [];
 	cookieJar = new $scramjet.CookieJar();
 
-	private rpc: RpcHelper<Controllerbound, SWbound>;
+	rpc: RpcHelper<Controllerbound, SWbound>;
 	private ready: Promise<void>;
 	private readyResolve: () => void;
 
@@ -228,29 +228,58 @@ function yieldGetInjectScripts(
 				"data:text/javascript;base64," +
 					btoa(`
 					(()=>{
-						$scramjet.setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
+						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
+
+						setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
 						delete self.WASM;
-						const cookieJar = new $scramjet.CookieJar();
+
+						const cookieJar = new CookieJar();
 						const config = ${JSON.stringify(config)};
 						const sjconfig = ${JSON.stringify(sjconfig)};
 					 	cookieJar.load(${cookieJar.dump()});
 
 						const prefix = new URL("${prefix.href}");
+						const sw = navigator.serviceWorker.controller;
 
-						$scramjet.loadAndHook({
-							context: {
-								interface: {
-									getInjectScripts: (${yieldGetInjectScripts.toString()})(cookieJar, config, sjconfig, prefix),
-									codecEncode: ${codecEncode.toString()},
-									codecDecode: ${codecDecode.toString()},
-								},
-								prefix,
-								cookieJar,
-								config: sjconfig
+						const context = {
+							interface: {
+								getInjectScripts: (${yieldGetInjectScripts.toString()})(cookieJar, config, sjconfig, prefix),
+								codecEncode: ${codecEncode.toString()},
+								codecDecode: ${codecDecode.toString()},
 							},
-							transport: null,
-						})
+							prefix,
+							cookieJar,
+							config: sjconfig
+						};
+						function createFrameId() {
+							return \`\${Array(8)
+								.fill(0)
+								.map(() => Math.floor(Math.random() * 36).toString(36))
+								.join("")}\`;
+						}
 
+						const frame = globalThis.frameElement;
+						if (frame && !frame.name) {
+							frame.name = createFrameId();
+						}
+
+						const client = new ScramjetClient(globalThis, {
+							context,
+							transport: null,
+							sendSetCookie: async (url, cookie) => {
+								// sw.postMessage({
+								// 	$controller$setCookie: {
+								// 		url,
+								// 		cookie
+								// 	}
+								// });
+							},
+							shouldPassthroughWebsocket: (url) => {
+								return url === "wss://anura.pro/";
+							}
+						});
+
+						client.hook();
 						document.currentScript.remove();
 					})();
 				`)

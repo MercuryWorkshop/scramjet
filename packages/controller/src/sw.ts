@@ -3,6 +3,25 @@ import { RpcHelper } from "@mercuryworkshop/rpc";
 import { Controllerbound, SWbound } from "./types";
 import type { BareHeaders } from "@mercuryworkshop/bare-mux-custom";
 
+function makeId(): string {
+	return Math.random().toString(36).substring(2, 10);
+}
+
+let cookieResolvers: Record<string, (value: void) => void> = {};
+addEventListener("message", (e) => {
+	if (!e.data) return;
+	if (typeof e.data != "object") return;
+	if (!e.data.$sw$setCookieDone) return;
+	if (typeof e.data.$sw$setCookieDone != "object") return;
+	const done = e.data.$sw$setCookieDone;
+
+	const resolver = cookieResolvers[done.id];
+	if (resolver) {
+		resolver();
+		delete cookieResolvers[done.id];
+	}
+});
+
 class Tab {
 	rpc: RpcHelper<SWbound, Controllerbound>;
 
@@ -11,9 +30,45 @@ class Tab {
 		public id: string,
 		port: MessagePort
 	) {
-		this.rpc = new RpcHelper({}, "tabchannel-" + id, (data, transfer) => {
-			port.postMessage(data, transfer);
-		});
+		this.rpc = new RpcHelper(
+			{
+				sendSetCookie: async ({ url, cookie }) => {
+					let clients = await self.clients.matchAll();
+					let promises = [];
+
+					for (const client of clients) {
+						let id = makeId();
+						client.postMessage({
+							$controller$setCookie: {
+								url,
+								cookie,
+								id,
+							},
+						});
+						promises.push(
+							new Promise<void>((resolve) => {
+								cookieResolvers[id] = resolve;
+							})
+						);
+					}
+					await Promise.race([
+						new Promise<void>((resolve) =>
+							setTimeout(() => {
+								console.error(
+									"timed out waiting for set cookie response (deadlock?)"
+								);
+								resolve();
+							}, 1000)
+						),
+						promises,
+					]);
+				},
+			},
+			"tabchannel-" + id,
+			(data, transfer) => {
+				port.postMessage(data, transfer);
+			}
+		);
 		port.addEventListener("message", (e) => {
 			this.rpc.recieve(e.data);
 		});

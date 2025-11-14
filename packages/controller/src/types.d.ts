@@ -29,6 +29,19 @@ export type TransferResponse = {
 export type Controllerbound = {
 	ready: [];
 	request: [TransferRequest, TransferResponse];
+	sendSetCookie: [
+		{
+			url: string;
+			cookie: string;
+		},
+	];
 };
 
-export type SWbound = {};
+export type SWbound = {
+	sendSetCookie: [
+		{
+			url: string;
+			cookie: string;
+		},
+	];
+};
