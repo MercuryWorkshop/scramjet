@@ -1,5 +1,5 @@
 type ScramjetFrame = any;
-import { BareClient } from "@mercuryworkshop/bare-mux-custom";
+import { BareClient, BareTransport } from "@mercuryworkshop/bare-mux-custom";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
@@ -8,9 +8,17 @@ import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
 import { flagEnabled, ScramjetContext, ScramjetInterface } from "@/shared";
 import { CookieJar } from "@/shared/cookie";
-import { iswindow, ScramjetClientInit } from "./entry";
+import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
 import { ScramjetConfig } from "@/types";
+
+export type ScramjetClientInit = {
+	context: ScramjetContext;
+	transport: BareTransport;
+	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
+	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
+};
 
 type NativeStore = {
 	store: Record<string, any>;
