@@ -10,8 +10,7 @@ export default function (client: ScramjetClient, self: Self) {
 	const handlers = {
 		message: {
 			_init() {
-				if (typeof this.data === "object" && "$scramjet$type" in this.data) {
-					// this is a ctl message
+				if (client.init.shouldBlockMessageEvent(this)) {
 					return false;
 				}
 
@@ -77,6 +76,7 @@ export default function (client: ScramjetClient, self: Self) {
 						const handler = handlers[type];
 
 						if (handler._init) {
+							// if _init returns false, we skip the event, and it never dispatches to listeners
 							if (handler._init.call(realEvent) === false) return;
 						}
 
