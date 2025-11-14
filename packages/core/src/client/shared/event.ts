@@ -10,7 +10,7 @@ export default function (client: ScramjetClient, self: Self) {
 	const handlers = {
 		message: {
 			_init() {
-				if (client.init.shouldBlockMessageEvent(this)) {
+				if (client.init.shouldBlockMessageEvent?.(this)) {
 					return false;
 				}
 

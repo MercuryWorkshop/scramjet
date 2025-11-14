@@ -8,7 +8,7 @@ export default function (client: ScramjetClient, self: Self) {
 		"return import(url)"
 	);
 
-	Object.defineProperty(self, config.globals.importfn, {
+	Object.defineProperty(self, client.config.globals.importfn, {
 		value: function (base: string, url: string) {
 			const resolved = new URL(url, base).href;
 
