@@ -323,7 +323,10 @@ class Frame {
 					};
 
 					script(config.scramjetPath);
-					script(this.prefix + config.virtualWasmPath);
+					script(
+						this.prefix.substring(0, this.prefix.length - 1) +
+							config.virtualWasmPath
+					);
 					str += `
 					(()=>{
 						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
