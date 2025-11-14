@@ -5,7 +5,7 @@ import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { CookieJar } from "@/shared/cookie";
-import { config, ScramjetContext } from "@/shared";
+import { ScramjetContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 
 const encoder = new TextEncoder();

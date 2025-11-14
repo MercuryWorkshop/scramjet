@@ -1,4 +1,4 @@
-import { config, ScramjetContext } from "@/shared";
+import { ScramjetContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 
 export type URLMeta = {

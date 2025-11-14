@@ -1,7 +1,6 @@
 import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
-import { config } from "@/shared";
 
 export default function (client: ScramjetClient, self: Self) {
 	if (iswindow)
@@ -82,7 +81,7 @@ export default function (client: ScramjetClient, self: Self) {
 			};
 		},
 	});
-	Object.defineProperty(self, config.globals.wrappostmessagefn, {
+	Object.defineProperty(self, client.config.globals.wrappostmessagefn, {
 		value: function (obj: any) {
 			return obj.postMessage.bind(obj);
 		},

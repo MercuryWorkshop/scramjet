@@ -6,12 +6,7 @@ import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import {
-	config,
-	flagEnabled,
-	ScramjetContext,
-	ScramjetInterface,
-} from "@/shared";
+import { flagEnabled, ScramjetContext, ScramjetInterface } from "@/shared";
 import { CookieJar } from "@/shared/cookie";
 import { iswindow, ScramjetClientInit } from "./entry";
 import { SingletonBox } from "./singletonbox";
@@ -695,5 +690,9 @@ export class ScramjetClient {
 
 	flagEnabled(flag: keyof ScramjetConfig["flags"]): boolean {
 		return flagEnabled(flag, this.context, this.url);
+	}
+
+	get config(): ScramjetConfig {
+		return this.context.config;
 	}
 }

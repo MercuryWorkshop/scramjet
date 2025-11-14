@@ -1,7 +1,7 @@
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { JsRewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
-import { config, flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, ScramjetContext } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
