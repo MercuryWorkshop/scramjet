@@ -42,7 +42,6 @@ export const defaultConfig: ScramjetConfig = {
 	},
 	siteFlags: {},
 	maskedfiles: [],
-	allowedwebsockets: [],
 };
 
 // bundled build will have the wasm binary inlined as a base64 string

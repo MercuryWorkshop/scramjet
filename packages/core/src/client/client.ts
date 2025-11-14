@@ -123,8 +123,6 @@ export class ScramjetClient {
 
 	context: ScramjetContext;
 
-	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
-
 	constructor(
 		public global: typeof globalThis,
 		public init: ScramjetClientInit
@@ -151,7 +149,6 @@ export class ScramjetClient {
 
 		this.context = init.context;
 		this.bare = new BareClient(init.transport);
-		this.sendSetCookie = init.sendSetCookie;
 
 		this.serviceWorker = this.global.navigator.serviceWorker;
 

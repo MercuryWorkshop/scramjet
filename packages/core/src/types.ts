@@ -48,7 +48,6 @@ export interface ScramjetConfig {
 		tempunusedid: string;
 	};
 	maskedfiles: string[];
-	allowedwebsockets: string[];
 	flags: ScramjetFlags;
 	siteFlags: Record<string, Partial<ScramjetFlags>>;
 }

@@ -1,6 +1,6 @@
 // entrypoint for scramjet.client.js
 
-import { ScramjetContext, ScramjetInterface, setConfig } from "@/shared/index";
+import { ScramjetContext, ScramjetInterface } from "@/shared/index";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { ScramjetContextEvent, UrlChangeEvent } from "@client/events";
@@ -24,11 +24,11 @@ export type ScramjetClientInit = {
 	context: ScramjetContext;
 	transport: BareTransport;
 	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
+	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
 };
 
 export function loadAndHook(init: ScramjetClientInit) {
-	setConfig(init.context.config);
-
 	dbg.log("initializing scramjet client");
 	// if it already exists, that means the handlers have probably already been setup by the parent document
 	if (!(SCRAMJETCLIENT in <Partial<typeof self>>globalThis)) {
