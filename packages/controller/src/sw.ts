@@ -1,6 +1,6 @@
 declare var clients: Clients;
 import { RpcHelper } from "@mercuryworkshop/rpc";
-import { Controllerbound, SWbound } from "./types";
+import type { Controllerbound, SWbound } from "./types";
 import type { BareHeaders } from "@mercuryworkshop/bare-mux-custom";
 
 function makeId(): string {

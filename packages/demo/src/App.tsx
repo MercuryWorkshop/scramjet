@@ -1,23 +1,33 @@
 import { controller } from ".";
 import { css, type Component } from "dreamland/core";
 
-export const App: Component<{ frameel: HTMLIFrameElement }> = function (cx) {
-	let frame;
+export const App: Component<
+	{},
+	{},
+	{
+		url: string;
+		frame: controller.Frame;
+		frameel: HTMLIFrameElement;
+	}
+> = function (cx) {
+	this.url = "https://google.com";
 	cx.mount = () => {
-		frame = controller.createFrame(this.frameel);
-
-		frame.go("https://google.com");
+		this.frame = controller.createFrame(this.frameel);
+		let body = btoa(
+			`<body style="background: #000; color: #fff">Welcome to <i>Scramjet</i>! Type in a URL in the omnibox above and press enter to get started.</body>`
+		);
+		this.frame.go(`data:text/html;base64,${body}`);
 	};
-
 	return (
 		<div>
-			<input
-				on:change={(e) => {
-					let url = (e.target as HTMLInputElement).value;
-					frame.go(url);
+			<form
+				on:submit={(e: SubmitEvent) => {
+					e.preventDefault();
+					this.frame.go(this.url);
 				}}
-				placeholder="Enter URL"
-			/>
+			>
+				<input type="text" value={use(this.url)} placeholder="Enter URL" />
+			</form>
 			<iframe this={use(this.frameel)}></iframe>
 		</div>
 	);
