@@ -1,4 +1,4 @@
-import { MethodsDefinition, RpcHelper } from "@mercuryworkshop/rpc";
+import { type MethodsDefinition, RpcHelper } from "@mercuryworkshop/rpc";
 import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 
 declare const $scramjet: typeof ScramjetGlobal;
@@ -11,11 +11,11 @@ declare const $scramjet: typeof ScramjetGlobal;
 // 	CookieJar,
 // } = $scramjet;
 
-import { Controllerbound, SWbound } from "./types";
+import type { Controllerbound, SWbound } from "./types";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
 import {
 	BareClient,
-	BareResponseFetch,
+	type BareResponseFetch,
 } from "@mercuryworkshop/bare-mux-custom";
 
 let lc = new LibcurlClient({
@@ -44,6 +44,10 @@ export const config: Config = {
 };
 
 const cfg = {
+	flags: {
+		...$scramjet.defaultConfig.flags,
+		allowFailedIntercepts: true,
+	},
 	maskedfiles: ["inject.js", "scramjet.wasm.js"],
 };
 
@@ -293,8 +297,6 @@ class Frame {
 	id: string;
 	prefix: string;
 
-	getInjectScripts(meta, handler, script) {}
-
 	get context() {
 		let sjcfg = {
 			...$scramjet.defaultConfig,
@@ -311,7 +313,7 @@ class Frame {
 					{ ...$scramjet.defaultConfig, ...cfg },
 					new URL(this.prefix, location.href)
 				),
-				getWorkerInjectScripts: (type: string) => {
+				getWorkerInjectScripts: (meta, js, type, url) => {
 					const module = type === "module";
 					let str = "";
 					const script = (script: string) => {

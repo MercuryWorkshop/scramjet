@@ -1,7 +1,25 @@
 {
+{
 	"compilerOptions": {
-		"target": "es2022",
-		"lib": ["es2022", "webworker"],
-		"moduleResolution": "node"
-	}
+		"target": "ES2022",
+		"useDefineForClassFields": true,
+		"module": "ESNext",
+		"lib": ["ES2022", "webworker", "DOM", "DOM.Iterable"],
+		"types": [],
+		"skipLibCheck": true,
+		/* Bundler mode */
+		"moduleResolution": "node",
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"moduleDetection": "force",
+		"noEmit": true,
+		/* Linting */
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": false,
+		"erasableSyntaxOnly": false,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedSideEffectImports": true,
+	},
+	"include": ["src"]
 }
