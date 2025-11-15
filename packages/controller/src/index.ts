@@ -167,7 +167,7 @@ export class Controller {
 
 	constructor(serviceworker: ServiceWorker) {
 		this.id = makeId();
-		this.prefix = config.prefix + this.id;
+		this.prefix = config.prefix + this.id + "/";
 
 		this.ready = new Promise<void>((resolve) => {
 			this.readyResolve = resolve;
@@ -362,7 +362,7 @@ class Frame {
 		public element: HTMLIFrameElement
 	) {
 		this.id = makeId();
-		this.prefix = this.controller.prefix + "/" + this.id + "/";
+		this.prefix = this.controller.prefix + this.id + "/";
 
 		this.fetchHandler = new $scramjet.ScramjetFetchHandler({
 			crossOriginIsolated: self.crossOriginIsolated,
