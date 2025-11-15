@@ -37,8 +37,8 @@ fetch("/scramjet/scramjet.wasm.wasm").then(async (resp) => {
 });
 
 export const config: Config = {
-	prefix: "/~/sj",
-	virtualWasmPath: "/scramjet.wasm.js",
+	prefix: "/~/sj/",
+	virtualWasmPath: "scramjet.wasm.js",
 	scramjetPath: "/scramjet/scramjet.js",
 	wasmPath: "/scramjet/scramjet.wasm.wasm",
 };
@@ -91,12 +91,7 @@ export class Controller {
 				const frame = this.frames.find((f) => path.startsWith(f.prefix));
 				if (!frame) throw new Error("No frame found for request");
 
-				if (
-					path.startsWith(
-						frame.prefix.substring(0, frame.prefix.length - 1) +
-							config.virtualWasmPath
-					)
-				) {
+				if (path === frame.prefix + config.virtualWasmPath) {
 					console.log("???");
 					if (!wasmPayload) {
 						const resp = await fetch(config.wasmPath);
@@ -172,7 +167,7 @@ export class Controller {
 
 	constructor(serviceworker: ServiceWorker) {
 		this.id = makeId();
-		this.prefix = config.prefix + "/" + this.id;
+		this.prefix = config.prefix + this.id;
 
 		this.ready = new Promise<void>((resolve) => {
 			this.readyResolve = resolve;
@@ -195,7 +190,7 @@ export class Controller {
 		serviceworker.postMessage(
 			{
 				$controller$init: {
-					prefix: config.prefix + "/" + this.id,
+					prefix: config.prefix + this.id,
 					id: this.id,
 				},
 			},
@@ -224,10 +219,7 @@ function yieldGetInjectScripts(
 	return function getInjectScripts(meta, handler, script) {
 		return [
 			script(config.scramjetPath),
-			script(
-				prefix.href.substring(0, prefix.href.length - 1) +
-					config.virtualWasmPath
-			),
+			script(prefix.href + config.virtualWasmPath),
 			script(
 				"data:text/javascript;base64," +
 					btoa(`
@@ -325,10 +317,7 @@ class Frame {
 					};
 
 					script(config.scramjetPath);
-					script(
-						this.prefix.substring(0, this.prefix.length - 1) +
-							config.virtualWasmPath
-					);
+					script(this.prefix + config.virtualWasmPath);
 					str += `
 					(()=>{
 						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
