@@ -5,12 +5,18 @@ import { URLMeta } from "@rewriters/url";
 export function rewriteWorkers(
 	context: ScramjetContext,
 	js: string | Uint8Array,
-	type: string,
+	type: "module" | undefined,
 	url: string,
 	meta: URLMeta
 ) {
 	const module = type === "module";
-	let str = context.interface.getWorkerInjectScripts(meta, js, type, url);
+	const script = (script: string) => {
+		if (module) {
+			return `import "${script}"\n`;
+		}
+		return `importScripts("${script}");\n`;
+	};
+	let str = context.interface.getWorkerInjectScripts(meta, type, script);
 	let rewritten = rewriteJs(js, url, context, meta, module);
 	if (rewritten instanceof Uint8Array) {
 		rewritten = new TextDecoder().decode(rewritten);

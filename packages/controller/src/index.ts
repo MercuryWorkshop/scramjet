@@ -305,19 +305,11 @@ class Frame {
 					{ ...$scramjet.defaultConfig, ...cfg },
 					new URL(this.prefix, location.href)
 				),
-				getWorkerInjectScripts: (meta, js, type, url) => {
-					const module = type === "module";
+				getWorkerInjectScripts: (meta, type, script) => {
 					let str = "";
-					const script = (script: string) => {
-						if (module) {
-							str += `import "${script}"\n`;
-						} else {
-							str += `importScripts("${script}");\n`;
-						}
-					};
 
-					script(config.scramjetPath);
-					script(this.prefix + config.virtualWasmPath);
+					str += script(config.scramjetPath);
+					str += script(this.prefix + config.virtualWasmPath);
 					str += `
 					(()=>{
 						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
