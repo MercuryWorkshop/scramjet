@@ -26,7 +26,12 @@ export const App: Component<
 					this.frame.go(this.url);
 				}}
 			>
-				<input type="text" value={use(this.url)} placeholder="Enter URL" />
+				<input
+					id="search"
+					type="text"
+					value={use(this.url)}
+					placeholder="Enter URL"
+				/>
 			</form>
 			<iframe this={use(this.frameel)}></iframe>
 		</div>

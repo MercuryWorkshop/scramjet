@@ -10,11 +10,9 @@ export async function setupPage(
 	await page.route("**", (route) => route.continue());
 	// Goto base url defined in config.
 	await page.goto("/");
-	await page.waitForSelector(".version > b");
-	const bar = page.locator(".bar");
-	const title = await page.locator(".version > b").textContent();
+	await page.waitForSelector("#search");
+	const bar = page.locator("#search");
 	const frame = page.frameLocator("iframe");
-	expect(title).toBe("scramjet");
 
 	expect(bar).not.toBeNull();
 
