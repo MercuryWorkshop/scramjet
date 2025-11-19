@@ -40,7 +40,7 @@ export interface ScramjetFetchParsed {
 	clientUrl?: URL;
 
 	meta: URLMeta;
-	scriptType: string;
+	scriptType: "module" | "regular";
 }
 
 export interface ScramjetFetchResponse {
@@ -209,13 +209,13 @@ export function parseRequest(
 	const strippedUrl = new URL(request.rawUrl.href);
 	const extraParams: Record<string, string> = {};
 
-	let scriptType = "";
+	let scriptType: "module" | "regular" = "regular";
 	let topFrameName: string | undefined;
 	let parentFrameName: string | undefined;
 	for (const [param, value] of [...request.rawUrl.searchParams.entries()]) {
 		switch (param) {
 			case "type":
-				scriptType = value;
+				if (value === "module") scriptType = value;
 				break;
 			case "dest":
 				break;
