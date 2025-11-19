@@ -14,9 +14,10 @@ import { existsSync } from "node:fs";
  * These aren't globs.
  */
 const EXPECTED_DIST_FILES = [
-	"dist/scramjet.all.js",
-	"dist/scramjet.bundle.js",
-	"dist/scramjet.sync.js",
+	"dist/scramjet.js",
+	"dist/scramjet.mjs",
+	"dist/scramjet_bundled.js",
+	"dist/scramjet_bundled.mjs",
 	"dist/scramjet.wasm.wasm",
 ];
 
