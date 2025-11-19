@@ -36,7 +36,7 @@ export type ScramjetInterface = {
 	): Element[];
 	getWorkerInjectScripts?(
 		meta: URLMeta,
-		type: "module" | undefined,
+		type: "module" | "regular",
 		script: (src: string) => string
 	): string;
 };

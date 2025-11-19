@@ -5,7 +5,7 @@ import { URLMeta } from "@rewriters/url";
 export function rewriteWorkers(
 	context: ScramjetContext,
 	js: string | Uint8Array,
-	type: "module" | undefined,
+	type: "module" | "regular",
 	url: string,
 	meta: URLMeta
 ) {
