@@ -7,8 +7,8 @@ import type {
 import { ScramjetDB } from "@/types";
 import { openDB, IDBPDatabase } from "idb";
 
-// Cache every hour
-const CACHE_DURATION_MINUTES = 60;
+const PSL_URL = "https://publicsuffix.org/list/public_suffix_list.dat";
+const CACHE_DURATION_MINUTES = 60 * 24; // official cache duration
 const CACHE_KEY = "publicSuffixList";
 
 /**
@@ -175,33 +175,37 @@ function matchesSuffix(
 	return true;
 }
 
-/**
- * Gets parsed Public Suffix list from the API.
- *
- * Complies with the standard format.
- * @see https://github.com/publicsuffix/list/wiki/Format#format
- *
- * @param {BareClient} client `BareClient` instance used for fetching
- * @returns {Promise<string[]>} Parsed Public Suffix list
- *
- * @throws {Error} If an error occurs while fetching from the Public Suffix List
- */
-export async function getPublicSuffixList(
-	client: BareClient
-): Promise<string[]> {
+async function fetchPublicSuffixList(client: BareClient): Promise<Response> {
+	let response: Response;
+
+	const processFetch = (promise: Promise<Response>) =>
+		promise
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error(`Error ${response.status}`);
+				}
+
+				return response;
+			})
+			.catch((err) => {
+				throw new Error(`Failed to fetch PSL: ${err}`);
+			});
+
+	try {
+		response = await processFetch(fetch(PSL_URL));
+	} catch {
+		response = await processFetch(client.fetch(PSL_URL));
+	}
+
+	return response;
+}
+async function loadPublicSuffixList(client: BareClient): Promise<string[]> {
 	const cached = await getCachedSuffixList();
 	if (cached && Date.now() < cached.expiry) {
 		return cached.data;
 	}
 
-	let publicSuffixesResponse: BareResponseFetch;
-	try {
-		publicSuffixesResponse = await client.fetch(
-			"https://publicsuffix.org/list/public_suffix_list.dat"
-		);
-	} catch (err) {
-		throw new Error(`Failed to fetch public suffix list: ${err}`);
-	}
+	const publicSuffixesResponse = await fetchPublicSuffixList(client);
 	const publicSuffixesRaw = await publicSuffixesResponse.text();
 
 	const publicSuffixes = publicSuffixesRaw
@@ -217,4 +221,30 @@ export async function getPublicSuffixList(
 	await setCachedSuffixList(publicSuffixes);
 
 	return publicSuffixes;
+}
+
+let pslPromise: Promise<string[]> | undefined;
+/**
+ * Gets parsed Public Suffix list from the API.
+ *
+ * Complies with the standard format.
+ * @see https://github.com/publicsuffix/list/wiki/Format#format
+ *
+ * @param {BareClient} client `BareClient` instance used for fetching
+ * @returns {Promise<string[]>} Parsed Public Suffix list
+ *
+ * @throws {Error} If an error occurs while fetching from the Public Suffix List
+ */
+export async function getPublicSuffixList(
+	client: BareClient
+): Promise<string[]> {
+	if (pslPromise) {
+		return pslPromise;
+	}
+
+	pslPromise = loadPublicSuffixList(client).finally(() => {
+		pslPromise = undefined;
+	});
+
+	return pslPromise;
 }
