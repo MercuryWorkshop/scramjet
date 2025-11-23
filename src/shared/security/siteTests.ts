@@ -235,7 +235,7 @@ let pslPromise: Promise<string[]> | undefined;
  *
  * @throws {Error} If an error occurs while fetching from the Public Suffix List
  */
-export async function getPublicSuffixList(
+export function getPublicSuffixList(
 	client: BareClient
 ): Promise<string[]> {
 	if (pslPromise) {
