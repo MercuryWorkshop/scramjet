@@ -37,6 +37,8 @@ const wispserver = http.createServer((req, res) => {
 	res.writeHead(200, { "Content-Type": "text/plain" });
 	res.end("wisp server js rewrite");
 });
+wisp.options.hostname_whitelist = /.*/;
+wisp.options.port_whitelist = /.*/;
 
 wispserver.on("upgrade", (req, socket, head) => {
 	wisp.routeRequest(req, socket, head);
