@@ -16,6 +16,15 @@ import type {
 	WebSocketMessage,
 } from "./types";
 
+const MessagePort_postMessage = MessagePort.prototype.postMessage;
+const postMessage = (
+	port: MessagePort,
+	data: any,
+	transfer?: Transferable[]
+) => {
+	MessagePort_postMessage.call(port, data, transfer as any);
+};
+
 class RemoteTransport implements BareTransport {
 	private readyResolve!: () => void;
 	private readyPromise: Promise<void> = new Promise((resolve) => {
@@ -38,7 +47,7 @@ class RemoteTransport implements BareTransport {
 			},
 			"transport",
 			(data, transfer) => {
-				port.postMessage(data, transfer);
+				postMessage(port, data, transfer);
 			}
 		);
 		port.onmessageerror = (ev) => {
@@ -63,6 +72,7 @@ class RemoteTransport implements BareTransport {
 	] {
 		const channel = new MessageChannel();
 		let port = channel.port1;
+		console.warn("connecting");
 		this.rpc
 			.call(
 				"connect",
@@ -75,6 +85,7 @@ class RemoteTransport implements BareTransport {
 				[channel.port2]
 			)
 			.then((response) => {
+				console.log(response);
 				if (response.result === "success") {
 					onopen(response.protocol);
 				} else {
@@ -96,7 +107,8 @@ class RemoteTransport implements BareTransport {
 
 		return [
 			(data) => {
-				port.postMessage(
+				postMessage(
+					port,
 					{
 						type: "data",
 						data: data,
@@ -105,7 +117,7 @@ class RemoteTransport implements BareTransport {
 				);
 			},
 			(code) => {
-				port.postMessage({
+				postMessage(port, {
 					type: "close",
 					code: code,
 				});

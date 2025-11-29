@@ -27,8 +27,9 @@ addEventListener("message", (e) => {
 	) {
 		const { port, prefix } = e.data.$sw$initRemoteTransport;
 
+		console.error(prefix, tabs);
 		const relevantcontroller = tabs.find((tab) =>
-			prefix.startsWith(tab.prefix)
+			new URL(prefix).pathname.startsWith(tab.prefix)
 		);
 		if (!relevantcontroller) {
 			console.error("No relevant controller found for transport init");
