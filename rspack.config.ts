@@ -285,6 +285,7 @@ const bootstrapConfig = createGenericConfig({
 const controllerConfig = createGenericConfig({
 	entry: {
 		api: join(controllerdir, "src/index.ts"),
+		inject: join(controllerdir, "src/inject.ts"),
 		sw: join(controllerdir, "src/sw.ts"),
 	},
 	output: {
