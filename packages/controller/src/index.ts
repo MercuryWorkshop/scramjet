@@ -2,31 +2,25 @@ import { type MethodsDefinition, RpcHelper } from "@mercuryworkshop/rpc";
 import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 
 declare const $scramjet: typeof ScramjetGlobal;
-// const {
-// 	setWasm,
-// 	setConfig,
-// 	rewriteUrl,
-// 	ScramjetFetchHandler,
-// 	ScramjetHeaders,
-// 	CookieJar,
-// } = $scramjet;
 
-import type { Controllerbound, SWbound } from "./types";
-import LibcurlClient from "@mercuryworkshop/libcurl-transport";
+import {
+	type TransportToController,
+	type Controllerbound,
+	type ControllerToTransport,
+	type SWbound,
+	type WebSocketMessage,
+} from "./types";
 import {
 	BareClient,
 	type BareResponseFetch,
+	type BareTransport,
 } from "@mercuryworkshop/bare-mux-custom";
-
-let lc = new LibcurlClient({
-	wisp: "wss://anura.pro/",
-});
-const client = new BareClient(lc);
 
 const cookieJar = new $scramjet.CookieJar();
 
 type Config = {
 	wasmPath: string;
+	injectPath: string;
 	scramjetPath: string;
 	virtualWasmPath: string;
 	prefix: string;
@@ -39,6 +33,7 @@ fetch("/scramjet/scramjet.wasm.wasm").then(async (resp) => {
 export const config: Config = {
 	prefix: "/~/sj/",
 	virtualWasmPath: "scramjet.wasm.js",
+	injectPath: "/controller/controller.inject.js",
 	scramjetPath: "/scramjet/scramjet.js",
 	wasmPath: "/scramjet/scramjet.wasm.wasm",
 };
@@ -71,6 +66,10 @@ const codecDecode = (url: string) => {
 	return decodeURIComponent(url);
 };
 
+type ControllerInit = {
+	serviceworker: ServiceWorker;
+	transport: BareTransport;
+};
 export class Controller {
 	id: string;
 	prefix: string;
@@ -79,7 +78,9 @@ export class Controller {
 
 	rpc: RpcHelper<Controllerbound, SWbound>;
 	private ready: Promise<void>;
-	private readyResolve: () => void;
+	private readyResolve!: () => void;
+
+	transport: BareTransport;
 
 	private methods: MethodsDefinition<Controllerbound> = {
 		ready: async () => {
@@ -163,9 +164,92 @@ export class Controller {
 				throw e;
 			}
 		},
+		initRemoteTransport: async (port) => {
+			const rpc = new RpcHelper<TransportToController, ControllerToTransport>(
+				{
+					request: async ({ remote, method, body, headers }) => {
+						let response = await this.transport.request(
+							new URL(remote),
+							method,
+							body,
+							headers,
+							undefined
+						);
+						return [response, [response.body]];
+					},
+					connect: async ({ url, protocols, requestHeaders, port }) => {
+						let resolve: (arg: TransportToController["connect"][1]) => void;
+						let promise = new Promise<TransportToController["connect"][1]>(
+							(res) => (resolve = res)
+						);
+						const [send, close] = this.transport.connect(
+							new URL(url),
+							protocols,
+							requestHeaders,
+							(protocol) => {
+								resolve({
+									result: "success",
+									protocol: protocol,
+								});
+							},
+							(data) => {
+								port.postMessage(
+									{
+										type: "data",
+										data: data,
+									} as WebSocketMessage,
+									data instanceof ArrayBuffer ? [data] : []
+								);
+							},
+							(close, reason) => {
+								port.postMessage({
+									type: "close",
+									code: close,
+									reason: reason,
+								} as WebSocketMessage);
+							},
+							(error) => {
+								resolve({
+									result: "failure",
+									error: error,
+								});
+							}
+						);
+						port.onmessageerror = (ev) => {
+							console.error(
+								"Transport port messageerror (this should never happen!)",
+								ev
+							);
+						};
+						port.onmessage = ({ data }: { data: WebSocketMessage }) => {
+							if (data.type === "data") {
+								send(data.data);
+							} else if (data.type === "close") {
+								close(data.code, data.reason);
+							}
+						};
+
+						return [await promise, []];
+					},
+				},
+				"transport",
+				(data, transfer) => port.postMessage(data, transfer)
+			);
+			port.onmessageerror = (ev) => {
+				console.error(
+					"Transport port messageerror (this should never happen!)",
+					ev
+				);
+			};
+			port.onmessage = (e) => {
+				rpc.recieve(e.data);
+			};
+		},
+		sendSetCookie: async ({ url, cookie }) => {},
 	};
 
-	constructor(serviceworker: ServiceWorker) {
+	constructor(public init: ControllerInit) {
+		this.transport = init.transport;
 		this.id = makeId();
 		this.prefix = config.prefix + this.id + "/";
 
@@ -187,7 +271,7 @@ export class Controller {
 		console.log(channel.port2);
 		channel.port1.start();
 
-		serviceworker.postMessage(
+		init.serviceworker.postMessage(
 			{
 				$controller$init: {
 					prefix: config.prefix + this.id,
@@ -219,12 +303,13 @@ function yieldGetInjectScripts(
 	return function getInjectScripts(meta, handler, script) {
 		return [
 			script(config.scramjetPath),
+			script(config.injectPath),
 			script(prefix.href + config.virtualWasmPath),
 			script(
 				"data:text/javascript;base64," +
 					btoa(`
 					document.currentScript.remove();
-					$injectLoad({
+					$scramjetController.load({
 						config: ${JSON.stringify(config)},
 						sjconfig: ${JSON.stringify(sjconfig)},
 						cookies: ${cookieJar.dump()},
@@ -314,7 +399,7 @@ class Frame {
 		this.fetchHandler = new $scramjet.ScramjetFetchHandler({
 			crossOriginIsolated: self.crossOriginIsolated,
 			context: this.context,
-			transport: lc,
+			transport: transport,
 			async sendSetCookie(url, cookie) {},
 			async fetchBlobUrl(url) {
 				return (await fetch(url)) as BareResponseFetch;

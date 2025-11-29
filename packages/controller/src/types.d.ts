@@ -35,6 +35,7 @@ export type Controllerbound = {
 			cookie: string;
 		},
 	];
+	initRemoteTransport: [MessagePort];
 };
 
 export type SWbound = {

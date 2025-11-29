@@ -11,18 +11,34 @@ let cookieResolvers: Record<string, (value: void) => void> = {};
 addEventListener("message", (e) => {
 	if (!e.data) return;
 	if (typeof e.data != "object") return;
-	if (!e.data.$sw$setCookieDone) return;
-	if (typeof e.data.$sw$setCookieDone != "object") return;
-	const done = e.data.$sw$setCookieDone;
+	if (e.data.$sw$setCookieDone && typeof e.data.$sw$setCookieDone == "object") {
+		const done = e.data.$sw$setCookieDone;
 
-	const resolver = cookieResolvers[done.id];
-	if (resolver) {
-		resolver();
-		delete cookieResolvers[done.id];
+		const resolver = cookieResolvers[done.id];
+		if (resolver) {
+			resolver();
+			delete cookieResolvers[done.id];
+		}
+	}
+
+	if (
+		e.data.$sw$initRemoteTransport &&
+		typeof e.data.$sw$initRemoteTransport == "object"
+	) {
+		const { port, prefix } = e.data.$sw$initRemoteTransport;
+
+		const relevantcontroller = tabs.find((tab) =>
+			prefix.startsWith(tab.prefix)
+		);
+		if (!relevantcontroller) {
+			console.error("No relevant controller found for transport init");
+			return;
+		}
+		relevantcontroller.rpc.call("initRemoteTransport", port, [port]);
 	}
 });
 
-class Tab {
+class ControllerReference {
 	rpc: RpcHelper<SWbound, Controllerbound>;
 
 	constructor(
@@ -78,7 +94,7 @@ class Tab {
 	}
 }
 
-const tabs: Tab[] = [];
+const tabs: ControllerReference[] = [];
 
 addEventListener("message", (e) => {
 	if (!e.data) return;
@@ -87,7 +103,7 @@ addEventListener("message", (e) => {
 	if (typeof e.data.$controller$init != "object") return;
 	const init = e.data.$controller$init;
 
-	tabs.push(new Tab(init.prefix, init.id, e.ports[0]));
+	tabs.push(new ControllerReference(init.prefix, init.id, e.ports[0]));
 });
 
 export function shouldRoute(event: FetchEvent): boolean {
