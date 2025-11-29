@@ -64,12 +64,16 @@ class RemoteTransport implements BareTransport {
 		const channel = new MessageChannel();
 		let port = channel.port1;
 		this.rpc
-			.call("connect", {
-				url: url.href,
-				protocols,
-				requestHeaders,
-				port: channel.port2,
-			})
+			.call(
+				"connect",
+				{
+					url: url.href,
+					protocols,
+					requestHeaders,
+					port: channel.port2,
+				},
+				[channel.port2]
+			)
 			.then((response) => {
 				if (response.result === "success") {
 					onopen(response.protocol);
@@ -89,14 +93,16 @@ class RemoteTransport implements BareTransport {
 			console.error("onmessageerror (this should never happen!)", ev);
 			onerror("Message error in transport port");
 		};
-		port.start();
 
 		return [
 			(data) => {
-				port.postMessage({
-					type: "data",
-					data: data,
-				});
+				port.postMessage(
+					{
+						type: "data",
+						data: data,
+					},
+					data instanceof ArrayBuffer ? [data] : []
+				);
 			},
 			(code) => {
 				port.postMessage({
@@ -114,7 +120,12 @@ class RemoteTransport implements BareTransport {
 		headers: BareHeaders,
 		signal: AbortSignal | undefined
 	): Promise<TransferrableResponse> {
-		return;
+		return await this.rpc.call("request", {
+			remote: remote.href,
+			method,
+			body,
+			headers,
+		});
 	}
 
 	meta() {
@@ -141,7 +152,7 @@ type Init = {
 	codecDecode: (input: string) => string;
 };
 
-export function $injectLoad({
+export function load({
 	config,
 	sjconfig,
 	cookies,
@@ -156,6 +167,18 @@ export function $injectLoad({
 	} else {
 		setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
 		delete self.WASM;
+
+		const channel = new MessageChannel();
+		const transport = new RemoteTransport(channel.port1);
+		sw?.postMessage(
+			{
+				$sw$initRemoteTransport: {
+					port: channel.port2,
+					prefix: prefix.href,
+				},
+			},
+			[channel.port2]
+		);
 
 		const cookieJar = new CookieJar();
 		cookieJar.load(cookies);
@@ -189,7 +212,7 @@ export function $injectLoad({
 
 		client = new ScramjetClient(globalThis, {
 			context,
-			transport: null,
+			transport,
 			sendSetCookie: async (url, cookie) => {
 				// sw.postMessage({
 				// 	$controller$setCookie: {
