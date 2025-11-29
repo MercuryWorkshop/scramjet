@@ -1,5 +1,10 @@
 import { css } from "dreamland/core";
 import { App } from "./App";
+import LibcurlClient from "@mercuryworkshop/libcurl-transport";
+
+const transport = new LibcurlClient({
+	wisp: import.meta.env.VITE_WISP_URL,
+});
 
 let app = document.getElementById("app")!;
 
@@ -50,7 +55,10 @@ async function init() {
 		// If already controlled or active, don't block the UI.
 		if (navigator.serviceWorker.controller || registration.active) {
 			interstitial.$.state.status = "Service worker active";
-			controller = new Controller(registration.active);
+			controller = new Controller({
+				serviceworker: registration.active,
+				transport,
+			});
 			await controller.ready;
 			console.log(controller);
 			interstitial.close();
