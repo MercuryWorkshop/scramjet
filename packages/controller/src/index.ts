@@ -93,7 +93,6 @@ export class Controller {
 				if (!frame) throw new Error("No frame found for request");
 
 				if (path === frame.prefix + config.virtualWasmPath) {
-					console.log("???");
 					if (!wasmPayload) {
 						const resp = await fetch(config.wasmPath);
 						const buf = await resp.arrayBuffer();
@@ -244,6 +243,7 @@ export class Controller {
 			port.onmessage = (e) => {
 				rpc.recieve(e.data);
 			};
+			rpc.call("ready", undefined, []);
 		},
 		sendSetCookie: async ({ url, cookie }) => {},
 	};
@@ -268,7 +268,6 @@ export class Controller {
 		channel.port1.addEventListener("message", (e) => {
 			this.rpc.recieve(e.data);
 		});
-		console.log(channel.port2);
 		channel.port1.start();
 
 		init.serviceworker.postMessage(
@@ -399,7 +398,7 @@ class Frame {
 		this.fetchHandler = new $scramjet.ScramjetFetchHandler({
 			crossOriginIsolated: self.crossOriginIsolated,
 			context: this.context,
-			transport: transport,
+			transport: controller.transport,
 			async sendSetCookie(url, cookie) {},
 			async fetchBlobUrl(url) {
 				return (await fetch(url)) as BareResponseFetch;
@@ -415,7 +414,6 @@ class Frame {
 			origin: new URL(location.href),
 			base: new URL(location.href),
 		});
-		console.log(encoded);
 		this.element.src = encoded;
 	}
 }
