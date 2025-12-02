@@ -472,17 +472,17 @@ where
 				if s.property.name == "postMessage" {
 					// include the "postMessage" and the dot before it in the inner span
 					// if `postMessage?.` remove the dot and the question mark
-					// let offset = if s.optional { 2 } else { 1 };
+					let offset = if s.optional { 2 } else { 1 };
 
-					// self.jschanges.add(rewrite!(s.span, WrapPostMessage {
-					// 	inner: Span::new(s.property.span.start - offset, s.property.span.end),
-					// }));
-					if s.property.name == "postMessage" {
-										self.jschanges.add(rewrite!(s.property.span, SetRealmFn));
+					self.jschanges.add(rewrite!(s.span, WrapPostMessage {
+						inner: Span::new(s.property.span.start - offset, s.property.span.end),
+					}));
+					// if s.property.name == "postMessage" {
+					// 					self.jschanges.add(rewrite!(s.property.span, SetRealmFn));
 
-										walk::walk_expression(self, &s.object);
-										return; // unwise to walk the rest of the tree
-									}
+					// 					walk::walk_expression(self, &s.object);
+					// 					return; // unwise to walk the rest of the tree
+					// 				}
 
 					// walk::walk_expression(self, &s.object);
 					return; // unwise to walk the rest of the tree
