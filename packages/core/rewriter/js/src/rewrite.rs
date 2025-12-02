@@ -29,6 +29,8 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `cfg.metafn("cfg.base")`
 	MetaFn,
 
+	SetRealmFn,
+
 	/// `location` -> `$sj_location`
 	RewriteProperty {
 		ident: Atom<'data>,
@@ -237,6 +239,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 					replace: true
 				}
 			)],
+			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
 			Self::ScramErr { ident } => smallvec![change!(span!(end), ScramErrFn { ident })],
