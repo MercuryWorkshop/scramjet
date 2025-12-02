@@ -1,6 +1,7 @@
 import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
+import { POLLUTANT } from "./realm";
 
 export default function (client: ScramjetClient, self: Self) {
 	if (iswindow)
@@ -14,20 +15,20 @@ export default function (client: ScramjetClient, self: Self) {
 
 				let pollutant;
 
-				// if (typeof ctx.args[0] === "object" && ctx.args[0] !== null) {
-				// 	pollutant = ctx.args[0]; // try to use the first object we can find because it's more reliable
-				// } else if (typeof ctx.args[2] === "object" && ctx.args[2] !== null) {
-				// 	pollutant = ctx.args[2]; // next try to use transfer
-				// } else if (
-				// 	ctx.this &&
-				// 	POLLUTANT in ctx.this &&
-				// 	typeof ctx.this[POLLUTANT] === "object" &&
-				// 	ctx.this[POLLUTANT] !== null
-				// ) {
-				// 	pollutant = ctx.this[POLLUTANT]; // lastly try to use the object from $setrealm
-				// } else {
-				pollutant = {}; // give up
-				// }
+				if (typeof ctx.args[0] === "object" && ctx.args[0] !== null) {
+					pollutant = ctx.args[0]; // try to use the first object we can find because it's more reliable
+				} else if (typeof ctx.args[2] === "object" && ctx.args[2] !== null) {
+					pollutant = ctx.args[2]; // next try to use transfer
+				} else if (
+					ctx.this &&
+					POLLUTANT in ctx.this &&
+					typeof ctx.this[POLLUTANT] === "object" &&
+					ctx.this[POLLUTANT] !== null
+				) {
+					pollutant = ctx.this[POLLUTANT]; // lastly try to use the object from $setrealm
+				} else {
+					pollutant = {}; // give up
+				}
 
 				// and now we can steal Function from the caller's realm
 				const {
@@ -55,12 +56,14 @@ export default function (client: ScramjetClient, self: Self) {
 					$scramjet$origin: callerClient.url.origin,
 					$scramjet$data: ctx.args[0],
 				};
-				// console.error("?");
+				// console.error("?", ctx.args);
 				// eval("debugger");
 
 				// * origin because obviously
 				if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
 				if (typeof ctx.args[1] === "object") ctx.args[1].targetOrigin = "*";
+
+				console.log("postmessage proxy", ctx.args);
 
 				ctx.return(wrappedPostMessage.call(ctx.fn, ...ctx.args));
 			},
@@ -75,6 +78,7 @@ export default function (client: ScramjetClient, self: Self) {
 		apply(ctx) {
 			// origin/source doesn't need to be preserved - it's null in the message event
 
+			console.error("postmessagfef", ctx.this, ctx.args);
 			ctx.args[0] = {
 				$scramjet$messagetype: "worker",
 				$scramjet$data: ctx.args[0],

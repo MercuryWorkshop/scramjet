@@ -78,6 +78,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		op: AssignmentOperator,
 	},
 
+	SetRealmFn,
 	/// insert `)`
 	ClosingParen {
 		semi: bool,
@@ -251,6 +252,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			]),
 			Ty::ImportFn => LL::replace(transforms![&cfg.importfn, "(\"", &flags.base, "\","]),
 			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(import.meta,\"", &flags.base, "\")"]),
+			Ty::SetRealmFn => LL::replace(transforms!["$scramjet$setrealmfn", "({})."]),
 			Ty::AssignmentLeft { name, op } => LL::replace(transforms![
 				"((t)=>",
 				&cfg.trysetfn,
