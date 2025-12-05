@@ -100,7 +100,10 @@ async function init() {
 		await waitForControllerOrReady(10000);
 		interstitial.$.state.status =
 			"Service worker ready, waiting for controller init";
-		controller = new Controller(registration.active);
+		controller = new Controller({
+			serviceworker: registration.active,
+			transport,
+		});
 		await controller.ready;
 		console.log(controller);
 		interstitial.$.state.status = "Controller initialized";
