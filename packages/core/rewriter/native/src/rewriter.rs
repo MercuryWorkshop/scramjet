@@ -38,7 +38,8 @@ enum RewriteType<'a> {
 
 pub struct NativeRewriter {
 	alloc: Allocator,
-	rewriter: Rewriter<NativeUrlRewriter>,
+
+	rewriter: Rewriter,
 }
 
 impl NativeRewriter {
@@ -47,29 +48,11 @@ impl NativeRewriter {
 		Self::new(&RewriterOptions::default())
 	}
 
-	pub fn new(cfg: &RewriterOptions) -> Self {
-		let rewriter = Rewriter::new(
-			Config {
-				prefix: cfg.prefix.clone(),
-				wrapfn: cfg.wrapfn.clone(),
-				wrappropertybase: cfg.wrappropertybase.clone(),
-				wrappropertyfn: cfg.wrappropertyfn.clone(),
-				cleanrestfn: cfg.cleanrestfn.clone(),
-				importfn: cfg.importfn.clone(),
-				rewritefn: cfg.rewritefn.clone(),
-				metafn: cfg.metafn.clone(),
-				wrappostmessagefn: cfg.wrappostmessage.clone(),
-				pushsourcemapfn: cfg.pushsourcemapfn.clone(),
-				trysetfn: cfg.trysetfn.clone(),
-				templocid: cfg.templocid.clone(),
-				tempunusedid: cfg.tempunusedid.clone(),
-			},
-			NativeUrlRewriter,
-		);
-
+	pub fn new(_cfg: &RewriterOptions) -> Self {
 		Self {
 			alloc: Allocator::new(),
-			rewriter,
+
+			rewriter: Rewriter::new()
 		}
 	}
 
@@ -79,14 +62,31 @@ impl NativeRewriter {
 	}
 
 	pub fn rewrite(&self, data: &str, cfg: &RewriterOptions) -> Result<RewriteResult<'_>> {
+		let rewriter = NativeUrlRewriter;
 		self.rewriter
 			.rewrite(
 				&self.alloc,
 				data,
+				Config {
+					prefix: cfg.prefix.clone(),
+
+					wrapfn: cfg.wrapfn.clone(),
+					wrappropertybase: cfg.wrappropertybase.clone(),
+					wrappropertyfn: cfg.wrappropertyfn.clone(),
+					cleanrestfn: cfg.cleanrestfn.clone(),
+					importfn: cfg.importfn.clone(),
+					rewritefn: cfg.rewritefn.clone(),
+					wrappostmessagefn: cfg.wrappostmessage.clone(),
+					metafn: cfg.metafn.clone(),
+					pushsourcemapfn: cfg.pushsourcemapfn.clone(),
+
+					trysetfn: cfg.trysetfn.clone(),
+					templocid: cfg.templocid.clone(),
+					tempunusedid: cfg.tempunusedid.clone(),
+				},
 				Flags {
 					base: cfg.base.clone(),
 					sourcetag: cfg.sourcetag.clone(),
-
 					is_module: cfg.is_module,
 
 					capture_errors: cfg.capture_errors,
@@ -95,6 +95,7 @@ impl NativeRewriter {
 					strict_rewrites: cfg.strict_rewrites,
 					destructure_rewrites: cfg.destructure_rewrites,
 				},
+				&rewriter
 			)
 			.context("failed to rewrite file")
 	}

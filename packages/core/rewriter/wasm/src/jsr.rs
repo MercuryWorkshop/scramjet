@@ -42,27 +42,6 @@ extern "C" {
 	pub type JsRewriterOutput;
 }
 
-fn get_config(scramjet: &Object) -> Result<Config> {
-	let config = &get_obj(scramjet, "config")?;
-	let globals = &get_obj(config, "globals")?;
-
-	Ok(Config {
-		prefix: get_str(config, "prefix")?,
-
-		wrappropertybase: get_str(globals, "wrappropertybase")?,
-		wrappropertyfn: get_str(globals, "wrappropertyfn")?,
-		cleanrestfn: get_str(globals, "cleanrestfn")?,
-		wrapfn: get_str(globals, "wrapfn")?,
-		importfn: get_str(globals, "importfn")?,
-		rewritefn: get_str(globals, "rewritefn")?,
-		metafn: get_str(globals, "metafn")?,
-		wrappostmessagefn: get_str(globals, "wrappostmessagefn")?,
-		pushsourcemapfn: get_str(globals, "pushsourcemapfn")?,
-		trysetfn: get_str(globals, "trysetfn")?,
-		templocid: get_str(globals, "templocid")?,
-		tempunusedid: get_str(globals, "tempunusedid")?,
-	})
-}
 
 pub struct WasmUrlRewriter(Function);
 

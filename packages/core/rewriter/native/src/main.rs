@@ -52,9 +52,9 @@ pub struct RewriterOptions {
 	base: String,
 	#[clap(long, default_value = "glongle1")]
 	sourcetag: String,
-
 	#[clap(long, default_value_t = false)]
 	is_module: bool,
+	
 	#[clap(long, default_value_t = false)]
 	capture_errors: bool,
 	#[clap(long, default_value_t = false)]
