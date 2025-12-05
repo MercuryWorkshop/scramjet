@@ -8,7 +8,7 @@
 		"@mercuryworkshop/scramjet": "workspace:*",
 		"@mercuryworkshop/libcurl-transport": "workspace:*",
 		"@types/express": "^5.0.5",
-		"dreamland": "^0.1.1",
+		"dreamland": "^0.1.2",
 		"express": "^5.1.0"
 	},
 	"devDependencies": {
