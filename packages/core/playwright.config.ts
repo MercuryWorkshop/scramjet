@@ -1,6 +1,26 @@
-import { defineConfig, devices } from "@playwright/test";
+import {
+	defineConfig,
+	devices,
+	type ReporterDescription,
+} from "@playwright/test";
 import type { GitHubActionOptions } from "@estruyf/github-actions-reporter";
 
+const reporters: ReporterDescription[] = [
+	["blob", { fileName: "test-results.zip" }],
+	["html"],
+];
+if (process.env.CI) {
+	reporters.pop();
+	reporters.push(["github"]);
+	reporters.push([
+		"@estruyf/github-actions-reporter",
+		{
+			title: "Test summary",
+			useDetails: true,
+			showError: true,
+		} as GitHubActionOptions,
+	]);
+}
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -9,29 +29,13 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
 	retries: 2,
-	reporter: process.env.CI
-		? [
-				[
-					"@estruyf/github-actions-reporter",
-					{
-						title: "Test summary",
-						useDetails: true,
-						showError: true,
-					} as GitHubActionOptions,
-				],
-				["github"],
-			]
-		: "html",
+	reporter: reporters,
 	timeout: 20000,
-	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
-		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-		trace: "on-first-retry",
+		trace: "on",
 		actionTimeout: 10000,
 		baseURL: "http://localhost:4141",
 	},
-
-	/* Configure projects for major browsers */
 	projects: [
 		{
 			name: "chromium",
@@ -42,8 +46,6 @@ export default defineConfig({
 		//   use: { ...devices["Desktop Firefox"] },
 		// },
 	],
-
-	/* Run your local dev server before starting the tests */
 	webServer: {
 		command: "cd .. && pnpm run dev",
 		url: "http://localhost:4141",
