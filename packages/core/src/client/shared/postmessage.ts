@@ -63,8 +63,6 @@ export default function (client: ScramjetClient, self: Self) {
 				if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
 				if (typeof ctx.args[1] === "object") ctx.args[1].targetOrigin = "*";
 
-				console.log("postmessage proxy", ctx.args);
-
 				ctx.return(wrappedPostMessage.call(ctx.fn, ...ctx.args));
 			},
 		});
@@ -78,7 +76,6 @@ export default function (client: ScramjetClient, self: Self) {
 		apply(ctx) {
 			// origin/source doesn't need to be preserved - it's null in the message event
 
-			console.error("postmessagfef", ctx.this, ctx.args);
 			ctx.args[0] = {
 				$scramjet$messagetype: "worker",
 				$scramjet$data: ctx.args[0],
