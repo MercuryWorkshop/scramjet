@@ -2,11 +2,10 @@ pub mod error;
 
 use error::{Result, RewriterError};
 use js::cfg::{Config, Flags};
-use js_sys::{Function, Object, Reflect};
+use js_sys::{Object, Reflect};
 use jsr::{JsRewriter, JsRewriterOutput, create_js, create_js_output};
 use oxc::allocator::Allocator;
 use wasm_bindgen::prelude::*;
-use web_sys::Url;
 
 use crate::jsr::{WasmUrlRewriter, get_url_rewriter, scramtag};
 
@@ -65,9 +64,9 @@ fn get_js_config(config: &Object) -> Result<Config> {
 
 fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 	Ok(Flags {
-		is_module,
-
+		base,
 		sourcetag: scramtag(),
+		is_module,
 
 		do_sourcemaps: get_bool(obj, "sourcemaps")?,
 		capture_errors: get_bool(obj, "captureErrors")?,
@@ -75,7 +74,6 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 		strict_rewrites: get_bool(obj, "strictRewrites")?,
 		destructure_rewrites: get_bool(obj, "destructureRewrites")?,
 
-		base,
 	})
 }
 
@@ -83,19 +81,17 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 pub struct Rewriter {
 	alloc: Allocator,
 
-	scramjet: Object,
 	js: JsRewriter,
 }
 
 #[wasm_bindgen]
 impl Rewriter {
 	#[wasm_bindgen(constructor)]
-	pub fn new(scramjet: Object) -> Result<Self> {
+	pub fn new() -> Result<Self> {
 		Ok(Self {
 			alloc: Allocator::default(),
 
-			js: create_js()?,
-			scramjet,
+			js: create_js()?
 		})
 	}
 

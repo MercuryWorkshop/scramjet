@@ -105,7 +105,7 @@ function check(val) {
 	fn rewrite_tests() {
 		let files = fs::read_dir("./tests").unwrap();
 
-		let opts = crate::RewriterOptions {
+		let opts = RewriterOptions {
 			prefix: String::from("/scrammedjet/"),
 			wrapfn: String::from("$wrap"),
 			wrappropertybase: String::from("$sj_"),
@@ -119,9 +119,11 @@ function check(val) {
 			trysetfn: String::from("$tryset"),
 			templocid: String::from("$temploc"),
 			tempunusedid: String::from("$tempunused"),
+			
 			base: String::from("https://google.com/glorngle/si.js"),
 			sourcetag: String::from("glongle1"),
 			is_module: false,
+
 			capture_errors: false,
 			do_sourcemaps: false,
 			scramitize: false,
