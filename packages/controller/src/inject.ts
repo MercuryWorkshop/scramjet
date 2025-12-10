@@ -237,7 +237,6 @@ export function load({
 				return url === "wss://anura.pro/";
 			},
 			shouldBlockMessageEvent(i) {
-				console.log(i);
 				return false;
 			},
 		});
