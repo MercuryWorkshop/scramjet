@@ -1,5 +1,16 @@
 import { controller } from ".";
-import { css, type Component } from "dreamland/core";
+import { createStore, css, type Component } from "dreamland/core";
+
+const store = createStore(
+	{
+		url: "https://google.com",
+	},
+	{
+		ident: "store",
+		backing: "localstorage",
+		autosave: "auto",
+	}
+);
 
 export const App: Component<
 	{},
@@ -10,7 +21,6 @@ export const App: Component<
 		frameel: HTMLIFrameElement;
 	}
 > = function (cx) {
-	this.url = "https://google.com";
 	cx.mount = () => {
 		this.frame = controller.createFrame(this.frameel);
 		let body = btoa(
@@ -23,13 +33,13 @@ export const App: Component<
 			<form
 				on:submit={(e: SubmitEvent) => {
 					e.preventDefault();
-					this.frame.go(this.url);
+					this.frame.go(store.url);
 				}}
 			>
 				<input
 					id="search"
 					type="text"
-					value={use(this.url)}
+					value={use(store.url)}
 					placeholder="Enter URL"
 				/>
 			</form>
