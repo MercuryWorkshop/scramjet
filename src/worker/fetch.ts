@@ -359,6 +359,9 @@ export async function handleFetch(
 		};
 		if (err.cause) {
 			errorDetails["cause"] = err.cause;
+			if (err.cause instanceof AggregateError) {
+				errorDetails["causeErrors"] = err.cause.errors;
+			}
 		}
 		if (err.stack) {
 			errorDetails["stack"] = err.stack;
