@@ -1,10 +1,11 @@
 import {
-	BareClient,
-	BareHeaders,
-	BareResponseFetch,
-	BareTransport,
+	BareCompatibleClient,
+	BareResponse,
+	ProxyTransport,
+	RawHeaders,
 	TransferrableResponse,
-} from "@mercuryworkshop/bare-mux-custom";
+	BareRequestInit,
+} from "@mercuryworkshop/proxy-transports";
 
 import {
 	rewriteUrl,
@@ -45,33 +46,33 @@ export interface ScramjetFetchParsed {
 
 export interface ScramjetFetchResponse {
 	body: BodyType;
-	headers: BareHeaders;
+	headers: ScramjetHeaders;
 	status: number;
 	statusText: string;
 }
 
 export type FetchHandlerInit = {
-	transport: BareTransport;
+	transport: ProxyTransport;
 	context: ScramjetContext;
 	crossOriginIsolated?: boolean;
 
 	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
-	fetchDataUrl(dataUrl: string): Promise<BareResponseFetch>;
-	fetchBlobUrl(blobUrl: string): Promise<BareResponseFetch>;
+	fetchDataUrl(dataUrl: string): Promise<BareResponse>;
+	fetchBlobUrl(blobUrl: string): Promise<BareResponse>;
 };
 
 export class ScramjetFetchHandler extends EventTarget {
-	public client: BareClient;
+	public client: BareCompatibleClient;
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
 
-	public fetchDataUrl: (dataUrl: string) => Promise<BareResponseFetch>;
-	public fetchBlobUrl: (blobUrl: string) => Promise<BareResponseFetch>;
+	public fetchDataUrl: (dataUrl: string) => Promise<Response>;
+	public fetchBlobUrl: (blobUrl: string) => Promise<Response>;
 	public sendSetCookie: (url: URL, cookie: string) => Promise<void>;
 
 	constructor(init: FetchHandlerInit) {
 		super();
-		this.client = new BareClient(init.transport);
+		this.client = new BareCompatibleClient(init.transport);
 		this.context = init.context;
 		this.crossOriginIsolated = init.crossOriginIsolated || false;
 		this.sendSetCookie = init.sendSetCookie;
@@ -106,16 +107,11 @@ async function doHandleFetch(
 	const newheaders = rewriteRequestHeaders(request, handler, parsed);
 
 	const init = {
-		method: request.method,
 		body: request.body,
-		headers: newheaders.headers,
-		credentials: "omit",
-		mode: request.mode === "cors" ? request.mode : "same-origin",
-		cache: request.cache,
+		headers: newheaders.toRawHeaders(),
+		method: request.method,
 		redirect: "manual",
-		// @ts-ignore why the fuck is this not typed microsoft
-		duplex: "half",
-	} as RequestInit;
+	} as BareRequestInit;
 
 	const req = new ScramjetRequestEvent(
 		request,
@@ -126,16 +122,28 @@ async function doHandleFetch(
 	);
 	handler.dispatchEvent(req);
 
-	// if the event listener overwrote response with a promise, use that. otherwise fetch normally
-	const response =
-		(await req._response) ||
-		((await handler.client.fetch(req.url, req.init)) as BareResponseFetch);
+	let response: BareResponse;
 
-	response.finalURL = req.parsed.url.href;
+	if (req._response) {
+		let resp = req._response;
+		if ("then" in resp) {
+			resp = await resp;
+		}
+		if ("rawHeaders" in resp) {
+			// it's a bare response
+			response = resp;
+		} else {
+			// it's a native response, convert it
+			response = BareResponse.fromNativeResponse(resp);
+		}
+	} else {
+		response = await handler.client.fetch(req.url, req.init);
+	}
 
 	let responseBody: BodyType;
 
-	// multi headers only needed here everything else should be flat
+	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a ScramjetHeaders object
+	await handleCookies(handler, request, parsed, response.rawHeaders);
 
 	const responseHeaders = await rewriteHeaders(
 		handler,
@@ -143,11 +151,10 @@ async function doHandleFetch(
 		parsed,
 		response.rawHeaders
 	);
-	await handleCookies(handler, request, parsed, responseHeaders);
 
 	if (isRedirect(response)) {
 		const redirectUrl = new URL(
-			unrewriteUrl(responseHeaders["location"], handler.context)
+			unrewriteUrl(responseHeaders.get("location"), handler.context)
 		);
 
 		// await updateTracker(
@@ -169,9 +176,9 @@ async function doHandleFetch(
 
 		// ensure that ?type=module is not lost in a redirect
 		if (parsed.scriptType) {
-			const url = new URL(responseHeaders["location"]);
+			const url = new URL(responseHeaders.get("location"));
 			url.searchParams.set("type", parsed.scriptType);
-			responseHeaders["location"] = url.href;
+			responseHeaders.set("location", url.href);
 		}
 	}
 
@@ -198,7 +205,7 @@ async function doHandleFetch(
 	return r;
 }
 
-function isRedirect(response: BareResponseFetch) {
+function isRedirect(response: BareResponse) {
 	return response.status >= 300 && response.status < 400;
 }
 
@@ -400,17 +407,18 @@ async function handleBlobOrDataUrlFetch(
 	let dataUrl = request.rawUrl.pathname.substring(
 		handler.context.prefix.pathname.length
 	);
-	let response: BareResponseFetch;
+	let response: BareResponse;
 
 	if (dataUrl.startsWith("blob:")) {
 		dataUrl = unrewriteBlob(dataUrl, handler.context, parsed.meta);
-		response = await handler.fetchBlobUrl(dataUrl);
+		response = BareResponse.fromNativeResponse(
+			await handler.fetchBlobUrl(dataUrl)
+		);
 	} else {
-		response = await handler.fetchDataUrl(dataUrl);
+		response = BareResponse.fromNativeResponse(
+			await handler.fetchDataUrl(dataUrl)
+		);
 	}
-
-	const url = dataUrl.startsWith("blob:") ? dataUrl : "(data url)";
-	response.finalURL = url;
 
 	let body: BodyType;
 	if (response.body) {
@@ -418,13 +426,13 @@ async function handleBlobOrDataUrlFetch(
 			handler,
 			request,
 			parsed,
-			response as BareResponseFetch
+			response as BareResponse
 		);
 	}
-	const headers = Object.fromEntries(response.headers.entries());
+	const headers = ScramjetHeaders.fromRawHeaders(response.rawHeaders);
 	if (handler.crossOriginIsolated) {
-		headers["Cross-Origin-Opener-Policy"] = "same-origin";
-		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+		headers.set("Cross-Origin-Opener-Policy", "same-origin");
+		headers.set("Cross-Origin-Embedder-Policy", "require-corp");
 	}
 
 	return {
@@ -439,28 +447,23 @@ async function handleCookies(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
-	responseHeaders: BareHeaders
+	rawHeaders: RawHeaders
 ) {
-	const maybeHeaders = responseHeaders["set-cookie"] || [];
-	if (Array.isArray(maybeHeaders)) {
-		for (const cookie of maybeHeaders) {
-			const promise = handler.sendSetCookie(parsed.url, cookie);
+	for (const [key, value] of rawHeaders) {
+		if (key.toLowerCase() !== "set-cookie") continue;
 
-			// we want the client to have the cookies before fetch returns
-			// for navigations though, there's no race since we send the entire cookie dump in the same request
-			if (
-				request.destination !== "document" &&
-				request.destination !== "iframe"
-			) {
-				await promise;
-			}
+		handler.context.cookieJar.setCookies([value], parsed.url);
+		const promise = handler.sendSetCookie(parsed.url, value);
+
+		// we want the client to have the cookies before fetch returns
+		// for navigations though, there's no race since we send the entire cookie dump in the same request
+		if (
+			request.destination !== "document" &&
+			request.destination !== "iframe"
+		) {
+			await promise;
 		}
 	}
-
-	handler.context.cookieJar.setCookies(
-		maybeHeaders instanceof Array ? maybeHeaders : [maybeHeaders],
-		parsed.url
-	);
 }
 
 /**
@@ -508,38 +511,26 @@ export async function rewriteHeaders(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
-	rawHeaders: BareHeaders
-) {
-	const headers = {};
-
-	// TODO: use scrmajetheaders
-	for (const key in rawHeaders) {
-		headers[key.toLowerCase()] = rawHeaders[key];
-	}
+	rawHeaders: RawHeaders
+): Promise<ScramjetHeaders> {
+	const headers = ScramjetHeaders.fromRawHeaders(rawHeaders);
 
 	for (const cspHeader of SEC_HEADERS) {
-		delete headers[cspHeader];
+		headers.delete(cspHeader);
 	}
 
 	for (const urlHeader of URL_HEADERS) {
-		if (headers[urlHeader])
-			headers[urlHeader] = rewriteUrl(
-				headers[urlHeader]?.toString() as string,
-				handler.context,
-				parsed.meta
-			);
+		if (headers.has(urlHeader)) {
+			let url = headers.get(urlHeader)!;
+			let rewrittenUrl = rewriteUrl(url, handler.context, parsed.meta);
+			headers.set(urlHeader, rewrittenUrl);
+		}
 	}
 
-	if (typeof headers["link"] === "string") {
-		headers["link"] = rewriteLinkHeader(
-			headers["link"],
-			handler.context,
-			parsed.meta
-		);
-	} else if (Array.isArray(headers["link"])) {
-		headers["link"] = headers["link"].map((link) =>
-			rewriteLinkHeader(link, handler.context, parsed.meta)
-		);
+	if (headers.has("link")) {
+		let link = headers.get("link")!;
+		let rewritten = rewriteLinkHeader(link, handler.context, parsed.meta);
+		headers.set("link", rewritten);
 	}
 
 	// Emulate the referrer policy to set it back to what it should've been without Force Referrer in place
@@ -597,18 +588,15 @@ export async function rewriteHeaders(
 		// }
 		// }
 	}
-	if (
-		typeof headers["sec-fetch-dest"] === "string" &&
-		headers["sec-fetch-dest"] === ""
-	) {
+	if (headers.has("sec-fetch-dest") && headers.get("sec-fetch-dest") === "") {
 		headers["sec-fetch-dest"] = "empty";
 	}
 
 	if (
-		typeof headers["sec-fetch-site"] === "string" &&
-		headers["sec-fetch-site"] !== "none"
+		headers.has("sec-fetch-site") &&
+		headers.get("sec-fetch-site") !== "none"
 	) {
-		if (typeof headers["referer"] === "string") {
+		if (headers.has("referer")) {
 			// headers["sec-fetch-site"] = await getSiteDirective(
 			// 	meta,
 			// 	new URL(headers["referer"]),
@@ -618,7 +606,7 @@ export async function rewriteHeaders(
 			console.warn(
 				"Missing referrer header; can't rewrite sec-fetch-site properly. Falling back to unsafe deletion."
 			);
-			delete headers["sec-fetch-site"];
+			headers.delete("sec-fetch-site");
 		}
 	}
 
@@ -635,12 +623,12 @@ export async function rewriteHeaders(
 	// 	);
 	// }
 
-	if (headers["accept"] === "text/event-stream") {
-		headers["content-type"] = "text/event-stream";
+	if (headers.get("accept") === "text/event-stream") {
+		headers.set("content-type", "text/event-stream");
 	}
 
 	// scramjet runtime can use features that permissions-policy blocks
-	delete headers["permissions-policy"];
+	headers.delete("permissions-policy");
 
 	if (
 		handler.crossOriginIsolated &&
@@ -653,8 +641,8 @@ export async function rewriteHeaders(
 			"script",
 		].includes(request.destination)
 	) {
-		headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-		headers["Cross-Origin-Opener-Policy"] = "same-origin";
+		headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+		headers.set("Cross-Origin-Opener-Policy", "same-origin");
 	}
 
 	return headers;
@@ -664,7 +652,7 @@ async function rewriteBody(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
-	response: BareResponseFetch
+	response: BareResponse
 ): Promise<BodyType> {
 	switch (request.destination) {
 		case "iframe":
@@ -712,7 +700,7 @@ async function rewriteBody(
 		case "script": {
 			return rewriteJs(
 				new Uint8Array(await response.arrayBuffer()),
-				response.finalURL,
+				response.url,
 				handler.context,
 				parsed.meta,
 				parsed.scriptType === "module"
@@ -727,7 +715,7 @@ async function rewriteBody(
 				new Uint8Array(await response.arrayBuffer()),
 				// TODO: this takes a scriptType and rewritejs takes a bool..
 				parsed.scriptType,
-				response.finalURL,
+				response.url,
 				parsed.meta
 			);
 		default:
@@ -774,17 +762,21 @@ export class ScramjetResponseEvent extends Event {
 }
 
 export class ScramjetRequestEvent extends Event {
-	_response?: BareResponseFetch | Promise<BareResponseFetch>;
+	_response?:
+		| BareResponse
+		| Promise<BareResponse>
+		| Response
+		| Promise<Response>;
 	constructor(
 		public context: ScramjetFetchRequest,
 		public url: URL,
 		public parsed: ScramjetFetchParsed,
-		public init: RequestInit,
-		public client: BareClient
+		public init: BareRequestInit,
+		public client: BareCompatibleClient
 	) {
 		super("request");
 	}
-	respondWith(response: BareResponseFetch | Promise<BareResponseFetch>) {
+	respondWith(response: BareResponse | Promise<BareResponse>) {
 		this._response = response;
 	}
 }

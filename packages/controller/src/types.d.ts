@@ -1,4 +1,4 @@
-import type { BareHeaders } from "../../bare-mux-custom";
+import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
 
 export type BodyType =
 	| string
@@ -15,13 +15,13 @@ export type TransferRequest = {
 	body: BodyType | null;
 	cache: RequestCache;
 	forceCrossOriginIsolated: boolean;
-	initialHeaders: BareHeaders;
+	initialHeaders: RawHeaders;
 	rawClientUrl?: string;
 };
 
 export type TransferResponse = {
 	body: BodyType;
-	headers: BareHeaders;
+	headers: RawHeaders;
 	status: number;
 	statusText: string;
 };
@@ -53,7 +53,7 @@ export type TransportToController = {
 			remote: string;
 			method: string;
 			body: BodyInit | null;
-			headers: BareHeaders;
+			headers: RawHeaders;
 			// signal: AbortSignal | undefined
 		},
 		TransferrableResponse,
@@ -62,13 +62,14 @@ export type TransportToController = {
 		{
 			url: string;
 			protocols: string[];
-			requestHeaders: BareHeaders;
+			requestHeaders: RawHeaders;
 			port: MessagePort;
 		},
 		(
 			| {
 					result: "success";
 					protocol: string;
+					extensions: string;
 			  }
 			| {
 					result: "failure";

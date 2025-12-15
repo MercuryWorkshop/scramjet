@@ -3,10 +3,10 @@ import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 declare const $scramjet: typeof ScramjetGlobal;
 
 import type {
-	BareHeaders,
-	BareTransport,
+	RawHeaders,
+	ProxyTransport,
 	TransferrableResponse,
-} from "@mercuryworkshop/bare-mux-custom";
+} from "@mercuryworkshop/proxy-transports";
 
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type {
@@ -25,7 +25,7 @@ const postMessage = (
 	MessagePort_postMessage.call(port, data, transfer as any);
 };
 
-class RemoteTransport implements BareTransport {
+class RemoteTransport implements ProxyTransport {
 	private readyResolve!: () => void;
 	private readyPromise: Promise<void> = new Promise((resolve) => {
 		this.readyResolve = resolve;
@@ -61,8 +61,8 @@ class RemoteTransport implements BareTransport {
 	connect(
 		url: URL,
 		protocols: string[],
-		requestHeaders: BareHeaders,
-		onopen: (protocol: string) => void,
+		requestHeaders: RawHeaders,
+		onopen: (protocol: string, extensions: string) => void,
 		onmessage: (data: Blob | ArrayBuffer | string) => void,
 		onclose: (code: number, reason: string) => void,
 		onerror: (error: string) => void
@@ -87,7 +87,7 @@ class RemoteTransport implements BareTransport {
 			.then((response) => {
 				console.log(response);
 				if (response.result === "success") {
-					onopen(response.protocol);
+					onopen(response.protocol, response.extensions);
 				} else {
 					onerror(response.error);
 				}
@@ -129,7 +129,7 @@ class RemoteTransport implements BareTransport {
 		remote: URL,
 		method: string,
 		body: BodyInit | null,
-		headers: BareHeaders,
+		headers: RawHeaders,
 		signal: AbortSignal | undefined
 	): Promise<TransferrableResponse> {
 		return await this.rpc.call("request", {
@@ -217,7 +217,7 @@ export function load({
 				.join("")}`;
 		}
 
-		const frame = globalThis.frameElement;
+		const frame = globalThis.frameElement as HTMLIFrameElement | null;
 		if (frame && !frame.name) {
 			frame.name = createFrameId();
 		}

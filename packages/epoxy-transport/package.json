@@ -12,7 +12,7 @@
 		"prepack": "npm run build"
 	},
 	"dependencies": {
-		"@mercuryworkshop/bare-mux-custom": "workspace:*",
+		"@mercuryworkshop/proxy-transports": "workspace:*",
 		"@mercuryworkshop/epoxy-tls": "2.1.18-1"
 	}
 }
