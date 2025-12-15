@@ -18,6 +18,7 @@ export type ScramjetClientInit = {
 	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
 	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
+	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;
 };
 
 type NativeStore = {
