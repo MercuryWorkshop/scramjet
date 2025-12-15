@@ -1,19 +1,25 @@
 import type {
-	BareHeaders,
-	BareResponse,
+	RawHeaders,
 	TransferrableResponse,
-	BareTransport,
-} from "@mercuryworkshop/bare-mux-custom";
+	ProxyTransport,
+} from "@mercuryworkshop/proxy-transports";
 import { libcurl } from "libcurl.js/bundled";
 
-export default class LibcurlClient implements BareTransport {
+export type LibcurlClientOptions = {
 	wisp: string;
-	proxy: string;
-	transport: string;
+	websocket?: string;
+	proxy?: string;
+	transport?: string;
+	connections?: Array<number>;
+};
+export default class LibcurlClient implements ProxyTransport {
 	session: any;
-	connections: Array<number>;
+	wisp: string;
+	proxy?: string;
+	transport?: string;
+	connections?: Array<number>;
 
-	constructor(options) {
+	constructor(options: LibcurlClientOptions) {
 		this.wisp = options.wisp ?? options.websocket;
 		this.transport = options.transport;
 		this.proxy = options.proxy;
@@ -28,7 +34,7 @@ export default class LibcurlClient implements BareTransport {
 				"The Websocket URL must use the ws:// or wss:// protocols."
 			);
 		}
-		if (typeof options.proxy === "string" || options.proxy instanceof String) {
+		if (typeof options.proxy === "string") {
 			let protocol = new URL(options.proxy).protocol;
 			if (!["socks5h:", "socks4a:", "http:"].includes(protocol)) {
 				throw new TypeError(
@@ -70,29 +76,24 @@ export default class LibcurlClient implements BareTransport {
 		remote: URL,
 		method: string,
 		body: BodyInit | null,
-		headers: BareHeaders,
+		headers: RawHeaders,
 		signal: AbortSignal | undefined
 	): Promise<TransferrableResponse> {
+		let headersObj: Record<string, string> = {};
+		for (let [key, value] of headers) {
+			headersObj[key] = value;
+		}
 		let payload = await this.session.fetch(remote.href, {
 			method,
-			headers: headers,
+			headers: headersObj,
 			body,
 			redirect: "manual",
 			signal: signal,
 		});
 
-		let respheaders = {};
-		for (let [key, value] of payload.raw_headers) {
-			if (!respheaders[key]) {
-				respheaders[key] = [value];
-			} else {
-				respheaders[key].push(value);
-			}
-		}
-
 		return {
 			body: payload.body!,
-			headers: respheaders,
+			headers: payload.raw_headers,
 			status: payload.status,
 			statusText: payload.statusText,
 		};
@@ -101,8 +102,8 @@ export default class LibcurlClient implements BareTransport {
 	connect(
 		url: URL,
 		protocols: string[],
-		requestHeaders: BareHeaders,
-		onopen: (protocol: string) => void,
+		requestHeaders: RawHeaders,
+		onopen: (protocol: string, extensions: string) => void,
 		onmessage: (data: Blob | ArrayBuffer | string) => void,
 		onclose: (code: number, reason: string) => void,
 		onerror: (error: string) => void
@@ -117,7 +118,7 @@ export default class LibcurlClient implements BareTransport {
 		socket.binaryType = "arraybuffer";
 
 		socket.onopen = (event: Event) => {
-			onopen("");
+			onopen("", "");
 		};
 		socket.onclose = (event: CloseEvent) => {
 			onclose(event.code, event.reason);

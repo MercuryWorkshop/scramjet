@@ -1,7 +1,8 @@
 declare var clients: Clients;
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type { Controllerbound, SWbound } from "./types";
-import type { BareHeaders } from "@mercuryworkshop/bare-mux-custom";
+import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
+import { ScramjetHeaders } from "@mercuryworkshop/scramjet";
 
 function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
@@ -119,12 +120,7 @@ export async function route(event: FetchEvent): Promise<Response> {
 		const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix))!;
 		const client = await clients.get(event.clientId);
 
-		const bareheaders: BareHeaders = {};
-
-		// @ts-expect-error for some reason it thinks headers.entries doesn't exist?
-		for (const [key, value] of event.request.headers.entries()) {
-			bareheaders[key] = [value];
-		}
+		const rawheaders: RawHeaders = [...event.request.headers];
 
 		const response = await tab.rpc.call(
 			"request",
@@ -137,7 +133,7 @@ export async function route(event: FetchEvent): Promise<Response> {
 				body: event.request.body,
 				cache: event.request.cache,
 				forceCrossOriginIsolated: false,
-				initialHeaders: bareheaders,
+				initialHeaders: rawheaders,
 				rawClientUrl: client ? client.url : undefined,
 			},
 			event.request.body instanceof ReadableStream ||
@@ -147,21 +143,13 @@ export async function route(event: FetchEvent): Promise<Response> {
 				: undefined
 		);
 
-		const realHeaders = new Headers();
-		for (const [key, values] of Object.entries(response.headers)) {
-			let val =
-				typeof values === "string" ? values : (values?.[0] ?? undefined);
-			if (val !== undefined) {
-				realHeaders.set(key, val);
-			}
-		}
-
 		return new Response(response.body, {
 			status: response.status,
 			statusText: response.statusText,
-			headers: realHeaders,
+			headers: response.headers,
 		});
 	} catch (e) {
+		console.error("Service Worker error:", e);
 		return new Response(
 			"Internal Service Worker Error: " + (e as Error).message,
 			{

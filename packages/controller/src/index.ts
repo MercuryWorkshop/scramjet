@@ -11,10 +11,10 @@ import {
 	type WebSocketMessage,
 } from "./types";
 import {
-	BareClient,
-	type BareResponseFetch,
-	type BareTransport,
-} from "@mercuryworkshop/bare-mux-custom";
+	BareCompatibleClient,
+	type BareResponse,
+	type ProxyTransport,
+} from "@mercuryworkshop/proxy-transports";
 
 const cookieJar = new $scramjet.CookieJar();
 
@@ -68,7 +68,7 @@ const codecDecode = (url: string) => {
 
 type ControllerInit = {
 	serviceworker: ServiceWorker;
-	transport: BareTransport;
+	transport: ProxyTransport;
 };
 export class Controller {
 	id: string;
@@ -80,7 +80,7 @@ export class Controller {
 	private ready: Promise<void>;
 	private readyResolve!: () => void;
 
-	transport: BareTransport;
+	transport: ProxyTransport;
 
 	private methods: MethodsDefinition<Controllerbound> = {
 		ready: async () => {
@@ -125,12 +125,9 @@ export class Controller {
 					];
 				}
 
-				let sjheaders = new $scramjet.ScramjetHeaders();
-				for (let [k, v] of Object.entries(data.initialHeaders)) {
-					for (let vv of v) {
-						sjheaders.set(k, vv);
-					}
-				}
+				let sjheaders = $scramjet.ScramjetHeaders.fromRawHeaders(
+					data.initialHeaders
+				);
 
 				const fetchresponse = await frame.fetchHandler.handleFetch({
 					initialHeaders: sjheaders,
@@ -151,7 +148,7 @@ export class Controller {
 						body: fetchresponse.body,
 						status: fetchresponse.status,
 						statusText: fetchresponse.statusText,
-						headers: fetchresponse.headers,
+						headers: fetchresponse.headers.toRawHeaders(),
 					},
 					fetchresponse.body instanceof ReadableStream ||
 					fetchresponse.body instanceof ArrayBuffer

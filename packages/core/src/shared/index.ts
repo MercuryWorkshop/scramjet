@@ -1,4 +1,3 @@
-import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
 import { ScramjetConfig, ScramjetFlags, ScramjetVersionInfo } from "@/types";
 import DomHandler, { Element } from "domhandler";
 import { URLMeta } from "@rewriters/url";

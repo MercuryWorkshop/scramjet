@@ -5,7 +5,6 @@ import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { ScramjetContextEvent, UrlChangeEvent } from "@client/events";
 import { ScramjetConfig } from "@/types";
-import { BareTransport } from "@mercuryworkshop/bare-mux-custom";
 
 export const iswindow = "window" in globalThis && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in globalThis;

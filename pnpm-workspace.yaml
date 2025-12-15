@@ -3,7 +3,7 @@ packages:
   - "packages/bootstrap"
   - "packages/controller"
   - "packages/scramjetserver"
-  - "packages/bare-mux-custom"
+  - "packages/proxy-transports"
   - "packages/epoxy-transport"
   - "packages/libcurl-transport"
   - "packages/demo"

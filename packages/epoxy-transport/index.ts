@@ -1,8 +1,8 @@
 import type {
-	BareHeaders,
+	RawHeaders,
 	TransferrableResponse,
-	BareTransport,
-} from "@mercuryworkshop/bare-mux-custom";
+	ProxyTransport,
+} from "@mercuryworkshop/proxy-transports";
 import initEpoxy, {
 	EpoxyClient,
 	EpoxyClientOptions,
@@ -36,7 +36,7 @@ const opts = [
 	"buffer_size",
 ];
 
-export default class EpoxyTransport implements BareTransport {
+export default class EpoxyTransport implements ProxyTransport {
 	ready = false;
 
 	client_version: typeof epoxyInfo;
@@ -73,21 +73,42 @@ export default class EpoxyTransport implements BareTransport {
 		remote: URL,
 		method: string,
 		body: BodyInit | null,
-		headers: BareHeaders,
+		headers: RawHeaders,
 		signal: AbortSignal | undefined
 	): Promise<TransferrableResponse> {
 		if (body instanceof Blob) body = await body.arrayBuffer();
 
 		try {
+			let headersObj: Record<string, string> = {};
+			for (let [key, value] of headers) {
+				if (headersObj[key]) {
+					// epoxy does not support multiple headers with the same key
+					console.warn(
+						`Duplicate header key "${key}" detected. Overwriting previous value.`
+					);
+				}
+				headersObj[key] = value;
+			}
+
 			let res = await this.client.fetch(remote.href, {
 				method,
 				body,
-				headers,
+				headers: headersObj,
 				redirect: "manual",
 			});
+			let headersEntries: RawHeaders = [];
+			for (let [key, value] of Object.entries((res as any).rawHeaders) as any) {
+				if (Array.isArray(value)) {
+					for (let v of value) {
+						headersEntries.push([key, v]);
+					}
+				} else {
+					headersEntries.push([key, value]);
+				}
+			}
 			return {
 				body: res.body!,
-				headers: (res as any).rawHeaders,
+				headers: headersEntries,
 				status: res.status,
 				statusText: res.statusText,
 			};
@@ -100,8 +121,8 @@ export default class EpoxyTransport implements BareTransport {
 	connect(
 		url: URL,
 		protocols: string[],
-		requestHeaders: BareHeaders,
-		onopen: (protocol: string) => void,
+		requestHeaders: RawHeaders,
+		onopen: (protocol: string, extensions: string) => void,
 		onmessage: (data: Blob | ArrayBuffer | string) => void,
 		onclose: (code: number, reason: string) => void,
 		onerror: (error: string) => void
@@ -110,19 +131,31 @@ export default class EpoxyTransport implements BareTransport {
 		(code: number, reason: string) => void,
 	] {
 		let handlers = new EpoxyHandlers(
-			onopen,
-			onclose,
+			// epoxy does not support getting the server selected protocol/extension
+			() => onopen("", ""),
+			// epoxy does not support getting close code/reason
+			() => onclose(1000, "Closed by remote"),
 			onerror,
 			(data: Uint8Array | string) =>
 				//@ts-ignore
 				data instanceof Uint8Array ? onmessage(data.buffer) : onmessage(data)
 		);
 
+		let headersObj: Record<string, string> = {};
+		for (let [key, value] of requestHeaders) {
+			if (headersObj[key]) {
+				console.warn(
+					`Duplicate header key "${key}" detected. Overwriting previous value.`
+				);
+			}
+			headersObj[key] = value;
+		}
+
 		let ws = this.client.connect_websocket(
 			handlers,
 			url.href,
 			protocols,
-			Object.assign(requestHeaders)
+			headersObj
 		);
 
 		return [

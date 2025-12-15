@@ -12,7 +12,7 @@
 		"prepack": "npm run build"
 	},
 	"dependencies": {
-		"@mercuryworkshop/bare-mux-custom": "workspace:*",
+		"@mercuryworkshop/proxy-transports": "workspace:*",
 		"libcurl.js": "^0.7.2"
 	}
 }

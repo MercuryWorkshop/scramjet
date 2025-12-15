@@ -1,4 +1,4 @@
-import { type BareWebSocket } from "@mercuryworkshop/bare-mux-custom";
+import { type BareWebSocket } from "@mercuryworkshop/proxy-transports";
 import { ScramjetClient } from "@client/index";
 
 type FakeWebSocketState = {

@@ -1,5 +1,8 @@
 type ScramjetFrame = any;
-import { BareClient, BareTransport } from "@mercuryworkshop/bare-mux-custom";
+import {
+	BareCompatibleClient,
+	ProxyTransport,
+} from "@mercuryworkshop/proxy-transports";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
@@ -14,7 +17,7 @@ import { ScramjetConfig } from "@/types";
 
 export type ScramjetClientInit = {
 	context: ScramjetContext;
-	transport: BareTransport;
+	transport: ProxyTransport;
 	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
 	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
@@ -109,7 +112,7 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 export class ScramjetClient {
 	locationProxy: any;
 	serviceWorker: ServiceWorkerContainer;
-	bare: BareClient;
+	bare: BareCompatibleClient;
 
 	natives: NativeStore;
 	descriptors: DescriptorStore;
@@ -157,7 +160,7 @@ export class ScramjetClient {
 		this.box.registerClient(this, global as Self);
 
 		this.context = init.context;
-		this.bare = new BareClient(init.transport);
+		this.bare = new BareCompatibleClient(init.transport);
 
 		this.serviceWorker = this.global.navigator.serviceWorker;
 
