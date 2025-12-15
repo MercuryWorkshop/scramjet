@@ -16,15 +16,12 @@ export default function (client: ScramjetClient) {
 
 			if (!realwin) return ctx.return(realwin);
 
-			if (SCRAMJETCLIENT in realwin) {
-				return ctx.return(realwin[SCRAMJETCLIENT].global);
-			} else {
-				const newclient = new ScramjetClient(realwin, client.init);
-				// hook the opened window
-				newclient.hook();
-
-				return ctx.return(newclient.global);
+			if (!(SCRAMJETCLIENT in realwin)) {
+				// i don't believe it's possible for a just-opened window to already have scramjet loaded but just in case
+				client.init.hookSubcontext(realwin);
 			}
+
+			return realwin;
 		},
 	});
 
