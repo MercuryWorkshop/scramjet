@@ -71,6 +71,7 @@ export class RpcHelper<
 					);
 				})
 				.catch((err: any) => {
+					console.error(err);
 					this.sendRaw(
 						{
 							[this.id]: {

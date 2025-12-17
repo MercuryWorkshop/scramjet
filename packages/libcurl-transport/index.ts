@@ -111,10 +111,15 @@ export default class LibcurlClient implements ProxyTransport {
 		(data: Blob | ArrayBuffer | string) => void,
 		(code: number, reason: string) => void,
 	] {
+		let headersObj: Record<string, string> = {};
+		for (let [key, value] of requestHeaders) {
+			headersObj[key] = value;
+		}
+
 		let socket = new libcurl.WebSocket(url.toString(), protocols, {
-			headers: requestHeaders,
+			headers: headersObj,
 		});
-		//bare client always expects an arraybuffer for some reason
+
 		socket.binaryType = "arraybuffer";
 
 		socket.onopen = (event: Event) => {

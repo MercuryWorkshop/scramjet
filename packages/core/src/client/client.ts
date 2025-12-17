@@ -503,7 +503,7 @@ export class ScramjetClient {
 		let applyTrampoline: typeof Reflect.apply;
 		let constructTrampoline: typeof Reflect.construct;
 		if (this.flagEnabled("debugTrampolines")) {
-			let fnName;
+			let fnName: string;
 			if (debugname) {
 				fnName = debugname;
 			} else if (typeof value === "function" && value.name) {

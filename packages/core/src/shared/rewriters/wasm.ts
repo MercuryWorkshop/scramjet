@@ -53,11 +53,6 @@ export function getRewriter(
 		obj = { rewriter, inUse: false };
 		rewriters.push(obj);
 	} else {
-		if (flagEnabled("rewriterLogs", context, meta.base))
-			console.log(
-				`using cached rewriter ${index} from list of ${len} rewriters`
-			);
-
 		obj = rewriters[index];
 	}
 	obj.inUse = true;
