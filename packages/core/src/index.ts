@@ -38,10 +38,21 @@ export const defaultConfig: ScramjetConfig = {
 		sourcemaps: true,
 		destructureRewrites: false,
 		allowInvalidJs: false,
+		debugTrampolines: false,
 		allowFailedIntercepts: false,
 	},
 	siteFlags: {},
 	maskedfiles: [],
+};
+
+export const defaultConfigDev: ScramjetConfig = {
+	...defaultConfig,
+	flags: {
+		...defaultConfig.flags,
+		rewriterLogs: true,
+		cleanErrors: false,
+		debugTrampolines: true,
+	},
 };
 
 // bundled build will have the wasm binary inlined as a base64 string
