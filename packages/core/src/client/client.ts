@@ -488,9 +488,9 @@ export class ScramjetClient {
 			this.natives.store[name] = original;
 		}
 
-		this.RawProxy(target, prop, handler);
+		this.RawProxy(target, prop, handler, name);
 	}
-	RawProxy(target: any, prop: string, handler: Proxy) {
+	RawProxy(target: any, prop: string, handler: Proxy, debugname?: string) {
 		if (!target) return;
 		if (!prop) return;
 		if (!Reflect.has(target, prop)) return;
@@ -499,6 +499,49 @@ export class ScramjetClient {
 		delete target[prop];
 
 		const h: ProxyHandler<any> = {};
+
+		let applyTrampoline: typeof Reflect.apply;
+		let constructTrampoline: typeof Reflect.construct;
+		if (this.flagEnabled("debugTrampolines")) {
+			let fnName;
+			if (debugname) {
+				fnName = debugname;
+			} else if (typeof value === "function" && value.name) {
+				fnName = `Function ${value.name} -> ${prop}`;
+			} else if (typeof value === "object" && value.constructor) {
+				fnName = `Object ${value.constructor.name} -> ${prop}`;
+			} else {
+				fnName = `${typeof value} -> ${prop}`;
+			}
+			let windowName = this.descriptors.get("window.name", this.global);
+			if (!windowName) windowName = "<unnamed window>";
+			let location = this.url.href;
+
+			// sanitize newlines just in case somehow
+			location = location.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+			windowName = windowName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+			fnName = fnName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+
+			constructTrampoline = this.natives.call(
+				"Function",
+				null,
+				"fn",
+				"args",
+				"newTarget",
+				`// SCRAMJET FUNCTION PROXY\n//\t\ttarget: ${fnName}\n//\t\tframe: ${fnName}\n//\t\tlocation: ${location}\n//\t\torder: construct\n\n\nreturn Reflect.construct(fn, args, newTarget);`
+			);
+			applyTrampoline = this.natives.call(
+				"Function",
+				null,
+				"fn",
+				"that",
+				"args",
+				`// SCRAMJET FUNCTION PROXY\n//\t\ttarget: ${fnName}\n//\t\tframe: ${windowName}\n//\t\tlocation: ${location}\n//\t\torder: apply\n\n\nreturn Reflect.apply(fn, that, args);`
+			);
+		} else {
+			applyTrampoline = Reflect.apply;
+			constructTrampoline = Reflect.construct;
+		}
 
 		if (handler.construct) {
 			h.construct = function (
@@ -520,7 +563,7 @@ export class ScramjetClient {
 					},
 					call: () => {
 						earlyreturn = true;
-						returnValue = Reflect.construct(ctx.fn, ctx.args, ctx.newTarget);
+						returnValue = constructTrampoline(ctx.fn, ctx.args, ctx.newTarget);
 
 						return returnValue;
 					},
@@ -532,7 +575,7 @@ export class ScramjetClient {
 					return returnValue;
 				}
 
-				return Reflect.construct(ctx.fn, ctx.args, ctx.newTarget);
+				return constructTrampoline(ctx.fn, ctx.args, ctx.newTarget);
 			};
 		}
 
@@ -552,7 +595,7 @@ export class ScramjetClient {
 					},
 					call: () => {
 						earlyreturn = true;
-						returnValue = Reflect.apply(ctx.fn, ctx.this, ctx.args);
+						returnValue = applyTrampoline(ctx.fn, ctx.this, ctx.args);
 
 						return returnValue;
 					},
@@ -595,7 +638,7 @@ export class ScramjetClient {
 					return returnValue;
 				}
 
-				return Reflect.apply(ctx.fn, ctx.this, ctx.args);
+				return applyTrampoline(ctx.fn, ctx.this, ctx.args);
 			};
 		}
 
