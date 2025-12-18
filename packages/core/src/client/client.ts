@@ -500,8 +500,8 @@ export class ScramjetClient {
 
 		const h: ProxyHandler<any> = {};
 
-		let applyTrampoline: typeof Reflect.apply;
-		let constructTrampoline: typeof Reflect.construct;
+		let applyFn: typeof Reflect.apply;
+		let constructFn: typeof Reflect.construct;
 		if (this.flagEnabled("debugTrampolines")) {
 			let fnName: string;
 			if (debugname) {
@@ -521,26 +521,36 @@ export class ScramjetClient {
 			location = location.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 			windowName = windowName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 			fnName = fnName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+			let sourceURL = debugname ? `${debugname}.sj` : `rawproxy.sj`;
 
-			constructTrampoline = this.natives.call(
+			let { construct, apply } = this.natives.call(
 				"Function",
 				null,
-				"fn",
-				"args",
-				"newTarget",
-				`// SCRAMJET FUNCTION PROXY\n//\t\ttarget: ${fnName}\n//\t\tframe: ${fnName}\n//\t\tlocation: ${location}\n//\t\torder: construct\n\n\nreturn Reflect.construct(fn, args, newTarget);`
-			);
-			applyTrampoline = this.natives.call(
-				"Function",
-				null,
-				"fn",
-				"that",
-				"args",
-				`// SCRAMJET FUNCTION PROXY\n//\t\ttarget: ${fnName}\n//\t\tframe: ${windowName}\n//\t\tlocation: ${location}\n//\t\torder: apply\n\n\nreturn Reflect.apply(fn, that, args);`
-			);
+				`"use strict";
+
+// SCRAMJET FUNCTION INTERCEPT
+// target: ${fnName}
+// frame: ${windowName}
+// location: ${location}
+
+function apply(fn, that, args) {
+	return Reflect.apply(fn, that, args);
+}
+
+function construct(fn, args, newTarget) {
+	return Reflect.construct(fn, args, newTarget);
+}
+
+return { apply, construct };
+
+//# sourceURL=${sourceURL}`
+			)();
+
+			applyFn = apply;
+			constructFn = construct;
 		} else {
-			applyTrampoline = Reflect.apply;
-			constructTrampoline = Reflect.construct;
+			applyFn = Reflect.apply;
+			constructFn = Reflect.construct;
 		}
 
 		if (handler.construct) {
@@ -563,7 +573,7 @@ export class ScramjetClient {
 					},
 					call: () => {
 						earlyreturn = true;
-						returnValue = constructTrampoline(ctx.fn, ctx.args, ctx.newTarget);
+						returnValue = constructFn(ctx.fn, ctx.args, ctx.newTarget);
 
 						return returnValue;
 					},
@@ -575,7 +585,7 @@ export class ScramjetClient {
 					return returnValue;
 				}
 
-				return constructTrampoline(ctx.fn, ctx.args, ctx.newTarget);
+				return constructFn(ctx.fn, ctx.args, ctx.newTarget);
 			};
 		}
 
@@ -595,7 +605,7 @@ export class ScramjetClient {
 					},
 					call: () => {
 						earlyreturn = true;
-						returnValue = applyTrampoline(ctx.fn, ctx.this, ctx.args);
+						returnValue = applyFn(ctx.fn, ctx.this, ctx.args);
 
 						return returnValue;
 					},
@@ -638,7 +648,7 @@ export class ScramjetClient {
 					return returnValue;
 				}
 
-				return applyTrampoline(ctx.fn, ctx.this, ctx.args);
+				return applyFn(ctx.fn, ctx.this, ctx.args);
 			};
 		}
 
