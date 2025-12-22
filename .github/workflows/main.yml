@@ -80,9 +80,9 @@ jobs:
         id: rewriter-cache
         with:
           path: |
-            rewriter/wasm/out
-            dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/wasm/Cargo.toml', 'rewriter/wasm/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+            packages/core/rewriter/wasm/out
+            packages/core/dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/*.rs', 'rewriter/**/src/**/*.toml', 'rewriter/**/src/**/*.json', 'rewriter/**/src/**/*.md', 'rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
 
