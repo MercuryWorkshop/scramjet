@@ -257,9 +257,9 @@ jobs:
         id: rewriter-cache
         with:
           path: |
-            rewriter/wasm/out
-            dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/wasm/Cargo.toml', 'rewriter/wasm/src/**/*.rs', 'rewriter/wasm/build.sh') }}
+            packages/core/rewriter/wasm/out
+            packages/core/dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('packages/core/rewriter/wasm/Cargo.toml', 'packages/core/rewriter/wasm/src/**/*.rs', 'packages/core/rewriter/wasm/build.sh') }}
           restore-keys: |
             rewriter-release-
 
@@ -270,7 +270,7 @@ jobs:
           cache-all-crates: true
 
       - name: Run Tests
-        run: cd rewriter/native && cargo test
+        run: cd packages/core/rewriter/native && cargo test
 
   upload:
     name: Upload release
