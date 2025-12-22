@@ -299,22 +299,6 @@ const controllerConfig = createGenericConfig({
 	},
 });
 
-const libcurldir = join(__dirname, "packages/libcurl-transport");
-const libcurlTransportConfig = createGenericConfig({
-	entry: {
-		main: join(libcurldir, "index.ts"),
-	},
-	output: {
-		filename: "libcurl-transport.js",
-		path: join(libcurldir, "dist"),
-		iife: true,
-		library: {
-			type: "var",
-			name: "$libcurlTransport",
-		},
-	},
-});
-
 export default [
 	iifeConfig,
 	iifeBundledConfig,
@@ -322,5 +306,4 @@ export default [
 	moduleBundledConfig,
 	bootstrapConfig,
 	controllerConfig,
-	libcurlTransportConfig,
 ];

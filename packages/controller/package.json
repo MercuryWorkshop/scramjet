@@ -7,7 +7,6 @@
 	"dependencies": {
 		"@mercuryworkshop/scramjet": "workspace:*",
 		"@mercuryworkshop/rpc": "workspace:*",
-		"@mercuryworkshop/proxy-transports": "workspace:*",
-		"@mercuryworkshop/libcurl-transport": "workspace:*"
+		"@mercuryworkshop/proxy-transports": "catalog:"
 	}
 }
