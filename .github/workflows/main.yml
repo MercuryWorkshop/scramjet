@@ -82,7 +82,7 @@ jobs:
           path: |
             packages/core/rewriter/wasm/out
             packages/core/dist/scramjet.wasm.wasm
-          key: rewriter-release-${{ hashFiles('rewriter/**/Cargo.toml', 'rewriter/**/*.rs', 'rewriter/**/src/**/*.toml', 'rewriter/**/src/**/*.json', 'rewriter/**/src/**/*.md', 'rewriter/**/*.sh') }}
+          key: rewriter-release-${{ hashFiles('packages/core/rewriter/**/Cargo.toml', 'packages/core/rewriter/**/*.rs', 'packages/core/rewriter/**/src/**/*.toml', 'packages/core/rewriter/**/src/**/*.json', 'packages/core/rewriter/**/src/**/*.md', 'packages/core/rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
 
