@@ -153,13 +153,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: packaged-scramjet
-          path: .
+          path: packages/core
 
       - name: Extract package
         run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+        working-directory: packages/core
 
       - name: Run package validation tests
         run: pnpm test:package
+        working-directory: packages/core
+
   tests:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
