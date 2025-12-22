@@ -113,13 +113,7 @@ jobs:
         run: pnpm pack
         working-directory: packages/core
 
-      - name: Upload Artifact (pnpm pack)
-        uses: actions/upload-artifact@v4
-        with:
-          name: packaged-scramjet
-          path: packages/core/mercuryworkshop-scramjet-*.tgz
-
-      - name: Upload Artifact (dist)
+      - name: Upload Artifact (scramjet/core)
         uses: actions/upload-artifact@v4
         with:
           name: scramjet
@@ -127,6 +121,19 @@ jobs:
             packages/core/dist/*.js
             packages/core/dist/*.js.map
             packages/core/dist/*.wasm
+
+      - name: Upload Artifact (packaged)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scramjet-package
+          path: packages/core/mercuryworkshop-scramjet-*.tgz
+
+      - name: Upload Artifact (scramjet/controller)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scramjet-controller
+          path: |
+            packages/controller/dist/*
 
   package-validation:
     name: Validate Package Structure
@@ -152,7 +159,7 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: packaged-scramjet
+          name: scramjet-package
           path: packages/core
 
       - name: Extract package
@@ -167,10 +174,13 @@ jobs:
     name: Run Scramjet Tests
     runs-on: ubuntu-latest
     needs: [build, package-validation]
-
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: .playwright-browsers
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -184,17 +194,52 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get artifacts
+      - name: Get artifacts (scramjet/core)
         uses: actions/download-artifact@v4
         with:
           name: scramjet
-          path: dist
+          path: packages/core/dist
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+      - name: Get cached rewriter build
+        uses: actions/cache/restore@v4
+        id: rewriter-cache
+        with:
+          path: |
+            packages/core/rewriter/wasm/out
+            packages/core/dist/scramjet.wasm.wasm
+          key: rewriter-release-${{ hashFiles('packages/core/rewriter/**/Cargo.toml', 'packages/core/rewriter/**/*.rs', 'packages/core/rewriter/**/src/**/*.toml', 'packages/core/rewriter/**/src/**/*.json', 'packages/core/rewriter/**/src/**/*.md', 'packages/core/rewriter/**/*.sh') }}
+
+      - name: Get artifacts (scramjet/controller)
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet-controller
+          path: packages/controller/dist
+
+      - name: Cache Playwright browsers
+        id: pw-browsers-cache
+        uses: actions/cache@v4
+        with:
+          path: .playwright-browsers
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Chromium
+        if: steps.pw-browsers-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/core
 
       - name: Run Playwright tests
         run: pnpm test:integration
+        working-directory: packages/core
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-test-results
+          path: packages/core/blob-report/*
+          if-no-files-found: error
 
   rewritertests:
     name: "Run Rewriter Tests"
