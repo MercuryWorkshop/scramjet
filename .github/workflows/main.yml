@@ -111,6 +111,7 @@ jobs:
 
       - name: Pack Scramjet
         run: pnpm pack
+        working-directory: packages/core
 
       - name: Upload Artifact (pnpm pack)
         uses: actions/upload-artifact@v4
