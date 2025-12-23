@@ -46,9 +46,9 @@ export class ScramjetHeaders {
 		const h = new ScramjetHeaders();
 		for (const [k, v] of raw) {
 			if (h.has(k)) {
-				console.warn(
-					`Duplicate header "${k}" found in raw headers, overwriting previous value.`
-				);
+				// console.debug(
+				// 	`Duplicate header "${k}" found in raw headers, overwriting previous value.`
+				// );
 			}
 			h.set(k, v);
 		}
