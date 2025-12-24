@@ -2,6 +2,10 @@ import { defineConfig } from "@rspack/cli";
 import { rspack, type RspackOptions } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
 
 function nodeExternals({ context, request }, callback) {
 	if (!/^(\.|\/)/.test(request)) {
@@ -181,6 +185,74 @@ const createScramjetConfig = (options) => {
 	});
 };
 
+// Custom plugin to generate TypeScript declarations
+class TypeScriptDeclarationsPlugin {
+	dir: string;
+	tsconfigName: string;
+	useAlias: boolean;
+	tempDir: string;
+
+	constructor(
+		dir: string,
+		tempDir: string,
+		tsconfigName: string = "tsconfig.types.json",
+		useAlias: boolean = true
+	) {
+		this.dir = dir;
+		this.tempDir = tempDir;
+		this.tsconfigName = tsconfigName;
+		this.useAlias = useAlias;
+	}
+
+	apply(compiler) {
+		compiler.hooks.afterEmit.tap("TypeScriptDeclarationsPlugin", () => {
+			(async () => {
+				try {
+					console.log(`Generating TypeScript declarations for ${this.dir}...`);
+					try {
+						const { stdout, stderr } = await execAsync(
+							`pnpm exec tsc --project ${this.tsconfigName}`,
+							{ cwd: this.dir }
+						);
+						if (stdout) console.log(stdout);
+						if (stderr && !stderr.includes("TS")) console.error(stderr);
+					} catch (tscError: any) {
+						// tsc exits with error code if there are TS errors, but still generates files
+						// Only log if it's not a TypeScript compilation error
+						if (tscError.code !== 2) {
+							throw tscError;
+						}
+						// if (tscError.stdout) console.log(tscError.stdout);
+						// if (tscError.stderr) console.warn(tscError.stderr);
+					}
+
+					if (this.useAlias) {
+						const aliasResult = await execAsync(
+							`pnpm exec tsc-alias --project ${this.tsconfigName}`,
+							{ cwd: this.dir }
+						);
+						if (aliasResult.stdout) console.log(aliasResult.stdout);
+						if (aliasResult.stderr) console.error(aliasResult.stderr);
+					}
+
+					try {
+						await execAsync(`rm -rf ${this.tempDir}`, { cwd: this.dir });
+					} catch (e) {}
+
+					console.log(
+						`TypeScript declarations generated successfully for ${this.dir}`
+					);
+				} catch (error: any) {
+					console.error(
+						`Error generating TypeScript declarations for ${this.dir}:`,
+						error.message
+					);
+				}
+			})();
+		});
+	}
+}
+
 // IIFE build that does NOT bundle the wasm, exposes global $scramjet
 const iifeConfig = createScramjetConfig({
 	name: "scramjet-iife",
@@ -286,6 +358,14 @@ const bootstrapConfig = createGenericConfig({
 	},
 	target: "node",
 	externals: [nodeExternals],
+	plugins: [
+		new TypeScriptDeclarationsPlugin(
+			bootstrapdir,
+			"dist/temp-types-build",
+			"tsconfig.types.json",
+			false
+		),
+	],
 });
 
 const controllerConfig = createGenericConfig({
@@ -304,6 +384,45 @@ const controllerConfig = createGenericConfig({
 			name: "$scramjetController",
 		},
 	},
+	plugins: [
+		new TypeScriptDeclarationsPlugin(
+			controllerdir,
+			"dist/temp-types-build",
+			"tsconfig.types.json",
+			false
+		),
+	],
+});
+
+// Type generation configuration
+const typeGenConfig = defineConfig({
+	context: scramjetdir,
+	entry: {
+		index: "./src/index.ts",
+	},
+	output: {
+		path: join(scramjetdir, "dist/temp-types-build"),
+		filename: "[name].js",
+	},
+	plugins: [
+		new TypeScriptDeclarationsPlugin(
+			scramjetdir,
+			"dist/temp-types-build",
+			"tsconfig.types.json",
+			true
+		),
+	],
+	resolve: {
+		extensions: [".ts", ".js"],
+		alias: {
+			"@rewriters": join(scramjetdir, "src/shared/rewriters"),
+			"@client": join(scramjetdir, "src/client"),
+			"@": join(scramjetdir, "src"),
+		},
+	},
+	module: {
+		rules: [tsloader],
+	},
 });
 
 export default [
@@ -313,4 +432,5 @@ export default [
 	moduleBundledConfig,
 	bootstrapConfig,
 	controllerConfig,
+	typeGenConfig,
 ];

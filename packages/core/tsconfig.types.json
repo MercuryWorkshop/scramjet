@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"declaration": true,
 		"emitDeclarationOnly": true,
-		"declarationDir": "./lib/generated-types",
+		"declarationDir": "./dist/types",
 		"removeComments": false,
 		"skipLibCheck": true,
 		"noEmitOnError": false,
