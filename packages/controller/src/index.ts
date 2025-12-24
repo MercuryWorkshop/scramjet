@@ -12,7 +12,7 @@ import {
 } from "./types";
 import {
 	BareCompatibleClient,
-	type BareResponse,
+	BareResponse,
 	type ProxyTransport,
 } from "@mercuryworkshop/proxy-transports";
 
@@ -25,10 +25,6 @@ type Config = {
 	virtualWasmPath: string;
 	prefix: string;
 };
-
-fetch("/scramjet/scramjet.wasm.wasm").then(async (resp) => {
-	$scramjet.setWasm(await resp.arrayBuffer());
-});
 
 export const config: Config = {
 	prefix: "/~/sj/",
@@ -70,6 +66,19 @@ type ControllerInit = {
 	serviceworker: ServiceWorker;
 	transport: ProxyTransport;
 };
+
+let wasmAlreadyFetched = false;
+
+async function loadScramjetWasm() {
+	if (wasmAlreadyFetched) {
+		return;
+	}
+
+	let resp = await fetch(config.wasmPath);
+	$scramjet.setWasm(await resp.arrayBuffer());
+	wasmAlreadyFetched = true;
+}
+
 export class Controller {
 	id: string;
 	prefix: string;
@@ -77,8 +86,9 @@ export class Controller {
 	cookieJar = new $scramjet.CookieJar();
 
 	rpc: RpcHelper<Controllerbound, SWbound>;
-	private ready: Promise<void>;
+	private ready: Promise<[void, void]>;
 	private readyResolve!: () => void;
+	public isReady: boolean = false;
 
 	transport: ProxyTransport;
 
@@ -117,9 +127,7 @@ export class Controller {
 							body: wasmPayload,
 							status: 200,
 							statusText: "OK",
-							headers: {
-								"Content-Type": ["application/javascript"],
-							},
+							headers: [["Content-Type", "application/javascript"]],
 						},
 						[],
 					];
@@ -182,10 +190,11 @@ export class Controller {
 							new URL(url),
 							protocols,
 							requestHeaders,
-							(protocol) => {
+							(protocol, extensions) => {
 								resolve({
 									result: "success",
 									protocol: protocol,
+									extensions: extensions,
 								});
 							},
 							(data) => {
@@ -250,9 +259,12 @@ export class Controller {
 		this.id = makeId();
 		this.prefix = config.prefix + this.id + "/";
 
-		this.ready = new Promise<void>((resolve) => {
-			this.readyResolve = resolve;
-		});
+		this.ready = Promise.all([
+			new Promise<void>((resolve) => {
+				this.readyResolve = resolve;
+			}),
+			loadScramjetWasm(),
+		]);
 
 		let channel = new MessageChannel();
 		this.rpc = new RpcHelper<Controllerbound, SWbound>(
@@ -279,6 +291,11 @@ export class Controller {
 	}
 
 	createFrame(element?: HTMLIFrameElement): Frame {
+		if (!this.ready) {
+			throw new Error(
+				"Controller is not ready! Try awaiting controller.wait()"
+			);
+		}
 		element ??= document.createElement("iframe");
 		const frame = new Frame(this, element);
 		this.frames.push(frame);
@@ -296,7 +313,11 @@ function yieldGetInjectScripts(
 	sjconfig: ScramjetGlobal.ScramjetConfig,
 	prefix: URL
 ) {
-	return function getInjectScripts(meta, handler, script) {
+	let getInjectScripts: ScramjetGlobal.ScramjetInterface["getInjectScripts"] = (
+		meta,
+		handler,
+		script
+	) => {
 		return [
 			script(config.scramjetPath),
 			script(config.injectPath),
@@ -318,6 +339,7 @@ function yieldGetInjectScripts(
 			),
 		];
 	};
+	return getInjectScripts;
 }
 
 class Frame {
@@ -325,7 +347,7 @@ class Frame {
 	id: string;
 	prefix: string;
 
-	get context() {
+	get context(): ScramjetGlobal.ScramjetContext {
 		let sjcfg = {
 			...$scramjet.defaultConfig,
 			...cfg,
@@ -398,10 +420,10 @@ class Frame {
 			transport: controller.transport,
 			async sendSetCookie(url, cookie) {},
 			async fetchBlobUrl(url) {
-				return (await fetch(url)) as BareResponseFetch;
+				return BareResponse.fromNativeResponse(await fetch(url));
 			},
 			async fetchDataUrl(url) {
-				return (await fetch(url)) as BareResponseFetch;
+				return BareResponse.fromNativeResponse(await fetch(url));
 			},
 		});
 	}
