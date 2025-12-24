@@ -40,6 +40,7 @@ export const defaultConfig: ScramjetConfig = {
 		allowInvalidJs: false,
 		debugTrampolines: false,
 		allowFailedIntercepts: false,
+		encapsulateWorkers: true,
 	},
 	siteFlags: {},
 	maskedfiles: [],
