@@ -1,6 +1,6 @@
 {
 	"name": "@mercuryworkshop/scramjet",
-	"version": "2.0.0-alpha",
+	"version": "2.0.1-alpha",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
 	"types": "./dist/types/index.d.ts",
@@ -10,12 +10,10 @@
 	},
 	"scripts": {
 		"build": "cd ../.. && rspack build --mode production",
-		"build:types": "cd ../.. && rslib build && rm -rf packages/core/dist/temp",
-		"build:all": "npm run build && npm run build:types",
 		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
 		"dev": "node server.js",
 		"dev:debug": "DEBUG=1 node server.js",
-		"prepack": "RELEASE=1 npm run rewriter:build && npm run build:all",
+		"prepack": "RELEASE=1 npm run rewriter:build && npm run build",
 		"pub": "npm publish --no-git-checks --access public",
 		"format": "prettier --write .",
 		"format:docs": "remark \"docs/**/*.{md,mdx}\" --output",
