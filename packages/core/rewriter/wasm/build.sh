@@ -17,7 +17,7 @@ if [ "${RELEASE:-0}" != "1" ]; then MODE="debug"; fi
 # shellcheck disable=SC2046
 SRC_HASH=$( (echo "MODE=${MODE}"; sha256sum $(find ../ -type f -not -path "*/\.*" -and \( -name "*.rs" -o -name "*.toml" -o -name "*.sh" -o -name "*.json" -o -name "*.md" \); echo Cargo.toml; echo build.sh) 2>/dev/null | sort -k2 | sha256sum ) | sha256sum | cut -d' ' -f1 ) || SRC_HASH="unknown"
 
-if [ -f out/.build-hash ] && [ -f ../../dist/scramjet.wasm.wasm ] && [ "$SRC_HASH" != "unknown" ] && grep -q "$SRC_HASH" out/.build-hash; then
+if [ -f out/.build-hash ] && [ -f ../../dist/scramjet.wasm ] && [ "$SRC_HASH" != "unknown" ] && grep -q "$SRC_HASH" out/.build-hash; then
   echo "Rewriter sources unchanged (hash $SRC_HASH); skipping rebuild."
   exit 0
 fi
@@ -123,6 +123,6 @@ fi
 
 mkdir -p dist/
 
-cp rewriter/wasm/out/optimized.wasm dist/scramjet.wasm.wasm
+cp rewriter/wasm/out/optimized.wasm dist/scramjet.wasm
 echo "$SRC_HASH" > rewriter/wasm/out/.build-hash || true
 echo "Rewriter Build Complete!"

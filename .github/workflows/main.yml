@@ -81,7 +81,7 @@ jobs:
         with:
           path: |
             packages/core/rewriter/wasm/out
-            packages/core/dist/scramjet.wasm.wasm
+            packages/core/dist/scramjet.wasm
           key: rewriter-release-${{ hashFiles('packages/core/rewriter/**/Cargo.toml', 'packages/core/rewriter/**/*.rs', 'packages/core/rewriter/**/src/**/*.toml', 'packages/core/rewriter/**/src/**/*.json', 'packages/core/rewriter/**/src/**/*.md', 'packages/core/rewriter/**/*.sh') }}
           restore-keys: |
             rewriter-release-
@@ -206,7 +206,7 @@ jobs:
         with:
           path: |
             packages/core/rewriter/wasm/out
-            packages/core/dist/scramjet.wasm.wasm
+            packages/core/dist/scramjet.wasm
           key: rewriter-release-${{ hashFiles('packages/core/rewriter/**/Cargo.toml', 'packages/core/rewriter/**/*.rs', 'packages/core/rewriter/**/src/**/*.toml', 'packages/core/rewriter/**/src/**/*.json', 'packages/core/rewriter/**/src/**/*.md', 'packages/core/rewriter/**/*.sh') }}
 
       - name: Get artifacts (scramjet/controller)
@@ -258,7 +258,7 @@ jobs:
         with:
           path: |
             packages/core/rewriter/wasm/out
-            packages/core/dist/scramjet.wasm.wasm
+            packages/core/dist/scramjet.wasm
           key: rewriter-release-${{ hashFiles('packages/core/rewriter/wasm/Cargo.toml', 'packages/core/rewriter/wasm/src/**/*.rs', 'packages/core/rewriter/wasm/build.sh') }}
           restore-keys: |
             rewriter-release-

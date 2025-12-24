@@ -35,7 +35,7 @@ export const config: Config = {
 	virtualWasmPath: "scramjet.wasm.js",
 	injectPath: "/controller/controller.inject.js",
 	scramjetPath: "/scramjet/scramjet.js",
-	wasmPath: "/scramjet/scramjet.wasm.wasm",
+	wasmPath: "/scramjet/scramjet.wasm",
 };
 
 const cfg = {
