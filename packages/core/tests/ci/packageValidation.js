@@ -18,7 +18,7 @@ const EXPECTED_DIST_FILES = [
 	"dist/scramjet.mjs",
 	"dist/scramjet_bundled.js",
 	"dist/scramjet_bundled.mjs",
-	"dist/scramjet.wasm.wasm",
+	"dist/scramjet.wasm",
 ];
 
 /**
