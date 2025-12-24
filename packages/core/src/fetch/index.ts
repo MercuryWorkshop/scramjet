@@ -296,9 +296,15 @@ function rewriteRequestHeaders(
 		request.rawClientUrl.pathname.startsWith(handler.context.prefix.pathname)
 	) {
 		// TODO: i was against cors emulation but we might actually break stuff if we send full origin/referrer always
-		const clientURL = new URL(
+		let clientURL = new URL(
 			unrewriteUrl(request.rawClientUrl, handler.context)
 		);
+
+		if (clientURL.protocol !== "http:" && clientURL.protocol !== "https:") {
+			// sites will explode if we send them a data url referer
+			clientURL = new URL("https://example.com/");
+		}
+
 		if (clientURL.toString().includes("youtube.com")) {
 			// console.log(headers);
 		} else {
