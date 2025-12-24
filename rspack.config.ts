@@ -114,9 +114,10 @@ const createGenericConfig = (options) => {
 
 // Common configuration options for scramjet builds
 const createScramjetConfig = (options) => {
-	const { entry, output, rewriterWasm, extraConfig = {} } = options;
+	const { entry, output, rewriterWasm, extraConfig = {}, name } = options;
 
 	return createGenericConfig({
+		name,
 		entry,
 		resolve: {
 			alias: {
@@ -182,6 +183,7 @@ const createScramjetConfig = (options) => {
 
 // IIFE build that does NOT bundle the wasm, exposes global $scramjet
 const iifeConfig = createScramjetConfig({
+	name: "scramjet-iife",
 	entry: {
 		main: join(scramjetdir, "src/index.ts"),
 	},
@@ -204,6 +206,7 @@ const iifeConfig = createScramjetConfig({
 
 // IIFE build that BUNDLES the wasm and exposes global $scramjet
 const iifeBundledConfig = createScramjetConfig({
+	name: "scramjet-iife-bundled",
 	entry: {
 		bundled: join(scramjetdir, "src/index.ts"),
 	},
@@ -226,6 +229,7 @@ const iifeBundledConfig = createScramjetConfig({
 
 // wasm bundled, esmodule
 const moduleBundledConfig = createScramjetConfig({
+	name: "scramjet-esmodule-bundled",
 	entry: {
 		bundle: join(scramjetdir, "src/index.ts"),
 	},
@@ -246,6 +250,7 @@ const moduleBundledConfig = createScramjetConfig({
 
 // no wasm bundled, esmodule
 const moduleConfig = createScramjetConfig({
+	name: "scramjet-esmodule",
 	entry: {
 		bundle: join(scramjetdir, "src/index.ts"),
 	},
@@ -266,6 +271,7 @@ const moduleConfig = createScramjetConfig({
 });
 
 const bootstrapConfig = createGenericConfig({
+	name: "scramjet-bootstrap",
 	entry: {
 		main: join(bootstrapdir, "src/index.ts"),
 	},
@@ -283,6 +289,7 @@ const bootstrapConfig = createGenericConfig({
 });
 
 const controllerConfig = createGenericConfig({
+	name: "scramjet-controller",
 	entry: {
 		api: join(controllerdir, "src/index.ts"),
 		inject: join(controllerdir, "src/inject.ts"),
