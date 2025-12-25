@@ -345,10 +345,11 @@ const moduleConfig = createScramjetConfig({
 const bootstrapConfig = createGenericConfig({
 	name: "scramjet-bootstrap",
 	entry: {
-		main: join(bootstrapdir, "src/index.ts"),
+		server: join(bootstrapdir, "src/server.ts"),
+		client: join(bootstrapdir, "src/client.ts"),
 	},
 	output: {
-		filename: "bootstrap.js",
+		filename: "bootstrap-[name].js",
 		path: join(bootstrapdir, "dist"),
 		iife: false,
 		libraryTarget: "module",
@@ -366,6 +367,18 @@ const bootstrapConfig = createGenericConfig({
 			false
 		),
 	],
+});
+
+const bootstrapStaticConfig = createGenericConfig({
+	name: "scramjet-bootstrap-static",
+	entry: {
+		static: join(bootstrapdir, "src/static.ts"),
+	},
+	output: {
+		filename: "bootstrap-[name].js",
+		path: join(bootstrapdir, "dist"),
+		iife: true,
+	},
 });
 
 const controllerConfig = createGenericConfig({
@@ -431,6 +444,7 @@ export default [
 	moduleConfig,
 	moduleBundledConfig,
 	bootstrapConfig,
+	bootstrapStaticConfig,
 	controllerConfig,
 	typeGenConfig,
 ];

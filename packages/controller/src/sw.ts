@@ -28,7 +28,6 @@ addEventListener("message", (e) => {
 	) {
 		const { port, prefix } = e.data.$sw$initRemoteTransport;
 
-		console.error(prefix, tabs);
 		const relevantcontroller = tabs.find((tab) =>
 			new URL(prefix).pathname.startsWith(tab.prefix)
 		);
