@@ -359,6 +359,34 @@ where
 		}
 	}
 
+	fn handle_assignment_target_member(&mut self, target: &AssignmentTarget<'data>) {
+		match target {
+			AssignmentTarget::StaticMemberExpression(s) => {
+				// window.location = ...
+				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
+					self.jschanges.add(rewrite!(
+						s.property.span(),
+						RewriteProperty {
+							ident: s.property.name
+						}
+					));
+				}
+
+				// walk the left hand side of the member expression (`window` for the `window.location = ...` case)
+				walk::walk_expression(self, &s.object);
+			}
+			AssignmentTarget::ComputedMemberExpression(s) => {
+				// window["location"] = ...
+				self.handle_computed_member_expression(s);
+				// `window`
+				walk::walk_expression(self, &s.object);
+				// `"location"`
+				walk::walk_expression(self, &s.expression);
+			}
+			_ => {}
+		}
+	}
+
 	fn handle_for_of_in(&mut self, left: &ForStatementLeft<'data>, right: &Expression<'data>, body: &Statement<'data>) {
     	let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
@@ -374,28 +402,8 @@ where
 					}
 				}
 
-				// TODO: this logic is duplicated in visit_assignment_target. can it be merged?
-				AssignmentTarget::StaticMemberExpression(s) => {
-					// window.location = ...
-					if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
-						self.jschanges.add(rewrite!(
-							s.property.span(),
-							RewriteProperty {
-								ident: s.property.name
-							}
-						));
-					}
-
-					// walk the left hand side of the member expression (`window` for the `window.location = ...` case)
-					walk::walk_expression(self, &s.object);
-				}
-				AssignmentTarget::ComputedMemberExpression(s) => {
-					// window["location"] = ...
-					self.handle_computed_member_expression(s);
-					// `window`
-					walk::walk_expression(self, &s.object);
-					// `"location"`
-					walk::walk_expression(self, &s.expression);
+				AssignmentTarget::StaticMemberExpression(_) | AssignmentTarget::ComputedMemberExpression(_) => {
+					self.handle_assignment_target_member(target);
 				}
 				AssignmentTarget::ObjectAssignmentTarget(o) => {
 					self.recurse_object_assignment_target(o, &mut restids, &mut location_assigned);
@@ -844,27 +852,8 @@ where
 					));
 				}
 			}
-			AssignmentTarget::StaticMemberExpression(s) => {
-				// window.location = ...
-				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
-					self.jschanges.add(rewrite!(
-						s.property.span(),
-						RewriteProperty {
-							ident: s.property.name
-						}
-					));
-				}
-
-				// walk the left hand side of the member expression (`window` for the `window.location = ...` case)
-				walk::walk_expression(self, &s.object);
-			}
-			AssignmentTarget::ComputedMemberExpression(s) => {
-				// window["location"] = ...
-				self.handle_computed_member_expression(s);
-				// `window`
-				walk::walk_expression(self, &s.object);
-				// `"location"`
-				walk::walk_expression(self, &s.expression);
+			AssignmentTarget::StaticMemberExpression(_) | AssignmentTarget::ComputedMemberExpression(_) => {
+				self.handle_assignment_target_member(&it.left);
 			}
 			AssignmentTarget::ObjectAssignmentTarget(o) => {
 				if !self.flags.destructure_rewrites {
