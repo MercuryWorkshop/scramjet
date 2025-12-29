@@ -446,6 +446,7 @@ where
 			}
 		}
 		walk::walk_expression(self, &right);
+		walk::walk_statement(self, &body);
 	}
 
 	fn scramitize(&mut self, span: Span) {
