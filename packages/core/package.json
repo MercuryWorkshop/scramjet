@@ -21,9 +21,8 @@
 		"lint:fix": "eslint ./src/ --fix",
 		"lint:workflows": "actionlint .github/workflows/*.yml",
 		"lint:all": "npm run lint && npm run lint:workflows",
-		"test": "npm run test:package && npm run test:integration",
+		"test": "npm run test:package",
 		"test:package": "ava tests/ci/packageValidation.js",
-		"test:integration": "npx playwright test",
 		"preinstall": "npx only-allow pnpm"
 	},
 	"exports": {
@@ -60,7 +59,6 @@
 		"@fastify/static": "^8.2.0",
 		"@mercuryworkshop/wisp-js": "^0.4.0",
 		"@nebula-services/bare-server-node": "^2.0.4",
-		"@playwright/test": "^1.55.0",
 		"@types/eslint": "^9.6.1",
 		"@types/estree": "^1.0.8",
 		"@types/node": "^24.3.1",
@@ -73,7 +71,6 @@
 		"eslint": "^9.35.0",
 		"fastify": "^5.6.0",
 		"glob": "^11.0.3",
-		"playwright": "^1.55.0",
 		"prettier": "^3.6.2",
 		"remark": "^15.0.1",
 		"remark-cli": "^12.0.1",

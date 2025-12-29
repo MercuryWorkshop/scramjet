@@ -1,0 +1,51 @@
+name: "Setup Rust Rewriter Toolchain"
+description: "Setup Rust toolchain with wasm-bindgen, binaryen, and wasm-snip for building the scramjet rewriter"
+
+inputs:
+  wasm-bindgen-version:
+    description: "Version of wasm-bindgen-cli to install"
+    required: false
+    default: "0.2.105"
+  rewriter-path:
+    description: "Path to the rewriter directory for Rust cache"
+    required: true
+  github-token:
+    description: "GitHub token for Binaryen setup"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache Rust compilation
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "${{ inputs.rewriter-path }} -> target"
+        cache-all-crates: true
+        shared-key: "rewriter"
+
+    - name: Cache cargo bin tools
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin
+        key: cargo-bin-${{ runner.os }}-wbg${{ inputs.wasm-bindgen-version }}-wasm-snip
+        restore-keys: |
+          cargo-bin-${{ runner.os }}-
+
+    - name: Install wasm-bindgen-cli
+      shell: bash
+      run: |
+        if ! command -v wasm-bindgen &> /dev/null || ! [[ "$(wasm-bindgen -V)" =~ ^"wasm-bindgen ${{ inputs.wasm-bindgen-version }}" ]]; then
+          cargo install wasm-bindgen-cli --version ${{ inputs.wasm-bindgen-version }}
+        fi
+
+    - name: Setup Binaryen
+      uses: Aandreba/setup-binaryen@v1.0.0
+      with:
+        token: ${{ inputs.github-token }}
+
+    - name: Setup wasm-snip
+      shell: bash
+      run: |
+        if ! command -v wasm-snip &> /dev/null; then
+          cargo install --git https://github.com/r58playz/wasm-snip
+        fi
