@@ -21,6 +21,9 @@ on:
     paths-ignore: *ci_ignore_paths
   workflow_dispatch:
 
+env:
+  WASM_BINDGEN_VERSION: "0.2.105"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -75,39 +78,12 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm install
 
-      - name: Cache rewriter build artifacts
-        uses: actions/cache@v4
-        id: rewriter-cache
+      - name: Setup Rewriter Toolchain
+        uses: ./.github/actions/setup-rewriter-toolchain
         with:
-          path: |
-            packages/core/rewriter/wasm/out
-            packages/core/dist/scramjet.wasm
-          key: rewriter-release-${{ hashFiles('packages/core/rewriter/**/Cargo.toml', 'packages/core/rewriter/**/*.rs', 'packages/core/rewriter/**/src/**/*.toml', 'packages/core/rewriter/**/src/**/*.json', 'packages/core/rewriter/**/src/**/*.md', 'packages/core/rewriter/**/*.sh') }}
-          restore-keys: |
-            rewriter-release-
-
-      - name: Cache Rust dependencies
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "rewriter"
-          cache-all-crates: true
-
-      - name: Install wbg
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
-        uses: jetli/wasm-bindgen-action@v0.2.0
-        with:
-          version: "0.2.105"
-
-      - name: Setup Binaryen
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
-        uses: Aandreba/setup-binaryen@v1.0.0
-        with:
-          token: ${{ github.token }}
-
-      - name: Setup wasm-snip
-        if: steps.rewriter-cache.outputs.cache-hit != 'true'
-        run: "cargo install --git https://github.com/r58playz/wasm-snip"
+          wasm-bindgen-version: ${{ env.WASM_BINDGEN_VERSION }}
+          rewriter-path: packages/core/rewriter
+          github-token: ${{ github.token }}
 
       - name: Pack Scramjet
         run: pnpm pack
@@ -200,15 +176,6 @@ jobs:
           name: scramjet
           path: packages/core/dist
 
-      - name: Get cached rewriter build
-        uses: actions/cache/restore@v4
-        id: rewriter-cache
-        with:
-          path: |
-            packages/core/rewriter/wasm/out
-            packages/core/dist/scramjet.wasm
-          key: rewriter-release-${{ hashFiles('packages/core/rewriter/**/Cargo.toml', 'packages/core/rewriter/**/*.rs', 'packages/core/rewriter/**/src/**/*.toml', 'packages/core/rewriter/**/src/**/*.json', 'packages/core/rewriter/**/src/**/*.md', 'packages/core/rewriter/**/*.sh') }}
-
       - name: Get artifacts (scramjet/controller)
         uses: actions/download-artifact@v4
         with:
@@ -227,19 +194,11 @@ jobs:
       - name: Install Playwright Chromium
         if: steps.pw-browsers-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
-        working-directory: packages/core
+        working-directory: packages/runway
 
-      - name: Run Playwright tests
-        run: pnpm test:integration
-        working-directory: packages/core
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-test-results
-          path: packages/core/blob-report/*
-          if-no-files-found: error
+      - name: Run Runway tests
+        run: pnpm test
+        working-directory: packages/runway
 
   rewritertests:
     name: "Run Rewriter Tests"
@@ -252,22 +211,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache rewriter build artifacts
-        uses: actions/cache@v4
-        id: rewriter-cache
-        with:
-          path: |
-            packages/core/rewriter/wasm/out
-            packages/core/dist/scramjet.wasm
-          key: rewriter-release-${{ hashFiles('packages/core/rewriter/wasm/Cargo.toml', 'packages/core/rewriter/wasm/src/**/*.rs', 'packages/core/rewriter/wasm/build.sh') }}
-          restore-keys: |
-            rewriter-release-
-
-      - name: Cache Rust dependencies
+      - name: Cache Rust compilation
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "rewriter"
+          workspaces: "packages/core/rewriter -> target"
           cache-all-crates: true
+          shared-key: "rewriter"
 
       - name: Run Tests
         run: cd packages/core/rewriter/native && cargo test
