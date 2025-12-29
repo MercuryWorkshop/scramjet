@@ -477,14 +477,8 @@ where
 					self.jschanges.add(rewrite!(s.span, WrapPostMessage {
 						inner: Span::new(s.property.span.start - offset, s.property.span.end),
 					}));
-					// if s.property.name == "postMessage" {
-					// 					self.jschanges.add(rewrite!(s.property.span, SetRealmFn));
-
-					// 					walk::walk_expression(self, &s.object);
-					// 					return; // unwise to walk the rest of the tree
-					// 				}
-
-					// walk::walk_expression(self, &s.object);
+					
+					walk::walk_expression(self, &s.object);
 					return; // unwise to walk the rest of the tree
 				}
 
