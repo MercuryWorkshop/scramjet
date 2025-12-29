@@ -9,6 +9,9 @@
 	<body>
 		<h1>Scramjet Test Harness</h1>
 		<div id="status">Initializing...</div>
+		<button id="reload-btn" style="display: none; margin: 8px 0">
+			🔄 Reload Test
+		</button>
 		<iframe
 			id="testframe"
 			style="width: 100%; height: 80vh; border: 1px solid #ccc"
@@ -17,6 +20,7 @@
 		<script>
 			const statusEl = document.getElementById("status");
 			const testframe = document.getElementById("testframe");
+			const reloadBtn = document.getElementById("reload-btn");
 			const { Controller } = $scramjetController;
 			const LibcurlClient = window.LibcurlTransport.LibcurlClient;
 
@@ -37,6 +41,8 @@
 								window.__testFail(message, details);
 							}
 						};
+						iframeWin.__topEval = window.eval;
+						iframeWin.__eval = iframeWin.eval;
 					}
 				} catch (e) {
 					console.warn("Could not inject test functions:", e);
@@ -48,7 +54,7 @@
 			// temporary hack, contextInit is coming soon ish
 			let observer = null;
 			function setupIframeObserver() {
-				setInterval(injectTestFunctions, 50);
+				setInterval(injectTestFunctions, 0);
 				if (testframe.contentDocument) {
 					observer = new MutationObserver(() => {
 						injectTestFunctions();
@@ -113,9 +119,28 @@
 
 				window.__runwayNavigate = (url) => {
 					statusEl.textContent = `Loading test: ${url}`;
+					// Store the URL for reload support
+					sessionStorage.setItem("__runway_last_test", url);
+					reloadBtn.style.display = "inline-block";
 					injectTestFunctions();
 					scramjetFrame.go(url);
 				};
+
+				window.__runwayReload = () => {
+					const lastTest = sessionStorage.getItem("__runway_last_test");
+					if (lastTest) {
+						window.__runwayNavigate(lastTest);
+					}
+				};
+
+				reloadBtn.addEventListener("click", window.__runwayReload);
+
+				// Auto-navigate to last test on reload
+				const lastTest = sessionStorage.getItem("__runway_last_test");
+				if (lastTest) {
+					console.log("Reloading last test:", lastTest);
+					window.__runwayNavigate(lastTest);
+				}
 
 				console.log("Harness ready, __runwayNavigate exposed");
 			}

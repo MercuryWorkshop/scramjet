@@ -38,6 +38,16 @@ function fail(message, details) {
 	__testFail(message, details);
 }
 
+const realtop = __eval("top");
+const reallocation = __eval("location");
+const realparent = __eval("location");
+function checkglobal(global) {
+	assert(global !== realtop, "top was leaked");
+	assert(global !== reallocation, "location was leaked");
+	assert(global !== realparent, "parent was leaked");
+	assert(global !== __eval, "eval was leaked");
+}
+
 function assert(condition, message) {
 	if (!condition) {
 		fail(message || 'Assertion failed');
@@ -103,7 +113,7 @@ export function basicTest(props: { name: string; js: string }): Test {
 						res.end(COMMON_JS);
 					} else if (req.url === "/script.js") {
 						res.writeHead(200, { "Content-Type": "application/javascript" });
-						res.end(props.js);
+						res.end(`runTest(async () => {\n${props.js}\n});`);
 					} else {
 						res.writeHead(404);
 						res.end("Not found");
