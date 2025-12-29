@@ -12,7 +12,7 @@
 		"preinstall": "npx only-allow pnpm"
 	},
 	"devDependencies": {
-		"@mercuryworkshop/wisp-js": "^0.4.0",
+		"@mercuryworkshop/wisp-js": "catalog:",
 		"@rsdoctor/rspack-plugin": "^1.4.0",
 		"@rspack/cli": "^1.5.8",
 		"@rspack/core": "^1.5.8",
