@@ -56,16 +56,18 @@ async function main() {
 
 	console.log(`📋 Found ${tests.length} matching test(s):`);
 	for (const test of tests) {
-		console.log(`  - ${test.name}`);
+		console.log(`  - ${test.name}${test.playwrightFn ? " (playwright)" : ""}`);
 	}
 	console.log();
 
-	// Start all matching tests
+	// Start all matching tests (only basicTests need servers)
 	for (const test of tests) {
-		await test.start();
-		console.log(
-			`🌐 Test "${test.name}" running at http://localhost:${test.port}/`
-		);
+		if (!test.playwrightFn) {
+			await test.start();
+			console.log(
+				`🌐 Test "${test.name}" running at http://localhost:${test.port}/`
+			);
+		}
 	}
 
 	// Start the harness server
@@ -123,12 +125,37 @@ async function main() {
 
 	// Navigate to first test
 	const firstTest = tests[0];
-	const testUrl = `http://localhost:${firstTest.port}/`;
-	console.log(`🚀 Navigating to test: ${testUrl}`);
 
-	await page.evaluate((url) => {
-		(window as any).__runwayNavigate(url);
-	}, testUrl);
+	if (firstTest.playwrightFn) {
+		console.log(
+			`🎭 Playwright test "${firstTest.name}" - use navigate() in your test`
+		);
+		console.log("   Running playwright test function...\n");
+
+		const frame = page.frameLocator("#testframe");
+		const navigate = async (url: string) => {
+			console.log(`🚀 Navigating to: ${url}`);
+			await page.evaluate((u) => {
+				(window as any).__runwayNavigate(u);
+			}, url);
+		};
+
+		try {
+			await firstTest.playwrightFn({ page, frame, navigate });
+			console.log("\n✅ Playwright test completed successfully");
+		} catch (error) {
+			console.log(
+				`\n❌ Playwright test failed: ${error instanceof Error ? error.message : error}`
+			);
+		}
+	} else {
+		const testUrl = `http://localhost:${firstTest.port}/`;
+		console.log(`🚀 Navigating to test: ${testUrl}`);
+
+		await page.evaluate((url) => {
+			(window as any).__runwayNavigate(url);
+		}, testUrl);
+	}
 
 	console.log("\n" + "─".repeat(50));
 	console.log("🔍 Browser open for manual inspection");

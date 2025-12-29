@@ -105,6 +105,28 @@ async function runTest(
 	test: Test,
 	timeout: number = 30000
 ): Promise<TestResult> {
+	// Handle playwright tests (tests that control the browser directly)
+	if (test.playwrightFn) {
+		const frame = page.frameLocator("#testframe");
+		const navigate = async (url: string) => {
+			await page.evaluate((u) => {
+				(window as any).__runwayNavigate(u);
+			}, url);
+		};
+
+		try {
+			await test.playwrightFn({ page, frame, navigate });
+			return { status: "pass" };
+		} catch (error) {
+			return {
+				status: "fail",
+				message: error instanceof Error ? error.message : String(error),
+				details: error instanceof Error ? error.stack : undefined,
+			};
+		}
+	}
+
+	// Handle basic tests (tests that serve a page and call pass/fail)
 	await test.start();
 
 	try {

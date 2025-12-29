@@ -1,10 +1,22 @@
 import http from "http";
+import type { FrameLocator, Page } from "playwright";
+
+export type TestContext = {
+	/** The Playwright page object for the harness */
+	page: Page;
+	/** FrameLocator for the test iframe inside the harness */
+	frame: FrameLocator;
+	/** Navigate the iframe to a URL through the scramjet proxy */
+	navigate: (url: string) => Promise<void>;
+};
 
 export type Test = {
 	name: string;
 	port: number;
 	start: () => Promise<void>;
 	stop: () => Promise<void>;
+	/** If defined, this is a playwright test that controls the browser directly */
+	playwrightFn?: (ctx: TestContext) => Promise<void>;
 };
 
 // Common JS that gets injected into every test page
@@ -127,5 +139,41 @@ export function basicTest(props: { name: string; js: string }): Test {
 				server.close(() => resolve());
 			});
 		},
+	};
+}
+
+/**
+ * Create a test that uses Playwright to control the browser directly.
+ * The test function receives a TestContext with:
+ * - page: The Playwright Page object
+ * - frame: A FrameLocator for the test iframe
+ * - navigate(url): Navigate the iframe to a URL through scramjet
+ *
+ * Example:
+ * ```ts
+ * playwrightTest({
+ *   name: "youtube-loads",
+ *   fn: async ({ frame, navigate }) => {
+ *     await navigate("https://www.youtube.com/");
+ *     const logo = await frame.locator("#logo-icon").first();
+ *     await logo.waitFor({ state: "visible" });
+ *   }
+ * })
+ * ```
+ */
+export function playwrightTest(props: {
+	name: string;
+	fn: (ctx: TestContext) => Promise<void>;
+}): Test {
+	return {
+		name: props.name,
+		port: 0, // Not used for playwright tests
+		async start() {
+			// No server needed
+		},
+		async stop() {
+			// Nothing to stop
+		},
+		playwrightFn: props.fn,
 	};
 }
