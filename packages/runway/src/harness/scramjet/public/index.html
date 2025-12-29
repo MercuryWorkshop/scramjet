@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Scramjet Test Harness</title>
+		<script src="/scramjet/scramjet.js"></script>
+		<script src="/controller/controller.api.js"></script>
+		<script src="/libcurl/index.js"></script>
+	</head>
+	<body>
+		<h1>Scramjet Test Harness</h1>
+		<div id="status">Initializing...</div>
+		<iframe
+			id="testframe"
+			style="width: 100%; height: 80vh; border: 1px solid #ccc"
+		></iframe>
+
+		<script>
+			const statusEl = document.getElementById("status");
+			const testframe = document.getElementById("testframe");
+			const { Controller } = $scramjetController;
+			const LibcurlClient = window.LibcurlTransport.LibcurlClient;
+
+			let controller;
+			let scramjetFrame;
+
+			function injectTestFunctions() {
+				try {
+					const iframeWin = testframe.contentWindow;
+					if (iframeWin) {
+						iframeWin.__testPass = (message, details) => {
+							if (typeof window.__testPass === "function") {
+								window.__testPass(message, details);
+							}
+						};
+						iframeWin.__testFail = (message, details) => {
+							if (typeof window.__testFail === "function") {
+								window.__testFail(message, details);
+							}
+						};
+					}
+				} catch (e) {
+					console.warn("Could not inject test functions:", e);
+				}
+			}
+
+			testframe.addEventListener("load", injectTestFunctions);
+
+			// temporary hack, contextInit is coming soon ish
+			let observer = null;
+			function setupIframeObserver() {
+				setInterval(injectTestFunctions, 50);
+				if (testframe.contentDocument) {
+					observer = new MutationObserver(() => {
+						injectTestFunctions();
+					});
+					observer.observe(testframe.contentDocument, {
+						childList: true,
+						subtree: true,
+					});
+				}
+			}
+
+			async function init() {
+				statusEl.textContent = "Registering service worker...";
+
+				const registration = await navigator.serviceWorker.register("/sw.js");
+
+				// Wait for the service worker to be ready
+				if (!navigator.serviceWorker.controller) {
+					statusEl.textContent = "Waiting for service worker to activate...";
+					await new Promise((resolve) => {
+						if (registration.active) {
+							resolve();
+							return;
+						}
+						const sw = registration.installing || registration.waiting;
+						if (sw) {
+							sw.addEventListener("statechange", () => {
+								if (sw.state === "activated") resolve();
+							});
+						}
+					});
+					// Wait for controller
+					if (!navigator.serviceWorker.controller) {
+						await new Promise((resolve) => {
+							navigator.serviceWorker.addEventListener(
+								"controllerchange",
+								resolve,
+								{ once: true }
+							);
+						});
+					}
+				}
+
+				statusEl.textContent = "Initializing controller...";
+
+				const transport = new LibcurlClient({
+					wisp: "ws://localhost:4501/",
+				});
+
+				controller = new Controller({
+					serviceworker: registration.active,
+					transport,
+				});
+
+				await controller.ready;
+
+				scramjetFrame = controller.createFrame(testframe);
+
+				setupIframeObserver();
+
+				statusEl.textContent = "Ready - waiting for test...";
+
+				window.__runwayNavigate = (url) => {
+					statusEl.textContent = `Loading test: ${url}`;
+					injectTestFunctions();
+					scramjetFrame.go(url);
+				};
+
+				console.log("Harness ready, __runwayNavigate exposed");
+			}
+
+			init().catch((err) => {
+				statusEl.textContent = `Error: ${err.message}`;
+				console.error("Harness init error:", err);
+			});
+		</script>
+	</body>
+</html>
