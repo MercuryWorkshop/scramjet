@@ -7,6 +7,28 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Check if running in GitHub Actions
+const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
+
+// GitHub Actions annotation helpers
+function ghaError(message: string, file?: string, line?: number) {
+	if (!isGitHubActions) return;
+	const params = [file && `file=${file}`, line && `line=${line}`]
+		.filter(Boolean)
+		.join(",");
+	console.log(`::error ${params}::${message.replace(/\n/g, "%0A")}`);
+}
+
+function ghaGroup(name: string) {
+	if (!isGitHubActions) return;
+	console.log(`::group::${name}`);
+}
+
+function ghaEndGroup() {
+	if (!isGitHubActions) return;
+	console.log(`::endgroup::`);
+}
+
 type TestResult = {
 	status: "pass" | "fail";
 	message?: string;
@@ -166,6 +188,7 @@ async function main() {
 	let needsReload = true;
 
 	for (const test of tests) {
+		ghaGroup(`Test: ${test.name}`);
 		process.stdout.write(`  ${test.name} ... `);
 
 		// Reload page if needed (first run or after failure)
@@ -193,6 +216,7 @@ async function main() {
 				console.error(
 					"   Check that scramjet is built and all dependencies are available.\n"
 				);
+				ghaError(`Harness failed to initialize: ${statusText}`);
 				await browser.close();
 				process.exit(1);
 			}
@@ -212,6 +236,9 @@ async function main() {
 				if (result.message) {
 					console.log(`     ${result.message}`);
 				}
+				ghaError(
+					`Test "${test.name}" failed: ${result.message || "Unknown error"}`
+				);
 				needsReload = true; // Reload after failure
 			}
 		} catch (error) {
@@ -228,8 +255,12 @@ async function main() {
 			console.log(
 				`     ${error instanceof Error ? error.message : String(error)}`
 			);
+			ghaError(
+				`Test "${test.name}" error: ${error instanceof Error ? error.message : String(error)}`
+			);
 			needsReload = true; // Reload after error
 		}
+		ghaEndGroup();
 	}
 
 	testPage.cleanup();

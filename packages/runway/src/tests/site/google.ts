@@ -17,9 +17,12 @@ export default [
 		fn: async ({ frame, navigate }) => {
 			await navigate("https://www.google.com/");
 
-			// Click on Google Apps button
 			const appsButton = frame.locator("a[aria-label='Google apps']").first();
 			await appsButton.waitFor({ state: "visible", timeout: 30000 });
+			// hovering on the button will start to load te iframe
+			await appsButton.hover();
+			// we need to wait a little longer for the iframe to load
+			await new Promise((r) => setTimeout(r, 200));
 			await appsButton.click();
 
 			// Wait for the apps menu iframe to appear
