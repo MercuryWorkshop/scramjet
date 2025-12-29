@@ -29,7 +29,12 @@ async function discoverTests(): Promise<Test[]> {
 		const fullPath = path.join(__dirname, "tests", file);
 		const module = await import(fullPath);
 		if (module.default) {
-			tests.push(module.default);
+			// Handle both single test and array of tests
+			if (Array.isArray(module.default)) {
+				tests.push(...module.default);
+			} else {
+				tests.push(module.default);
+			}
 		}
 	}
 	return tests;

@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import http from "http";
-import { server as wisp } from "@mercuryworkshop/wisp-js/server";
+import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -54,6 +54,7 @@ export async function startHarness() {
 	});
 	wisp.options.allow_private_ips = true;
 	wisp.options.allow_loopback_ips = true;
+	logging.set_level(logging.NONE);
 
 	wispServer.on("upgrade", (req, socket, head) => {
 		wisp.routeRequest(req, socket, head);
