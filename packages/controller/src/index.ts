@@ -3,6 +3,8 @@ import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 
 declare const $scramjet: typeof ScramjetGlobal;
 
+export let Plugin = $scramjet.Plugin;
+
 import {
 	type TransportToController,
 	type Controllerbound,
@@ -345,10 +347,14 @@ function yieldGetInjectScripts(
 	return getInjectScripts;
 }
 
-class Frame {
+export class Frame {
 	fetchHandler: ScramjetGlobal.ScramjetFetchHandler;
 	id: string;
 	prefix: string;
+
+	hooks: {
+		fetch: ScramjetGlobal.FetchTap;
+	};
 
 	get context(): ScramjetGlobal.ScramjetContext {
 		let sjcfg = {
@@ -433,6 +439,10 @@ class Frame {
 				return BareResponse.fromNativeResponse(await fetch(url));
 			},
 		});
+
+		this.hooks = {
+			fetch: this.fetchHandler.hooks.fetch,
+		};
 	}
 
 	go(url: string) {
