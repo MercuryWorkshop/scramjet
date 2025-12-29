@@ -4,7 +4,7 @@
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
 	"main": "index.ts",
-	"types": "./dist/types/index.d.ts",
+	"types": "./dist/types/typesEntry.d.ts",
 	"dependencies": {
 		"@mercuryworkshop/scramjet": "workspace:*",
 		"@mercuryworkshop/proxy-transports": "catalog:"
