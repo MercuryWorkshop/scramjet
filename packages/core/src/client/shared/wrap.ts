@@ -5,49 +5,51 @@ import { ScramjetClient } from "@client/index";
 import { indirectEval } from "@client/shared/eval";
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
+	let wrappedParent: typeof globalThis | null = null;
+	let wrappedTop: typeof globalThis | null = null;
+	if (iswindow) {
+		try {
+			if (SCRAMJETCLIENT in self.parent) {
+				// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
+				wrappedParent = self.parent;
+			} else {
+				// ... then we should pretend we aren't nested and return the current window
+				wrappedParent = self;
+			}
+			} catch {
+				// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
+				wrappedParent = self;
+		}
+		// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
+		let current = self;
+		for (;;) {
+			const test = current.parent.self;
+			if (test === current) break; // there is no parent, actual or emulated.
+	
+			try {
+				// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
+				if (!(SCRAMJETCLIENT in test)) break;
+			} catch {
+				// accessing test can throw if it's cross-origin, in which case we should also break
+				break;
+			}
+			// test is also insde a proxy, so we should continue up the chain
+			current = test;
+		}
+		wrappedTop = current;
+	}
+	
 	return function (identifier: any, strict: boolean) {
 		if (identifier === self.location) return client.locationProxy;
 		if (identifier === self.eval) return indirectEval.bind(client, strict);
-
-		// TODO only do this once on init. a page can't suddenly gain a parent i don't think
 		if (iswindow) {
 			if (identifier === self.parent) {
-				try {
-					if (SCRAMJETCLIENT in self.parent) {
-						// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
-						return self.parent;
-					} else {
-						// ... then we should pretend we aren't nested and return the current window
-						return self;
-					}
-				} catch {
-					// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
-					return self;
-				}
-			} else if (identifier === self.top) {
-				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
-				let current = self;
-
-				for (;;) {
-					const test = current.parent.self;
-					if (test === current) break; // there is no parent, actual or emulated.
-
-					try {
-						// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
-						if (!(SCRAMJETCLIENT in test)) break;
-					} catch {
-						// accessing test can throw if it's cross-origin, in which case we should also break
-						break;
-					}
-
-					// test is also insde a proxy, so we should continue up the chain
-					current = test;
-				}
-
-				return current;
+				return wrappedParent;
+			} 
+			else if (identifier === self.top) {
+				return wrappedTop;
 			}
 		}
-
 		return identifier;
 	};
 }
