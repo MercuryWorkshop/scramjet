@@ -485,8 +485,9 @@ where
 
 					self.jschanges.add(rewrite!(s.span, WrapPostMessage {
 						inner: Span::new(s.property.span.start - offset, s.property.span.end),
+						optional: s.optional,
 					}));
-					
+
 					walk::walk_expression(self, &s.object);
 					return; // unwise to walk the rest of the tree
 				}

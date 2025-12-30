@@ -117,7 +117,7 @@ export class Controller {
 
 						let payload = "";
 						payload +=
-							"console.warn('WTF'); if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+							"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
 						payload += `self.WASM = '${b64}';`;
 						wasmPayload = payload;
 					}
