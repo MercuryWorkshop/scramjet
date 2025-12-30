@@ -52,7 +52,12 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 
 	/// insert `$wrapPostMessage(`
-	WrapPostMessage,
+	WrapPostMessageLeft,
+
+	/// insert `)`, or `)?.` if optional
+	WrapPostMessageRight {
+		optional: bool,
+	},
 	/// insert `$scramerr(ident);`
 	ScramErrFn {
 		ident: Atom<'data>,
@@ -236,7 +241,14 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				let steps: &'static str = Box::leak(steps.into_boxed_str());
 				LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0)"])
 			}
-			Ty::WrapPostMessage => LL::insert(transforms![&cfg.wrappostmessagefn, "("]),
+			Ty::WrapPostMessageLeft => LL::insert(transforms![&cfg.wrappostmessagefn, "("]),
+			Ty::WrapPostMessageRight { optional } => LL::replace(
+				if optional {
+					transforms![")?."]
+				} else {
+					transforms![")"]
+				}
+			),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
 			Ty::ScramitizeFn => LL::insert(transforms![" $scramitize("]),
 			Ty::EvalRewriteFn => LL::insert(transforms![&cfg.rewritefn, "("]),
