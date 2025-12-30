@@ -66,6 +66,13 @@ export function rewriteUrl(
 			base = unrewriteUrl(self.location.href, context); // jank!!!!! weird jank!!!
 		const realUrl = tryCanParseURL(url, base);
 		if (!realUrl) return url;
+
+		if (realUrl.protocol != "http:" && realUrl.protocol != "https:") {
+			// custom protocol. best thing to do is pass it through so it can open an app etc
+			// there's also extension:// pages we might need to worry about later
+			return url;
+		}
+
 		const encodedHash = context.interface.codecEncode(realUrl.hash.slice(1));
 		const realHash = encodedHash ? "#" + encodedHash : "";
 		realUrl.hash = "";
@@ -97,9 +104,13 @@ export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 		return url.substring(context.prefix.href.length);
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
-	} else {
+	} else if (url.startsWith("http:") || url.startsWith("https:")) {
 		const realUrl = tryCanParseURL(url);
 		if (!realUrl) return url;
+		if (realUrl.protocol != "http:" && realUrl.protocol != "https:") {
+			// custom protocol
+			return url;
+		}
 		const decodedHash = context.interface.codecDecode(realUrl.hash.slice(1));
 		const realHash = decodedHash ? "#" + decodedHash : "";
 		realUrl.hash = "";
