@@ -49,7 +49,15 @@ function pass(message, details) {
 function fail(message, details) {
 	__testFail(message, details);
 }
-
+if (typeof __eval != "function") {
+	window.__eval = eval;
+	window.__testPass = function() {
+	console.log("TEST PASSED", ...arguments);
+	};
+	window.__testFail = function() {
+	console.error("TEST FAILED", ...arguments);
+	}
+}
 const realtop = __eval("top");
 const reallocation = __eval("location");
 const realparent = __eval("location");
@@ -96,7 +104,11 @@ async function runTest(testFn) {
 
 let nextPort = 9000;
 
-export function basicTest(props: { name: string; js: string }): Test {
+export function basicTest(props: {
+	name: string;
+	js: string;
+	autoPass?: boolean;
+}): Test {
 	const port = nextPort++;
 	let server: http.Server;
 
@@ -125,7 +137,9 @@ export function basicTest(props: { name: string; js: string }): Test {
 						res.end(COMMON_JS);
 					} else if (req.url === "/script.js") {
 						res.writeHead(200, { "Content-Type": "application/javascript" });
-						res.end(`runTest(async () => {\n${props.js}\n});`);
+						res.end(
+							`runTest(async () => {\n${props.js}\n}, ${props.autoPass || false});`
+						);
 					} else {
 						res.writeHead(404);
 						res.end("Not found");
@@ -175,5 +189,66 @@ export function playwrightTest(props: {
 			// Nothing to stop
 		},
 		playwrightFn: props.fn,
+	};
+}
+
+// same as basicTest but gives us a handle to the server
+export function serverTest(props: {
+	name: string;
+	start: (server: http.Server, port: number) => Promise<void>;
+	autoPass?: boolean;
+	js?: string;
+}) {
+	const port = nextPort++;
+	let server: http.Server;
+
+	return {
+		name: props.name,
+		port,
+		async start() {
+			server = http.createServer(
+				{
+					// Only accept websocket upgrades, reject others (like h2c) so they fall back to normal HTTP
+					shouldUpgradeCallback: (req) =>
+						req.headers.upgrade?.toLowerCase() === "websocket",
+				},
+				(req, res) => {
+					if (props.js) {
+						if (req.url === "/") {
+							res.writeHead(200, { "Content-Type": "text/html" });
+							res.end(`
+							<!DOCTYPE html>
+							<html>
+								<head>
+									<script src="/common.js"></script>
+								</head>
+								<body>
+									<h1>Test - ${props.name}</h1>
+									<script src="/script.js"></script>
+								</body>
+							</html>
+						`);
+						} else if (req.url === "/common.js") {
+							res.writeHead(200, { "Content-Type": "application/javascript" });
+							res.end(COMMON_JS);
+						} else if (req.url === "/script.js") {
+							res.writeHead(200, { "Content-Type": "application/javascript" });
+							res.end(
+								`runTest(async () => {\n${props.js || ""}\n}, ${props.autoPass || false});`
+							);
+						}
+					}
+				}
+			);
+			await props.start(server, port);
+			return new Promise<void>((resolve) => {
+				server.listen(port, () => resolve());
+			});
+		},
+		async stop() {
+			return new Promise<void>((resolve) => {
+				server.close(() => resolve());
+			});
+		},
 	};
 }
