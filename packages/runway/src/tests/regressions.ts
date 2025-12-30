@@ -21,4 +21,21 @@ export default [
             for (const x of b) checkglobal(window[x]);
     `,
 	}),
+	// introduced by: ?
+	// fixed by: https://github.com/HeyPuter/browser.js/commit/ae35b473dd2cbb0b76d3098e9a748e296cedf425
+	basicTest({
+		name: "regression-ae35-optional-postmessage",
+		js: `
+        const messages = [];
+        const fakeTarget = {
+          postMessage: (msg) => messages.push(msg)
+        };
+        fakeTarget?.postMessage("test");
+        assertEqual(messages.length, 1, "optional postMessage should work");
+
+        const nullTarget = null;
+        nullTarget?.postMessage("test");
+        assertEqual(messages.length, 1, "null optional should not call");
+      `,
+	}),
 ];
