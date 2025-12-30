@@ -37,6 +37,17 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;
 
+			// websockets can take relative URLs
+			let rawurl = new URL(ctx.args[0], client.url.href);
+			if (rawurl.protocol === "http:") {
+				rawurl = new URL("ws:" + rawurl.href.substring(rawurl.protocol.length));
+			} else if (rawurl.protocol === "https:") {
+				rawurl = new URL(
+					"wss:" + rawurl.href.substring(rawurl.protocol.length)
+				);
+			}
+			let url = rawurl.href;
+
 			const trustEvent = (ev: Event) =>
 				new Proxy(ev, {
 					get(target, prop) {
@@ -46,7 +57,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					},
 				});
 
-			const barews = client.bare.createWebSocket(ctx.args[0], ctx.args[1], [
+			const barews = client.bare.createWebSocket(url, ctx.args[1], [
 				["User-Agent", self.navigator.userAgent],
 				["Origin", client.url.origin],
 			]);
@@ -54,7 +65,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 			const state: FakeWebSocketState = {
 				extensions: "",
 				protocol: "",
-				url: ctx.args[0],
+				url,
 				binaryType: "blob",
 				barews,
 

@@ -94,15 +94,12 @@ export default [
 		},
 	}),
 	serverTest({
-		name: "websockets-host-header",
+		name: "websockets-origin-header",
 		autoPass: false,
 		js: `
 			const socket = new WebSocket("ws://localhost:" + location.port);
-			socket.addEventListener("open", () => {
-				socket.send("Check Host header");
-			});
 			socket.addEventListener("message", (event) => {
-				assert(event.data === "localhost:" + location.port, "Host header should match");
+				assert(event.data === "http://localhost:" + location.port, "Origin header should match");
 				pass("WebSocket Host header check successful");
 			});
 			socket.addEventListener("error", (event) => {
@@ -112,13 +109,25 @@ export default [
 		async start(server, port) {
 			const wss = new WebSocketServer({ server });
 			wss.on("connection", (socket, request) => {
-				socket.on("message", (message) => {
-					let text = message.toString();
-					if (text === "Check Host header") {
-						socket.send(request.headers.host);
-					}
-				});
+				socket.send(request.headers.origin);
 			});
+		},
+	}),
+	serverTest({
+		name: "websockets-relative-url",
+		autoPass: false,
+		js: `
+				const socket = new WebSocket("/");
+				socket.addEventListener("open", () => {
+					pass("WebSocket connected to server");
+				});
+				socket.addEventListener("error", (event) => {
+					fail("WebSocket error: " + event.message);
+				});
+			`,
+		async start(server, port) {
+			const wss = new WebSocketServer({ server });
+			wss.on("connection", (socket, request) => {});
 		},
 	}),
 ];
