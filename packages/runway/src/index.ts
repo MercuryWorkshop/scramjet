@@ -176,8 +176,27 @@ async function main() {
 	const harnessUrl = `http://localhost:${HARNESS_PORT}`;
 	console.log(`📡 Harness running at ${harnessUrl}\n`);
 
-	const tests = await discoverTests();
-	console.log(`📋 Found ${tests.length} test(s)\n`);
+	const allTests = await discoverTests();
+
+	// Filter tests if a pattern is provided
+	const testFilter = process.argv[2];
+	const tests = testFilter
+		? allTests.filter((t) => t.name.includes(testFilter))
+		: allTests;
+
+	if (testFilter) {
+		console.log(`� Filter: "${testFilter}"`);
+	}
+	console.log(
+		`�📋 Found ${tests.length} test(s)${testFilter ? ` (${allTests.length} total)` : ""}\n`
+	);
+
+	if (tests.length === 0) {
+		console.log(
+			`❌ No tests found${testFilter ? ` matching "${testFilter}"` : ""}`
+		);
+		process.exit(1);
+	}
 
 	const browser = await chromium.launch({
 		headless: process.env.HEADED !== "1",

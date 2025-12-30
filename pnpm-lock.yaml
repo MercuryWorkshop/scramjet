@@ -295,12 +295,18 @@ importers:
       '@mercuryworkshop/wisp-js':
         specifier: 'catalog:'
         version: 0.4.0
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       express:
         specifier: ^4.18.2
         version: 4.21.2
       playwright:
         specifier: ^1.40.0
         version: 1.56.1
+      ws:
+        specifier: ^8.18.3
+        version: 8.18.3(bufferutil@4.0.9)
     devDependencies:
       '@types/express':
         specifier: ^4.17.21
