@@ -5,14 +5,13 @@
         // For typedoc
         3000
     ],
-    "postCreateCommand": "bash ./codebase-basic-setup.sh",
+    "postCreateCommand": "bash ./codespace-basic-setup.sh",
     "customizations": {
         "vscode": {
             "extensions": [
                 "dbaeumer.vscode-eslint",
                 "prettier.prettier-vscode",
                 "yoavbls.pretty-ts-errors",
-                "streetsidesoftware.code-spell-checker",
                 "sculpt0r.vsc-ava-test-runner",
                 "ryanluker.vscode-coverage-gutters",
                 "usernamehw.errorlens",
