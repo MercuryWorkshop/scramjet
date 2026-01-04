@@ -1,0 +1,28 @@
+{
+    "name": "Scramjet Dev Container",
+    "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+    "forwardPorts": [
+        // For typedoc
+        3000
+    ],
+    "postCreateCommand": "bash ./codebase-basic-setup.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "prettier.prettier-vscode",
+                "yoavbls.pretty-ts-errors",
+                "streetsidesoftware.code-spell-checker",
+                "sculpt0r.vsc-ava-test-runner",
+                "ryanluker.vscode-coverage-gutters",
+                "usernamehw.errorlens",
+                "yzhang.markdown-all-in-one",
+                "unifiedjs.vscode-mdx",
+                "bierner.markdown-preview-github-styles",
+                "github.vscode-github-actions",
+                "rust-lang.rust-analyzer",
+                "edwinhuish.better-comments-next"
+            ]
+        }
+    }
+}

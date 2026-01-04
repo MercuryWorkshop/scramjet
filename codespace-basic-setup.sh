@@ -1,8 +1,10 @@
 #!/bin/bash
 set -euxo pipefail
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env" # to import rustup in current shell
+rustup toolchain install nightly
+rustup override set nightly
 pnpm i
 cargo install wasm-bindgen-cli --version 0.2.105
 VER=$(curl --silent -qI https://github.com/WebAssembly/binaryen/releases/latest | awk -F '/' '/^location/ {print  substr($NF, 1, length($NF)-1)}'); \
