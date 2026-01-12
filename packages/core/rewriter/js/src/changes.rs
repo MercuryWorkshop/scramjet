@@ -321,6 +321,7 @@ impl Ord for JsChange<'_, '_> {
 
 		match self.span.start.cmp(&other.span.start) {
 			Ordering::Equal => match (&self.ty, &other.ty) {
+				(Ty::CleanFunction { .. }, _) => Ordering::Less,
 				(Ty::ScramErrFn { .. }, _) => Ordering::Less,
 				(_, Ty::ScramErrFn { .. }) => Ordering::Greater,
 				(Ty::WrapFnRight { .. }, _) => Ordering::Less,
