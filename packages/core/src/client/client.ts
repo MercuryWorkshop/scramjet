@@ -496,6 +496,7 @@ export class ScramjetClient {
 		if (!Reflect.has(target, prop)) return;
 
 		const value = Reflect.get(target, prop);
+		const originalDescriptor = Object.getOwnPropertyDescriptor(target, prop);
 		delete target[prop];
 
 		const h: ProxyHandler<any> = {};
@@ -653,7 +654,13 @@ return { apply, construct };
 		}
 
 		h.getOwnPropertyDescriptor = getOwnPropertyDescriptorHandler;
-		target[prop] = new Proxy(value, h);
+		// Preserve original property descriptor (enumerable, configurable, etc.)
+		Object.defineProperty(target, prop, {
+			value: new Proxy(value, h),
+			writable: originalDescriptor?.writable ?? true,
+			enumerable: originalDescriptor?.enumerable ?? false,
+			configurable: originalDescriptor?.configurable ?? true,
+		});
 	}
 	Trap<T>(name: string | string[], descriptor: Trap<T>): PropertyDescriptor {
 		if (Array.isArray(name)) {

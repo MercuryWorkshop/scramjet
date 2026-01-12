@@ -4,6 +4,9 @@ import { ScramjetClient, ProxyCtx, Proxy } from "@client/index";
 function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
 	const stringifiedFunction = ctx.call().toString();
 
+	// TODO: also check if the function comes from a weird realm. if so we need to completely block it or do something else weird
+	// not much point rewriting the javascript if it's executing in the top level
+
 	const content = rewriteJs(
 		`return ${stringifiedFunction}`,
 		"(function proxy)",
