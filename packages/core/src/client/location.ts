@@ -80,7 +80,7 @@ export function createLocationProxy(
 	if (self.location.valueOf)
 		fakeLocation.valueOf = new Proxy(self.location.valueOf, {
 			apply() {
-				return client.url.href;
+				return fakeLocation;
 			},
 		});
 	if (self.location.assign)
@@ -109,6 +109,8 @@ export function createLocationProxy(
 				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
 			},
 		});
+
+	// TODO: ancestorOrigins
 
 	return fakeLocation;
 }
