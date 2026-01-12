@@ -521,6 +521,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 		],
 		{
 			get(ctx) {
+				if (client.meta.base.origin === "https://accounts.google.com") {
+					// botguard bullshittery
+					return null;
+				}
+
 				const realwin = ctx.get() as Window;
 				if (!realwin) return realwin;
 
