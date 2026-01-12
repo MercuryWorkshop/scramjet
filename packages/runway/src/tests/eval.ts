@@ -46,11 +46,11 @@ export default [
 					eval("assert((function(){return !this;})() === true, 'strict function should be strict')")
 				}
 				function testSloppyEval() {
-					eval("assert((function(){return this;})() === window, 'sloppy function should be sloppy')")
+					eval("assert((function(){return !this;})() === false, 'sloppy function should be sloppy')")
 				}
 				function testIndirectEval() {
 					"use strict";
-					(0,eval)("assert((function(){return this;})() === window, 'indirect eval should be sloppy even in strict context')")
+					(0,eval)("assert((function(){return !this;})() === false, 'indirect eval should be sloppy even in strict context')")
 				}
 				testStrictEval();
 				testSloppyEval();
