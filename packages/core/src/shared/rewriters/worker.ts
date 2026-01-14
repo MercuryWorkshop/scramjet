@@ -2,6 +2,12 @@ import { flagEnabled, ScramjetContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 import { URLMeta } from "@rewriters/url";
 
+function hasSourceUrlOrSourceMapHint(code: string) {
+	// Detect existing devtools hints to avoid duplicating them.
+	// Matches both //# and //@ forms used in the wild.
+	return /\/\/[@#]\s*source(?:Mapping)?URL\s*=/.test(code);
+}
+
 export function rewriteWorkers(
 	context: ScramjetContext,
 	js: string | Uint8Array,
@@ -23,8 +29,11 @@ export function rewriteWorkers(
 	}
 
 	if (flagEnabled("encapsulateWorkers", context, meta.origin)) {
-		// TODO: check if there's already a sourceURL/sourcemap before appending another?
-		rewritten += `//# sourceURL=${url}`;
+		if (!hasSourceUrlOrSourceMapHint(rewritten)) {
+			// Helps devtools attribute eval'd worker sources.
+			if (!rewritten.endsWith("\n")) rewritten += "\n";
+			rewritten += `//# sourceURL=${url}\n`;
+		}
 		str += script(`data:text/javascript;base64,${btoa(rewritten)}`);
 	} else {
 		str += rewritten;
