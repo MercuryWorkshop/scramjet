@@ -86,12 +86,12 @@ class ControllerReference {
 				port.postMessage(data, transfer);
 			}
 		);
-		port.addEventListener("message", (e) => {
+		port.onmessage = (e: MessageEvent) => {
 			this.rpc.recieve(e.data);
-		});
+		};
 		port.onmessageerror = console.error;
 
-		this.rpc.call("ready", null);
+		this.rpc.call("ready", undefined);
 	}
 }
 
