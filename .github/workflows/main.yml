@@ -282,11 +282,11 @@ jobs:
           name: packaged-scramjet
           path: .
 
-      - name: Extract package
-        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Publish
-        run: npm publish --access public --no-git-checks
+        run: npm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.new_version }}.tgz --access public --no-git-checks
 
   pages:
     name: Upload to Github Pages
@@ -315,46 +315,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: scramjet
-          path: dist
-
-      - name: Setup GitHub CLI
-        run: |
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Download existing TypeDoc history
-        run: bash ./ci/download-existing-docs.sh
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Build TypeDoc documentation with versioning
-        continue-on-error: true
-        run: bash ./ci/build-docs.sh
-
-      - name: Upload TypeDoc user-facing artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: typedoc-current
-          path: typedoc-*.tar.gz
-
-      - name: Upload TypeDoc dev-facing artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: typedoc-current-dev
-          path: typedoc-*.tar.gz-dev
+          path: ./packages/scramjet/dist
 
       - name: Build static assets
-        run: bash ./ci/build-static.sh
+        run: pnpm build
+        working-directory: packages/demo
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./staticbuild"
+          path: ./packages/demo/dist
 
       - name: Deploy to github
         id: deployment
