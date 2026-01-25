@@ -6,12 +6,11 @@ packages:
   - packages/demo
   - packages/rewriter_demo
   - packages/rpc
-  - packages/typedoc
   - packages/create-proxy-app
   - packages/runway
 
 catalog:
   "@mercuryworkshop/proxy-transports": 1.0.2
   "@mercuryworkshop/libcurl-transport": 2.0.5
-  "@mercuryworkshop/epoxy-transport": 3.0.0
-  "@mercuryworkshop/wisp-js": ^0.4.0
+  "@mercuryworkshop/epoxy-transport": 3.0.1
+  "@mercuryworkshop/wisp-js": ^0.4.1
