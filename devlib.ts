@@ -137,3 +137,7 @@ export function runRspack(rspackConfig: any) {
 		}
 	});
 }
+
+export function normalizeWebsocketUrl(url: string): string {
+	return url.endsWith("/") ? url : `${url}/`;
+}
