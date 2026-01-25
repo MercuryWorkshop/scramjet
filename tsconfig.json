@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"lib": ["ES2022", "dom", "dom.iterable"],
+		"target": "ES2022",
+	},
+	"include": ["devserver.ts", "devlib.ts"],
+}
