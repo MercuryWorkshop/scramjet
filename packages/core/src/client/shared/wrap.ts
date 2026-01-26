@@ -16,16 +16,16 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 				// ... then we should pretend we aren't nested and return the current window
 				wrappedParent = self;
 			}
-			} catch {
-				// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
-				wrappedParent = self;
+		} catch {
+			// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
+			wrappedParent = self;
 		}
 		// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
 		let current = self;
 		for (;;) {
 			const test = current.parent.self;
 			if (test === current) break; // there is no parent, actual or emulated.
-	
+
 			try {
 				// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
 				if (!(SCRAMJETCLIENT in test)) break;
@@ -38,15 +38,14 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 		}
 		wrappedTop = current;
 	}
-	
+
 	return function (identifier: any, strict: boolean) {
 		if (identifier === self.location) return client.locationProxy;
 		if (identifier === self.eval) return indirectEval.bind(client, strict);
 		if (iswindow) {
 			if (identifier === self.parent) {
 				return wrappedParent;
-			} 
-			else if (identifier === self.top) {
+			} else if (identifier === self.top) {
 				return wrappedTop;
 			}
 		}
