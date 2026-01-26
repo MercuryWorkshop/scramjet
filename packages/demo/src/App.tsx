@@ -1,5 +1,6 @@
 import { controller } from ".";
 import { createStore, css, type Component } from "dreamland/core";
+import { FlagEditor, flagStore } from "./FlagEditor";
 
 const store = createStore(
 	{
@@ -17,11 +18,17 @@ export const App: Component<
 	{},
 	{
 		url: string;
-		frame: controller.Frame;
+		frame: ReturnType<typeof controller.createFrame>;
 		frameel: HTMLIFrameElement;
 	}
 > = function (cx) {
-	cx.mount = () => {
+	cx.mount = async () => {
+		// Wait for controller to be ready
+		await controller.wait();
+
+		// Apply initial flags from store
+		Object.assign(controller.flags, flagStore);
+
 		this.frame = controller.createFrame(this.frameel);
 		let body = btoa(
 			`<body style="background: #000; color: #fff">Welcome to <i>Scramjet</i>! Type in a URL in the omnibox above and press enter to get started.</body>`
@@ -30,6 +37,12 @@ export const App: Component<
 	};
 	return (
 		<div>
+			<FlagEditor
+				onFlagsChange={(flags) => {
+					console.log("flags changed", flags);
+					Object.assign(controller.flags, flags);
+				}}
+			/>
 			<form
 				on:submit={(e: SubmitEvent) => {
 					e.preventDefault();

@@ -158,7 +158,9 @@ type Init = {
 		cookieJar: CookieJar,
 		config: Config,
 		sjconfig: ScramjetConfig,
-		prefix: URL
+		prefix: URL,
+		codecEncode: (input: string) => string,
+		codecDecode: (input: string) => string
 	) => any;
 	codecEncode: (input: string) => string;
 	codecDecode: (input: string) => string;
@@ -201,7 +203,9 @@ export function load({
 					cookieJar,
 					config,
 					sjconfig,
-					prefix
+					prefix,
+					codecEncode,
+					codecDecode
 				),
 				codecEncode,
 				codecDecode,
