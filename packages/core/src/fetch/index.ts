@@ -507,10 +507,9 @@ function rewriteLinkHeader(
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	return link.replace(
-		/<([^>]+)>/gi,
-		(match) => `<${rewriteUrl(match, context, meta)}>`
-	);
+	return link.replace(/<([^>]+)>/gi, (_match, p1) => {
+		return `<${rewriteUrl(p1, context, meta)}>`;
+	});
 }
 
 export async function rewriteHeaders(
