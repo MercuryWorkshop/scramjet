@@ -34,7 +34,7 @@ export const config: Config = {
 	wasmPath: "/scramjet/scramjet.wasm",
 };
 
-const cfg = {
+const defaultCfg = {
 	flags: {
 		...$scramjet.defaultConfig.flags,
 		allowFailedIntercepts: true,
@@ -84,6 +84,7 @@ export class Controller {
 	prefix: string;
 	frames: Frame[] = [];
 	cookieJar = new $scramjet.CookieJar();
+	flags: typeof defaultCfg.flags = { ...defaultCfg.flags };
 
 	rpc: RpcHelper<Controllerbound, SWbound>;
 	private ready: Promise<[void, void]>;
@@ -302,8 +303,8 @@ export class Controller {
 		return frame;
 	}
 
-	wait(): Promise<void> {
-		return this.ready;
+	async wait(): Promise<void> {
+		await this.ready;
 	}
 }
 
@@ -311,7 +312,9 @@ function yieldGetInjectScripts(
 	cookieJar: ScramjetGlobal.CookieJar,
 	config: Config,
 	sjconfig: ScramjetGlobal.ScramjetConfig,
-	prefix: URL
+	prefix: URL,
+	codecEncode: (input: string) => string,
+	codecDecode: (input: string) => string
 ) {
 	let getInjectScripts: ScramjetGlobal.ScramjetInterface["getInjectScripts"] = (
 		meta,
@@ -350,8 +353,10 @@ class Frame {
 	get context(): ScramjetGlobal.ScramjetContext {
 		let sjcfg = {
 			...$scramjet.defaultConfig,
-			...cfg,
+			flags: this.controller.flags,
+			maskedfiles: defaultCfg.maskedfiles,
 		};
+
 		return {
 			cookieJar,
 			prefix: new URL(this.prefix, location.href),
@@ -360,8 +365,10 @@ class Frame {
 				getInjectScripts: yieldGetInjectScripts(
 					this.controller.cookieJar,
 					config,
-					{ ...$scramjet.defaultConfig, ...cfg },
-					new URL(this.prefix, location.href)
+					sjcfg,
+					new URL(this.prefix, location.href),
+					codecEncode,
+					codecDecode
 				),
 				getWorkerInjectScripts: (meta, type, script) => {
 					let str = "";
