@@ -63,7 +63,16 @@ async function main() {
 	// Start all matching tests (only basicTests need servers)
 	for (const test of tests) {
 		if (!test.playwrightFn) {
-			await test.start();
+			await test.start({
+				pass: async (message?: string, details?: any) => {
+					console.log(`\n✅ Test passed${message ? `: ${message}` : ""}`);
+					if (details) console.log("   Details:", details);
+				},
+				fail: async (message?: string, details?: any) => {
+					console.log(`\n❌ Test failed${message ? `: ${message}` : ""}`);
+					if (details) console.log("   Details:", details);
+				},
+			});
 			console.log(
 				`🌐 Test "${test.name}" running at http://localhost:${test.port}/`
 			);

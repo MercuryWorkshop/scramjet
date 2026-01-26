@@ -148,8 +148,18 @@ async function runTest(
 		}
 	}
 
+	let serverResultResolve: (result: TestResult) => void;
+	let serverResult: Promise<TestResult> = new Promise((resolve) => {
+		serverResultResolve = resolve;
+	});
+
 	// Handle basic tests (tests that serve a page and call pass/fail)
-	await test.start();
+	await test.start({
+		pass: async (message?: string, details?: any) =>
+			serverResultResolve({ status: "pass", message, details }),
+		fail: async (message?: string, details?: any) =>
+			serverResultResolve({ status: "fail", message, details }),
+	});
 
 	try {
 		const testUrl = `http://localhost:${test.port}/`;
@@ -158,7 +168,7 @@ async function runTest(
 			(window as any).__runwayNavigate(url);
 		}, testUrl);
 
-		return await waitForResult(timeout);
+		return await Promise.race([waitForResult(timeout), serverResult]);
 	} finally {
 		await test.stop();
 	}
