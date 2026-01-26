@@ -13,7 +13,10 @@ export type TestContext = {
 export type Test = {
 	name: string;
 	port: number;
-	start: () => Promise<void>;
+	start: (ctx: {
+		pass: (message?: string, details?: any) => Promise<void>;
+		fail: (message?: string, details?: any) => Promise<void>;
+	}) => Promise<void>;
 	stop: () => Promise<void>;
 	/** If defined, this is a playwright test that controls the browser directly */
 	playwrightFn?: (ctx: TestContext) => Promise<void>;
@@ -195,7 +198,14 @@ export function playwrightTest(props: {
 // same as basicTest but gives us a handle to the server
 export function serverTest(props: {
 	name: string;
-	start: (server: http.Server, port: number) => Promise<void>;
+	start: (
+		server: http.Server,
+		port: number,
+		ctx: {
+			pass: (message?: string, details?: any) => Promise<void>;
+			fail: (message?: string, details?: any) => Promise<void>;
+		}
+	) => Promise<void>;
 	autoPass?: boolean;
 	js?: string;
 }) {
@@ -205,7 +215,7 @@ export function serverTest(props: {
 	return {
 		name: props.name,
 		port,
-		async start() {
+		async start({ pass, fail }) {
 			server = http.createServer(
 				{
 					// Only accept websocket upgrades, reject others (like h2c) so they fall back to normal HTTP
@@ -240,7 +250,7 @@ export function serverTest(props: {
 					}
 				}
 			);
-			await props.start(server, port);
+			await props.start(server, port, { pass, fail });
 			return new Promise<void>((resolve) => {
 				server.listen(port, () => resolve());
 			});

@@ -158,6 +158,6 @@ export default function (client: ScramjetClient, self: Self) {
 export function unrewriteLinkHeader(header: string, context: ScramjetContext) {
 	return header.replace(
 		/<([^>]+)>/gi,
-		(match) => `${unrewriteUrl(match, context)}`
+		(_match, p1) => `<${unrewriteUrl(p1, context)}>`
 	);
 }
