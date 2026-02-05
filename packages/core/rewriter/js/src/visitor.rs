@@ -478,7 +478,7 @@ where
 				// you could break this with ["postMessage"] etc
 				// however this code only exists because of recaptcha whatever
 				// and it would slow down js execution a lot
-				if s.property.name == "postMessage" {
+				if s.property.name == "postMessage" && !matches!(&s.object, Expression::Super(_)) {
 					// include the "postMessage" and the dot before it in the inner span
 					// if `postMessage?.` remove the dot and the question mark
 					let offset = if s.optional { 2 } else { 1 };
