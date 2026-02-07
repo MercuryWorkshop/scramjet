@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Bare Test Harness (no scramjet)</title>
+	</head>
+	<body>
+		<h1>Bare Test Harness</h1>
+		<div id="status">Initializing...</div>
+		<iframe
+			id="testframe"
+			style="width: 100%; height: 80vh; border: 1px solid #ccc"
+		></iframe>
+
+		<script>
+			const statusEl = document.getElementById("status");
+			const testframe = document.getElementById("testframe");
+
+			function injectTestFunctions() {
+				try {
+					const iframeWin = testframe.contentWindow;
+					if (iframeWin) {
+						iframeWin.__testPass = (message, details) => {
+							if (typeof window.__testPass === "function") {
+								window.__testPass(message, details);
+							}
+						};
+						iframeWin.__testFail = (message, details) => {
+							if (typeof window.__testFail === "function") {
+								window.__testFail(message, details);
+							}
+						};
+						iframeWin.__testConsistent = (label, value) => {
+							if (typeof window.__testConsistent === "function") {
+								window.__testConsistent(label, value);
+							}
+						};
+						iframeWin.__topEval = window.eval;
+						iframeWin.__eval = iframeWin.eval;
+					}
+				} catch (e) {
+					console.warn("Could not inject test functions:", e);
+				}
+			}
+
+			testframe.addEventListener("load", injectTestFunctions);
+
+			// Poll to inject functions (matching scramjet harness behavior)
+			setInterval(injectTestFunctions, 0);
+
+			statusEl.textContent = "Ready - waiting for test...";
+
+			window.__runwayNavigate = (url) => {
+				statusEl.textContent = `Loading test: ${url}`;
+
+				try {
+					// Parse the URL to extract port and path
+					const urlObj = new URL(url);
+					const port = urlObj.port;
+					const path = urlObj.pathname + urlObj.search + urlObj.hash;
+
+					// Navigate through our proxy to avoid CORS issues
+					// Format: /test/:port/path
+					const proxyUrl = `/test/${port}${path}`;
+					testframe.src = proxyUrl;
+
+					// Inject functions after navigation
+					testframe.addEventListener(
+						"load",
+						() => {
+							injectTestFunctions();
+						},
+						{ once: true }
+					);
+				} catch (err) {
+					console.error("Navigation error:", err);
+					statusEl.textContent = `Error: ${err.message}`;
+				}
+			};
+
+			console.log("Bare harness ready, __runwayNavigate exposed");
+		</script>
+	</body>
+</html>
