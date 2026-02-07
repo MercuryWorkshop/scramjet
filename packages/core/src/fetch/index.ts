@@ -21,6 +21,7 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetConfig } from "@/types";
 import DomHandler from "domhandler";
+import { sniffEncoding } from "@/shared/sniffEncoding";
 
 export interface ScramjetFetchRequest {
 	rawUrl: URL;
@@ -87,6 +88,19 @@ export class ScramjetFetchHandler extends EventTarget {
 	}
 }
 
+function normalizeContentType(
+	request: ScramjetFetchRequest,
+	headers: ScramjetHeaders
+) {
+	if (request.destination !== "document" && request.destination !== "iframe")
+		return;
+
+	const ct = headers.get("content-type");
+	if (!ct) return;
+	if (!ct.startsWith("text/html")) return;
+
+	headers.set("content-type", "text/html; charset=utf-8");
+}
 async function doHandleFetch(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest
@@ -184,6 +198,11 @@ async function doHandleFetch(
 
 	if (response.body && !isRedirect(response)) {
 		responseBody = await rewriteBody(handler, request, parsed, response);
+
+		// After rewriting HTML, the body is a JS string which will be encoded as
+		// UTF-8 by the Response constructor. Normalize the Content-Type charset so
+		// the browser doesn't try to decode UTF-8 bytes with the original encoding.
+		normalizeContentType(request, responseHeaders);
 	}
 
 	// Clean up tracker if not a redirect
@@ -436,6 +455,10 @@ async function handleBlobOrDataUrlFetch(
 		);
 	}
 	const headers = ScramjetHeaders.fromRawHeaders(response.rawHeaders);
+
+	// blob urls actually *can* set charsets, so we need to normalize them if it goes down the html path
+	normalizeContentType(request, headers);
+
 	if (handler.crossOriginIsolated) {
 		headers.set("Cross-Origin-Opener-Policy", "same-origin");
 		headers.set("Cross-Origin-Embedder-Policy", "require-corp");
@@ -663,22 +686,16 @@ async function rewriteBody(
 		case "iframe":
 		case "document":
 			if (response.headers.get("content-type")?.startsWith("text/html")) {
-				// note from percs: i think this has the potential to be slow asf, but for right now its fine (we should probably look for a better solution)
-				// another note from percs: regex seems to be broken, gonna comment this out
-				/*
-        const buf = await response.arrayBuffer();
-        const decode = new TextDecoder("utf-8").decode(buf);
-        const charsetHeader = response.headers.get("content-type");
-        const charset =
-          charsetHeader?.split("charset=")[1] ||
-          decode.match(/charset=([^"]+)/)?.[1] ||
-          "utf-8";
-        const htmlContent = charset
-          ? new TextDecoder(charset).decode(buf)
-          : decode;
-        */
+				const buf = await response.arrayBuffer();
+				const bytes = new Uint8Array(buf);
+				const encoding = sniffEncoding(
+					bytes,
+					response.headers.get("content-type")
+				);
+				const htmlContent = new TextDecoder(encoding).decode(bytes);
+
 				return rewriteHtml(
-					await response.text(),
+					htmlContent,
 					handler.context,
 					parsed.meta,
 					true,
