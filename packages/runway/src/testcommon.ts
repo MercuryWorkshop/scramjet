@@ -152,9 +152,21 @@ export function basicTest(props: {
 			});
 		},
 		async stop() {
-			return new Promise((resolve) => {
-				server.close(() => resolve());
-			});
+			return Promise.race([
+				new Promise<void>((resolve) => {
+					// Close all active connections first to prevent hanging
+					if (server.closeAllConnections) {
+						server.closeAllConnections();
+					}
+					server.close(() => resolve());
+				}),
+				new Promise<void>((_, reject) => {
+					setTimeout(
+						() => reject(new Error("Server stop timed out after 5 seconds")),
+						5000
+					);
+				}),
+			]);
 		},
 	};
 }
@@ -256,9 +268,21 @@ export function serverTest(props: {
 			});
 		},
 		async stop() {
-			return new Promise<void>((resolve) => {
-				server.close(() => resolve());
-			});
+			return Promise.race([
+				new Promise<void>((resolve) => {
+					// Close all active connections first to prevent hanging
+					if (server.closeAllConnections) {
+						server.closeAllConnections();
+					}
+					server.close(() => resolve());
+				}),
+				new Promise<void>((_, reject) => {
+					setTimeout(
+						() => reject(new Error("Server stop timed out after 5 seconds")),
+						5000
+					);
+				}),
+			]);
 		},
 	};
 }
