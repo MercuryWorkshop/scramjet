@@ -3,6 +3,7 @@ import type { Test } from "./testcommon.ts";
 import { glob } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CDP_INIT_SCRIPT } from "./cdp-init.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -94,6 +95,11 @@ async function main() {
 	});
 
 	const page = await browser.newPage();
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send("Page.enable");
+	await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+		source: CDP_INIT_SCRIPT,
+	});
 
 	// Expose test reporting functions
 	await page.exposeFunction("__testPass", (message?: string, details?: any) => {
@@ -105,6 +111,17 @@ async function main() {
 		console.log(`\n❌ Test failed${message ? `: ${message}` : ""}`);
 		if (details) console.log("   Details:", details);
 	});
+
+	await page.exposeFunction(
+		"__testConsistent",
+		(label: string, value?: any) => {
+			if (typeof value === "undefined") {
+				value = label;
+				label = "default";
+			}
+			console.log(`\n🔁 assertConsistent[${label}]`, value);
+		}
+	);
 
 	page.on("pageerror", (error) => {
 		console.log(`\n💥 Page error: ${error.message}`);

@@ -41,6 +41,11 @@
 								window.__testFail(message, details);
 							}
 						};
+						iframeWin.__testConsistent = (label, value) => {
+							if (typeof window.__testConsistent === "function") {
+								return window.__testConsistent(label, value);
+							}
+						};
 						iframeWin.__topEval = window.eval;
 						iframeWin.__eval = iframeWin.eval;
 					}

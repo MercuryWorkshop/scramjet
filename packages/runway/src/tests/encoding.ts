@@ -8,6 +8,14 @@ function pass(message, details) {
 function fail(message, details) {
 	if (typeof __testFail === 'function') __testFail(message, details);
 }
+function assertConsistent(label, value) {
+	if (typeof value === 'undefined') {
+		value = label;
+		label = 'default';
+	}
+	if (typeof __testConsistent === 'function') return __testConsistent(label, value);
+	return Promise.resolve();
+}
 function assert(condition, message) {
 	if (!condition) { fail(message || 'Assertion failed'); throw new Error(message || 'Assertion failed'); }
 }
@@ -18,6 +26,7 @@ function assertEqual(actual, expected, message) {
 		throw new Error(msg);
 	}
 }
+var assertEquals = assertEqual;
 function waitForTestFunctions(timeout) {
 	timeout = timeout || 5000;
 	return new Promise(function(resolve, reject) {
@@ -54,10 +63,14 @@ function encodingTest(opts: {
 					res.writeHead(200, { "Content-Type": opts.contentType });
 					res.end(opts.html);
 				} else if (req.url === "/common.js") {
-					res.writeHead(200, { "Content-Type": "application/javascript" });
+					res.writeHead(200, {
+						"Content-Type": "application/javascript; charset=utf-8",
+					});
 					res.end(TEST_HELPERS);
 				} else if (req.url === "/script.js") {
-					res.writeHead(200, { "Content-Type": "application/javascript" });
+					res.writeHead(200, {
+						"Content-Type": "application/javascript; charset=utf-8",
+					});
 					res.end(`runTest(async () => {\n${opts.assertion}\n});`);
 				} else {
 					res.writeHead(404);

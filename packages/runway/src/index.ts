@@ -4,6 +4,8 @@ import type { Test } from "./testcommon.ts";
 import { glob } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
+import { CDP_INIT_SCRIPT } from "./cdp-init.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +43,128 @@ type TestRunResult = {
 	duration: number;
 };
 
+type HarnessKind = "scramjet" | "bare";
+
+type ConsistencyIssue = {
+	label: string;
+	scramjet?: any;
+	bare?: any;
+	reason: string;
+};
+
+function createConsistencyTracker(requireBoth: boolean) {
+	const entries = new Map<
+		string,
+		{
+			values: Partial<Record<HarnessKind, any>>;
+			promise: Promise<void>;
+			resolve: () => void;
+			reject: (error: Error) => void;
+			settled: boolean;
+		}
+	>();
+	const issues: ConsistencyIssue[] = [];
+
+	const getEntry = (label: string) => {
+		let entry = entries.get(label);
+		if (!entry) {
+			let resolve!: () => void;
+			let reject!: (error: Error) => void;
+			const promise = new Promise<void>((res, rej) => {
+				resolve = res;
+				reject = rej;
+			});
+			entry = {
+				values: {},
+				promise,
+				resolve,
+				reject,
+				settled: false,
+			};
+			entries.set(label, entry);
+		}
+		return entry;
+	};
+
+	const handle = async (source: HarnessKind, label: string, value: any) => {
+		if (!requireBoth) return;
+		const safeLabel = label || "default";
+		const entry = getEntry(safeLabel);
+		entry.values[source] = value;
+
+		if (
+			!entry.settled &&
+			"scramjet" in entry.values &&
+			"bare" in entry.values
+		) {
+			const scramjetValue = entry.values.scramjet;
+			const bareValue = entry.values.bare;
+			if (!isDeepStrictEqual(scramjetValue, bareValue)) {
+				entry.settled = true;
+				issues.push({
+					label: safeLabel,
+					scramjet: scramjetValue,
+					bare: bareValue,
+					reason: "Values differ",
+				});
+				entry.reject(new Error(`assertConsistent mismatch for "${safeLabel}"`));
+			} else {
+				entry.settled = true;
+				entry.resolve();
+			}
+		}
+		return entry.promise;
+	};
+
+	const finalize = async (timeout: number) => {
+		if (!requireBoth) return { status: "pass" as const };
+		const promises = [...entries.values()].map((entry) => entry.promise);
+		if (promises.length === 0) return { status: "pass" as const };
+
+		let timedOut = false;
+		try {
+			await Promise.race([
+				Promise.allSettled(promises),
+				new Promise<void>((_, reject) => {
+					setTimeout(() => {
+						timedOut = true;
+						reject(new Error("Consistency checks timed out"));
+					}, timeout);
+				}),
+			]);
+		} catch {
+			// handled below
+		}
+
+		if (timedOut) {
+			for (const [label, entry] of entries) {
+				if (!entry.settled) {
+					issues.push({
+						label,
+						scramjet: entry.values.scramjet,
+						bare: entry.values.bare,
+						reason: "Timed out waiting for both values",
+					});
+				}
+			}
+		}
+
+		if (issues.length > 0) {
+			return {
+				status: "fail" as const,
+				message: `assertConsistent failed (${issues.length} mismatch${
+					issues.length === 1 ? "" : "es"
+				})`,
+				details: issues,
+			};
+		}
+
+		return { status: "pass" as const };
+	};
+
+	return { handle, finalize };
+}
+
 async function discoverTests(): Promise<Test[]> {
 	const testFiles = glob("**/*.ts", {
 		cwd: path.join(__dirname, "tests"),
@@ -62,12 +186,27 @@ async function discoverTests(): Promise<Test[]> {
 	return tests;
 }
 
-async function createTestPage(browser: Browser): Promise<{
+async function createTestPage(
+	browser: Browser,
+	options: {
+		name: HarnessKind;
+		onConsistent?: (
+			source: HarnessKind,
+			label: string,
+			value: any
+		) => Promise<void>;
+	}
+): Promise<{
 	page: Page;
 	waitForResult: (timeout: number) => Promise<TestResult>;
 	cleanup: () => void;
 }> {
 	const page = await browser.newPage();
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send("Page.enable");
+	await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+		source: CDP_INIT_SCRIPT,
+	});
 
 	let resolveResult: (result: TestResult) => void;
 	let rejectResult: (error: Error) => void;
@@ -95,6 +234,19 @@ async function createTestPage(browser: Browser): Promise<{
 		resetPromise();
 	});
 
+	await page.exposeFunction(
+		"__testConsistent",
+		async (label: string, value?: any) => {
+			if (typeof value === "undefined") {
+				value = label;
+				label = "default";
+			}
+			if (options.onConsistent) {
+				return options.onConsistent(options.name, label, value);
+			}
+		}
+	);
+
 	// Catch uncaught errors
 	page.on("pageerror", (error) => {
 		if (timeoutId) clearTimeout(timeoutId);
@@ -121,10 +273,11 @@ async function createTestPage(browser: Browser): Promise<{
 	};
 }
 
-async function runTest(
+async function runTestOnHarness(
 	page: Page,
 	waitForResult: (timeout: number) => Promise<TestResult>,
 	test: Test,
+	serverResult: Promise<TestResult> | null,
 	timeout: number = 30000
 ): Promise<TestResult> {
 	// Handle playwright tests (tests that control the browser directly)
@@ -148,43 +301,36 @@ async function runTest(
 		}
 	}
 
-	let serverResultResolve: (result: TestResult) => void;
-	let serverResult: Promise<TestResult> = new Promise((resolve) => {
-		serverResultResolve = resolve;
-	});
+	const testUrl = `http://localhost:${test.port}/`;
+	await page.evaluate((url) => {
+		// This function should be defined by the harness
+		(window as any).__runwayNavigate(url);
+	}, testUrl);
 
-	// Handle basic tests (tests that serve a page and call pass/fail)
-	await test.start({
-		pass: async (message?: string, details?: any) =>
-			serverResultResolve({ status: "pass", message, details }),
-		fail: async (message?: string, details?: any) =>
-			serverResultResolve({ status: "fail", message, details }),
-	});
-
-	try {
-		const testUrl = `http://localhost:${test.port}/`;
-		await page.evaluate((url) => {
-			// This function should be defined by the harness
-			(window as any).__runwayNavigate(url);
-		}, testUrl);
-
+	if (serverResult) {
 		return await Promise.race([waitForResult(timeout), serverResult]);
-	} finally {
-		await test.stop();
 	}
+
+	return await waitForResult(timeout);
 }
 
 // Main runner
 async function main() {
 	console.log("🚀 Starting Runway test runner\n");
 
-	// Start the harness server (scramjet proxy)
+	// Start the harness servers
 	const { startHarness, PORT: HARNESS_PORT } = await import(
 		"./harness/scramjet/index.ts"
 	);
+	const { startBareHarness, BARE_PORT } = await import(
+		"./harness/bare/index.ts"
+	);
 	await startHarness();
-	const harnessUrl = `http://localhost:${HARNESS_PORT}`;
-	console.log(`📡 Harness running at ${harnessUrl}\n`);
+	await startBareHarness();
+	const scramjetUrl = `http://localhost:${HARNESS_PORT}`;
+	const bareUrl = `http://localhost:${BARE_PORT}`;
+	console.log(`📡 Scramjet harness running at ${scramjetUrl}`);
+	console.log(`📡 Bare harness running at ${bareUrl}\n`);
 
 	const allTests = await discoverTests();
 
@@ -213,48 +359,145 @@ async function main() {
 	});
 
 	const results: TestRunResult[] = [];
-	let testPage = await createTestPage(browser);
+	let consistencyHandler: (
+		source: HarnessKind,
+		label: string,
+		value: any
+	) => Promise<void> = async () => {};
+	const createPages = async () => ({
+		scramjet: await createTestPage(browser, {
+			name: "scramjet",
+			onConsistent: (source, label, value) =>
+				consistencyHandler(source, label, value),
+		}),
+		bare: await createTestPage(browser, {
+			name: "bare",
+			onConsistent: (source, label, value) =>
+				consistencyHandler(source, label, value),
+		}),
+	});
+	let testPages = await createPages();
 	let needsReload = true;
+
+	const ensureHarnessReady = async (page: Page, url: string, label: string) => {
+		await page.goto(url);
+		try {
+			await page.waitForFunction(
+				() => typeof (window as any).__runwayNavigate === "function",
+				{ timeout: 30000 }
+			);
+		} catch {
+			const statusText = await page.evaluate(() => {
+				const el = document.getElementById("status");
+				return el?.textContent || "";
+			});
+			console.error(
+				`\n💥 FATAL: ${label} harness failed to initialize: ${statusText}`
+			);
+			console.error(
+				"   Check that scramjet is built and all dependencies are available.\n"
+			);
+			ghaError(`Harness failed to initialize: ${label}: ${statusText}`);
+			await browser.close();
+			process.exit(1);
+		}
+	};
 
 	for (const test of tests) {
 		ghaGroup(`Test: ${test.name}`);
 		process.stdout.write(`  ${test.name} ... `);
 
-		// Reload page if needed (first run or after failure)
-		if (needsReload) {
-			testPage.cleanup();
-			if (!testPage.page.isClosed()) await testPage.page.close();
-			testPage = await createTestPage(browser);
-			await testPage.page.goto(harnessUrl);
+		const consistencyTracker = createConsistencyTracker(!test.scramjetOnly);
+		consistencyHandler = consistencyTracker.handle;
 
-			// Wait for harness to be ready with timeout
-			try {
-				await testPage.page.waitForFunction(
-					() => typeof (window as any).__runwayNavigate === "function",
-					{ timeout: 30000 }
-				);
-			} catch (e) {
-				// Check if harness had an error
-				const statusText = await testPage.page.evaluate(() => {
-					const el = document.getElementById("status");
-					return el?.textContent || "";
-				});
-				console.error(
-					`\n💥 FATAL: Harness failed to initialize: ${statusText}`
-				);
-				console.error(
-					"   Check that scramjet is built and all dependencies are available.\n"
-				);
-				ghaError(`Harness failed to initialize: ${statusText}`);
-				await browser.close();
-				process.exit(1);
-			}
+		// Reload pages if needed (first run or after failure)
+		if (needsReload) {
+			testPages.scramjet.cleanup();
+			testPages.bare.cleanup();
+			if (!testPages.scramjet.page.isClosed())
+				await testPages.scramjet.page.close();
+			if (!testPages.bare.page.isClosed()) await testPages.bare.page.close();
+			testPages = await createPages();
+			await ensureHarnessReady(
+				testPages.scramjet.page,
+				scramjetUrl,
+				"Scramjet"
+			);
+			await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
 			needsReload = false;
 		}
 
 		const start = Date.now();
+		let started = false;
 		try {
-			const result = await runTest(testPage.page, testPage.waitForResult, test);
+			let serverResult: Promise<TestResult> | null = null;
+			let serverResultResolve: (result: TestResult) => void = () => {};
+
+			if (!test.playwrightFn) {
+				serverResult = new Promise<TestResult>((resolve) => {
+					serverResultResolve = resolve;
+				});
+				await test.start({
+					pass: async (message?: string, details?: any) =>
+						serverResultResolve({ status: "pass", message, details }),
+					fail: async (message?: string, details?: any) =>
+						serverResultResolve({ status: "fail", message, details }),
+				});
+				started = true;
+			}
+
+			const scramjetPromise = runTestOnHarness(
+				testPages.scramjet.page,
+				testPages.scramjet.waitForResult,
+				test,
+				serverResult
+			);
+			const barePromise = test.scramjetOnly
+				? null
+				: runTestOnHarness(
+						testPages.bare.page,
+						testPages.bare.waitForResult,
+						test,
+						serverResult
+					);
+
+			const [scramjetResult, bareResult] = test.scramjetOnly
+				? [await scramjetPromise, null]
+				: await Promise.all([scramjetPromise, barePromise!]);
+
+			const consistencyResult = await consistencyTracker.finalize(30000);
+
+			let result: TestResult;
+			if (test.scramjetOnly) {
+				result = scramjetResult;
+			} else if (
+				scramjetResult.status !== "pass" ||
+				bareResult!.status !== "pass"
+			) {
+				const failures: string[] = [];
+				if (scramjetResult.status !== "pass") {
+					failures.push(
+						`scramjet: ${scramjetResult.message || scramjetResult.status}`
+					);
+				}
+				if (bareResult!.status !== "pass") {
+					failures.push(`bare: ${bareResult!.message || bareResult!.status}`);
+				}
+				result = {
+					status: "fail",
+					message: failures.join(" | "),
+					details: { scramjet: scramjetResult, bare: bareResult },
+				};
+			} else if (consistencyResult.status === "fail") {
+				result = {
+					status: "fail",
+					message: consistencyResult.message,
+					details: consistencyResult.details,
+				};
+			} else {
+				result = { status: "pass" };
+			}
+
 			const duration = Date.now() - start;
 			results.push({ test, result, duration });
 
@@ -288,11 +531,16 @@ async function main() {
 				`Test "${test.name}" error: ${error instanceof Error ? error.message : String(error)}`
 			);
 			needsReload = true; // Reload after error
+		} finally {
+			if (!test.playwrightFn && started) {
+				await test.stop();
+			}
 		}
 		ghaEndGroup();
 	}
 
-	testPage.cleanup();
+	testPages.scramjet.cleanup();
+	testPages.bare.cleanup();
 	await browser.close();
 
 	// Summary

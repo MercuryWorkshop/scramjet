@@ -18,6 +18,8 @@ export type Test = {
 		fail: (message?: string, details?: any) => Promise<void>;
 	}) => Promise<void>;
 	stop: () => Promise<void>;
+	/** If true, only run this test in the scramjet harness */
+	scramjetOnly?: boolean;
 	/** If defined, this is a playwright test that controls the browser directly */
 	playwrightFn?: (ctx: TestContext) => Promise<void>;
 };
@@ -52,6 +54,16 @@ function pass(message, details) {
 function fail(message, details) {
 	__testFail(message, details);
 }
+function assertConsistent(label, value) {
+	if (typeof value === 'undefined') {
+		value = label;
+		label = 'default';
+	}
+	if (typeof __testConsistent === 'function') {
+		return __testConsistent(label, value);
+	}
+	return Promise.resolve();
+}
 if (typeof __eval != "function") {
 	window.__eval = eval;
 	window.__testPass = function() {
@@ -60,6 +72,11 @@ if (typeof __eval != "function") {
 	window.__testFail = function() {
 	console.error("TEST FAILED", ...arguments);
 	}
+}
+if (typeof __testConsistent !== "function") {
+	window.__testConsistent = function() {
+		return Promise.resolve();
+	};
 }
 const realtop = __eval("top");
 const reallocation = __eval("location");
@@ -86,6 +103,8 @@ function assertEqual(actual, expected, message) {
 	}
 }
 
+const assertEquals = assertEqual;
+
 function assertDeepEqual(actual, expected, message) {
 	if (JSON.stringify(actual) !== JSON.stringify(expected)) {
 		const msg = message || \`Deep equality failed\`;
@@ -111,13 +130,16 @@ export function basicTest(props: {
 	name: string;
 	js: string;
 	autoPass?: boolean;
+	scramjetOnly?: boolean;
 }): Test {
 	const port = nextPort++;
 	let server: http.Server;
+	const scramjetOnly = props.scramjetOnly ?? /checkglobal\s*\(/i.test(props.js);
 
 	return {
 		name: props.name,
 		port,
+		scramjetOnly,
 		async start() {
 			return new Promise((resolve) => {
 				server = http.createServer((req, res) => {
@@ -204,6 +226,7 @@ export function playwrightTest(props: {
 			// Nothing to stop
 		},
 		playwrightFn: props.fn,
+		scramjetOnly: true,
 	};
 }
 
@@ -220,14 +243,25 @@ export function serverTest(props: {
 	) => Promise<void>;
 	autoPass?: boolean;
 	js?: string;
+	scramjetOnly?: boolean;
 }) {
 	const port = nextPort++;
 	let server: http.Server;
+	const scramjetOnly =
+		props.scramjetOnly ??
+		(props.js ? /checkglobal\s*\(/i.test(props.js) : false);
 
 	return {
 		name: props.name,
 		port,
-		async start({ pass, fail }) {
+		scramjetOnly,
+		async start({
+			pass,
+			fail,
+		}: {
+			pass: (message?: string, details?: any) => Promise<void>;
+			fail: (message?: string, details?: any) => Promise<void>;
+		}) {
 			server = http.createServer(
 				{
 					// Only accept websocket upgrades, reject others (like h2c) so they fall back to normal HTTP
