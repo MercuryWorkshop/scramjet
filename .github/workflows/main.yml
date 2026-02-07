@@ -197,7 +197,7 @@ jobs:
         working-directory: packages/runway
 
       - name: Run Runway tests
-        run: pnpm test
+        run: pnpm test --parallel 4
         working-directory: packages/runway
 
   rewritertests:
