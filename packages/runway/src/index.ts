@@ -1,11 +1,13 @@
 import { chromium } from "playwright";
 import type { Page, Browser } from "playwright";
 import type { Test } from "./testcommon.ts";
-import { glob } from "node:fs/promises";
+import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { CDP_INIT_SCRIPT } from "./cdp-init.ts";
+import v8toIstanbul from "v8-to-istanbul";
+import istanbulCoverage from "istanbul-lib-coverage";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -195,6 +197,7 @@ async function createTestPage(
 			label: string,
 			value: any
 		) => Promise<void>;
+		collectCoverage?: boolean;
 	}
 ): Promise<{
 	page: Page;
@@ -202,6 +205,12 @@ async function createTestPage(
 	cleanup: () => void;
 }> {
 	const page = await browser.newPage();
+	if (options.collectCoverage) {
+		await page.coverage.startJSCoverage({
+			resetOnNavigation: false,
+			reportAnonymousScripts: true,
+		});
+	}
 	const cdp = await page.context().newCDPSession(page);
 	await cdp.send("Page.enable");
 	await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
@@ -357,6 +366,21 @@ async function main() {
 	const browser = await chromium.launch({
 		headless: process.env.HEADED !== "1",
 	});
+	const coverageEnabled = process.env.SCRAMJET_COVERAGE === "1";
+	const coverageEntries: Array<{
+		url: string;
+		functions: any;
+		source?: string;
+	}> = [];
+	const flushCoverage = async (page: Page) => {
+		if (!coverageEnabled || page.isClosed()) return;
+		try {
+			const entries = await page.coverage.stopJSCoverage();
+			coverageEntries.push(...entries);
+		} catch {
+			// ignore
+		}
+	};
 
 	const results: TestRunResult[] = [];
 	let consistencyHandler: (
@@ -369,6 +393,7 @@ async function main() {
 			name: "scramjet",
 			onConsistent: (source, label, value) =>
 				consistencyHandler(source, label, value),
+			collectCoverage: coverageEnabled,
 		}),
 		bare: await createTestPage(browser, {
 			name: "bare",
@@ -414,8 +439,10 @@ async function main() {
 		if (needsReload) {
 			testPages.scramjet.cleanup();
 			testPages.bare.cleanup();
-			if (!testPages.scramjet.page.isClosed())
+			if (!testPages.scramjet.page.isClosed()) {
+				await flushCoverage(testPages.scramjet.page);
 				await testPages.scramjet.page.close();
+			}
 			if (!testPages.bare.page.isClosed()) await testPages.bare.page.close();
 			testPages = await createPages();
 			await ensureHarnessReady(
@@ -541,7 +568,93 @@ async function main() {
 
 	testPages.scramjet.cleanup();
 	testPages.bare.cleanup();
+	await flushCoverage(testPages.scramjet.page);
 	await browser.close();
+
+	if (coverageEnabled) {
+		const scramjetEntries = coverageEntries.filter((entry) =>
+			entry.url?.includes("/scramjet/scramjet.js")
+		);
+		const scramjetRoot = path.resolve(__dirname, "..", "..", "..");
+		const coreRoot = path.join(scramjetRoot, "packages", "core");
+		const allowedRoots = [
+			path.join(coreRoot, "src"),
+			path.join(coreRoot, "rewriter", "src"),
+			path.join(coreRoot, "packages"),
+		];
+		const coverageDir = path.join(__dirname, "..", "coverage");
+		await mkdir(coverageDir, { recursive: true });
+		const { createCoverageMap } = istanbulCoverage as typeof istanbulCoverage;
+		const coverageMap = createCoverageMap({});
+
+		if (scramjetEntries.length > 0) {
+			const scramjetBundlePath = path.join(
+				__dirname,
+				"..",
+				"node_modules",
+				"@mercuryworkshop",
+				"scramjet",
+				"dist",
+				"scramjet.js"
+			);
+			const mapPath = `${scramjetBundlePath}.map`;
+			const bundleSource = await readFile(scramjetBundlePath, "utf-8");
+			const rawMap = JSON.parse(await readFile(mapPath, "utf-8"));
+			rawMap.sourceRoot = "";
+			rawMap.sources = rawMap.sources.map((source: string) => {
+				const normalized = source
+					.replace(/^webpack:\/\/\$?[^/]*\//, "")
+					.replace(/^\.?\//, "");
+				if (normalized.startsWith("packages/")) {
+					return path.join(scramjetRoot, normalized);
+				}
+				return normalized;
+			});
+			for (const entry of scramjetEntries) {
+				const converter = v8toIstanbul(scramjetBundlePath, 0, {
+					source: bundleSource,
+					originalSource: bundleSource,
+					sourceMap: { sourcemap: rawMap },
+				});
+				await converter.load();
+				converter.applyCoverage(entry.functions as any);
+				coverageMap.merge(converter.toIstanbul());
+			}
+		}
+
+		const filteredCoverage: Record<string, any> = {};
+		for (const [filePath, data] of Object.entries(coverageMap.toJSON())) {
+			const normalized = filePath
+				.replace(/^webpack:\/\/\$?[^/]*\//, "")
+				.replace(/^webpack:\/\//, "")
+				.replace(/^\.?\//, "");
+			const normalizedPosix = normalized.replace(/\\/g, "/");
+			if (normalizedPosix.includes("node_modules/")) continue;
+			if (!normalizedPosix.includes("packages/core/")) continue;
+			const resolved = normalizedPosix.startsWith("packages/")
+				? path.join(scramjetRoot, normalizedPosix)
+				: filePath;
+			if (allowedRoots.some((root) => resolved.startsWith(root))) {
+				filteredCoverage[resolved] = data;
+			}
+		}
+
+		await writeFile(
+			path.join(coverageDir, "scramjet-coverage.json"),
+			JSON.stringify(filteredCoverage, null, 2),
+			"utf-8"
+		);
+		const filteredCoverageMap = createCoverageMap(filteredCoverage);
+		const summary = filteredCoverageMap.getCoverageSummary();
+		const formatSummary = (item: typeof summary.lines) =>
+			`${item.pct.toFixed(1)}% (${item.covered}/${item.total})`;
+		console.log(
+			`\n📊 Scramjet TS coverage written to coverage/scramjet-coverage.json (${Object.keys(filteredCoverage).length} files)`
+		);
+		console.log(
+			`📈 Coverage summary: lines ${formatSummary(summary.lines)}, statements ${formatSummary(summary.statements)}, functions ${formatSummary(summary.functions)}, branches ${formatSummary(summary.branches)}`
+		);
+	}
 
 	// Summary
 	console.log("\n" + "─".repeat(50));
