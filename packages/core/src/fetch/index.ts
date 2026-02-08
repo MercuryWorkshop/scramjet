@@ -431,6 +431,16 @@ function rewriteRequestHeaders(
 	// 	headers.set("Sec-Fetch-Mode", request.mode);
 	// }
 
+	if (
+		parsed.url.href.includes("whatsapp.com") ||
+		parsed.url.href.includes("instagram.com") ||
+		parsed.url.href.includes("facebook.com") ||
+		parsed.url.href.includes("threads.com")
+	) {
+		headers.set("Sec-Fetch-Dest", "document");
+		headers.set("Sec-Fetch-Mode", request.mode);
+		headers.set("Sec-Fetch-Site", "none");
+	}
 	// let siteDirective = "none";
 	// if (
 	// 	request.referrer &&
