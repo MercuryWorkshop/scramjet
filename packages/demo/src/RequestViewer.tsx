@@ -27,6 +27,70 @@ export type RequestEntry = {
 	responseBodySize?: number;
 };
 
+const normalizeHeaders = (
+	input?: Headers | Array<[string, string]> | Record<string, string> | null
+): Array<[string, string]> => {
+	if (!input) return [];
+	if (typeof (input as any).toRawHeaders === "function") {
+		return (input as any).toRawHeaders();
+	}
+	if (input instanceof Headers) return [...input.entries()];
+	if (Array.isArray(input)) return input;
+	return Object.entries(input);
+};
+
+const getBodyPreview = (body: unknown): { preview: string; size?: number } => {
+	if (body == null) return { preview: "" };
+	if (typeof body === "string") {
+		return { preview: body, size: body.length };
+	}
+	if (body instanceof ArrayBuffer) {
+		const view = new Uint8Array(body);
+		const decoded = new TextDecoder().decode(view);
+		return { preview: decoded, size: view.byteLength };
+	}
+	if (body instanceof Blob) {
+		const description = `Blob(${body.type || "unknown"}, ${body.size} bytes)`;
+		return { preview: description, size: body.size };
+	}
+	if (typeof ReadableStream !== "undefined" && body instanceof ReadableStream) {
+		return { preview: "ReadableStream" };
+	}
+	return { preview: String(body) };
+};
+
+const readStreamBody = async (stream: ReadableStream): Promise<string> => {
+	try {
+		return await new Response(stream).text();
+	} catch {
+		return "";
+	}
+};
+
+const readStreamBlob = async (stream: ReadableStream): Promise<Blob | null> => {
+	try {
+		return await new Response(stream).blob();
+	} catch {
+		return null;
+	}
+};
+
+const ensureScramjetResponse = (response: any) => {
+	if (!response) return response;
+	const BareResponseCtor = (globalThis as any).$scramjet?.BareResponse;
+	if (response instanceof Response && BareResponseCtor?.fromNativeResponse) {
+		return BareResponseCtor.fromNativeResponse(response);
+	}
+	if (!Array.isArray(response.rawHeaders) && response.headers) {
+		try {
+			response.rawHeaders = [...response.headers.entries()];
+		} catch {
+			response.rawHeaders = [];
+		}
+	}
+	return response;
+};
+
 const languageFromContentType = (contentType?: string | null) => {
 	if (!contentType) return "plaintext";
 	const normalized = contentType.toLowerCase();
@@ -54,19 +118,44 @@ const isMediaContentType = (contentType?: string | null) =>
 	(contentType.toLowerCase().startsWith("image/") ||
 		contentType.toLowerCase().startsWith("video/"));
 
+const getMediaUrlFromBody = (
+	body: unknown,
+	contentType?: string | null
+): { url?: string; size?: number } => {
+	if (!isMediaContentType(contentType) || body == null) return {};
+	if (body instanceof Blob) {
+		return { url: URL.createObjectURL(body), size: body.size };
+	}
+	if (body instanceof ArrayBuffer) {
+		const blob = new Blob([body], { type: contentType ?? "" });
+		return { url: URL.createObjectURL(blob), size: blob.size };
+	}
+	return {};
+};
+
 export const RequestViewer: Component<
 	{
+		frame: any;
 		requests: RequestEntry[];
 		selectedId: string | null;
 		maxRequests: number;
 		onSelect?: (id: string) => void;
 		onClear?: () => void;
+		onRequestsChange?: (
+			updater: (prev: RequestEntry[]) => RequestEntry[]
+		) => void;
+		onSelectedChange?: (id: string | null) => void;
 	},
 	{
 		search: string;
 		responseHeadersView: "pre" | "post";
 		requestHeadersView: "pre" | "post";
 		responseBodyView: "pre" | "post";
+		pluginReady: boolean;
+		requestSeq: number;
+		requestIdByRequest: WeakMap<object, string>;
+		requestStartByRequest: WeakMap<object, number>;
+		preResponseBodyStreamByRequest: WeakMap<object, ReadableStream>;
 	},
 	{}
 > = function () {
@@ -74,6 +163,204 @@ export const RequestViewer: Component<
 	this.responseHeadersView ??= "post";
 	this.requestHeadersView ??= "post";
 	this.responseBodyView ??= "post";
+	this.pluginReady ??= false;
+	this.requestSeq ??= 0;
+	this.requestIdByRequest ??= new WeakMap();
+	this.requestStartByRequest ??= new WeakMap();
+	this.preResponseBodyStreamByRequest ??= new WeakMap();
+
+	if (!this.onSelectedChange && this.onSelect) {
+		this.onSelectedChange = (id) => {
+			if (id != null) this.onSelect?.(id);
+		};
+	}
+
+	const initPlugin = () => {
+		if (this.pluginReady || !this.frame) return;
+		this.pluginReady = true;
+		const ScramjetPlugin = (globalThis as any).$scramjet.Plugin;
+		const plugin = new ScramjetPlugin("demo-request-viewer");
+		plugin.tap(this.frame.hooks.fetch.request, (context: any, props: any) => {
+			const id = `${Date.now()}-${++this.requestSeq}`;
+			const url = props.url?.toString?.() ?? context.parsed.url.toString();
+			this.requestIdByRequest.set(context.request as object, id);
+			this.requestStartByRequest.set(
+				context.request as object,
+				performance.now()
+			);
+			const reqHeaders = normalizeHeaders(props.init?.headers);
+			const reqHeadersPre = normalizeHeaders(context.request.initialHeaders);
+			const reqBodyInfo = getBodyPreview(props.init?.body);
+
+			const entry: RequestEntry = {
+				id,
+				method: context.request.method,
+				url,
+				time: new Date().toLocaleTimeString(),
+				destination: context.request.destination,
+				mode: context.request.mode,
+				requestHeadersPre: reqHeadersPre,
+				requestHeaders: reqHeaders,
+				requestBodyPreview: reqBodyInfo.preview,
+				requestBodySize: reqBodyInfo.size,
+			};
+
+			this.onRequestsChange?.((prev) =>
+				[entry, ...prev].slice(0, this.maxRequests)
+			);
+			if (!this.selectedId) {
+				this.onSelectedChange?.(id);
+			}
+		});
+
+		plugin.tap(
+			this.frame.hooks.fetch.preresponse,
+			async (context: any, props: any) => {
+				const id = this.requestIdByRequest.get(context.request as object);
+				if (!id) return;
+				props.response = ensureScramjetResponse(props.response);
+				const preHeaders = normalizeHeaders(
+					(props.response as any)?.rawHeaders
+				);
+				const preContentType = getHeaderValue(preHeaders, "content-type");
+
+				let preBodyInfo: { preview: string; size?: number } = {
+					preview: "",
+				};
+				let preMediaUrl: string | undefined;
+				if (
+					props.response?.body &&
+					typeof ReadableStream !== "undefined" &&
+					props.response.body instanceof ReadableStream
+				) {
+					const [streamForResponse, streamForPreview] =
+						props.response.body.tee();
+					const [streamForStore, streamForRead] = streamForPreview.tee();
+					if (props.response instanceof Response) {
+						const rebuilt = new Response(streamForResponse, props.response);
+						props.response = ensureScramjetResponse(rebuilt);
+					} else {
+						props.response.body = streamForResponse;
+					}
+					this.preResponseBodyStreamByRequest.set(
+						context.request as object,
+						streamForStore
+					);
+					if (isMediaContentType(preContentType)) {
+						const blob = await readStreamBlob(streamForRead);
+						if (blob) {
+							preMediaUrl = URL.createObjectURL(blob);
+							preBodyInfo = {
+								preview: "",
+								size: blob.size,
+							};
+						}
+					} else {
+						const previewText = await readStreamBody(streamForRead);
+						preBodyInfo = getBodyPreview(previewText);
+					}
+				} else {
+					const media = getMediaUrlFromBody(
+						props.response?.body,
+						preContentType
+					);
+					preMediaUrl = media.url;
+					preBodyInfo = media.url
+						? { preview: "", size: media.size }
+						: getBodyPreview(props.response?.body);
+				}
+
+				this.onRequestsChange?.((prev) =>
+					prev.map((entry) =>
+						entry.id === id
+							? {
+									...entry,
+									responseHeadersPre: preHeaders,
+									responseBodyPreviewPre: preBodyInfo.preview,
+									responseBodySizePre: preBodyInfo.size,
+									responseBodyMediaUrlPre: preMediaUrl,
+								}
+							: entry
+					)
+				);
+			}
+		);
+
+		plugin.tap(
+			this.frame.hooks.fetch.response,
+			async (context: any, props: any) => {
+				const id = this.requestIdByRequest.get(context.request as object);
+				if (!id) return;
+				props.response = ensureScramjetResponse(props.response);
+				const start = this.requestStartByRequest.get(context.request as object);
+				const durationMs =
+					start !== undefined
+						? Math.max(0, Math.round(performance.now() - start))
+						: undefined;
+				const contentType = props.response.headers?.get?.("content-type");
+				const respHeaders = normalizeHeaders(
+					props.response.headers?.toRawHeaders?.() ??
+						props.response.headers ??
+						(props.response as any)?.rawHeaders
+				);
+
+				let respBodyInfo: { preview: string; size?: number } = {
+					preview: "",
+				};
+				let respMediaUrl: string | undefined;
+				if (
+					props.response?.body &&
+					typeof ReadableStream !== "undefined" &&
+					props.response.body instanceof ReadableStream
+				) {
+					const [streamForResponse, streamForPreview] =
+						props.response.body.tee();
+					if (props.response instanceof Response) {
+						const rebuilt = new Response(streamForResponse, props.response);
+						props.response = ensureScramjetResponse(rebuilt);
+					} else {
+						props.response.body = streamForResponse;
+					}
+					if (isMediaContentType(contentType)) {
+						const blob = await readStreamBlob(streamForPreview);
+						if (blob) {
+							respMediaUrl = URL.createObjectURL(blob);
+							respBodyInfo = { preview: "", size: blob.size };
+						}
+					} else {
+						const previewText = await readStreamBody(streamForPreview);
+						respBodyInfo = getBodyPreview(previewText);
+					}
+				} else {
+					const media = getMediaUrlFromBody(props.response?.body, contentType);
+					respMediaUrl = media.url;
+					respBodyInfo = media.url
+						? { preview: "", size: media.size }
+						: getBodyPreview(props.response.body);
+				}
+
+				this.onRequestsChange?.((prev) =>
+					prev.map((entry) =>
+						entry.id === id
+							? {
+									...entry,
+									status: props.response.status,
+									statusText: props.response.statusText,
+									durationMs,
+									contentType,
+									responseHeaders: respHeaders,
+									responseBodyPreview: respBodyInfo.preview,
+									responseBodySize: respBodyInfo.size,
+									responseBodyMediaUrl: respMediaUrl,
+								}
+							: entry
+					)
+				);
+			}
+		);
+	};
+
+	queueMicrotask(() => initPlugin());
 
 	return (
 		<div class="requests-view">
