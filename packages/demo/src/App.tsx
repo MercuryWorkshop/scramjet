@@ -20,6 +20,9 @@ const normalizeHeaders = (
 	input?: Headers | Array<[string, string]> | Record<string, string> | null
 ): Array<[string, string]> => {
 	if (!input) return [];
+	if (typeof (input as any).toRawHeaders === "function") {
+		return (input as any).toRawHeaders();
+	}
 	if (input instanceof Headers) return [...input.entries()];
 	if (Array.isArray(input)) return input;
 	return Object.entries(input);
@@ -85,6 +88,7 @@ export const App: Component<
 					performance.now()
 				);
 				const reqHeaders = normalizeHeaders(props.init?.headers);
+				const reqHeadersPre = normalizeHeaders(context.request.initialHeaders);
 				const reqBodyInfo = getBodyPreview(props.init?.body);
 
 				const entry: RequestEntry = {
@@ -94,6 +98,7 @@ export const App: Component<
 					time: new Date().toLocaleTimeString(),
 					destination: context.request.destination,
 					mode: context.request.mode,
+					requestHeadersPre: reqHeadersPre,
 					requestHeaders: reqHeaders,
 					requestBodyPreview: reqBodyInfo.preview,
 					requestBodySize: reqBodyInfo.size,
@@ -104,6 +109,27 @@ export const App: Component<
 					this.selectedId = id;
 				}
 			});
+
+			plugin.tap(
+				this.frame.hooks.fetch.preresponse,
+				(context: any, props: any) => {
+					const id = this.requestIdByRequest.get(context.request as object);
+					if (!id) return;
+					const preHeaders = normalizeHeaders(props.response?.rawHeaders);
+					const preBodyInfo = getBodyPreview(props.response?.body);
+
+					this.requests = this.requests.map((entry) =>
+						entry.id === id
+							? {
+									...entry,
+									responseHeadersPre: preHeaders,
+									responseBodyPreviewPre: preBodyInfo.preview,
+									responseBodySizePre: preBodyInfo.size,
+								}
+							: entry
+					);
+				}
+			);
 
 			plugin.tap(
 				this.frame.hooks.fetch.response,

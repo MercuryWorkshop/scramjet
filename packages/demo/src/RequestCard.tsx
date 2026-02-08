@@ -8,25 +8,10 @@ export const RequestCard: Component<
 		onSelect?: (id: string) => void;
 	},
 	{},
-			data-status-class={
-				this.request.status !== undefined
-					? String(Math.floor(this.request.status / 100))
-					: ""
-			}
 	{}
 > = function () {
 	return (
-				<span
-					class={
-						this.request.status !== undefined
-							? `request-status status-${Math.floor(
-									this.request.status / 100
-								)}`
-							: "request-status"
-					}
-				>
-					{this.request.status ?? "…"}
-				</span>
+		<div
 			class={use(this.selected).map(
 				(selected) => `request-row ${selected ? "selected" : ""}`
 			)}
@@ -35,7 +20,15 @@ export const RequestCard: Component<
 		>
 			<div class="request-main">
 				<span class="request-method">{this.request.method}</span>
-				<span class="request-status">{this.request.status ?? "…"}</span>
+				<span
+					class={
+						this.request.status !== undefined
+							? `request-status status-${Math.floor(this.request.status / 100)}`
+							: "request-status"
+					}
+				>
+					{this.request.status ?? "…"}
+				</span>
 				<span class="request-duration">
 					{this.request.durationMs !== undefined
 						? `${this.request.durationMs}ms`
@@ -92,13 +85,22 @@ RequestCard.style = css`
 	.request-method {
 		font-weight: 600;
 		color: #fff;
-		background: rgba(148, 163, 184, 0.15);
-		border: 1px solid rgba(148, 163, 184, 0.35);
-		color: #e2e8f0;
+		padding: 0.15em 0.5em;
+		border-radius: 6px;
+		background: rgba(59, 130, 246, 0.2);
 		border: 1px solid rgba(59, 130, 246, 0.35);
 		letter-spacing: 0.02em;
 	}
 	.request-status {
+		padding: 0.15em 0.45em;
+		border-radius: 6px;
+		background: rgba(148, 163, 184, 0.15);
+		border: 1px solid rgba(148, 163, 184, 0.35);
+		color: #e2e8f0;
+		min-width: 2.5em;
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
 	.request-status.status-2 {
 		background: rgba(34, 197, 94, 0.15);
 		border: 1px solid rgba(34, 197, 94, 0.35);
@@ -119,17 +121,6 @@ RequestCard.style = css`
 		border: 1px solid rgba(248, 113, 113, 0.4);
 		color: #fecaca;
 	}
-		padding: 0.15em 0.45em;
-		border-radius: 6px;
-		background: rgba(34, 197, 94, 0.15);
-		border: 1px solid rgba(34, 197, 94, 0.35);
-		color: #bbf7d0;
-		min-width: 2.5em;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	.request-duration,
 	.request-destination,
 	.request-time {
@@ -138,7 +129,9 @@ RequestCard.style = css`
 	.request-url {
 		font-size: 0.85em;
 		color: #e5e7eb;
-		word-break: break-all;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 	.request-type {
 		font-size: 0.75em;
