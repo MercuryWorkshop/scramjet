@@ -154,20 +154,36 @@ async function doHandleFetch(
 		url: parsed.url,
 	};
 	await Tap.dispatch(handler.hooks.fetch.request, reqcontext, reqprops);
-	let response: BareResponse;
+	let earlyResponse: BareResponse;
 
 	if (reqprops.earlyResponse) {
 		let resp = reqprops.earlyResponse;
 		if ("rawHeaders" in resp) {
 			// it's a bare response
-			response = resp;
+			earlyResponse = resp;
 		} else {
 			// it's a native response, convert it
-			response = BareResponse.fromNativeResponse(resp);
+			earlyResponse = BareResponse.fromNativeResponse(resp);
 		}
 	} else {
-		response = await handler.client.fetch(reqprops.url, reqprops.init);
+		earlyResponse = await handler.client.fetch(reqprops.url, reqprops.init);
 	}
+
+	let prerespcontext: typeof handler.hooks.fetch.preresponse.context = {
+		request,
+		parsed,
+	};
+
+	let prerespprops: typeof handler.hooks.fetch.preresponse.props = {
+		response: earlyResponse,
+	};
+
+	await Tap.dispatch(
+		handler.hooks.fetch.preresponse,
+		prerespcontext,
+		prerespprops
+	);
+	let response = prerespprops.response;
 
 	let responseBody: BodyType;
 
@@ -713,12 +729,7 @@ async function rewriteBody(
 				);
 				const htmlContent = new TextDecoder(encoding).decode(bytes);
 
-				return rewriteHtml(
-					htmlContent,
-					handler.context,
-					parsed.meta,
-					true
-				);
+				return rewriteHtml(htmlContent, handler.context, parsed.meta, true);
 			} else {
 				return response.body;
 			}
@@ -759,6 +770,15 @@ export type FetchHooks = {
 			init: BareRequestInit;
 			url: URL;
 			earlyResponse?: BareResponse;
+		};
+	};
+	preresponse: {
+		context: {
+			request: ScramjetFetchRequest;
+			parsed: ScramjetFetchParsed;
+		};
+		props: {
+			response: BareResponse;
 		};
 	};
 	response: {
