@@ -13,11 +13,15 @@ export type RequestEntry = {
 	statusText?: string;
 	durationMs?: number;
 	contentType?: string;
+	requestHeadersPre?: Array<[string, string]>;
 	requestHeaders?: Array<[string, string]>;
+	responseHeadersPre?: Array<[string, string]>;
 	responseHeaders?: Array<[string, string]>;
 	requestBodyPreview?: string;
+	responseBodyPreviewPre?: string;
 	responseBodyPreview?: string;
 	requestBodySize?: number;
+	responseBodySizePre?: number;
 	responseBodySize?: number;
 };
 
@@ -54,10 +58,16 @@ export const RequestViewer: Component<
 	},
 	{
 		search: string;
+		responseHeadersView: "pre" | "post";
+		requestHeadersView: "pre" | "post";
+		responseBodyView: "pre" | "post";
 	},
 	{}
 > = function () {
 	this.search ??= "";
+	this.responseHeadersView ??= "post";
+	this.requestHeadersView ??= "post";
+	this.responseBodyView ??= "post";
 
 	return (
 		<div class="requests-view">
@@ -185,60 +195,168 @@ export const RequestViewer: Component<
 								<details class="detail-section" open>
 									<summary>Response Headers</summary>
 									<div class="detail-body">
-										<div class="detail-block">
-											<div class="headers-table">
-												{(selected.responseHeaders ?? []).length === 0 ? (
-													<div class="headers-empty">(none)</div>
-												) : (
-													selected.responseHeaders?.map(([key, value]) => (
-														<div class="header-row">
-															<span class="header-key">{key}</span>
-															<span class="header-value">{value}</span>
-														</div>
-													))
+										<div class="detail-toggle">
+											<button
+												class={use(this.responseHeadersView).map(
+													(view) =>
+														`toggle-button ${view === "post" ? "active" : ""}`
 												)}
-											</div>
+												on:click={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													this.responseHeadersView = "post";
+												}}
+											>
+												Post-rewrite
+											</button>
+											<button
+												class={use(this.responseHeadersView).map(
+													(view) =>
+														`toggle-button ${view === "pre" ? "active" : ""}`
+												)}
+												on:click={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													this.responseHeadersView = "pre";
+												}}
+											>
+												Pre-rewrite
+											</button>
+										</div>
+										<div class="detail-block">
+											{use(this.responseHeadersView).map((view) => {
+												const headers =
+													view === "pre"
+														? selected.responseHeadersPre
+														: selected.responseHeaders;
+												return (
+													<div class="headers-table">
+														{(headers ?? []).length === 0 ? (
+															<div class="headers-empty">(none)</div>
+														) : (
+															headers?.map(([key, value]) => (
+																<div class="header-row">
+																	<span class="header-key">{key}</span>
+																	<span class="header-value">{value}</span>
+																</div>
+															))
+														)}
+													</div>
+												);
+											})}
 										</div>
 									</div>
 								</details>
 								<details class="detail-section" open>
 									<summary>Request Headers</summary>
 									<div class="detail-body">
-										<div class="detail-block">
-											<div class="headers-table">
-												{(selected.requestHeaders ?? []).length === 0 ? (
-													<div class="headers-empty">(none)</div>
-												) : (
-													selected.requestHeaders?.map(([key, value]) => (
-														<div class="header-row">
-															<span class="header-key">{key}</span>
-															<span class="header-value">{value}</span>
-														</div>
-													))
+										<div class="detail-toggle">
+											<button
+												class={use(this.requestHeadersView).map(
+													(view) =>
+														`toggle-button ${view === "post" ? "active" : ""}`
 												)}
-											</div>
+												on:click={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													this.requestHeadersView = "post";
+												}}
+											>
+												Post-rewrite
+											</button>
+											<button
+												class={use(this.requestHeadersView).map(
+													(view) =>
+														`toggle-button ${view === "pre" ? "active" : ""}`
+												)}
+												on:click={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													this.requestHeadersView = "pre";
+												}}
+											>
+												Pre-rewrite
+											</button>
+										</div>
+										<div class="detail-block">
+											{use(this.requestHeadersView).map((view) => {
+												const headers =
+													view === "pre"
+														? selected.requestHeadersPre
+														: selected.requestHeaders;
+												return (
+													<div class="headers-table">
+														{(headers ?? []).length === 0 ? (
+															<div class="headers-empty">(none)</div>
+														) : (
+															headers?.map(([key, value]) => (
+																<div class="header-row">
+																	<span class="header-key">{key}</span>
+																	<span class="header-value">{value}</span>
+																</div>
+															))
+														)}
+													</div>
+												);
+											})}
 										</div>
 									</div>
 								</details>
 								<details class="detail-section" open>
 									<summary>Response Body</summary>
 									<div class="detail-body">
-										{selected.responseBodyPreview ? (
-											<MonacoComponent
-												value={selected.responseBodyPreview}
-												language={languageFromContentType(selected.contentType)}
-												readOnly={true}
-												minHeight={320}
-											/>
-										) : (
-											<div class="body-empty">(empty)</div>
-										)}
+										<div class="detail-toggle">
+											<button
+												class={use(this.responseBodyView).map(
+													(view) =>
+														`toggle-button ${view === "post" ? "active" : ""}`
+												)}
+												on:click={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													this.responseBodyView = "post";
+												}}
+											>
+												Post-rewrite
+											</button>
+											<button
+												class={use(this.responseBodyView).map(
+													(view) =>
+														`toggle-button ${view === "pre" ? "active" : ""}`
+												)}
+												on:click={(e: MouseEvent) => {
+													e.preventDefault();
+													e.stopPropagation();
+													this.responseBodyView = "pre";
+												}}
+											>
+												Pre-rewrite
+											</button>
+										</div>
+										{use(this.responseBodyView).map((view) => {
+											const body =
+												view === "pre"
+													? selected.responseBodyPreviewPre
+													: selected.responseBodyPreview;
+											return body ? (
+												<MonacoComponent
+													value={body}
+													language={languageFromContentType(
+														selected.contentType
+													)}
+													readOnly={true}
+													minHeight={320}
+												/>
+											) : (
+												<div class="body-empty">(empty)</div>
+											);
+										})}
 									</div>
 								</details>
-								<details class="detail-section" open>
-									<summary>Request Body</summary>
-									<div class="detail-body">
-										{selected.requestBodyPreview ? (
+								{selected.requestBodyPreview ? (
+									<details class="detail-section" open>
+										<summary>Request Body</summary>
+										<div class="detail-body">
 											<MonacoComponent
 												value={selected.requestBodyPreview}
 												language={languageFromContentType(
@@ -250,11 +368,9 @@ export const RequestViewer: Component<
 												readOnly={true}
 												minHeight={320}
 											/>
-										) : (
-											<div class="body-empty">(empty)</div>
-										)}
-									</div>
-								</details>
+										</div>
+									</details>
+								) : null}
 							</div>
 						);
 					})}
@@ -306,6 +422,23 @@ RequestViewer.style = css`
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+	}
+	.requests-toolbar {
+		display: flex;
+		gap: 0.5em;
+		margin-bottom: 0.75em;
+	}
+	.requests-search {
+		flex: 1;
+		background: #121212;
+		border: 1px solid #2a2a2a;
+		color: #e5e7eb;
+		padding: 0.45em 0.65em;
+		border-radius: 8px;
+		font-size: 0.85em;
+	}
+	.requests-search::placeholder {
+		color: #6b7280;
 	}
 	.requests-content {
 		display: grid;
@@ -374,6 +507,26 @@ RequestViewer.style = css`
 	}
 	.detail-body {
 		margin-top: 0.5em;
+	}
+	.detail-toggle {
+		display: flex;
+		gap: 0.5em;
+		margin-bottom: 0.5em;
+		flex-wrap: wrap;
+	}
+	.toggle-button {
+		border: 1px solid #2a2a2a;
+		background: #121212;
+		color: #9ca3af;
+		padding: 0.25em 0.6em;
+		border-radius: 6px;
+		font-size: 0.75em;
+		cursor: pointer;
+	}
+	.toggle-button.active {
+		border-color: #60a5fa;
+		color: #e5e7eb;
+		background: rgba(96, 165, 250, 0.15);
 	}
 	.detail-meta-table {
 		display: flex;
