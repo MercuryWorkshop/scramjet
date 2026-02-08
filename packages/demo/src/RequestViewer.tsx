@@ -20,6 +20,8 @@ export type RequestEntry = {
 	requestBodyPreview?: string;
 	responseBodyPreviewPre?: string;
 	responseBodyPreview?: string;
+	responseBodyMediaUrlPre?: string;
+	responseBodyMediaUrl?: string;
 	requestBodySize?: number;
 	responseBodySizePre?: number;
 	responseBodySize?: number;
@@ -36,7 +38,6 @@ const languageFromContentType = (contentType?: string | null) => {
 	if (normalized.includes("text/plain")) return "plaintext";
 	return "plaintext";
 };
-
 const getHeaderValue = (
 	headers: Array<[string, string]> | undefined,
 	name: string
@@ -47,6 +48,11 @@ const getHeaderValue = (
 	);
 	return match ? match[1] : undefined;
 };
+
+const isMediaContentType = (contentType?: string | null) =>
+	!!contentType &&
+	(contentType.toLowerCase().startsWith("image/") ||
+		contentType.toLowerCase().startsWith("video/"));
 
 export const RequestViewer: Component<
 	{
@@ -338,6 +344,34 @@ export const RequestViewer: Component<
 												view === "pre"
 													? selected.responseBodyPreviewPre
 													: selected.responseBodyPreview;
+											const mediaUrl =
+												view === "pre"
+													? selected.responseBodyMediaUrlPre
+													: selected.responseBodyMediaUrl;
+											const isMedia = isMediaContentType(selected.contentType);
+											if (isMedia && mediaUrl) {
+												if (
+													selected.contentType
+														?.toLowerCase()
+														.startsWith("image/")
+												) {
+													return (
+														<img
+															src={mediaUrl}
+															alt="Response preview"
+															class="body-media"
+														/>
+													);
+												}
+												return (
+													<video src={mediaUrl} class="body-media" controls />
+												);
+											}
+											if (isMedia && !mediaUrl) {
+												return (
+													<div class="body-empty">(media not captured)</div>
+												);
+											}
 											return body ? (
 												<MonacoComponent
 													value={body}
@@ -565,6 +599,14 @@ RequestViewer.style = css`
 		color: #9ca3af;
 		font-style: italic;
 		padding: 0.4em 0.2em;
+	}
+	.body-media {
+		max-width: 100%;
+		max-height: 480px;
+		border-radius: 8px;
+		border: 1px solid #222;
+		background: #0b0b0b;
+		display: block;
 	}
 	.headers-table {
 		display: flex;
