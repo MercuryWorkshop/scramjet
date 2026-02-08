@@ -48,6 +48,69 @@ const getBodyPreview = (body: unknown): { preview: string; size?: number } => {
 	return { preview: String(body) };
 };
 
+const readStreamBody = async (stream: ReadableStream): Promise<string> => {
+	try {
+		return await new Response(stream).text();
+	} catch {
+		return "";
+	}
+};
+
+const readStreamBlob = async (stream: ReadableStream): Promise<Blob | null> => {
+	try {
+		return await new Response(stream).blob();
+	} catch {
+		return null;
+	}
+};
+
+const ensureScramjetResponse = (response: any) => {
+	if (!response) return response;
+	const BareResponseCtor = (globalThis as any).$scramjet?.BareResponse;
+	if (response instanceof Response && BareResponseCtor?.fromNativeResponse) {
+		return BareResponseCtor.fromNativeResponse(response);
+	}
+	if (!Array.isArray(response.rawHeaders) && response.headers) {
+		try {
+			response.rawHeaders = [...response.headers.entries()];
+		} catch {
+			response.rawHeaders = [];
+		}
+	}
+	return response;
+};
+
+const getHeaderValue = (
+	headers: Array<[string, string]> | undefined,
+	name: string
+) => {
+	if (!headers) return undefined;
+	const match = headers.find(
+		([key]) => key.toLowerCase() === name.toLowerCase()
+	);
+	return match ? match[1] : undefined;
+};
+
+const isMediaContentType = (contentType?: string | null) =>
+	!!contentType &&
+	(contentType.toLowerCase().startsWith("image/") ||
+		contentType.toLowerCase().startsWith("video/"));
+
+const getMediaUrlFromBody = (
+	body: unknown,
+	contentType?: string | null
+): { url?: string; size?: number } => {
+	if (!isMediaContentType(contentType) || body == null) return {};
+	if (body instanceof Blob) {
+		return { url: URL.createObjectURL(body), size: body.size };
+	}
+	if (body instanceof ArrayBuffer) {
+		const blob = new Blob([body], { type: contentType ?? "" });
+		return { url: URL.createObjectURL(blob), size: blob.size };
+	}
+	return {};
+};
+
 export const App: Component<
 	{},
 	{},
@@ -58,6 +121,7 @@ export const App: Component<
 		requestSeq: number;
 		requestIdByRequest: WeakMap<object, string>;
 		requestStartByRequest: WeakMap<object, number>;
+		preResponseBodyStreamByRequest: WeakMap<object, ReadableStream>;
 		requests: RequestEntry[];
 		selectedId: string | null;
 	}
@@ -73,6 +137,7 @@ export const App: Component<
 		this.requestSeq = 0;
 		this.requestIdByRequest = new WeakMap();
 		this.requestStartByRequest = new WeakMap();
+		this.preResponseBodyStreamByRequest = new WeakMap();
 
 		this.frame = controller.createFrame(this.frameel);
 
@@ -112,11 +177,60 @@ export const App: Component<
 
 			plugin.tap(
 				this.frame.hooks.fetch.preresponse,
-				(context: any, props: any) => {
+				async (context: any, props: any) => {
 					const id = this.requestIdByRequest.get(context.request as object);
 					if (!id) return;
-					const preHeaders = normalizeHeaders(props.response?.rawHeaders);
-					const preBodyInfo = getBodyPreview(props.response?.body);
+					props.response = ensureScramjetResponse(props.response);
+					const preHeaders = normalizeHeaders(
+						(props.response as any)?.rawHeaders
+					);
+					const preContentType = getHeaderValue(preHeaders, "content-type");
+
+					let preBodyInfo: { preview: string; size?: number } = {
+						preview: "",
+					};
+					let preMediaUrl: string | undefined;
+					if (
+						props.response?.body &&
+						typeof ReadableStream !== "undefined" &&
+						props.response.body instanceof ReadableStream
+					) {
+						const [streamForResponse, streamForPreview] =
+							props.response.body.tee();
+						const [streamForStore, streamForRead] = streamForPreview.tee();
+						if (props.response instanceof Response) {
+							const rebuilt = new Response(streamForResponse, props.response);
+							props.response = ensureScramjetResponse(rebuilt);
+						} else {
+							props.response.body = streamForResponse;
+						}
+						this.preResponseBodyStreamByRequest.set(
+							context.request as object,
+							streamForStore
+						);
+						if (isMediaContentType(preContentType)) {
+							const blob = await readStreamBlob(streamForRead);
+							if (blob) {
+								preMediaUrl = URL.createObjectURL(blob);
+								preBodyInfo = {
+									preview: "",
+									size: blob.size,
+								};
+							}
+						} else {
+							const previewText = await readStreamBody(streamForRead);
+							preBodyInfo = getBodyPreview(previewText);
+						}
+					} else {
+						const media = getMediaUrlFromBody(
+							props.response?.body,
+							preContentType
+						);
+						preMediaUrl = media.url;
+						preBodyInfo = media.url
+							? { preview: "", size: media.size }
+							: getBodyPreview(props.response?.body);
+					}
 
 					this.requests = this.requests.map((entry) =>
 						entry.id === id
@@ -125,6 +239,7 @@ export const App: Component<
 									responseHeadersPre: preHeaders,
 									responseBodyPreviewPre: preBodyInfo.preview,
 									responseBodySizePre: preBodyInfo.size,
+									responseBodyMediaUrlPre: preMediaUrl,
 								}
 							: entry
 					);
@@ -133,9 +248,10 @@ export const App: Component<
 
 			plugin.tap(
 				this.frame.hooks.fetch.response,
-				(context: any, props: any) => {
+				async (context: any, props: any) => {
 					const id = this.requestIdByRequest.get(context.request as object);
 					if (!id) return;
+					props.response = ensureScramjetResponse(props.response);
 					const start = this.requestStartByRequest.get(
 						context.request as object
 					);
@@ -145,9 +261,48 @@ export const App: Component<
 							: undefined;
 					const contentType = props.response.headers?.get?.("content-type");
 					const respHeaders = normalizeHeaders(
-						props.response.headers?.toRawHeaders?.()
+						props.response.headers?.toRawHeaders?.() ??
+							props.response.headers ??
+							(props.response as any)?.rawHeaders
 					);
-					const respBodyInfo = getBodyPreview(props.response.body);
+
+					let respBodyInfo: { preview: string; size?: number } = {
+						preview: "",
+					};
+					let respMediaUrl: string | undefined;
+					if (
+						props.response?.body &&
+						typeof ReadableStream !== "undefined" &&
+						props.response.body instanceof ReadableStream
+					) {
+						const [streamForResponse, streamForPreview] =
+							props.response.body.tee();
+						if (props.response instanceof Response) {
+							const rebuilt = new Response(streamForResponse, props.response);
+							props.response = ensureScramjetResponse(rebuilt);
+						} else {
+							props.response.body = streamForResponse;
+						}
+						if (isMediaContentType(contentType)) {
+							const blob = await readStreamBlob(streamForPreview);
+							if (blob) {
+								respMediaUrl = URL.createObjectURL(blob);
+								respBodyInfo = { preview: "", size: blob.size };
+							}
+						} else {
+							const previewText = await readStreamBody(streamForPreview);
+							respBodyInfo = getBodyPreview(previewText);
+						}
+					} else {
+						const media = getMediaUrlFromBody(
+							props.response?.body,
+							contentType
+						);
+						respMediaUrl = media.url;
+						respBodyInfo = media.url
+							? { preview: "", size: media.size }
+							: getBodyPreview(props.response.body);
+					}
 
 					this.requests = this.requests.map((entry) =>
 						entry.id === id
@@ -160,6 +315,7 @@ export const App: Component<
 									responseHeaders: respHeaders,
 									responseBodyPreview: respBodyInfo.preview,
 									responseBodySize: respBodyInfo.size,
+									responseBodyMediaUrl: respMediaUrl,
 								}
 							: entry
 					);
