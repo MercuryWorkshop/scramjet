@@ -9,7 +9,12 @@ import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
-import { flagEnabled, ScramjetContext, ScramjetInterface } from "@/shared";
+import {
+	flagEnabled,
+	HtmlRewriterTap,
+	ScramjetContext,
+	ScramjetInterface,
+} from "@/shared";
 import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
@@ -135,6 +140,12 @@ export class ScramjetClient {
 
 	context: ScramjetContext;
 
+	hooks = {
+		rewriter: {
+			html: HtmlRewriterTap,
+		},
+	};
+
 	constructor(
 		public global: typeof globalThis,
 		public init: ScramjetClientInit
@@ -160,6 +171,10 @@ export class ScramjetClient {
 		this.box.registerClient(this, global as Self);
 
 		this.context = init.context;
+		this.context.hooks = {
+			rewriter: this.hooks.rewriter,
+		};
+
 		this.bare = new BareCompatibleClient(init.transport);
 
 		this.serviceWorker = this.global.navigator.serviceWorker;

@@ -7,22 +7,30 @@ import { rewriteJs } from "@rewriters/js";
 import { CookieJar } from "@/shared/cookie";
 import { ScramjetContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
+import { Tap } from "@/Tap";
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
 	html: string,
 	context: ScramjetContext,
 	meta: URLMeta,
-	fromTop: boolean = false,
-	preRewrite?: (handler: DomHandler) => void,
-	postRewrite?: (handler: DomHandler) => void
+	fromTop: boolean = false
 ) {
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler);
 
 	parser.write(html);
 	parser.end();
-	if (preRewrite) preRewrite(handler);
+	Tap.dispatch(
+		context.hooks!.rewriter.html.pre,
+		{
+			handler,
+			meta,
+			fromTop,
+			origHtml: html,
+		},
+		undefined
+	);
 	traverseParsedHtml(handler.root, context, meta);
 
 	let htmlRoot: Element | undefined;
@@ -105,7 +113,21 @@ function rewriteHtmlInner(
 		}
 	}
 
-	if (postRewrite) postRewrite(handler);
+	let props: typeof context.hooks.rewriter.html.post.props = {};
+	Tap.dispatch(
+		context.hooks!.rewriter.html.post,
+		{
+			handler,
+			meta,
+			fromTop,
+			origHtml: html,
+		},
+		props
+	);
+
+	if (props.setRawHtml !== undefined) {
+		return props.setRawHtml;
+	}
 
 	return render(handler.root, {
 		encodeEntities: "utf8",

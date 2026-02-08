@@ -2,6 +2,8 @@ import { ScramjetConfig, ScramjetFlags, ScramjetVersionInfo } from "@/types";
 import DomHandler, { Element } from "domhandler";
 import { URLMeta } from "@rewriters/url";
 import { CookieJar } from "./cookie";
+import { Tap, TapInstance } from "@/Tap";
+import { ScramjetFetchParsed, ScramjetFetchRequest } from "@/fetch";
 
 export * from "./cookie";
 export * from "./headers";
@@ -45,10 +47,37 @@ export type ScramjetContext = {
 	prefix: URL;
 	interface: ScramjetInterface;
 	cookieJar: CookieJar;
+	hooks?: {
+		rewriter: {
+			html: TapInstance<HtmlRewriterHooks>;
+		};
+	};
 };
 
 export const versionInfo: ScramjetVersionInfo = {
 	version: VERSION,
 	build: COMMITHASH,
 	date: BUILDDATE,
+};
+
+export type HtmlRewriterHooks = {
+	pre: {
+		context: {
+			handler: DomHandler;
+			meta: URLMeta;
+			fromTop: boolean;
+			origHtml: string;
+		};
+	};
+	post: {
+		context: {
+			handler: DomHandler;
+			meta: URLMeta;
+			fromTop: boolean;
+			origHtml: string;
+		};
+		props: {
+			setRawHtml?: string;
+		};
+	};
 };
