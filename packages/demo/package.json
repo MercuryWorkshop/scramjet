@@ -14,6 +14,7 @@
 		"@mercuryworkshop/scramjet-controller": "workspace:*",
 		"@mercuryworkshop/scramjet": "workspace:*",
 		"@mercuryworkshop/libcurl-transport": "catalog:",
-		"dreamland": "^0.1.3"
+		"dreamland": "^0.1.3",
+		"monaco-editor": "^0.54.0"
 	}
 }
