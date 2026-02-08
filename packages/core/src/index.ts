@@ -10,6 +10,7 @@ export * from "./shared";
 export * from "./symbols";
 export * from "./types";
 export * from "./fetch";
+export * from "./Tap";
 
 declare const REWRITERWASM: string | undefined;
 

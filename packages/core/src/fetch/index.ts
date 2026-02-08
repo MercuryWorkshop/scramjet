@@ -15,12 +15,13 @@ import {
 } from "@rewriters/url";
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetHeaders } from "@/shared/headers";
-import { flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, HtmlRewriterHooks, ScramjetContext } from "@/shared";
 import { rewriteHtml } from "@rewriters/html";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteWorkers } from "@rewriters/worker";
 import { ScramjetConfig } from "@/types";
 import DomHandler from "domhandler";
+import { Tap, TapInstance } from "@/Tap";
 import { sniffEncoding } from "@/shared/sniffEncoding";
 
 export interface ScramjetFetchRequest {
@@ -67,6 +68,13 @@ export class ScramjetFetchHandler extends EventTarget {
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
 
+	public hooks: {
+		rewriter: {
+			html: TapInstance<HtmlRewriterHooks>;
+		};
+		fetch: TapInstance<FetchHooks>;
+	};
+
 	public fetchDataUrl: (dataUrl: string) => Promise<Response>;
 	public fetchBlobUrl: (blobUrl: string) => Promise<Response>;
 	public sendSetCookie: (url: URL, cookie: string) => Promise<void>;
@@ -79,6 +87,15 @@ export class ScramjetFetchHandler extends EventTarget {
 		this.sendSetCookie = init.sendSetCookie;
 		this.fetchDataUrl = init.fetchDataUrl;
 		this.fetchBlobUrl = init.fetchBlobUrl;
+		this.hooks = {
+			rewriter: {
+				html: Tap.create<HtmlRewriterHooks>(),
+			},
+			fetch: Tap.create<FetchHooks>(),
+		};
+		this.context.hooks = {
+			rewriter: this.hooks.rewriter,
+		};
 	}
 
 	async handleFetch(
@@ -127,22 +144,20 @@ async function doHandleFetch(
 		redirect: "manual",
 	} as BareRequestInit;
 
-	const req = new ScramjetRequestEvent(
+	let reqcontext: typeof handler.hooks.fetch.request.context = {
+		client: handler.client,
 		request,
-		parsed.url,
 		parsed,
+	};
+	let reqprops: typeof handler.hooks.fetch.request.props = {
 		init,
-		handler.client
-	);
-	handler.dispatchEvent(req);
-
+		url: parsed.url,
+	};
+	await Tap.dispatch(handler.hooks.fetch.request, reqcontext, reqprops);
 	let response: BareResponse;
 
-	if (req._response) {
-		let resp = req._response;
-		if ("then" in resp) {
-			resp = await resp;
-		}
+	if (reqprops.earlyResponse) {
+		let resp = reqprops.earlyResponse;
 		if ("rawHeaders" in resp) {
 			// it's a bare response
 			response = resp;
@@ -151,7 +166,7 @@ async function doHandleFetch(
 			response = BareResponse.fromNativeResponse(resp);
 		}
 	} else {
-		response = await handler.client.fetch(req.url, req.init);
+		response = await handler.client.fetch(reqprops.url, reqprops.init);
 	}
 
 	let responseBody: BodyType;
@@ -210,18 +225,22 @@ async function doHandleFetch(
 	// await cleanTracker(parsed.url.toString());
 	// }
 
-	const resp = new ScramjetResponseEvent(request, parsed, {
-		body: responseBody,
-		headers: responseHeaders,
-		status: response.status,
-		statusText: response.statusText,
-	});
-	handler.dispatchEvent(resp);
+	let respcontext: typeof handler.hooks.fetch.response.context = {
+		request,
+		parsed,
+	};
+	let respprops: typeof handler.hooks.fetch.response.props = {
+		response: {
+			body: responseBody,
+			headers: responseHeaders,
+			status: response.status,
+			statusText: response.statusText,
+		},
+	};
 
-	let r = resp.response;
-	if (resp._response) r = await resp._response;
+	await Tap.dispatch(handler.hooks.fetch.response, respcontext, respprops);
 
-	return r;
+	return respprops.response;
 }
 
 function isRedirect(response: BareResponse) {
@@ -698,23 +717,7 @@ async function rewriteBody(
 					htmlContent,
 					handler.context,
 					parsed.meta,
-					true,
-					(domhandler) => {
-						const evt = new ScramjetHTMLPreRewriteEvent(
-							domhandler,
-							request,
-							parsed
-						);
-						handler.dispatchEvent(evt);
-					},
-					(domhandler) => {
-						const evt = new ScramjetHTMLPostRewriteEvent(
-							domhandler,
-							request,
-							parsed
-						);
-						handler.dispatchEvent(evt);
-					}
+					true
 				);
 			} else {
 				return response.body;
@@ -745,60 +748,28 @@ async function rewriteBody(
 	}
 }
 
+export type FetchHooks = {
+	request: {
+		context: {
+			request: ScramjetFetchRequest;
+			parsed: ScramjetFetchParsed;
+			client: BareCompatibleClient;
+		};
+		props: {
+			init: BareRequestInit;
+			url: URL;
+			earlyResponse?: BareResponse;
+		};
+	};
+	response: {
+		context: {
+			request: ScramjetFetchRequest;
+			parsed: ScramjetFetchParsed;
+		};
+		props: {
+			response: ScramjetFetchResponse;
+		};
+	};
+};
+
 type BodyType = string | ArrayBuffer | Blob | ReadableStream<any>;
-
-export class ScramjetHTMLPreRewriteEvent extends Event {
-	constructor(
-		public handler: DomHandler,
-		public context: ScramjetFetchRequest,
-		public parsed: ScramjetFetchParsed
-	) {
-		super("htmlPreRewrite");
-	}
-}
-
-export class ScramjetHTMLPostRewriteEvent extends Event {
-	constructor(
-		public handler: DomHandler,
-		public context: ScramjetFetchRequest,
-		public parsed: ScramjetFetchParsed
-	) {
-		super("htmlPostRewrite");
-	}
-}
-
-export class ScramjetResponseEvent extends Event {
-	_response?: ScramjetFetchResponse | Promise<ScramjetFetchResponse>;
-	constructor(
-		public context: ScramjetFetchRequest,
-		public parsed: ScramjetFetchParsed,
-		public response: ScramjetFetchResponse
-	) {
-		super("handleResponse");
-	}
-	respondWith(
-		response: ScramjetFetchResponse | Promise<ScramjetFetchResponse>
-	) {
-		this._response = response;
-	}
-}
-
-export class ScramjetRequestEvent extends Event {
-	_response?:
-		| BareResponse
-		| Promise<BareResponse>
-		| Response
-		| Promise<Response>;
-	constructor(
-		public context: ScramjetFetchRequest,
-		public url: URL,
-		public parsed: ScramjetFetchParsed,
-		public init: BareRequestInit,
-		public client: BareCompatibleClient
-	) {
-		super("request");
-	}
-	respondWith(response: BareResponse | Promise<BareResponse>) {
-		this._response = response;
-	}
-}
