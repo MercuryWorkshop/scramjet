@@ -22,6 +22,8 @@ export type Test = {
 	scramjetOnly?: boolean;
 	/** If defined, this is a playwright test that controls the browser directly */
 	playwrightFn?: (ctx: TestContext) => Promise<void>;
+	/** Expected number of ok() calls. Test will fail if actual count doesn't match */
+	expectedOkCount?: number;
 };
 
 // Common JS that gets injected into every test page
@@ -54,6 +56,7 @@ function pass(message, details) {
 function fail(message, details) {
 	__testFail(message, details);
 }
+
 function assertConsistent(label, value) {
 	if (typeof value === 'undefined') {
 		value = label;
@@ -113,7 +116,13 @@ function assertDeepEqual(actual, expected, message) {
 	}
 }
 
-async function runTest(testFn) {
+function ok(message, details) {
+	if (typeof __testOk === 'function') {
+		__testOk(message, details);
+	}
+}
+
+async function runTest(testFn, autoPass) {
 	try {
 		await waitForTestFunctions();
 		await testFn();
@@ -131,6 +140,7 @@ export function basicTest(props: {
 	js: string;
 	autoPass?: boolean;
 	scramjetOnly?: boolean;
+	expectedOkCount?: number;
 }): Test {
 	const port = nextPort++;
 	let server: http.Server;
@@ -140,6 +150,7 @@ export function basicTest(props: {
 		name: props.name,
 		port,
 		scramjetOnly,
+		expectedOkCount: props.expectedOkCount,
 		async start() {
 			return new Promise((resolve) => {
 				server = http.createServer((req, res) => {
@@ -244,6 +255,7 @@ export function serverTest(props: {
 	autoPass?: boolean;
 	js?: string;
 	scramjetOnly?: boolean;
+	expectedOkCount?: number;
 }) {
 	const port = nextPort++;
 	let server: http.Server;
@@ -255,6 +267,7 @@ export function serverTest(props: {
 		name: props.name,
 		port,
 		scramjetOnly,
+		expectedOkCount: props.expectedOkCount,
 		async start({
 			pass,
 			fail,
@@ -302,6 +315,7 @@ export function serverTest(props: {
 			});
 		},
 		async stop() {
+			// TODO: timeout should be in the parent
 			return Promise.race([
 				new Promise<void>((resolve) => {
 					// Close all active connections first to prevent hanging
@@ -317,6 +331,144 @@ export function serverTest(props: {
 					);
 				}),
 			]);
+		},
+	};
+}
+
+type Frame = {
+	js: (ctx: { url: string }) => string;
+	id?: string;
+	originid?: string;
+	subframes?: Frame[];
+};
+
+export function multiFrameTest(props: {
+	name: string;
+	root: Frame;
+	expectedOkCount?: number;
+}): Test {
+	type Server = {
+		server: http.Server;
+		port: number;
+		js: Record<string, string>;
+		subframes: Record<string, string[]>;
+	};
+
+	let servers: Record<string, Server> = {};
+	let serversOpenPromise: Promise<void>[] = [];
+
+	const createServer = (originid: string) => {
+		const js: Record<string, string> = {};
+		let subframes: Record<string, string[]> = {};
+		let port = nextPort++;
+
+		let server = http.createServer((req, res) => {
+			if (req.url === "/") {
+				res.writeHead(302, {
+					Location: `http://localhost:${port}/${props.root.id}`,
+				});
+				res.end();
+			} else if (req.url === "/common.js") {
+				res.writeHead(200, { "Content-Type": "application/javascript" });
+				res.end(COMMON_JS);
+			} else {
+				if (req.url!.endsWith(".js")) {
+					let id = req.url!.split("/").pop()!.split(".")[0];
+					if (!js[id]) {
+						res.writeHead(404);
+						res.end("Not found");
+						return;
+					}
+					res.writeHead(200, { "Content-Type": "application/javascript" });
+					res.end(js[id]);
+				} else {
+					let id = req.url!.split("/").pop()!;
+
+					let subframesHtml: string[] = [];
+					for (const subframe of subframes[id]) {
+						let server = Object.values(servers).find(
+							(server) => server.js[subframe]
+						)!;
+						subframesHtml.push(`
+							<iframe src="http://localhost:${server.port}/${subframe}"></iframe>
+						`);
+					}
+					res.writeHead(200, { "Content-Type": "text/html" });
+					res.end(`
+						<!DOCTYPE html>
+						<html>
+							<head>
+								<script src="/common.js"></script>
+							</head>
+							<body>
+								<h1>Frame ${originid}/${id}</h1>
+								${subframesHtml.join("<br>")}
+								<script src="/${id}.js"></script>
+							</body>
+						</html>
+					`);
+				}
+			}
+		});
+
+		serversOpenPromise.push(
+			new Promise((resolve) => {
+				server.listen(port, () => resolve());
+			})
+		);
+
+		return {
+			server,
+			subframes,
+			port,
+			js,
+		};
+	};
+
+	const walk = (frame: Frame) => {
+		frame.id ??= "main";
+		frame.originid ??= "main";
+		frame.subframes ??= [];
+		let server: Server;
+		if (servers[frame.originid]) {
+			server = servers[frame.originid];
+		} else {
+			server = createServer(frame.originid);
+			servers[frame.originid] = server;
+		}
+
+		let url = `http://localhost:${server.port}/${frame.id}`;
+		server.js[frame.id] = frame.js({
+			url,
+		});
+		server.subframes[frame.id] = frame.subframes!.map(
+			(subframe) => subframe.id!
+		);
+
+		for (const subframe of frame.subframes) {
+			walk(subframe);
+		}
+	};
+	walk(props.root);
+
+	return {
+		name: props.name,
+		port: servers[props.root.originid!]!.port,
+		expectedOkCount: props.expectedOkCount,
+		async start() {
+			await Promise.all(serversOpenPromise);
+		},
+		async stop() {
+			let promises: Promise<void>[] = [];
+			for (const server of Object.values(servers)) {
+				promises.push(
+					new Promise((resolve) => {
+						server.server.closeAllConnections();
+						server.server.close(() => resolve());
+					})
+				);
+			}
+			await Promise.all(promises);
 		},
 	};
 }
