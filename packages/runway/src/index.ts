@@ -202,6 +202,7 @@ async function createTestPage(
 ): Promise<{
 	page: Page;
 	waitForResult: (timeout: number) => Promise<TestResult>;
+	getOkCount: () => number;
 	cleanup: () => void;
 }> {
 	const page = await browser.newPage();
@@ -221,12 +222,14 @@ async function createTestPage(
 	let rejectResult: (error: Error) => void;
 	let timeoutId: NodeJS.Timeout | null = null;
 	let resultPromise: Promise<TestResult>;
+	let okCount = 0;
 
 	const resetPromise = () => {
 		resultPromise = new Promise<TestResult>((resolve, reject) => {
 			resolveResult = resolve;
 			rejectResult = reject;
 		});
+		okCount = 0;
 	};
 	resetPromise();
 
@@ -241,6 +244,11 @@ async function createTestPage(
 		if (timeoutId) clearTimeout(timeoutId);
 		resolveResult({ status: "fail", message, details });
 		resetPromise();
+	});
+
+	// Track ok() calls - increment the global counter
+	await page.exposeFunction("__testOk", (message?: string, details?: any) => {
+		okCount++;
 	});
 
 	await page.exposeFunction(
@@ -276,6 +284,7 @@ async function createTestPage(
 			}, timeout);
 			return resultPromise;
 		},
+		getOkCount: () => okCount,
 		cleanup: () => {
 			if (timeoutId) clearTimeout(timeoutId);
 		},
@@ -285,6 +294,7 @@ async function createTestPage(
 async function runTestOnHarness(
 	page: Page,
 	waitForResult: (timeout: number) => Promise<TestResult>,
+	getOkCount: () => number,
 	test: Test,
 	serverResult: Promise<TestResult> | null,
 	timeout: number = 30000
@@ -316,11 +326,26 @@ async function runTestOnHarness(
 		(window as any).__runwayNavigate(url);
 	}, testUrl);
 
+	let result: TestResult;
 	if (serverResult) {
-		return await Promise.race([waitForResult(timeout), serverResult]);
+		result = await Promise.race([waitForResult(timeout), serverResult]);
+	} else {
+		result = await waitForResult(timeout);
 	}
 
-	return await waitForResult(timeout);
+	// Validate okCount if expectedOkCount is set
+	if (result.status === "pass" && test.expectedOkCount !== undefined) {
+		const actualOkCount = getOkCount();
+		if (actualOkCount !== test.expectedOkCount) {
+			return {
+				status: "fail",
+				message: `Expected ${test.expectedOkCount} ok() calls, but got ${actualOkCount}`,
+				details: { expected: test.expectedOkCount, actual: actualOkCount },
+			};
+		}
+	}
+
+	return result;
 }
 
 // Main runner
@@ -510,6 +535,7 @@ async function main() {
 				const scramjetPromise = runTestOnHarness(
 					testPages.scramjet.page,
 					testPages.scramjet.waitForResult,
+					testPages.scramjet.getOkCount,
 					test,
 					serverResult
 				);
@@ -518,6 +544,7 @@ async function main() {
 					: runTestOnHarness(
 							testPages.bare.page,
 							testPages.bare.waitForResult,
+							testPages.bare.getOkCount,
 							test,
 							serverResult
 						);
