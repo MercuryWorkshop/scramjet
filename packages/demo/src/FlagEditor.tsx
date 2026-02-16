@@ -33,6 +33,7 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 export const FlagEditor: Component<
 	{
 		onFlagsChange?: (flags: ScramjetFlags) => void;
+		inline?: boolean;
 	},
 	{},
 	{
@@ -59,7 +60,11 @@ export const FlagEditor: Component<
 	};
 
 	return (
-		<div class="flag-editor">
+		<div
+			class={use(this.inline).map(
+				(inline) => `flag-editor ${inline ? "inline" : ""}`
+			)}
+		>
 			<button
 				class="toggle-button"
 				on:click={() => {
@@ -118,6 +123,14 @@ FlagEditor.style = css`
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 	}
 
+	:scope.inline {
+		position: relative;
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		max-width: none;
+	}
+
 	.toggle-button {
 		width: 100%;
 		padding: 0.75em 1em;
@@ -132,6 +145,19 @@ FlagEditor.style = css`
 		transition: background 0.2s;
 	}
 
+	:scope.inline .toggle-button {
+		padding: 0.35em 0.7em;
+		background: #1a1a1a;
+		border: 1px solid #2a2a2a;
+		border-radius: 8px;
+		font-size: 0.8em;
+		line-height: 1;
+	}
+
+	:scope.inline .toggle-button:hover {
+		background: #222;
+	}
+
 	.toggle-button:hover {
 		background: #444;
 	}
@@ -141,6 +167,18 @@ FlagEditor.style = css`
 		border-top: 1px solid #444;
 		max-height: 60vh;
 		overflow-y: auto;
+	}
+
+	:scope.inline .editor-panel {
+		position: absolute;
+		top: calc(100% + 0.35em);
+		right: 0;
+		min-width: 320px;
+		background: rgba(0, 0, 0, 0.95);
+		border: 1px solid #444;
+		border-radius: 8px;
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+		z-index: 1000;
 	}
 
 	.header {
