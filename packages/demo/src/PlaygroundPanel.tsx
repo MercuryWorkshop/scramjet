@@ -750,7 +750,7 @@ PlaygroundPanel.style = css`
 		gap: 0;
 		overflow: hidden;
 		padding: 0;
-		border-radius: 10px;
+		border-radius: 0;
 		border: 1px solid #222;
 		background: #0f0f0f;
 		position: relative;

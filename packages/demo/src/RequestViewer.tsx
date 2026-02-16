@@ -727,7 +727,7 @@ RequestViewer.style = css`
 		min-height: 0;
 		background: #0f0f0f;
 		border: 1px solid #222;
-		border-radius: 10px;
+		border-radius: 0;
 		padding: 0.75em;
 		color: #e5e5e5;
 		font-family:
