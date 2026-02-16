@@ -11,7 +11,7 @@ import { NavigateEvent } from "@client/events";
 import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
 import {
 	flagEnabled,
-	HtmlRewriterTap,
+	HtmlRewriterHooks,
 	ScramjetContext,
 	ScramjetInterface,
 } from "@/shared";
@@ -19,6 +19,7 @@ import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
 import { ScramjetConfig } from "@/types";
+import { Tap } from "@/Tap";
 
 export type ScramjetClientInit = {
 	context: ScramjetContext;
@@ -142,7 +143,7 @@ export class ScramjetClient {
 
 	hooks = {
 		rewriter: {
-			html: HtmlRewriterTap,
+			html: Tap.create<HtmlRewriterHooks>(),
 		},
 	};
 
