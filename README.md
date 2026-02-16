@@ -11,7 +11,8 @@
 
 ---
 
-Scramjet is an interception-based web proxy that the successor to Ultraviolet. It is designed with security, developer friendliness, and performance in mind. Scramjet strives to have a clean, organized codebase to improve maintainability. Scramjet is made to evade internet censorship and bypass arbitrary web browser restrictions.
+Scramjet is an experimental interception-based web proxy designed to evade internet censorship and bypass arbitrary browser restrictions.<br><br>
+Scramjet allows you to sandbox arbitrary web content, bypass CORS restrictions on loading websites, and instrument and debug websites inside the browser itself. This is accomplished through a combination of interception, rewriting, and sandboxing techniques. You can learn more about the technical details <a href="https://developer.puter.com/blog/how-I-ported-the-web-to-the-web/"><strong>here</strong></a>.<br><br>
 
 ## Supported Sites
 
@@ -50,35 +51,4 @@ You can run the Scramjet dev server with the command
 pnpm dev
 ```
 
-Scramjet should now be running at <http://localhost:1337> and should rebuild upon a file being changed (excluding the rewriter).
-
-### Setting up Typedoc
-
-The official Scramjet Typedoc gets deployed via GitHub Actions along with the demo site [here](https://scramjet.mercurywork.shop/typedoc).
-
-You can run it locally with:
-
-```
-pnpm run docs
-pnpm docs:dev
-pnpm docs:serve
-```
-
-### Set up everything
-
-Do you want to run the Scramjet demo and Typedoc together like what is served on GitHub Pages by the Action?
-
-You can do this by running the serve script:
-
-```sh
-chmod +x scripts/serve-static.sh
-./scripts/serve-static.sh
-```
-
-This essentially simulates the CI pipeline, but in a shell script.
-
-## Resources
-
-- [TN Docs](https://docs.titaniumnetwork.org/proxies/scramjet) - There's a page on TN's docs for Scramjet, which is structured more like a guide if you are an interested proxy site developer.
-- [Scramjet Typedocs](https://scramjet.mercurywork.shop/typedoc) - Contains documentation for Scramjet APIs. This is useful for any proxy site developer.
-- [Scramjet-App](https://github.com/MercuryWorkshop/scramjet-app) - A simple example of a proxy site, which uses Scramjet in a mass-deployable manner. This is based on [Ultraviolet-App](https://github.com/titaniumnetwork-dev/ultraviolet-app) for familiarity.
+The demo page for scramjet should now be running at <http://localhost:4141> and should rebuild upon a file being changed (excluding the rewriter).
