@@ -310,6 +310,18 @@ export class Controller {
 	}
 }
 
+function base64Encode(text: string) {
+	return btoa(
+		new TextEncoder()
+			.encode(text)
+			.reduce(
+				(data, byte) => (data.push(String.fromCharCode(byte)), data),
+				[] as any
+			)
+			.join("")
+	);
+}
+
 function yieldGetInjectScripts(
 	cookieJar: ScramjetGlobal.CookieJar,
 	config: Config,
@@ -328,8 +340,8 @@ function yieldGetInjectScripts(
 			script(config.injectPath),
 			script(prefix.href + config.virtualWasmPath),
 			script(
-				"data:text/javascript;base64," +
-					btoa(`
+				"data:text/javascript;charset=utf-8;base64," +
+					base64Encode(`
 					document.currentScript.remove();
 					$scramjetController.load({
 						config: ${JSON.stringify(config)},
@@ -381,7 +393,9 @@ export class Frame {
 
 					str += script(config.scramjetPath);
 					str += script(this.prefix + config.virtualWasmPath);
-					str += `
+					str += script(
+						"data:text/javascript;charset=utf-8;base64," +
+							base64Encode(`
 					(()=>{
 						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
 
@@ -410,7 +424,8 @@ export class Frame {
 
 						client.hook();
 					})();
-					`;
+					`)
+					);
 
 					return str;
 				},
