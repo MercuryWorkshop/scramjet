@@ -1,4 +1,5 @@
 import http from "http";
+import type { Socket } from "node:net";
 import type { FrameLocator, Page } from "playwright";
 
 export type TestContext = {
@@ -25,113 +26,6 @@ export type Test = {
 	/** Expected number of ok() calls. Test will fail if actual count doesn't match */
 	expectedOkCount?: number;
 };
-
-// Common JS that gets injected into every test page
-// The harness injects __testPass and __testFail directly into the iframe's window
-const COMMON_JS = `
-// Test reporting API - calls functions injected by the harness
-// The harness defines __testPass and __testFail on the iframe's window
-
-// Wait for the harness to inject the test functions (polls every 10ms)
-function waitForTestFunctions(timeout = 5000) {
-	return new Promise((resolve, reject) => {
-		const start = Date.now();
-		function check() {
-			if (typeof __testPass === 'function' && typeof __testFail === 'function') {
-				resolve();
-			} else if (Date.now() - start > timeout) {
-				reject(new Error('Timed out waiting for test functions to be injected'));
-			} else {
-				setTimeout(check, 10);
-			}
-		}
-		check();
-	});
-}
-
-function pass(message, details) {
-	__testPass(message, details);
-}
-
-function fail(message, details) {
-	__testFail(message, details);
-}
-
-function assertConsistent(label, value) {
-	if (typeof value === 'undefined') {
-		value = label;
-		label = 'default';
-	}
-	if (typeof __testConsistent === 'function') {
-		return __testConsistent(label, value);
-	}
-	return Promise.resolve();
-}
-if (typeof __eval != "function") {
-	window.__eval = eval;
-	window.__testPass = function() {
-	console.log("TEST PASSED", ...arguments);
-	};
-	window.__testFail = function() {
-	console.error("TEST FAILED", ...arguments);
-	}
-}
-if (typeof __testConsistent !== "function") {
-	window.__testConsistent = function() {
-		return Promise.resolve();
-	};
-}
-const realtop = __eval("top");
-const reallocation = __eval("location");
-const realparent = __eval("location");
-function checkglobal(global) {
-	assert(global !== realtop, "top was leaked");
-	assert(global !== reallocation, "location was leaked");
-	assert(global !== realparent, "parent was leaked");
-	assert(global !== __eval, "eval was leaked");
-}
-
-function assert(condition, message) {
-	if (!condition) {
-		fail(message || 'Assertion failed');
-		throw new Error(message || 'Assertion failed');
-	}
-}
-
-function assertEqual(actual, expected, message) {
-	if (actual !== expected) {
-		const msg = message || \`Expected \${JSON.stringify(expected)}, got \${JSON.stringify(actual)}\`;
-		fail(msg, { actual, expected });
-		throw new Error(msg);
-	}
-}
-
-const assertEquals = assertEqual;
-
-function assertDeepEqual(actual, expected, message) {
-	if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-		const msg = message || \`Deep equality failed\`;
-		fail(msg, { actual, expected });
-		throw new Error(msg);
-	}
-}
-
-function ok(message, details) {
-	if (typeof __testOk === 'function') {
-		__testOk(message, details);
-	}
-}
-
-async function runTest(testFn, autoPass) {
-	try {
-		await waitForTestFunctions();
-		await testFn();
-		pass();
-	} catch (err) {
-		fail(err.message, { stack: err.stack });
-	}
-}
-`;
 
 let nextPort = 9000;
 
@@ -160,7 +54,6 @@ export function basicTest(props: {
 							<!DOCTYPE html>
 							<html>
 								<head>
-									<script src="/common.js"></script>
 								</head>
 								<body>
 									<h1>Test - ${props.name}</h1>
@@ -168,13 +61,10 @@ export function basicTest(props: {
 								</body>
 							</html>
 						`);
-					} else if (req.url === "/common.js") {
-						res.writeHead(200, { "Content-Type": "application/javascript" });
-						res.end(COMMON_JS);
 					} else if (req.url === "/script.js") {
 						res.writeHead(200, { "Content-Type": "application/javascript" });
 						res.end(
-							`runTest(async () => {\n${props.js}\n}, ${props.autoPass || false});`
+							`runTest(async () => {\n${props.js}\n}, ${props.autoPass ?? true});`
 						);
 					} else {
 						res.writeHead(404);
@@ -259,6 +149,7 @@ export function serverTest(props: {
 }) {
 	const port = nextPort++;
 	let server: http.Server;
+	const activeSockets = new Set<Socket>();
 	const scramjetOnly =
 		props.scramjetOnly ??
 		(props.js ? /checkglobal\s*\(/i.test(props.js) : false);
@@ -289,7 +180,6 @@ export function serverTest(props: {
 							<!DOCTYPE html>
 							<html>
 								<head>
-									<script src="/common.js"></script>
 								</head>
 								<body>
 									<h1>Test - ${props.name}</h1>
@@ -297,9 +187,6 @@ export function serverTest(props: {
 								</body>
 							</html>
 						`);
-						} else if (req.url === "/common.js") {
-							res.writeHead(200, { "Content-Type": "application/javascript" });
-							res.end(COMMON_JS);
 						} else if (req.url === "/script.js") {
 							res.writeHead(200, { "Content-Type": "application/javascript" });
 							res.end(
@@ -309,6 +196,12 @@ export function serverTest(props: {
 					}
 				}
 			);
+			server.on("connection", (socket) => {
+				activeSockets.add(socket);
+				socket.on("close", () => {
+					activeSockets.delete(socket);
+				});
+			});
 			await props.start(server, port, { pass, fail });
 			return new Promise<void>((resolve) => {
 				server.listen(port, () => resolve());
@@ -322,6 +215,10 @@ export function serverTest(props: {
 					if (server.closeAllConnections) {
 						server.closeAllConnections();
 					}
+					for (const socket of activeSockets) {
+						socket.destroy();
+					}
+					activeSockets.clear();
 					server.close(() => resolve());
 				}),
 				new Promise<void>((_, reject) => {
@@ -368,9 +265,6 @@ export function multiFrameTest(props: {
 					Location: `http://localhost:${port}/${props.root.id}`,
 				});
 				res.end();
-			} else if (req.url === "/common.js") {
-				res.writeHead(200, { "Content-Type": "application/javascript" });
-				res.end(COMMON_JS);
 			} else {
 				if (req.url!.endsWith(".js")) {
 					let id = req.url!.split("/").pop()!.split(".")[0];
@@ -398,7 +292,6 @@ export function multiFrameTest(props: {
 						<!DOCTYPE html>
 						<html>
 							<head>
-								<script src="/common.js"></script>
 							</head>
 							<body>
 								<h1>Frame ${originid}/${id}</h1>

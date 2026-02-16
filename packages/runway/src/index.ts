@@ -202,6 +202,7 @@ async function createTestPage(
 ): Promise<{
 	page: Page;
 	waitForResult: (timeout: number) => Promise<TestResult>;
+	cancelWaitForResult: () => void;
 	getOkCount: () => number;
 	cleanup: () => void;
 }> {
@@ -214,55 +215,67 @@ async function createTestPage(
 	}
 	const cdp = await page.context().newCDPSession(page);
 	await cdp.send("Page.enable");
+	await cdp.send("Runtime.enable");
+
+	// Inject script into all frames (including cross-origin)
 	await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
 		source: CDP_INIT_SCRIPT,
 	});
 
 	let resolveResult: (result: TestResult) => void;
-	let rejectResult: (error: Error) => void;
 	let timeoutId: NodeJS.Timeout | null = null;
 	let resultPromise: Promise<TestResult>;
 	let okCount = 0;
 
 	const resetPromise = () => {
-		resultPromise = new Promise<TestResult>((resolve, reject) => {
+		resultPromise = new Promise<TestResult>((resolve) => {
 			resolveResult = resolve;
-			rejectResult = reject;
 		});
 		okCount = 0;
 	};
 	resetPromise();
 
-	// Expose test reporting functions (can only do this once per page)
-	await page.exposeFunction("__testPass", (message?: string, details?: any) => {
-		if (timeoutId) clearTimeout(timeoutId);
-		resolveResult({ status: "pass", message, details });
-		resetPromise();
-	});
+	// Create CDP bindings that work across origins
+	await cdp.send("Runtime.addBinding", { name: "__testPass" });
+	await cdp.send("Runtime.addBinding", { name: "__testFail" });
+	await cdp.send("Runtime.addBinding", { name: "__testConsistent" });
+	await cdp.send("Runtime.addBinding", { name: "__testOk" });
 
-	await page.exposeFunction("__testFail", (message?: string, details?: any) => {
-		if (timeoutId) clearTimeout(timeoutId);
-		resolveResult({ status: "fail", message, details });
-		resetPromise();
-	});
-
-	// Track ok() calls - increment the global counter
-	await page.exposeFunction("__testOk", (message?: string, details?: any) => {
-		okCount++;
-	});
-
-	await page.exposeFunction(
-		"__testConsistent",
-		async (label: string, value?: any) => {
-			if (typeof value === "undefined") {
-				value = label;
-				label = "default";
-			}
-			if (options.onConsistent) {
-				return options.onConsistent(options.name, label, value);
-			}
+	// Handle binding calls from any frame (including cross-origin)
+	cdp.on("Runtime.bindingCalled", (event) => {
+		const { name, payload } = event;
+		if (!payload) return;
+		let data: any;
+		try {
+			data = JSON.parse(payload);
+		} catch {
+			data = { message: payload, label: "default", value: payload };
 		}
-	);
+
+		if (name === "__testPass") {
+			if (timeoutId) clearTimeout(timeoutId);
+			resolveResult({
+				status: "pass",
+				message: data.message,
+				details: data.details,
+			});
+			resetPromise();
+		} else if (name === "__testFail") {
+			if (timeoutId) clearTimeout(timeoutId);
+			resolveResult({
+				status: "fail",
+				message: data.message,
+				details: data.details,
+			});
+			resetPromise();
+		} else if (name === "__testConsistent") {
+			if (options.onConsistent) {
+				options.onConsistent(options.name, data.label, data.value);
+			}
+		} else if (name === "__testOk") {
+			okCount++;
+		}
+	});
 
 	// Catch uncaught errors
 	page.on("pageerror", (error) => {
@@ -279,10 +292,20 @@ async function createTestPage(
 		page,
 		waitForResult: (timeout: number) => {
 			timeoutId = setTimeout(() => {
-				rejectResult(new Error(`Test timed out after ${timeout}ms`));
+				resolveResult({
+					status: "fail",
+					message: `Test timed out after ${timeout}ms`,
+				});
 				resetPromise();
 			}, timeout);
 			return resultPromise;
+		},
+		cancelWaitForResult: () => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
+			resetPromise();
 		},
 		getOkCount: () => okCount,
 		cleanup: () => {
@@ -294,6 +317,7 @@ async function createTestPage(
 async function runTestOnHarness(
 	page: Page,
 	waitForResult: (timeout: number) => Promise<TestResult>,
+	cancelWaitForResult: () => void,
 	getOkCount: () => number,
 	test: Test,
 	serverResult: Promise<TestResult> | null,
@@ -328,7 +352,18 @@ async function runTestOnHarness(
 
 	let result: TestResult;
 	if (serverResult) {
-		result = await Promise.race([waitForResult(timeout), serverResult]);
+		const harnessResultPromise = waitForResult(timeout);
+		const raced = await Promise.race([
+			harnessResultPromise.then((value) => ({
+				source: "harness" as const,
+				value,
+			})),
+			serverResult.then((value) => ({ source: "server" as const, value })),
+		]);
+		if (raced.source === "server") {
+			cancelWaitForResult();
+		}
+		result = raced.value;
 	} else {
 		result = await waitForResult(timeout);
 	}
@@ -392,7 +427,7 @@ async function main() {
 
 	// Filter tests if a pattern is provided
 	const tests = testFilter
-		? allTests.filter((t) => t.name.includes(testFilter))
+		? allTests.filter((t) => t.name.includes(testFilter!))
 		: allTests;
 	const parallelism = Math.max(
 		1,
@@ -535,6 +570,7 @@ async function main() {
 				const scramjetPromise = runTestOnHarness(
 					testPages.scramjet.page,
 					testPages.scramjet.waitForResult,
+					testPages.scramjet.cancelWaitForResult,
 					testPages.scramjet.getOkCount,
 					test,
 					serverResult
@@ -544,6 +580,7 @@ async function main() {
 					: runTestOnHarness(
 							testPages.bare.page,
 							testPages.bare.waitForResult,
+							testPages.bare.cancelWaitForResult,
 							testPages.bare.getOkCount,
 							test,
 							serverResult

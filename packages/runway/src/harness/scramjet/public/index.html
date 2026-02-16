@@ -27,50 +27,6 @@
 			let controller;
 			let scramjetFrame;
 
-			function injectTestFunctions() {
-				try {
-					const iframeWin = testframe.contentWindow;
-					if (iframeWin) {
-						iframeWin.__testPass = (message, details) => {
-							if (typeof window.__testPass === "function") {
-								window.__testPass(message, details);
-							}
-						};
-						iframeWin.__testFail = (message, details) => {
-							if (typeof window.__testFail === "function") {
-								window.__testFail(message, details);
-							}
-						};
-						iframeWin.__testConsistent = (label, value) => {
-							if (typeof window.__testConsistent === "function") {
-								return window.__testConsistent(label, value);
-							}
-						};
-						iframeWin.__topEval = window.eval;
-						iframeWin.__eval = iframeWin.eval;
-					}
-				} catch (e) {
-					console.warn("Could not inject test functions:", e);
-				}
-			}
-
-			testframe.addEventListener("load", injectTestFunctions);
-
-			// temporary hack, contextInit is coming soon ish
-			let observer = null;
-			function setupIframeObserver() {
-				setInterval(injectTestFunctions, 0);
-				if (testframe.contentDocument) {
-					observer = new MutationObserver(() => {
-						injectTestFunctions();
-					});
-					observer.observe(testframe.contentDocument, {
-						childList: true,
-						subtree: true,
-					});
-				}
-			}
-
 			async function init() {
 				statusEl.textContent = "Registering service worker...";
 
@@ -118,8 +74,6 @@
 
 				scramjetFrame = controller.createFrame(testframe);
 
-				setupIframeObserver();
-
 				statusEl.textContent = "Ready - waiting for test...";
 
 				window.__runwayNavigate = (url) => {
@@ -127,7 +81,7 @@
 					// Store the URL for reload support
 					sessionStorage.setItem("__runway_last_test", url);
 					reloadBtn.style.display = "inline-block";
-					injectTestFunctions();
+					// injectTestFunctions();
 					scramjetFrame.go(url);
 				};
 
