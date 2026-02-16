@@ -8,9 +8,12 @@ export type URLMeta = {
 	parentFrameName?: string;
 };
 
+let url_ctor = URL;
+let url_createObjectURL = URL.createObjectURL;
+
 function tryCanParseURL(url: string, origin?: string | URL): URL | null {
 	try {
-		return new URL(url, origin);
+		return new url_ctor(url, origin);
 	} catch {
 		return null;
 	}
@@ -21,7 +24,7 @@ export function rewriteBlob(
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	const blob = new URL(url.substring("blob:".length));
+	const blob = new url_ctor(url.substring("blob:".length));
 
 	return "blob:" + meta.origin.origin + blob.pathname;
 }
@@ -31,9 +34,58 @@ export function unrewriteBlob(
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	const blob = new URL(url.substring("blob:".length));
+	const blob = new url_ctor(url.substring("blob:".length));
 
 	return "blob:" + context.prefix.origin + blob.pathname;
+}
+
+function dataToBlob(url: string) {
+	const commaIndex = url.indexOf(",");
+	if (commaIndex === -1) return null;
+
+	const meta = url.slice("data:".length, commaIndex);
+	const data = url.slice(commaIndex + 1);
+
+	const metaParts = meta.split(";");
+	const mediaType = metaParts.shift() || "";
+	const isBase64 = metaParts.some((part) => part.toLowerCase() === "base64");
+	const params = metaParts.filter(
+		(part) => part && part.toLowerCase() !== "base64"
+	);
+
+	let type = mediaType || "text/plain";
+	if (!mediaType) {
+		const hasCharset = params.some((part) =>
+			part.toLowerCase().startsWith("charset=")
+		);
+		if (!hasCharset) {
+			params.push("charset=US-ASCII");
+		}
+	}
+	if (params.length) type += ";" + params.join(";");
+
+	let bytes: Uint8Array;
+	if (isBase64) {
+		let base64 = data.replace(/\s/g, "");
+		base64 = base64.replace(/-/g, "+").replace(/_/g, "/");
+		const binString = atob(base64);
+		bytes = new Uint8Array(binString.length);
+		for (let i = 0; i < binString.length; i++) {
+			bytes[i] = binString.charCodeAt(i);
+		}
+	} else {
+		let decoded = data;
+		try {
+			decoded = decodeURIComponent(data);
+		} catch {
+			// If decode fails, fall back to raw data.
+		}
+		bytes = new TextEncoder().encode(decoded);
+	}
+
+	const blob = new Blob([bytes], { type });
+	const objectUrl = url_createObjectURL(blob);
+	return { blob, objectUrl };
 }
 
 export function rewriteUrl(
@@ -56,6 +108,16 @@ export function rewriteUrl(
 	} else if (url.startsWith("blob:")) {
 		return context.prefix.href + url;
 	} else if (url.startsWith("data:")) {
+		const URL_MAX_LENGTH = 1024 * 1024 * 2;
+		const BUFFER = 1024;
+		// chrome will explode if you make a request to a service worker with a 2MB+ URL
+		// there's an okayish workaround which is just Pretending It's a Blob
+		// TODO: this leaks memory
+		if (url.length + context.prefix.href.length + BUFFER > URL_MAX_LENGTH) {
+			let { objectUrl } = dataToBlob(url);
+			return context.prefix.href + rewriteBlob(objectUrl, context, meta);
+		}
+
 		return context.prefix.href + url;
 	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
 		return url;
