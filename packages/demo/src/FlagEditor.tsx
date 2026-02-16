@@ -88,7 +88,9 @@ export const FlagEditor: Component<
 									<input
 										type="checkbox"
 										checked={use(flagStore[flag])}
-										on:change={() => toggleFlag(flag, event.target.checked)}
+										on:change={(e: Event) =>
+											toggleFlag(flag, (e.target as HTMLInputElement).checked)
+										}
 									/>
 									<div class="flag-info">
 										<span class="flag-name">{flag}</span>
@@ -125,6 +127,8 @@ FlagEditor.style = css`
 
 	:scope.inline {
 		position: relative;
+		display: flex;
+		align-items: center;
 		background: transparent;
 		border: none;
 		box-shadow: none;
@@ -149,9 +153,12 @@ FlagEditor.style = css`
 		padding: 0.35em 0.7em;
 		background: #1a1a1a;
 		border: 1px solid #2a2a2a;
-		border-radius: 8px;
+		border-radius: 0;
 		font-size: 0.8em;
-		line-height: 1;
+		line-height: 1.2;
+		min-height: 28px;
+		display: inline-flex;
+		align-items: center;
 	}
 
 	:scope.inline .toggle-button:hover {
