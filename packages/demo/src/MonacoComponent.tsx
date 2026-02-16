@@ -15,6 +15,9 @@ type MonacoProps = {
 	language?: string;
 	readOnly?: boolean;
 	minHeight?: number;
+	fill?: boolean;
+	onChange?: (value: string) => void;
+	onSave?: () => void;
 };
 
 export const MonacoComponent: Component<MonacoProps, {}, { instance?: any }> =
@@ -32,6 +35,17 @@ export const MonacoComponent: Component<MonacoProps, {}, { instance?: any }> =
 				theme: "vs-dark",
 			});
 
+			this.instance.onDidChangeModelContent(() => {
+				this.onChange?.(this.instance.getValue());
+			});
+
+			this.instance.addCommand(
+				monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+				() => {
+					this.onSave?.();
+				}
+			);
+
 			use(this.value).listen((next) => {
 				if (!this.instance) return;
 				const current = this.instance.getValue();
@@ -47,12 +61,21 @@ export const MonacoComponent: Component<MonacoProps, {}, { instance?: any }> =
 					next ?? "plaintext"
 				);
 			});
+
+			use(this.readOnly).listen((next) => {
+				if (!this.instance) return;
+				this.instance.updateOptions({ readOnly: next ?? true });
+			});
 		};
 
 		return (
 			<div
-				class="monaco-host"
-				style={`min-height: ${this.minHeight ?? 260}px; height: ${this.minHeight ?? 260}px;`}
+				class={`monaco-host ${this.fill ? "fill" : ""}`}
+				style={
+					this.fill
+						? "min-height: 0; height: 100%;"
+						: `min-height: ${this.minHeight ?? 260}px; height: ${this.minHeight ?? 260}px;`
+				}
 			/>
 		);
 	};
@@ -60,16 +83,31 @@ export const MonacoComponent: Component<MonacoProps, {}, { instance?: any }> =
 MonacoComponent.style = css`
 	:scope {
 		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		box-sizing: border-box;
 		min-height: 200px;
 		height: auto;
-		border-radius: 8px;
+		flex: 0 0 auto;
+		border-radius: 0;
 		overflow: hidden;
-		border: 1px solid #1f2937;
-		background: #0b0f15;
+		border: 0;
+		background: #111;
+	}
+	:scope.fill {
+		flex: 1;
+		height: 100%;
+		min-height: 0;
 	}
 	.monaco-host {
 		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		box-sizing: border-box;
 		min-height: 200px;
 		height: 100%;
+	}
+	.monaco-host.fill {
+		min-height: 0;
 	}
 `;
