@@ -2,18 +2,24 @@ import { serverTest } from "../testcommon.ts";
 
 // Inline test helpers — same as COMMON_JS in testcommon.ts but inlined since it's not exported.
 const TEST_HELPERS = `
+function emitBinding(name, payload) {
+	var fn = globalThis[name];
+	if (typeof fn === 'function') {
+		fn(JSON.stringify(payload));
+	}
+}
 function pass(message, details) {
-	if (typeof __testPass === 'function') __testPass(message, details);
+	emitBinding('__testPass', { message: message, details: details });
 }
 function fail(message, details) {
-	if (typeof __testFail === 'function') __testFail(message, details);
+	emitBinding('__testFail', { message: message, details: details });
 }
 function assertConsistent(label, value) {
 	if (typeof value === 'undefined') {
 		value = label;
 		label = 'default';
 	}
-	if (typeof __testConsistent === 'function') return __testConsistent(label, value);
+	emitBinding('__testConsistent', { label: label, value: value });
 	return Promise.resolve();
 }
 function assert(condition, message) {

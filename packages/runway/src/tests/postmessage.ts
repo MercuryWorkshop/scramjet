@@ -115,7 +115,7 @@ export default [
 					originid: "cross",
 					id: "child",
 					js: () => `
-                        parent.postMessage("test");
+                        parent.postMessage("test", "*");
                     `,
 				},
 			],
@@ -126,7 +126,7 @@ export default [
 		root: {
 			js: () => `
                 window.onload = () => {
-                    frames[0].postMessage("test-reverse");
+                    frames[0].postMessage("test-reverse", "*");
                 };
             `,
 			subframes: [
