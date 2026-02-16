@@ -9,6 +9,14 @@ type PlaygroundFile = {
 	content: string;
 };
 
+type PlaygroundProject = {
+	id: string;
+	name: string;
+	files: Record<string, string>;
+};
+
+const PLAYGROUND_STORAGE_KEY = "scramjet-demo-playground-projects-v1";
+
 const DEFAULT_FILES: PlaygroundFile[] = [
 	{
 		path: "/index.html",
@@ -69,6 +77,48 @@ if (button && out) {
 `,
 	},
 ];
+
+const DEFAULT_FILE_MAP = Object.fromEntries(
+	DEFAULT_FILES.map((file) => [file.path, file.content])
+);
+
+const loadProjects = (): PlaygroundProject[] => {
+	try {
+		const raw = localStorage.getItem(PLAYGROUND_STORAGE_KEY);
+		if (!raw) {
+			return [
+				{ id: "default", name: "Default", files: { ...DEFAULT_FILE_MAP } },
+			];
+		}
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) throw new Error("Invalid project format");
+		const projects = parsed
+			.map((item, index) => {
+				if (!item || typeof item !== "object") return null;
+				const files =
+					item.files && typeof item.files === "object" ? item.files : null;
+				if (!files || !Object.keys(files).length) return null;
+				return {
+					id: String(item.id || `project-${index}`),
+					name: String(item.name || `Project ${index + 1}`),
+					files: { ...files },
+				} as PlaygroundProject;
+			})
+			.filter(Boolean) as PlaygroundProject[];
+		if (!projects.length) {
+			return [
+				{ id: "default", name: "Default", files: { ...DEFAULT_FILE_MAP } },
+			];
+		}
+		return projects;
+	} catch {
+		return [{ id: "default", name: "Default", files: { ...DEFAULT_FILE_MAP } }];
+	}
+};
+
+const saveProjects = (projects: PlaygroundProject[]) => {
+	localStorage.setItem(PLAYGROUND_STORAGE_KEY, JSON.stringify(projects));
+};
 
 const languageFromPath = (path: string) => {
 	if (path.endsWith(".html")) return "html";
@@ -138,7 +188,8 @@ export const PlaygroundPanel: Component<
 		originInput: string;
 		previewUrl: string;
 		previewUrlInput: string;
-		files: Record<string, string>;
+		projects: PlaygroundProject[];
+		selectedProjectId: string;
 		selectedFile: string;
 		editorSplit: number;
 		isResizing: boolean;
@@ -153,9 +204,42 @@ export const PlaygroundPanel: Component<
 	this.selectedFile ??= "/index.html";
 	this.editorSplit ??= 0.58;
 	this.isResizing ??= false;
-	this.files ??= Object.fromEntries(
-		DEFAULT_FILES.map((file) => [file.path, file.content])
-	);
+	this.projects ??= loadProjects();
+	this.selectedProjectId ??= this.projects[0]?.id ?? "default";
+
+	const getActiveProject = () =>
+		this.projects.find((project) => project.id === this.selectedProjectId) ??
+		this.projects[0];
+
+	const getActiveFiles = () => getActiveProject()?.files ?? {};
+	if (!getActiveProject()) {
+		this.selectedProjectId = this.projects[0]?.id ?? "default";
+	}
+	if (!(this.selectedFile in getActiveFiles())) {
+		this.selectedFile =
+			Object.keys(getActiveFiles()).sort()[0] ?? "/index.html";
+	}
+
+	const updateProjects = (
+		updater: (projects: PlaygroundProject[]) => PlaygroundProject[]
+	) => {
+		this.projects = updater(this.projects);
+		saveProjects(this.projects);
+	};
+
+	const updateActiveFiles = (
+		updater: (files: Record<string, string>) => Record<string, string>
+	) => {
+		const active = getActiveProject();
+		if (!active) return;
+		updateProjects((projects) =>
+			projects.map((project) =>
+				project.id === active.id
+					? { ...project, files: updater(project.files) }
+					: project
+			)
+		);
+	};
 
 	const clampSplit = (value: number) => Math.min(0.72, Math.max(0.38, value));
 
@@ -226,10 +310,11 @@ export const PlaygroundPanel: Component<
 			if (context.parsed.url.origin !== this.origin) return;
 
 			const filePath = requestPathToFilePath(context.parsed.url.pathname);
-			const body = this.files[filePath];
+			const files = getActiveFiles();
+			const body = files[filePath];
 			if (body == null) {
 				props.earlyResponse = new Response(
-					`Not Found: ${filePath}\n\nAvailable files:\n${Object.keys(this.files)
+					`Not Found: ${filePath}\n\nAvailable files:\n${Object.keys(files)
 						.sort()
 						.join("\n")}`,
 					{
@@ -297,94 +382,235 @@ export const PlaygroundPanel: Component<
 				<div class="section-title">Files</div>
 				<div class="editor-layout">
 					<div class="file-tree">
-						{use(this.files, this.selectedFile).map(([files, selected]) =>
-							Object.keys(files)
-								.sort()
-								.map((path) => (
-									<div
-										class={`file-item-row ${selected === path ? "active" : ""}`}
-									>
-										<button
-											class="file-item"
-											on:click={() => {
-												this.selectedFile = path;
-											}}
-										>
-											{displayFilePath(path)}
-										</button>
-										<div class="file-item-actions">
+						{use(this.projects, this.selectedProjectId, this.selectedFile).map(
+							([projects, selectedProjectId, selectedFile]) => {
+								const activeProject =
+									projects.find(
+										(project) => project.id === selectedProjectId
+									) ?? projects[0];
+								const files = activeProject?.files ?? {};
+
+								return (
+									<div class="tree-sections">
+										<div class="tree-section files-shelf">
+											<div class="tree-list">
+												{Object.keys(files)
+													.sort()
+													.map((path) => (
+														<div
+															class={`file-item-row ${selectedFile === path ? "active" : ""}`}
+														>
+															<button
+																class="file-item"
+																on:click={() => {
+																	this.selectedFile = path;
+																}}
+															>
+																{displayFilePath(path)}
+															</button>
+															<div class="file-item-actions">
+																<button
+																	type="button"
+																	class="file-item-action rename"
+																	on:click={(e: MouseEvent) => {
+																		e.preventDefault();
+																		e.stopPropagation();
+																		const next = normalizeFilePath(
+																			prompt("Rename file", path) || ""
+																		);
+																		if (!next || next === path || next in files)
+																			return;
+																		const value = files[path];
+																		if (value == null) return;
+																		updateActiveFiles((current) => {
+																			const rest = { ...current };
+																			delete rest[path];
+																			return { ...rest, [next]: value };
+																		});
+																		if (this.selectedFile === path)
+																			this.selectedFile = next;
+																	}}
+																	title="Rename file"
+																>
+																	<span class="material-symbols-outlined">
+																		edit
+																	</span>
+																</button>
+																<button
+																	type="button"
+																	class="file-item-action delete"
+																	on:click={(e: MouseEvent) => {
+																		e.preventDefault();
+																		e.stopPropagation();
+																		const paths = Object.keys(files).sort();
+																		if (paths.length <= 1) return;
+																		updateActiveFiles((current) => {
+																			const rest = { ...current };
+																			delete rest[path];
+																			return rest;
+																		});
+																		if (this.selectedFile === path) {
+																			const remaining = Object.keys(files)
+																				.filter((x) => x !== path)
+																				.sort();
+																			this.selectedFile =
+																				remaining[0] ?? "/index.html";
+																		}
+																	}}
+																	title="Delete file"
+																>
+																	<span class="material-symbols-outlined">
+																		delete
+																	</span>
+																</button>
+															</div>
+														</div>
+													))}
+											</div>
 											<button
-												type="button"
-												class="file-item-action rename"
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
+												class="file-item file-new"
+												on:click={() => {
 													const next = normalizeFilePath(
-														prompt("Rename file", path) || ""
+														prompt("New file path", "/new-file.txt") || ""
 													);
-													if (!next || next === path || next in this.files)
-														return;
-													const value = this.files[path];
-													if (value == null) return;
-													const rest = { ...this.files };
-													delete rest[path];
-													this.files = { ...rest, [next]: value };
-													if (this.selectedFile === path)
-														this.selectedFile = next;
+													if (!next || next in files) return;
+													updateActiveFiles((current) => ({
+														...current,
+														[next]: "",
+													}));
+													this.selectedFile = next;
 												}}
-												title="Rename file"
 											>
-												<span class="material-symbols-outlined">edit</span>
-											</button>
-											<button
-												type="button"
-												class="file-item-action delete"
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													const paths = Object.keys(this.files).sort();
-													if (paths.length <= 1) return;
-													const rest = { ...this.files };
-													delete rest[path];
-													this.files = rest;
-													if (this.selectedFile === path) {
-														const remaining = Object.keys(rest).sort();
-														this.selectedFile = remaining[0] ?? "/index.html";
-													}
-												}}
-												title="Delete file"
-											>
-												<span class="material-symbols-outlined">delete</span>
+												+ New file
 											</button>
 										</div>
+										<div class="tree-split-bar" />
+										<div class="tree-section projects-shelf">
+											<div class="tree-title-row">
+												<span class="tree-title">Projects</span>
+												<button
+													type="button"
+													class="project-header-action"
+													on:click={() => {
+														const name = (
+															prompt("Project name", "New Project") || ""
+														).trim();
+														if (!name) return;
+														const id = `project-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+														const project: PlaygroundProject = {
+															id,
+															name,
+															files: { ...DEFAULT_FILE_MAP },
+														};
+														updateProjects((current) => [...current, project]);
+														this.selectedProjectId = id;
+														this.selectedFile = "/index.html";
+													}}
+													title="Create project"
+												>
+													<span class="material-symbols-outlined">add</span>
+												</button>
+											</div>
+											<div class="tree-list projects-list">
+												{projects.map((project) => (
+													<div
+														class={`project-item-row ${project.id === selectedProjectId ? "active" : ""}`}
+													>
+														<button
+															class="project-item"
+															on:click={() => {
+																this.selectedProjectId = project.id;
+																const paths = Object.keys(project.files).sort();
+																this.selectedFile = paths.includes(
+																	this.selectedFile
+																)
+																	? this.selectedFile
+																	: (paths[0] ?? "/index.html");
+															}}
+														>
+															{project.name}
+														</button>
+														<button
+															type="button"
+															class="project-item-action"
+															on:click={(e: MouseEvent) => {
+																e.preventDefault();
+																e.stopPropagation();
+																const next = (
+																	prompt("Rename project", project.name) || ""
+																).trim();
+																if (!next || next === project.name) return;
+																updateProjects((current) =>
+																	current.map((item) =>
+																		item.id === project.id
+																			? { ...item, name: next }
+																			: item
+																	)
+																);
+															}}
+															title="Rename project"
+														>
+															<span class="material-symbols-outlined">
+																edit
+															</span>
+														</button>
+														<button
+															type="button"
+															class="project-item-action delete"
+															on:click={(e: MouseEvent) => {
+																e.preventDefault();
+																e.stopPropagation();
+																if (projects.length <= 1) return;
+																const remaining = projects.filter(
+																	(item) => item.id !== project.id
+																);
+																const nextProject = remaining[0];
+																updateProjects((current) =>
+																	current.filter(
+																		(item) => item.id !== project.id
+																	)
+																);
+																if (
+																	this.selectedProjectId === project.id &&
+																	nextProject
+																) {
+																	this.selectedProjectId = nextProject.id;
+																	this.selectedFile =
+																		Object.keys(nextProject.files).sort()[0] ??
+																		"/index.html";
+																}
+															}}
+															title="Delete project"
+														>
+															<span class="material-symbols-outlined">
+																delete
+															</span>
+														</button>
+													</div>
+												))}
+											</div>
+										</div>
 									</div>
-								))
-						)}
-						<button
-							class="file-item file-new"
-							on:click={() => {
-								const next = normalizeFilePath(
-									prompt("New file path", "/new-file.txt") || ""
 								);
-								if (!next) return;
-								if (!(next in this.files)) {
-									this.files = {
-										...this.files,
-										[next]: "",
-									};
-								}
-								this.selectedFile = next;
-							}}
-						>
-							+ New file
-						</button>
+							}
+						)}
 					</div>
 					<div class="editor-pane">
-						<div class="editor-header">{use(this.selectedFile)}</div>
+						<div class="editor-header">
+							{use(this.selectedFile).map((path) => displayFilePath(path))}
+						</div>
 						<MonacoComponent
-							value={use(this.selectedFile, this.files).map(
-								([selected, files]) => files[selected] ?? ""
-							)}
+							value={use(
+								this.selectedFile,
+								this.projects,
+								this.selectedProjectId
+							).map(([selected, projects, selectedProjectId]) => {
+								const active =
+									projects.find(
+										(project) => project.id === selectedProjectId
+									) ?? projects[0];
+								return active?.files[selected] ?? "";
+							})}
 							language={use(this.selectedFile).map((selected) =>
 								languageFromPath(selected)
 							)}
@@ -395,11 +621,12 @@ export const PlaygroundPanel: Component<
 							}}
 							onChange={(value) => {
 								const selected = this.selectedFile;
-								if (!(selected in this.files)) return;
-								this.files = {
-									...this.files,
+								const files = getActiveFiles();
+								if (!(selected in files)) return;
+								updateActiveFiles((current) => ({
+									...current,
 									[selected]: value,
-								};
+								}));
 							}}
 						/>
 					</div>
@@ -609,10 +836,156 @@ PlaygroundPanel.style = css`
 		border-radius: 0;
 		background: #111;
 		padding: 0.35em 0.3em;
+		overflow: hidden;
+		min-height: 0;
+	}
+	.tree-sections {
+		display: grid;
+		grid-template-rows: minmax(0, 1fr) 9px minmax(0, 1fr);
+		gap: 0;
+		height: 100%;
+		min-height: 0;
+	}
+	.tree-section {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		border: 0;
+		background: transparent;
+	}
+	.tree-section.files-shelf {
+		padding-bottom: 0.25em;
+	}
+	.tree-section.projects-shelf {
+		padding-top: 0.25em;
+	}
+	.tree-split-bar {
+		position: relative;
+	}
+	.tree-split-bar::before {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: 0;
+		right: 0;
+		height: 1px;
+		transform: translateY(-50%);
+		background: #2a2a2a;
+	}
+	.tree-title,
+	.tree-title-row {
+		color: #aaa;
+		font-size: 0.72em;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		font-weight: 600;
+		padding: 0.2em 0.25em 0.4em;
+		border-bottom: 0;
+	}
+	.tree-title-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.tree-list {
+		flex: 1;
+		min-height: 0;
 		overflow: auto;
 		display: flex;
 		flex-direction: column;
 		gap: 0.15em;
+		padding: 0.2em 0;
+	}
+	.projects-list {
+		padding-right: 0.1em;
+	}
+	.project-header-action {
+		border: 0;
+		background: transparent;
+		color: #8f8f8f;
+		padding: 0.1em;
+		border-radius: 3px;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.project-header-action:hover {
+		background: #1f1f1f;
+		color: #d0d0d0;
+	}
+	.project-header-action .material-symbols-outlined {
+		font-size: 14px;
+	}
+	.project-item-row {
+		display: flex;
+		align-items: center;
+		gap: 0.3em;
+		padding-right: 0.2em;
+		border-radius: 4px;
+		min-height: 28px;
+	}
+	.project-item-row:hover {
+		background: #171717;
+	}
+	.project-item-row.active {
+		background: #1f1f1f;
+		position: relative;
+	}
+	.project-item-row.active::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 3px;
+		bottom: 3px;
+		width: 2px;
+		background: #6b7280;
+		border-radius: 999px;
+	}
+	.project-item {
+		flex: 1;
+		min-width: 0;
+		text-align: left;
+		border: 0;
+		background: transparent;
+		color: #d1d5db;
+		padding: 0.35em 0.55em;
+		font-size: 0.8em;
+		line-height: 1.2;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.project-item-row:hover .project-item,
+	.project-item-row.active .project-item {
+		color: #fff;
+	}
+	.project-item-action {
+		border: 0;
+		background: transparent;
+		color: #8f8f8f;
+		padding: 0.16em;
+		border-radius: 3px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0;
+		cursor: pointer;
+	}
+	.project-item-row:hover .project-item-action,
+	.project-item-row:focus-within .project-item-action {
+		opacity: 1;
+	}
+	.project-item-action:hover {
+		background: #2a2a2a;
+		color: #d0d0d0;
+	}
+	.project-item-action.delete {
+		color: #c87b7b;
+	}
+	.project-item-action .material-symbols-outlined {
+		font-size: 14px;
 	}
 	.file-item {
 		flex: 1;
@@ -624,6 +997,7 @@ PlaygroundPanel.style = css`
 		border-radius: 4px;
 		padding: 0.35em 0.55em;
 		font-size: 0.8em;
+		line-height: 1.2;
 		font-family: inherit;
 		cursor: pointer;
 		overflow: hidden;
@@ -639,6 +1013,7 @@ PlaygroundPanel.style = css`
 		gap: 0.3em;
 		border-radius: 4px;
 		padding-right: 0.2em;
+		min-height: 28px;
 	}
 	.file-item-row:hover {
 		background: #171717;
@@ -862,14 +1237,11 @@ PlaygroundPanel.style = css`
 			grid-template-columns: 1fr;
 		}
 		.file-tree {
-			flex-direction: row;
-			align-items: center;
-			overflow-x: auto;
-			min-height: 0;
+			min-height: 320px;
 		}
-		.file-item {
-			width: auto;
-			flex: 0 0 auto;
+		.tree-sections {
+			grid-template-rows: minmax(180px, 1fr) 9px minmax(180px, 1fr);
+			min-height: 0;
 		}
 		.preview-omnibox {
 			padding: 0.4em;
