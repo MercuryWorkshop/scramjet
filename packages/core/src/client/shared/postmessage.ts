@@ -85,7 +85,9 @@ export default function (client: ScramjetClient, self: Self) {
 	Object.defineProperty(self, client.config.globals.wrappostmessagefn, {
 		value: function (obj: any) {
 			if (!obj || typeof obj.postMessage !== "function") return obj;
-			return obj.postMessage.bind(obj);
+			return {
+				postMessage: obj.postMessage.bind(obj),
+			};
 		},
 		configurable: false,
 		writable: false,
