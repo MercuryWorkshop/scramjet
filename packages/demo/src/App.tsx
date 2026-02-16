@@ -2,6 +2,7 @@ import { controller } from ".";
 import { createStore, css, type Component } from "dreamland/core";
 import { FlagEditor } from "./FlagEditor";
 import { RequestViewer, type RequestEntry } from "./RequestViewer";
+import { PlaygroundPanel } from "./PlaygroundPanel";
 
 const urlStore = createStore(
 	{
@@ -20,9 +21,10 @@ export const App: Component<
 	{},
 	{},
 	{
-		activeTab: "browser" | "requests";
+		activeTab: "browser" | "requests" | "playground";
 		frame: ReturnType<typeof controller.createFrame>;
 		frameel: HTMLIFrameElement;
+		playgroundFrame: ReturnType<typeof controller.createFrame>;
 		requests: RequestEntry[];
 		selectedId: string | null;
 	}
@@ -37,6 +39,7 @@ export const App: Component<
 		this.selectedId = null;
 
 		this.frame = controller.createFrame(this.frameel);
+		this.playgroundFrame = controller.createFrame();
 
 		let body = btoa(
 			`<body style="background: #000; color: #fff">Welcome to <i>Scramjet</i>! Type in a URL in the omnibox above and press enter to get started.</body>`
@@ -67,6 +70,16 @@ export const App: Component<
 						}}
 					>
 						Requests ({use(this.requests).map((reqs) => reqs.length)})
+					</button>
+					<button
+						class={use(this.activeTab).map(
+							(tab) => `tab-button ${tab === "playground" ? "active" : ""}`
+						)}
+						on:click={() => {
+							this.activeTab = "playground";
+						}}
+					>
+						Playground
 					</button>
 				</div>
 				<form
@@ -130,6 +143,17 @@ export const App: Component<
 					}}
 				/>
 			</div>
+			<div
+				class={use(this.activeTab).map(
+					(tab) =>
+						`tab-panel playground-panel ${tab === "playground" ? "active" : ""}`
+				)}
+			>
+				<PlaygroundPanel
+					frame={use(this.playgroundFrame)}
+					active={use(this.activeTab).map((tab) => tab === "playground")}
+				/>
+			</div>
 		</div>
 	);
 };
@@ -187,6 +211,8 @@ App.style = css`
 	}
 	.tab-panel {
 		flex: 1;
+		width: 100%;
+		min-width: 0;
 		min-height: 0;
 		display: none;
 	}
@@ -195,6 +221,11 @@ App.style = css`
 	}
 	.requests-panel {
 		flex-direction: column;
+	}
+	.playground-panel {
+		width: 100%;
+		min-width: 0;
+		min-height: 0;
 	}
 	iframe {
 		background: white;
