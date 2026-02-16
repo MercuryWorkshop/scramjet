@@ -264,8 +264,8 @@ const iifeConfig = createScramjetConfig({
 		path: join(scramjetdir, "dist"),
 		iife: true,
 		library: {
-			type: "var",
-			name: "$scramjet",
+			type: "assign",
+			name: "self.$scramjet",
 		},
 	},
 	rewriterWasm: "undefined",
@@ -287,8 +287,8 @@ const iifeBundledConfig = createScramjetConfig({
 		path: join(scramjetdir, "dist"),
 		iife: true,
 		library: {
-			type: "var",
-			name: "$scramjet",
+			type: "assign",
+			name: "self.$scramjet",
 		},
 	},
 	rewriterWasm: JSON.stringify(wasmB64),
