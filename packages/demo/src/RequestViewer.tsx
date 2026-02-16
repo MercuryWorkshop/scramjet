@@ -136,6 +136,7 @@ const getMediaUrlFromBody = (
 export const RequestViewer: Component<
 	{
 		frame: any;
+		active?: boolean;
 		requests: RequestEntry[];
 		selectedId: string | null;
 		maxRequests: number;
@@ -175,12 +176,12 @@ export const RequestViewer: Component<
 		};
 	}
 
-	const initPlugin = () => {
-		if (this.pluginReady || !this.frame) return;
+	const initPlugin = (frame: any) => {
+		if (this.pluginReady || !frame) return;
 		this.pluginReady = true;
 		const ScramjetPlugin = (globalThis as any).$scramjet.Plugin;
 		const plugin = new ScramjetPlugin("demo-request-viewer");
-		plugin.tap(this.frame.hooks.fetch.request, (context: any, props: any) => {
+		plugin.tap(frame.hooks.fetch.request, (context: any, props: any) => {
 			const id = `${Date.now()}-${++this.requestSeq}`;
 			const url = props.url?.toString?.() ?? context.parsed.url.toString();
 			this.requestIdByRequest.set(context.request as object, id);
@@ -214,7 +215,7 @@ export const RequestViewer: Component<
 		});
 
 		plugin.tap(
-			this.frame.hooks.fetch.preresponse,
+			frame.hooks.fetch.preresponse,
 			async (context: any, props: any) => {
 				const id = this.requestIdByRequest.get(context.request as object);
 				if (!id) return;
@@ -286,84 +287,86 @@ export const RequestViewer: Component<
 			}
 		);
 
-		plugin.tap(
-			this.frame.hooks.fetch.response,
-			async (context: any, props: any) => {
-				const id = this.requestIdByRequest.get(context.request as object);
-				if (!id) return;
-				props.response = ensureScramjetResponse(props.response);
-				const start = this.requestStartByRequest.get(context.request as object);
-				const durationMs =
-					start !== undefined
-						? Math.max(0, Math.round(performance.now() - start))
-						: undefined;
-				const contentType = props.response.headers?.get?.("content-type");
-				const respHeaders = normalizeHeaders(
-					props.response.headers?.toRawHeaders?.() ??
-						props.response.headers ??
-						(props.response as any)?.rawHeaders
-				);
+		plugin.tap(frame.hooks.fetch.response, async (context: any, props: any) => {
+			const id = this.requestIdByRequest.get(context.request as object);
+			if (!id) return;
+			props.response = ensureScramjetResponse(props.response);
+			const start = this.requestStartByRequest.get(context.request as object);
+			const durationMs =
+				start !== undefined
+					? Math.max(0, Math.round(performance.now() - start))
+					: undefined;
+			const contentType = props.response.headers?.get?.("content-type");
+			const respHeaders = normalizeHeaders(
+				props.response.headers?.toRawHeaders?.() ??
+					props.response.headers ??
+					(props.response as any)?.rawHeaders
+			);
 
-				let respBodyInfo: { preview: string; size?: number } = {
-					preview: "",
-				};
-				let respMediaUrl: string | undefined;
-				if (
-					props.response?.body &&
-					typeof ReadableStream !== "undefined" &&
-					props.response.body instanceof ReadableStream
-				) {
-					const [streamForResponse, streamForPreview] =
-						props.response.body.tee();
-					if (props.response instanceof Response) {
-						const rebuilt = new Response(streamForResponse, props.response);
-						props.response = ensureScramjetResponse(rebuilt);
-					} else {
-						props.response.body = streamForResponse;
-					}
-					if (isMediaContentType(contentType)) {
-						const blob = await readStreamBlob(streamForPreview);
-						if (blob) {
-							respMediaUrl = URL.createObjectURL(blob);
-							respBodyInfo = { preview: "", size: blob.size };
-						}
-					} else {
-						const previewText = await readStreamBody(streamForPreview);
-						respBodyInfo = getBodyPreview(previewText);
+			let respBodyInfo: { preview: string; size?: number } = {
+				preview: "",
+			};
+			let respMediaUrl: string | undefined;
+			if (
+				props.response?.body &&
+				typeof ReadableStream !== "undefined" &&
+				props.response.body instanceof ReadableStream
+			) {
+				const [streamForResponse, streamForPreview] = props.response.body.tee();
+				if (props.response instanceof Response) {
+					const rebuilt = new Response(streamForResponse, props.response);
+					props.response = ensureScramjetResponse(rebuilt);
+				} else {
+					props.response.body = streamForResponse;
+				}
+				if (isMediaContentType(contentType)) {
+					const blob = await readStreamBlob(streamForPreview);
+					if (blob) {
+						respMediaUrl = URL.createObjectURL(blob);
+						respBodyInfo = { preview: "", size: blob.size };
 					}
 				} else {
-					const media = getMediaUrlFromBody(props.response?.body, contentType);
-					respMediaUrl = media.url;
-					respBodyInfo = media.url
-						? { preview: "", size: media.size }
-						: getBodyPreview(props.response.body);
+					const previewText = await readStreamBody(streamForPreview);
+					respBodyInfo = getBodyPreview(previewText);
 				}
-
-				this.onRequestsChange?.((prev) =>
-					prev.map((entry) =>
-						entry.id === id
-							? {
-									...entry,
-									status: props.response.status,
-									statusText: props.response.statusText,
-									durationMs,
-									contentType,
-									responseHeaders: respHeaders,
-									responseBodyPreview: respBodyInfo.preview,
-									responseBodySize: respBodyInfo.size,
-									responseBodyMediaUrl: respMediaUrl,
-								}
-							: entry
-					)
-				);
+			} else {
+				const media = getMediaUrlFromBody(props.response?.body, contentType);
+				respMediaUrl = media.url;
+				respBodyInfo = media.url
+					? { preview: "", size: media.size }
+					: getBodyPreview(props.response.body);
 			}
-		);
+
+			this.onRequestsChange?.((prev) =>
+				prev.map((entry) =>
+					entry.id === id
+						? {
+								...entry,
+								status: props.response.status,
+								statusText: props.response.statusText,
+								durationMs,
+								contentType,
+								responseHeaders: respHeaders,
+								responseBodyPreview: respBodyInfo.preview,
+								responseBodySize: respBodyInfo.size,
+								responseBodyMediaUrl: respMediaUrl,
+							}
+						: entry
+				)
+			);
+		});
 	};
 
-	queueMicrotask(() => initPlugin());
+	const activeSignal = use(this.active ?? false, this.frame).map(
+		([active, frame]) => {
+			if (active) initPlugin(frame);
+			return active;
+		}
+	);
 
 	return (
 		<div class="requests-view">
+			{activeSignal.map(() => null)}
 			<div class="requests-header">
 				<span>
 					Recent requests (latest {use(this.maxRequests).map((max) => max)})

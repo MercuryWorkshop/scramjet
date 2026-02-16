@@ -46,75 +46,90 @@ export const App: Component<
 
 	return (
 		<div>
-			<FlagEditor
-				onFlagsChange={(flags) => {
-					console.log("flags changed", flags);
-					Object.assign(controller.flags, flags);
-				}}
-			/>
-			<div class="tab-bar">
-				<button
+			<div class="top-bar">
+				<div class="tab-bar">
+					<button
+						class={use(this.activeTab).map(
+							(tab) => `tab-button ${tab === "browser" ? "active" : ""}`
+						)}
+						on:click={() => {
+							this.activeTab = "browser";
+						}}
+					>
+						Browser
+					</button>
+					<button
+						class={use(this.activeTab).map(
+							(tab) => `tab-button ${tab === "requests" ? "active" : ""}`
+						)}
+						on:click={() => {
+							this.activeTab = "requests";
+						}}
+					>
+						Requests ({use(this.requests).map((reqs) => reqs.length)})
+					</button>
+				</div>
+				<form
 					class={use(this.activeTab).map(
-						(tab) => `tab-button ${tab === "browser" ? "active" : ""}`
+						(tab) => `url-form ${tab === "browser" ? "active" : ""}`
 					)}
-					on:click={() => {
-						this.activeTab = "browser";
+					on:submit={(e: SubmitEvent) => {
+						e.preventDefault();
+						this.frame?.go(urlStore.url);
 					}}
 				>
-					Browser
-				</button>
-				<button
-					class={use(this.activeTab).map(
-						(tab) => `tab-button ${tab === "requests" ? "active" : ""}`
-					)}
-					on:click={() => {
-						this.activeTab = "requests";
-					}}
-				>
-					Requests ({use(this.requests).map((reqs) => reqs.length)})
-				</button>
-				<div class="tab-spacer"></div>
-			</div>
-			{use(this.activeTab).map((tab) =>
-				tab === "browser" ? (
-					<div class="browser-view">
-						<form
-							on:submit={(e: SubmitEvent) => {
-								e.preventDefault();
-								this.frame?.go(urlStore.url);
-							}}
-						>
-							<input
-								id="search"
-								type="text"
-								value={use(urlStore.url)}
-								placeholder="Enter URL"
-							/>
-						</form>
-						<iframe this={use(this.frameel)}></iframe>
-					</div>
-				) : (
-					<RequestViewer
-						frame={this.frame}
-						requests={use(this.requests)}
-						selectedId={use(this.selectedId)}
-						maxRequests={MAX_REQUESTS}
-						onSelect={(id) => {
-							this.selectedId = id;
-						}}
-						onSelectedChange={(id) => {
-							this.selectedId = id;
-						}}
-						onRequestsChange={(updater) => {
-							this.requests = updater(this.requests);
-						}}
-						onClear={() => {
-							this.requests = [];
-							this.selectedId = null;
+					<input
+						id="search"
+						class="url-input"
+						type="text"
+						value={use(urlStore.url)}
+						placeholder="Enter URL"
+					/>
+				</form>
+				<div class="top-actions">
+					<FlagEditor
+						inline={true}
+						onFlagsChange={(flags) => {
+							console.log("flags changed", flags);
+							Object.assign(controller.flags, flags);
 						}}
 					/>
-				)
-			)}
+				</div>
+			</div>
+			<div
+				class={use(this.activeTab).map(
+					(tab) => `tab-panel browser-view ${tab === "browser" ? "active" : ""}`
+				)}
+			>
+				<iframe this={use(this.frameel)}></iframe>
+			</div>
+			<div
+				class={use(this.activeTab).map(
+					(tab) =>
+						`tab-panel requests-panel ${tab === "requests" ? "active" : ""}`
+				)}
+			>
+				<RequestViewer
+					frame={use(this.frame)}
+					active={use(this.activeTab).map((tab) => tab === "requests")}
+					requests={use(this.requests)}
+					selectedId={use(this.selectedId)}
+					maxRequests={MAX_REQUESTS}
+					onSelect={(id) => {
+						this.selectedId = id;
+					}}
+					onSelectedChange={(id) => {
+						this.selectedId = id;
+					}}
+					onRequestsChange={(updater) => {
+						this.requests = updater(this.requests);
+					}}
+					onClear={() => {
+						this.requests = [];
+						this.selectedId = null;
+					}}
+				/>
+			</div>
 		</div>
 	);
 };
@@ -131,22 +146,27 @@ App.style = css`
 		top: 0;
 		left: 0;
 
-		padding: 1em;
+		padding: 0.5em;
 		background: black;
 		box-sizing: border-box;
+	}
+	.top-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.6em;
+		margin-bottom: 0.5em;
 	}
 	.tab-bar {
 		display: flex;
 		align-items: center;
 		gap: 0.5em;
-		margin-bottom: 0.75em;
 	}
 	.tab-button {
 		border: 1px solid #333;
 		background: #151515;
 		color: #ddd;
 		padding: 0.4em 0.9em;
-		border-radius: 999px;
+		border-radius: 8px;
 		cursor: pointer;
 		font-size: 0.9em;
 	}
@@ -155,8 +175,9 @@ App.style = css`
 		color: #fff;
 		border-color: #555;
 	}
-	.tab-spacer {
-		flex: 1;
+	.top-actions {
+		display: flex;
+		align-items: center;
 	}
 	.browser-view {
 		display: flex;
@@ -164,18 +185,52 @@ App.style = css`
 		flex-direction: column;
 		min-height: 0;
 	}
+	.tab-panel {
+		flex: 1;
+		min-height: 0;
+		display: none;
+	}
+	.tab-panel.active {
+		display: flex;
+	}
+	.requests-panel {
+		flex-direction: column;
+	}
 	iframe {
 		background: white;
 		flex: 1;
 		border: none;
 	}
-	input {
+	.url-form {
+		flex: 1;
+		display: none;
+	}
+	.url-form.active {
+		display: flex;
+	}
+	.url-input {
 		box-sizing: border-box;
 		width: 100%;
-		padding: 0.5em;
-		margin-bottom: 0.5em;
-		font-size: 1em;
-		border: 1px solid #ccc;
-		border-radius: 4px;
+		max-width: 680px;
+		margin-left: auto;
+		margin-right: auto;
+		padding: 0.4em 0.7em;
+		font-size: 0.88em;
+		border-radius: 9px;
+		border: 1px solid #2a2a2a;
+		background: #111;
+		color: #f3f4f6;
+		outline: none;
+		transition:
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+	}
+	.url-input::placeholder {
+		color: #6b7280;
+	}
+	.url-input:focus {
+		border-color: #60a5fa;
+		box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 	}
 `;
