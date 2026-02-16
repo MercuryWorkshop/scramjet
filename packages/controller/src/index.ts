@@ -335,6 +335,17 @@ function yieldGetInjectScripts(
 		handler,
 		script
 	) => {
+		function base64Encode(text: string) {
+			return btoa(
+				new TextEncoder()
+					.encode(text)
+					.reduce(
+						(data, byte) => (data.push(String.fromCharCode(byte)), data),
+						[] as any
+					)
+					.join("")
+			);
+		}
 		return [
 			script(config.scramjetPath),
 			script(config.injectPath),
