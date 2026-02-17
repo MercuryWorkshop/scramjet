@@ -649,12 +649,15 @@ return { apply, construct };
 							err.stack = err.stack.stack;
 							console.error("ERROR FROM SCRAMJET INTERNALS", err);
 							if (!this.flagEnabled("allowFailedIntercepts")) {
+								Error.prepareStackTrace = pst;
 								throw err;
 							}
 						} else {
+							Error.prepareStackTrace = pst;
 							throw err;
 						}
 					} else {
+						Error.prepareStackTrace = pst;
 						throw err;
 					}
 				}
