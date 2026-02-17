@@ -466,8 +466,22 @@ where
 	}
 
 	fn visit_new_expression(&mut self, it: &NewExpression<'data>) {
-		// ??
-		// self.walk_member_expression(&it.callee);
+		match &it.callee {
+			Expression::StaticMemberExpression(_) | Expression::Identifier(_) => {
+				// new top(), new location.top(), etc
+				// rewriting to new $wrap(location).top() WILL change semantics
+
+				// TODO: new top.Function("...") escapes here. this needs to be fixed but i cant really be bothered right now
+			}
+			Expression::ComputedMemberExpression(c) => {
+				walk::walk_expression(self, &c.expression);
+			}
+			_=>{
+				// any other kind of expression
+				// new (f(location))()
+				walk::walk_expression(self, &it.callee);
+			}
+		}
 		walk::walk_arguments(self, &it.arguments);
 	}
 
