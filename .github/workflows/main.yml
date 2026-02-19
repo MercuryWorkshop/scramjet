@@ -318,7 +318,7 @@ jobs:
           path: ./packages/scramjet/dist
 
       - name: Build static assets
-        run: pnpm build
+        run: VITE_WISP_URL="wss://anura.pro" pnpm build
         working-directory: packages/demo
 
       - name: Upload pages artifact
