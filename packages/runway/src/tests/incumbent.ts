@@ -56,6 +56,12 @@ export default [
 		js: "window.open('flag.html')",
 	}),
 	navIncumbenceTest({
+		name: "incumbent-window-open-sanity-sanity",
+		topjs: "window.open('flag.html')",
+		js: "",
+		reverse: true,
+	}),
+	navIncumbenceTest({
 		name: "incumbent-window-open-crossrealm",
 		js: "parent.window.open('flag.html')",
 	}),
@@ -82,17 +88,26 @@ export default [
 		reverse: true,
 		js: "parent.setTimeout('window.open(`flag.html`)')",
 	}),
-	// navIncumbenceTest({
-	// 	name: "incumbent-location-sanity",
-	// 	js: "location = 'flag.html'",
-	// }),
-	// navIncumbenceTest({
-	// 	name: "incumbent-location-crossrealm",
-	// 	js: "parent.window.location = 'flag.html'",
-	// }),
-	// navIncumbenceTest({
-	// 	name: "incumbent-window-open-functioncall",
-	// 	topjs: `function doOpen(){ window.location ='flag.html' }`,
-	// 	js: "parent.doOpen()",
-	// }),
+	navIncumbenceTest({
+		name: "incumbent-window-open-settimeout-cb",
+		js: "parent.setTimeout(()=>parent.window.open(`flag.html`))",
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-settimeout-cb-eval",
+		js: "parent.setTimeout(()=>parent.eval('window.open(`flag.html`)'))",
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-promise",
+		js: "new Promise(r=>r()).then(new parent.Function('window.open(`flag.html`)'))",
+		reverse: true,
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-promise-cb",
+		js: "new Promise(r=>r()).then(()=>new parent.Function('window.open(`flag.html`)')())",
+		reverse: true,
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-cross-promise",
+		js: "parent.eval('new Promise(r=>r())').then(new parent.Function('window.open(`flag.html`)'))",
+	}),
 ];
