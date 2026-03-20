@@ -66,6 +66,7 @@ function registerRewrites(
 			);
 
 			rewrites.push({ type, start, end, str: oldStr });
+			cursor += oldLen;
 		}
 	}
 
