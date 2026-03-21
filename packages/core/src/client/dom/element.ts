@@ -77,6 +77,14 @@ export default function (client: ScramjetClient, self: typeof window) {
 				},
 
 				set(value) {
+					// if (
+					// 	this.tagName === "IFRAME" &&
+					// 	attr === "src" &&
+					// 	value === "about:blank"
+					// ) {
+					// 	this.setAttribute("srcdoc", "");
+					// 	return;
+					// }
 					return this.setAttribute(attr, value);
 				},
 			});
@@ -114,16 +122,19 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Node.prototype.baseURI", {
 		get(ctx) {
 			const node = ctx.this as Node;
-			let base = node.ownerDocument?.querySelector("base");
-			if (node instanceof Document) base = node.querySelector("base");
+			const doc = client.box.instanceof(node, "Document")
+				? (node as Document)
+				: node.ownerDocument;
+			const base = doc?.querySelector("base[href]") as HTMLBaseElement | null;
 
 			if (base) {
-				return new URL(base.href, client.url.origin).href;
+				const href = base.getAttribute("href") || base.href;
+				if (href) return new URL(href, client.url.href).href;
 			}
 
-			return client.url.origin;
+			return client.url.href;
 		},
-		set(ctx, v) {
+		set() {
 			return false;
 		},
 	});
