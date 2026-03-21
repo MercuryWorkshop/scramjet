@@ -180,5 +180,10 @@ export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 		return context.interface.codecDecode(
 			realUrl.href.slice(context.prefix.href.length) + realHash
 		);
+	} else if (url == "") {
+		return url;
+	} else {
+		dbg.error("unrewriteurl: unexpected url", url);
+		return url;
 	}
 }
