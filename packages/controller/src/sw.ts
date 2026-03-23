@@ -104,6 +104,10 @@ addEventListener("message", (e) => {
 	if (typeof e.data.$controller$init != "object") return;
 	const init = e.data.$controller$init;
 
+	const existing = tabs.findIndex((t) => t.id === init.id);
+	if (existing !== -1) {
+		tabs.splice(existing, 1);
+	}
 	tabs.push(new ControllerReference(init.prefix, init.id, e.ports[0]));
 });
 
@@ -125,6 +129,7 @@ export async function route(event: FetchEvent): Promise<Response> {
 			"request",
 			{
 				rawUrl: event.request.url,
+				rawReferrer: event.request.referrer,
 				destination: event.request.destination,
 				mode: event.request.mode,
 				referrer: event.request.referrer,
@@ -157,3 +162,15 @@ export async function route(event: FetchEvent): Promise<Response> {
 		);
 	}
 }
+
+// the only way to know if a service worker has suddenly died is if this code runs again
+// notify all clients to send over their messageports again
+setTimeout(async () => {
+	console.log("service worker activated, notifying clients to revive");
+	for (const client of await clients.matchAll()) {
+		client.postMessage({
+			$controller$swrevive: {},
+		});
+	}
+	// short delay is apparently needed
+}, 100);

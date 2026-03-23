@@ -87,6 +87,7 @@ export class Controller {
 	frames: Frame[] = [];
 	cookieJar = new $scramjet.CookieJar();
 	flags: typeof defaultCfg.flags = { ...defaultCfg.flags };
+	serviceWorkerController: ServiceWorker;
 
 	rpc: RpcHelper<Controllerbound, SWbound>;
 	private ready: Promise<[void, void]>;
@@ -94,6 +95,11 @@ export class Controller {
 	public isReady: boolean = false;
 
 	transport: ProxyTransport;
+
+	private port: MessagePort | null = null;
+	private onTabChannelMessage: (e: MessageEvent) => void = (e) => {
+		this.rpc.recieve(e.data);
+	};
 
 	private methods: MethodsDefinition<Controllerbound> = {
 		ready: async () => {
@@ -146,6 +152,8 @@ export class Controller {
 						? new URL(data.rawClientUrl)
 						: undefined,
 					rawUrl: new URL(data.rawUrl),
+					rawReferrer: data.rawReferrer,
+					rawReferrerPolicy: data.rawReferrerPolicy,
 					destination: data.destination,
 					method: data.method,
 					mode: data.mode,
@@ -261,6 +269,7 @@ export class Controller {
 		this.transport = init.transport;
 		this.id = makeId();
 		this.prefix = config.prefix + this.id + "/";
+		this.serviceWorkerController = init.serviceworker;
 
 		this.ready = Promise.all([
 			new Promise<void>((resolve) => {
@@ -269,20 +278,43 @@ export class Controller {
 			loadScramjetWasm(),
 		]);
 
-		let channel = new MessageChannel();
 		this.rpc = new RpcHelper<Controllerbound, SWbound>(
 			this.methods,
 			"tabchannel-" + this.id,
 			(data, transfer) => {
-				channel.port1.postMessage(data, transfer);
+				if (!this.port) {
+					throw new Error("Port not found");
+				}
+				this.port.postMessage(data, transfer);
 			}
 		);
-		channel.port1.addEventListener("message", (e) => {
-			this.rpc.recieve(e.data);
-		});
-		channel.port1.start();
 
-		init.serviceworker.postMessage(
+		this.setupMessagePort();
+
+		navigator.serviceWorker.addEventListener("message", (e) => {
+			if (e.data.$controller$swrevive) {
+				this.setupMessagePort();
+			}
+		});
+	}
+
+	private setupMessagePort() {
+		if (this.port) {
+			this.port.removeEventListener("message", this.onTabChannelMessage);
+			try {
+				this.port.close();
+			} catch {
+				// ignore
+			}
+			this.port = null;
+		}
+
+		const channel = new MessageChannel();
+		this.port = channel.port1;
+		this.port.addEventListener("message", this.onTabChannelMessage);
+		this.port.start();
+
+		this.serviceWorkerController.postMessage(
 			{
 				$controller$init: {
 					prefix: config.prefix + this.id,
