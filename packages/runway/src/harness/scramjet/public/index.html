@@ -65,8 +65,13 @@
 					wisp: "ws://localhost:4501/",
 				});
 
+				const sw = navigator.serviceWorker.controller ?? registration.active;
+				if (!sw) {
+					throw new Error("No service worker available for controller");
+				}
+
 				controller = new Controller({
-					serviceworker: registration.active,
+					serviceworker: sw,
 					transport,
 				});
 

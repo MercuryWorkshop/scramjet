@@ -3,7 +3,7 @@ import type { Test } from "./testcommon.ts";
 import { glob } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CDP_INIT_SCRIPT } from "./cdp-init.ts";
+import { setupRunwayPageBindings } from "./cdp-page.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -95,33 +95,26 @@ async function main() {
 	});
 
 	const page = await browser.newPage();
-	const cdp = await page.context().newCDPSession(page);
-	await cdp.send("Page.enable");
-	await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
-		source: CDP_INIT_SCRIPT,
-	});
-
-	// Expose test reporting functions
-	await page.exposeFunction("__testPass", (message?: string, details?: any) => {
-		console.log(`\n✅ Test passed${message ? `: ${message}` : ""}`);
-		if (details) console.log("   Details:", details);
-	});
-
-	await page.exposeFunction("__testFail", (message?: string, details?: any) => {
-		console.log(`\n❌ Test failed${message ? `: ${message}` : ""}`);
-		if (details) console.log("   Details:", details);
-	});
-
-	await page.exposeFunction(
-		"__testConsistent",
-		(label: string, value?: any) => {
-			if (typeof value === "undefined") {
-				value = label;
-				label = "default";
-			}
-			console.log(`\n🔁 assertConsistent[${label}]`, value);
+	await setupRunwayPageBindings(page, (event) => {
+		const { name, payload } = event;
+		let data: any;
+		try {
+			data = JSON.parse(payload);
+		} catch {
+			data = { message: payload, label: "default", value: payload };
 		}
-	);
+
+		if (name === "__testPass") {
+			console.log(`\n✅ Test passed${data.message ? `: ${data.message}` : ""}`);
+			if (data.details) console.log("   Details:", data.details);
+		} else if (name === "__testFail") {
+			console.log(`\n❌ Test failed${data.message ? `: ${data.message}` : ""}`);
+			if (data.details) console.log("   Details:", data.details);
+		} else if (name === "__testConsistent") {
+			const label = data.label ?? "default";
+			console.log(`\n🔁 assertConsistent[${label}]`, data.value);
+		}
+	});
 
 	page.on("pageerror", (error) => {
 		console.log(`\n💥 Page error: ${error.message}`);

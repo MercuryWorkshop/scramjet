@@ -1,11 +1,11 @@
 import { chromium } from "playwright";
-import type { Page, Browser } from "playwright";
+import type { Page, Browser, BrowserContext } from "playwright";
 import type { Test } from "./testcommon.ts";
 import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
-import { CDP_INIT_SCRIPT } from "./cdp-init.ts";
+import { setupRunwayPageBindings } from "./cdp-page.ts";
 import v8toIstanbul from "v8-to-istanbul";
 import istanbulCoverage from "istanbul-lib-coverage";
 
@@ -206,21 +206,14 @@ async function createTestPage(
 	getOkCount: () => number;
 	cleanup: () => void;
 }> {
-	const page = await browser.newPage();
+	const context: BrowserContext = await browser.newContext();
+	const page = await context.newPage();
 	if (options.collectCoverage) {
 		await page.coverage.startJSCoverage({
 			resetOnNavigation: false,
 			reportAnonymousScripts: true,
 		});
 	}
-	const cdp = await page.context().newCDPSession(page);
-	await cdp.send("Page.enable");
-	await cdp.send("Runtime.enable");
-
-	// Inject script into all frames (including cross-origin)
-	await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
-		source: CDP_INIT_SCRIPT,
-	});
 
 	let resolveResult: (result: TestResult) => void;
 	let timeoutId: NodeJS.Timeout | null = null;
@@ -235,14 +228,7 @@ async function createTestPage(
 	};
 	resetPromise();
 
-	// Create CDP bindings that work across origins
-	await cdp.send("Runtime.addBinding", { name: "__testPass" });
-	await cdp.send("Runtime.addBinding", { name: "__testFail" });
-	await cdp.send("Runtime.addBinding", { name: "__testConsistent" });
-	await cdp.send("Runtime.addBinding", { name: "__testOk" });
-
-	// Handle binding calls from any frame (including cross-origin)
-	cdp.on("Runtime.bindingCalled", (event) => {
+	const onBindingCalled = (event: { name: string; payload: string }) => {
 		const { name, payload } = event;
 		if (!payload) return;
 		let data: any;
@@ -275,9 +261,10 @@ async function createTestPage(
 		} else if (name === "__testOk") {
 			okCount++;
 		}
-	});
+	};
 
-	// Catch uncaught errors
+	const bindingHandle = await setupRunwayPageBindings(page, onBindingCalled);
+
 	page.on("pageerror", (error) => {
 		if (timeoutId) clearTimeout(timeoutId);
 		resolveResult({
@@ -310,6 +297,8 @@ async function createTestPage(
 		getOkCount: () => okCount,
 		cleanup: () => {
 			if (timeoutId) clearTimeout(timeoutId);
+			bindingHandle.dispose();
+			void context.close().catch(() => {});
 		},
 	};
 }
