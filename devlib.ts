@@ -5,6 +5,7 @@ const chafa = await Chafa();
 const imageToAnsi = promisify(chafa.imageToAnsi);
 import { stdout } from "node:process";
 import rspack from "@rspack/core";
+import type { ViteDevServer } from "vite";
 
 export function black() {
 	return chalk.bgHex("000001");
@@ -140,4 +141,25 @@ export function runRspack(rspackConfig: any) {
 
 export function normalizeWebsocketUrl(url: string): string {
 	return url.endsWith("/") ? url : `${url}/`;
+}
+
+export function warnOnUrlEscape(server: ViteDevServer) {
+	const handle = (
+		req: { url?: string; method?: string },
+		_res: unknown,
+		next: (err?: unknown) => void
+	) => {
+		const pathname = (req.url ?? "").split("?")[0] ?? "";
+		if (pathname.startsWith("/~/sj") && !pathname.endsWith(".map")) {
+			server.config.logger.warn(`url escape: ${req.method} ${req.url}`);
+		}
+		next();
+	};
+
+	(
+		server.middlewares as { stack: { route: string; handle: typeof handle }[] }
+	).stack.unshift({
+		route: "",
+		handle,
+	});
 }

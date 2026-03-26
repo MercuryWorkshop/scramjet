@@ -15,6 +15,7 @@ import {
 	printBanner,
 	resetSuccessLog,
 	runRspack,
+	warnOnUrlEscape,
 } from "./devlib.ts";
 
 const image = await fs.readFile("./assets/scramjet-mini-noalpha.png");
@@ -58,6 +59,8 @@ const server = await createServer({
 		strictPort: true,
 	},
 });
+
+warnOnUrlEscape(server);
 
 await server.listen();
 
