@@ -104,10 +104,25 @@ export default [
 	navIncumbenceTest({
 		name: "incumbent-window-open-promise-cb",
 		js: "new Promise(r=>r()).then(()=>new parent.Function('window.open(`flag.html`)')())",
-		reverse: true,
 	}),
 	navIncumbenceTest({
 		name: "incumbent-window-open-cross-promise",
+		js: "parent.eval('new Promise(r=>r())').then(()=>new parent.Function('window.open(`flag.html`)')())",
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-cross-promise-direct",
 		js: "parent.eval('new Promise(r=>r())').then(new parent.Function('window.open(`flag.html`)'))",
+		reverse: true,
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-cross-promise-direct",
+		js: "parent.eval('new Promise(r=>r())').then(new parent.Function('window.open(`flag.html`)'))",
+		reverse: true,
+	}),
+	navIncumbenceTest({
+		name: "incumbent-window-open-event-listener",
+		js: "addEventListener('snarkle', ()=>{ parent.window.open('flag.html') })",
+		topjs:
+			"window.onload = () => { frames[0].dispatchEvent(new Event('snarkle')) }",
 	}),
 ];
