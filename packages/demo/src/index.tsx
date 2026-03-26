@@ -53,10 +53,11 @@ async function init() {
 		const registration = await navigator.serviceWorker.register("./sw.js");
 
 		// If already controlled or active, don't block the UI.
-		if (navigator.serviceWorker.controller || registration.active) {
+		const earlySw = navigator.serviceWorker.controller ?? registration.active;
+		if (earlySw) {
 			interstitial.$.state.status = "Service worker active";
 			controller = new Controller({
-				serviceworker: registration.active,
+				serviceworker: earlySw,
 				transport,
 			});
 			await controller.ready;
@@ -100,8 +101,12 @@ async function init() {
 		await waitForControllerOrReady(10000);
 		interstitial.$.state.status =
 			"Service worker ready, waiting for controller init";
+		const readySw = navigator.serviceWorker.controller ?? registration.active;
+		if (!readySw) {
+			throw new Error("No service worker available for controller");
+		}
 		controller = new Controller({
-			serviceworker: registration.active,
+			serviceworker: readySw,
 			transport,
 		});
 		await controller.ready;

@@ -58,6 +58,9 @@ export const FlagEditor: Component<
 			this.onFlagsChange(flagStore);
 		}
 	};
+	cx.mount = () => {
+		this.onFlagsChange!(flagStore);
+	};
 
 	return (
 		<div
