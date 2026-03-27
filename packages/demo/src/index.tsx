@@ -1,9 +1,10 @@
 import { css } from "dreamland/core";
 import { App } from "./App";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
+import { demoSettingsDefaults } from "./demoSettings";
 
-const transport = new LibcurlClient({
-	wisp: import.meta.env.VITE_WISP_URL,
+let transport = new LibcurlClient({
+	wisp: demoSettingsDefaults.wispUrl,
 });
 
 let app = document.getElementById("app")!;
@@ -42,6 +43,24 @@ LoadInterstitial.style = css`
 const { Controller } = $scramjetController;
 export let controller;
 
+export async function swapTransport(wispUrl: string) {
+	const nextTransport = new LibcurlClient({
+		wisp: wispUrl,
+	});
+
+	transport = nextTransport;
+
+	if (!controller) {
+		return;
+	}
+
+	controller.transport = nextTransport;
+	for (const frame of controller.frames) {
+		frame.controller.transport = nextTransport;
+		frame.fetchHandler.client.transport = nextTransport;
+	}
+}
+
 async function init() {
 	const interstitial: any = (
 		<LoadInterstitial status={"Loading"}></LoadInterstitial>
@@ -61,7 +80,6 @@ async function init() {
 				transport,
 			});
 			await controller.ready;
-			console.log(controller);
 			interstitial.close();
 			return;
 		}
