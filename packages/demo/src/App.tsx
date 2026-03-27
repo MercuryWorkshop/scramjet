@@ -1,13 +1,15 @@
 import { controller } from ".";
 import { createStore, css, type Component } from "dreamland/core";
+import { demoSettingsStore } from "./demoSettings";
 import { FlagEditor } from "./FlagEditor";
 import { RequestViewer, type RequestEntry } from "./RequestViewer";
 import { PlaygroundPanel } from "./PlaygroundPanel";
 import { ResponsePlayground } from "./ResponsePlayground";
+import { SettingsPanel } from "./SettingsPanel";
 
 const urlStore = createStore(
 	{
-		url: "https://google.com",
+		url: demoSettingsStore.homeUrl,
 	},
 	{
 		ident: "store",
@@ -15,14 +17,16 @@ const urlStore = createStore(
 		autosave: "auto",
 	}
 );
-
-const MAX_REQUESTS = 200;
-
 export const App: Component<
 	{},
 	{},
 	{
-		activeTab: "browser" | "requests" | "playground" | "response-playground";
+		activeTab:
+			| "browser"
+			| "requests"
+			| "playground"
+			| "response-playground"
+			| "settings";
 		frame: ReturnType<typeof controller.createFrame>;
 		frameel: HTMLIFrameElement;
 		playgroundFrame: ReturnType<typeof controller.createFrame>;
@@ -217,6 +221,16 @@ export const App: Component<
 					>
 						Response Playground
 					</button>
+					<button
+						class={use(this.activeTab).map(
+							(tab) => `tab-button ${tab === "settings" ? "active" : ""}`
+						)}
+						on:click={() => {
+							this.activeTab = "settings";
+						}}
+					>
+						Settings
+					</button>
 				</div>
 				<form
 					class={use(this.activeTab).map(
@@ -259,7 +273,6 @@ export const App: Component<
 					<FlagEditor
 						inline={true}
 						onFlagsChange={(flags) => {
-							console.log("flags changed", flags, controller);
 							Object.assign(controller.flags, flags);
 						}}
 					/>
@@ -283,7 +296,7 @@ export const App: Component<
 					active={use(this.activeTab).map((tab) => tab === "requests")}
 					requests={use(this.requests)}
 					selectedId={use(this.selectedId)}
-					maxRequests={MAX_REQUESTS}
+					maxRequests={use(demoSettingsStore.maxRequests)}
 					onSelect={(id) => {
 						this.selectedId = id;
 					}}
@@ -321,6 +334,18 @@ export const App: Component<
 					active={use(this.activeTab).map(
 						(tab) => tab === "response-playground"
 					)}
+				/>
+			</div>
+			<div
+				class={use(this.activeTab).map(
+					(tab) =>
+						`tab-panel settings-tab ${tab === "settings" ? "active" : ""}`
+				)}
+			>
+				<SettingsPanel
+					onHomeUrlApply={(url) => {
+						urlStore.url = url;
+					}}
 				/>
 			</div>
 		</div>
@@ -430,6 +455,11 @@ App.style = css`
 		min-height: 0;
 	}
 	.response-playground-panel {
+		width: 100%;
+		min-width: 0;
+		min-height: 0;
+	}
+	.settings-tab {
 		width: 100%;
 		min-width: 0;
 		min-height: 0;
