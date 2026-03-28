@@ -104,6 +104,9 @@ export class Controller {
 	private methods: MethodsDefinition<Controllerbound> = {
 		ready: async () => {
 			this.readyResolve();
+			setTimeout(() => {
+				this.guardServiceWorkerRevive = false;
+			}, 5000);
 		},
 		request: async (data) => {
 			try {
@@ -124,11 +127,7 @@ export class Controller {
 								.join("")
 						);
 
-						let payload = "";
-						payload +=
-							"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
-						payload += `self.WASM = '${b64}';`;
-						wasmPayload = payload;
+						wasmPayload = `self.WASM = '${b64}';`;
 					}
 
 					return [
@@ -385,7 +384,7 @@ function yieldGetInjectScripts(
 			script(
 				"data:text/javascript;charset=utf-8;base64," +
 					base64Encode(`
-					document.currentScript.remove();
+					document.querySelectorAll("script[scramjet-injected]").forEach(script => script.remove());
 					$scramjetController.load({
 						config: ${JSON.stringify(config)},
 						sjconfig: ${JSON.stringify(sjconfig)},
