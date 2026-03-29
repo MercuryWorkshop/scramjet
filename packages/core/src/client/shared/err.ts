@@ -46,7 +46,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				ctx.args[0] = new Proxy(ctx.args[0], {
 					apply(target, that, args) {
 						// console.warn("CAUGHT PROMISE REJECTION", args);
-						Reflect.apply(target, that, args);
+						return Reflect.apply(target, that, args);
 					},
 				});
 		},
