@@ -9,7 +9,7 @@ export default function (client: ScramjetClient) {
 
 	client.Trap("EventSource.prototype.url", {
 		get(ctx) {
-			client.unrewriteUrl(ctx.get() as string);
+			return client.unrewriteUrl(ctx.get());
 		},
 	});
 }

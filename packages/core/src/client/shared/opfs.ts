@@ -3,7 +3,7 @@ import { ScramjetClient } from "@client/index";
 export default function (client: ScramjetClient) {
 	client.Proxy("StorageManager.prototype.getDirectory", {
 		apply(ctx) {
-			const rootPromise = ctx.call() as Promise<FileSystemDirectoryHandle>;
+			const rootPromise = ctx.call();
 			ctx.return(
 				(async () => {
 					const root = await rootPromise;

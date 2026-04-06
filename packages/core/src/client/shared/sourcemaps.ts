@@ -104,7 +104,10 @@ function extractTag(fn: string): [string, number, number] | null {
 	return [tag[2], start, +tag[1]];
 }
 
-function doUnrewrite(client: ScramjetClient, ctx: ProxyCtx) {
+function doUnrewrite(
+	client: ScramjetClient,
+	ctx: ProxyCtx<"Function.prototype.toString", "apply">
+) {
 	const stringified: string = ctx.fn.call(ctx.this);
 
 	const extracted = extractTag(stringified);

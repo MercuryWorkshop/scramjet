@@ -1,6 +1,6 @@
 import { ScramjetClient } from "@client/index";
 
-export default function (client: ScramjetClient, _self: typeof window) {
+export default function (client: ScramjetClient) {
 	client.Trap("Element.prototype.attributes", {
 		get(ctx) {
 			const map = ctx.get() as NamedNodeMap;

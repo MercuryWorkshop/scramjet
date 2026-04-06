@@ -51,6 +51,19 @@ type DescriptorStore = {
 	get: (target: string, that: any) => any;
 	set: (target: string, that: any, value: any) => void;
 };
+// thank you psm (https://github.com/psmpm) <3
+type Traverse<
+	O extends Record<any, any>,
+	P extends string,
+> = P extends `${infer K}.${infer R}` ? Traverse<O[K], R> : O[P];
+type GlobalTraverse<P extends string> = Traverse<
+	typeof globalThis & Record<string, any>,
+	P
+>;
+// https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
+type IfEquals<T, U, Y = unknown, N = never> =
+	(<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2 ? Y : N;
+
 //eslint-disable-next-line
 export type AnyFunction = Function;
 
@@ -64,31 +77,48 @@ export type ScramjetModule = {
 	default: (client: ScramjetClient, self: typeof globalThis) => void;
 };
 
-export type ProxyCtx = {
-	fn: AnyFunction;
+export type ProxyCtx<T extends string, U extends "construct" | "apply"> = {
+	fn: GlobalTraverse<T>;
 	this: any;
-	args: any[];
-	newTarget: AnyFunction;
-	return: (r: any) => void;
-	call: () => any;
+	args: IfEquals<
+		U,
+		"construct",
+		ConstructorParameters<GlobalTraverse<T>>,
+		Parameters<GlobalTraverse<T>>
+	>;
+	newTarget: IfEquals<U, "construct", GlobalTraverse<T>, null>;
+	return: (
+		r: IfEquals<
+			U,
+			"construct",
+			InstanceType<GlobalTraverse<T>>,
+			ReturnType<GlobalTraverse<T>>
+		>
+	) => void;
+	call: () => IfEquals<
+		U,
+		"construct",
+		InstanceType<GlobalTraverse<T>>,
+		ReturnType<GlobalTraverse<T>>
+	>;
 };
-export type Proxy = {
-	construct?(ctx: ProxyCtx): any;
-	apply?(ctx: ProxyCtx): any;
+export type Proxy<T extends string> = {
+	construct?(ctx: ProxyCtx<T, "construct">): any;
+	apply?(ctx: ProxyCtx<T, "apply">): any;
 };
 
-export type TrapCtx<T> = {
+export type TrapCtx<T extends string> = {
 	this: any;
-	get: () => T;
-	set: (v: T) => void;
+	get: () => GlobalTraverse<T>;
+	set: (v: GlobalTraverse<T>) => void;
 };
-export type Trap<T> = {
+export type Trap<T extends string> = {
 	writable?: boolean;
 	value?: any;
 	enumerable?: boolean;
 	configurable?: boolean;
-	get?: (ctx: TrapCtx<T>) => T;
-	set?: (ctx: TrapCtx<T>, v: T) => void;
+	get?: (ctx: TrapCtx<T>) => GlobalTraverse<T>;
+	set?: (ctx: TrapCtx<T>, v: GlobalTraverse<T>) => void;
 };
 
 function findBox(global: Window, seen: Window[]): SingletonBox | null {
@@ -124,6 +154,8 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 			if (b) return b;
 		} catch {}
 	}
+
+	return null;
 }
 
 export class ScramjetClient {
@@ -445,8 +477,8 @@ export class ScramjetClient {
 			// we're in a subframe, recurse upward until we find one
 			let currentwin = this.global.window;
 			while (currentwin.parent !== currentwin) {
-				let currentclient = currentwin[SCRAMJETCLIENT];
-				let currentFrame = currentclient.descriptors.get(
+				const currentclient = currentwin[SCRAMJETCLIENT];
+				const currentFrame = currentclient.descriptors.get(
 					"window.frameElement",
 					currentwin
 				);
@@ -525,8 +557,12 @@ export class ScramjetClient {
 	// below are the utilities for proxying and trapping dom APIs
 	// you don't have to understand this it just makes the rest easier
 	// i'll document it eventually
-
-	Proxy(name: string | string[], handler: Proxy) {
+	Proxy<T extends string>(name: T, handler: Proxy<T>): void;
+	Proxy<const T extends readonly string[]>(
+		name: T,
+		handler: Proxy<T[number]>
+	): void;
+	Proxy(name: string | string[], handler: Proxy<any>): void {
 		if (Array.isArray(name)) {
 			for (const n of name) {
 				this.Proxy(n, handler);
@@ -539,6 +575,7 @@ export class ScramjetClient {
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		if (!target) return;
+		if (!prop) return;
 
 		if (!(name in this.natives.store)) {
 			const original = Reflect.get(target, prop);
@@ -547,7 +584,7 @@ export class ScramjetClient {
 
 		this.RawProxy(target, prop, handler, name);
 	}
-	RawProxy(target: any, prop: string, handler: Proxy, debugname?: string) {
+	RawProxy(target: any, prop: string, handler: Proxy<any>, debugname?: string) {
 		if (!target) return;
 		if (!prop) return;
 		if (!Reflect.has(target, prop)) return;
@@ -579,9 +616,9 @@ export class ScramjetClient {
 			location = location.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 			windowName = windowName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 			fnName = fnName.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
-			let sourceURL = debugname ? `${debugname}.sj` : `rawproxy.sj`;
+			const sourceURL = debugname ? `${debugname}.sj` : "rawproxy.sj";
 
-			let { construct, apply } = this.natives.call(
+			const { construct, apply } = this.natives.call(
 				"Function",
 				null,
 				`"use strict";
@@ -620,7 +657,7 @@ return { apply, construct };
 				let returnValue: any = undefined;
 				let earlyreturn = false;
 
-				const ctx: ProxyCtx = {
+				const ctx: ProxyCtx<any, "construct"> = {
 					fn: constructor,
 					this: null,
 					args,
@@ -652,7 +689,7 @@ return { apply, construct };
 				let returnValue: any = undefined;
 				let earlyreturn = false;
 
-				const ctx: ProxyCtx = {
+				const ctx: ProxyCtx<any, "apply"> = {
 					fn,
 					this: that,
 					args,
@@ -671,7 +708,7 @@ return { apply, construct };
 
 				const pst = Error.prepareStackTrace;
 
-				let client = this;
+				const client = this;
 				Error.prepareStackTrace = function (err, s) {
 					if (
 						s[0].getFileName() &&
@@ -722,7 +759,12 @@ return { apply, construct };
 			configurable: originalDescriptor?.configurable ?? true,
 		});
 	}
-	Trap<T>(name: string | string[], descriptor: Trap<T>): PropertyDescriptor {
+	Trap<T extends string>(name: T, handler: Trap<T>): void;
+	Trap<const T extends readonly string[]>(
+		name: T,
+		handler: Trap<T[number]>
+	): void;
+	Trap(name: string | string[], descriptor: Trap<any>): void {
 		if (Array.isArray(name)) {
 			for (const n of name) {
 				this.Trap(n, descriptor);
@@ -735,6 +777,7 @@ return { apply, construct };
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], this.global);
 		if (!target) return;
+		if (!prop) return;
 
 		const original = this.natives.call(
 			"Object.getOwnPropertyDescriptor",
@@ -744,13 +787,9 @@ return { apply, construct };
 		);
 		this.descriptors.store[name] = original;
 
-		return this.RawTrap(target, prop, descriptor);
+		this.RawTrap(target, prop, descriptor);
 	}
-	RawTrap<T>(
-		target: any,
-		prop: string,
-		descriptor: Trap<T>
-	): PropertyDescriptor {
+	RawTrap(target: any, prop: string, descriptor: Trap<any>) {
 		if (!target) return;
 		if (!prop) return;
 		if (!Reflect.has(target, prop)) return;
@@ -762,12 +801,12 @@ return { apply, construct };
 			prop
 		);
 
-		const ctx: TrapCtx<T> = {
+		const ctx: TrapCtx<any> = {
 			this: null,
 			get: function () {
 				return oldDescriptor && oldDescriptor.get.call(this.this);
 			},
-			set: function (v: T) {
+			set: function (v: any) {
 				// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 				oldDescriptor && oldDescriptor.set.call(this.this, v);
 			},
@@ -788,7 +827,7 @@ return { apply, construct };
 		}
 
 		if (descriptor.set) {
-			desc.set = function (v: T) {
+			desc.set = function (v: any) {
 				ctx.this = this;
 
 				descriptor.set(ctx, v);
@@ -805,8 +844,6 @@ return { apply, construct };
 			desc.configurable = oldDescriptor.configurable;
 
 		Object.defineProperty(target, prop, desc);
-
-		return oldDescriptor;
 	}
 
 	rewriteUrl(url: string | URL, options?: RewriteUrlOptions): string {
