@@ -87,7 +87,15 @@
 					sessionStorage.setItem("__runway_last_test", url);
 					reloadBtn.style.display = "inline-block";
 					// injectTestFunctions();
+					console.log("navigating to", url);
 					scramjetFrame.go(url);
+				};
+
+				window.__runwayGetProxiedUrl = (url) => {
+					return $scramjet.rewriteUrl(url, scramjetFrame.context, {
+						origin: new URL(location.href),
+						base: new URL(location.href),
+					});
 				};
 
 				window.__runwayReload = () => {

@@ -168,12 +168,41 @@ async function main() {
 			);
 		}
 	} else {
-		const testUrl = `http://localhost:${firstTest.port}/`;
+		const testScheme = firstTest.scheme ?? "http";
+		const testUrl = `${testScheme}://localhost:${firstTest.port}${firstTest.path ?? "/"}`;
 		console.log(`🚀 Navigating to test: ${testUrl}`);
 
-		await page.evaluate((url) => {
-			(window as any).__runwayNavigate(url);
-		}, testUrl);
+		if (firstTest.topLevelScramjet) {
+			const proxiedUrl = await page.evaluate((url) => {
+				if (typeof (window as any).__runwayGetProxiedUrl === "function") {
+					return (window as any).__runwayGetProxiedUrl(url);
+				}
+				throw new Error("__runwayGetProxiedUrl is unavailable");
+			}, testUrl);
+
+			await page.evaluate(async (url) => {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 5000);
+				try {
+					const response = await fetch(url, { signal: controller.signal });
+					await response.body?.cancel().catch(() => {});
+				} catch (error) {
+					if (error instanceof DOMException && error.name === "AbortError") {
+						return;
+					}
+					throw error;
+				} finally {
+					clearTimeout(timeoutId);
+				}
+			}, proxiedUrl);
+
+			console.log(`🌐 Opening top-level Scramjet page: ${proxiedUrl}`);
+			await page.goto(proxiedUrl, { waitUntil: "commit" });
+		} else {
+			await page.evaluate((url) => {
+				(window as any).__runwayNavigate(url);
+			}, testUrl);
+		}
 	}
 
 	console.log("\n" + "─".repeat(50));

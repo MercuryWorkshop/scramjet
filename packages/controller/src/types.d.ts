@@ -8,6 +8,7 @@ export type BodyType =
 
 export type TransferRequest = {
 	rawUrl: string;
+	rawReferrer: string | null;
 	destination: RequestDestination;
 	mode: RequestMode;
 	referrer: string;

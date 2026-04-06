@@ -1,4 +1,8 @@
-import type { CookieJar, ScramjetConfig } from "@mercuryworkshop/scramjet";
+import type {
+	CookieJar,
+	ScramjetConfig,
+	TrackedHistoryState,
+} from "@mercuryworkshop/scramjet";
 import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 declare const $scramjet: typeof ScramjetGlobal;
 
@@ -164,6 +168,9 @@ type Init = {
 	) => any;
 	codecEncode: (input: string) => string;
 	codecDecode: (input: string) => string;
+	clientId: string;
+	initHeaders: RawHeaders;
+	history: TrackedHistoryState[];
 };
 
 export function load(init: Init) {
@@ -191,6 +198,7 @@ class ExecutionContextWrapper {
 	client!: ScramjetGlobal.ScramjetClient;
 	cookieJar: CookieJar;
 	transport: RemoteTransport;
+	clientId: string;
 
 	constructor(
 		public global: typeof globalThis,
@@ -210,6 +218,8 @@ class ExecutionContextWrapper {
 
 		this.cookieJar = new CookieJar();
 		this.cookieJar.load(this.init.cookies);
+
+		this.clientId = init.clientId;
 
 		this.injectScramjet();
 	}
@@ -259,6 +269,9 @@ class ExecutionContextWrapper {
 				const context = new ExecutionContextWrapper(frameself, this.init);
 				return context.client;
 			},
+			clientId: this.clientId,
+			initHeaders: this.init.initHeaders,
+			history: this.init.history,
 		});
 
 		this.client.hook();

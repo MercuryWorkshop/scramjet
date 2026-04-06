@@ -45,6 +45,10 @@ type TestRunResult = {
 	duration: number;
 };
 
+type ExpectedFailingTestsFile = {
+	tests: string[];
+};
+
 type HarnessKind = "scramjet" | "bare";
 
 type ConsistencyIssue = {
@@ -188,6 +192,36 @@ async function discoverTests(): Promise<Test[]> {
 	return tests;
 }
 
+async function loadExpectedFailingTests(
+	filePath: string
+): Promise<Set<string>> {
+	try {
+		const raw = await readFile(filePath, "utf-8");
+		const parsed = JSON.parse(raw) as ExpectedFailingTestsFile | string[];
+		if (Array.isArray(parsed)) {
+			return new Set(parsed.filter((value) => typeof value === "string"));
+		}
+		if (parsed && Array.isArray(parsed.tests)) {
+			return new Set(parsed.tests.filter((value) => typeof value === "string"));
+		}
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+			throw error;
+		}
+	}
+	return new Set();
+}
+
+async function writeExpectedFailingTests(
+	filePath: string,
+	tests: string[]
+): Promise<void> {
+	const payload: ExpectedFailingTestsFile = {
+		tests: [...tests].sort(),
+	};
+	await writeFile(filePath, JSON.stringify(payload, null, 2) + "\n", "utf-8");
+}
+
 async function createTestPage(
 	browser: Browser,
 	options: {
@@ -198,15 +232,20 @@ async function createTestPage(
 			value: any
 		) => Promise<void>;
 		collectCoverage?: boolean;
+		installBindings?: boolean;
 	}
 ): Promise<{
 	page: Page;
-	waitForResult: (timeout: number) => Promise<TestResult>;
+	context: BrowserContext;
+	waitForResult: (timeout: number, runwayToken?: string) => Promise<TestResult>;
 	cancelWaitForResult: () => void;
 	getOkCount: () => number;
-	cleanup: () => void;
+	watchPage: (otherPage: Page) => () => void;
+	cleanup: () => Promise<void>;
 }> {
-	const context: BrowserContext = await browser.newContext();
+	const context: BrowserContext = await browser.newContext({
+		ignoreHTTPSErrors: true,
+	});
 	const page = await context.newPage();
 	if (options.collectCoverage) {
 		await page.coverage.startJSCoverage({
@@ -219,6 +258,7 @@ async function createTestPage(
 	let timeoutId: NodeJS.Timeout | null = null;
 	let resultPromise: Promise<TestResult>;
 	let okCount = 0;
+	let expectedRunwayToken: string | undefined;
 
 	const resetPromise = () => {
 		resultPromise = new Promise<TestResult>((resolve) => {
@@ -236,6 +276,13 @@ async function createTestPage(
 			data = JSON.parse(payload);
 		} catch {
 			data = { message: payload, label: "default", value: payload };
+		}
+		if (
+			expectedRunwayToken &&
+			"__runwayToken" in data &&
+			data.__runwayToken !== expectedRunwayToken
+		) {
+			return;
 		}
 
 		if (name === "__testPass") {
@@ -263,21 +310,28 @@ async function createTestPage(
 		}
 	};
 
-	const bindingHandle = await setupRunwayPageBindings(page, onBindingCalled);
+	const bindingHandle =
+		options.installBindings === false
+			? { dispose: () => {} }
+			: await setupRunwayPageBindings(page, onBindingCalled);
 
-	page.on("pageerror", (error) => {
-		if (timeoutId) clearTimeout(timeoutId);
-		resolveResult({
-			status: "fail",
-			message: `Uncaught error: ${error.message}`,
-			details: error.stack,
+	if (options.installBindings !== false) {
+		page.on("pageerror", (error) => {
+			if (timeoutId) clearTimeout(timeoutId);
+			resolveResult({
+				status: "fail",
+				message: `Uncaught error: ${error.message}`,
+				details: error.stack,
+			});
+			resetPromise();
 		});
-		resetPromise();
-	});
+	}
 
 	return {
 		page,
-		waitForResult: (timeout: number) => {
+		context,
+		waitForResult: (timeout: number, runwayToken?: string) => {
+			expectedRunwayToken = runwayToken;
 			timeoutId = setTimeout(() => {
 				resolveResult({
 					status: "fail",
@@ -292,26 +346,80 @@ async function createTestPage(
 				clearTimeout(timeoutId);
 				timeoutId = null;
 			}
+			expectedRunwayToken = undefined;
 			resetPromise();
 		},
 		getOkCount: () => okCount,
-		cleanup: () => {
+		watchPage: (otherPage: Page) => {
+			if (options.installBindings === false) {
+				return () => {};
+			}
+			const onPageError = (error: Error) => {
+				if (timeoutId) clearTimeout(timeoutId);
+				resolveResult({
+					status: "fail",
+					message: `Uncaught error: ${error.message}`,
+					details: error.stack,
+				});
+				resetPromise();
+			};
+			otherPage.on("pageerror", onPageError);
+			return () => otherPage.off("pageerror", onPageError);
+		},
+		cleanup: async () => {
 			if (timeoutId) clearTimeout(timeoutId);
 			bindingHandle.dispose();
-			void context.close().catch(() => {});
+			await context.close().catch(() => {});
 		},
 	};
 }
 
 async function runTestOnHarness(
 	page: Page,
-	waitForResult: (timeout: number) => Promise<TestResult>,
+	context: BrowserContext,
+	waitForResult: (timeout: number, runwayToken?: string) => Promise<TestResult>,
 	cancelWaitForResult: () => void,
 	getOkCount: () => number,
+	watchPage: (otherPage: Page) => () => void,
 	test: Test,
 	serverResult: Promise<TestResult> | null,
 	timeout: number = 30000
 ): Promise<TestResult> {
+	const warmProxiedUrl = async (url: string) => {
+		const proxiedUrl = await page.evaluate((targetUrl) => {
+			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
+				return (window as any).__runwayGetProxiedUrl(targetUrl);
+			}
+			return "";
+		}, url);
+
+		if (!proxiedUrl) return;
+
+		await page.evaluate(
+			async ({ url, timeout }) => {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), timeout);
+				try {
+					const response = await fetch(url, {
+						signal: controller.signal,
+					});
+					if (!response.ok) {
+						throw new Error(`Warm fetch failed with ${response.status}`);
+					}
+					await response.body?.cancel().catch(() => {});
+				} catch (error) {
+					if (error instanceof DOMException && error.name === "AbortError") {
+						return;
+					}
+					throw error;
+				} finally {
+					clearTimeout(timeoutId);
+				}
+			},
+			{ url: proxiedUrl, timeout: Math.min(timeout, 5000) }
+		);
+	};
+
 	// Handle playwright tests (tests that control the browser directly)
 	if (test.playwrightFn) {
 		const frame = page.frameLocator("#testframe");
@@ -333,28 +441,127 @@ async function runTestOnHarness(
 		}
 	}
 
-	const testUrl = `http://localhost:${test.port}/`;
-	await page.evaluate((url) => {
-		// This function should be defined by the harness
-		(window as any).__runwayNavigate(url);
-	}, testUrl);
-
+	const runwayToken = crypto.randomUUID();
+	const testScheme = test.scheme ?? "http";
+	const testUrl = test.topLevelScramjet
+		? `${testScheme}://localhost:${test.port}${test.path ?? "/"}`
+		: appendRunwayToken(
+				`${testScheme}://localhost:${test.port}${test.path ?? "/"}`,
+				runwayToken,
+				test.name.startsWith("wpt-")
+			);
+	const harnessResultPromise = waitForResult(
+		timeout,
+		test.topLevelScramjet ? undefined : runwayToken
+	);
 	let result: TestResult;
+	let topLevelPage: Page | null = null;
+	let stopWatchingTopLevelPage: (() => void) | null = null;
+	let topLevelNavigationPromise: Promise<void> | null = null;
+	if (test.topLevelScramjet) {
+		const proxiedUrl = await page.evaluate((url) => {
+			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
+				return (window as any).__runwayGetProxiedUrl(url);
+			}
+			(window as any).__runwayNavigate(url);
+			const iframe = document.getElementById(
+				"testframe"
+			) as HTMLIFrameElement | null;
+			return iframe?.src || "";
+		}, testUrl);
+		await page.evaluate(
+			async ({ url, timeout }) => {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), timeout);
+				try {
+					const response = await fetch(url, {
+						signal: controller.signal,
+					});
+					if (!response.ok) {
+						throw new Error(`Warm fetch failed with ${response.status}`);
+					}
+					await response.body?.cancel().catch(() => {});
+				} catch (error) {
+					if (error instanceof DOMException && error.name === "AbortError") {
+						return;
+					}
+					throw error;
+				} finally {
+					clearTimeout(timeoutId);
+				}
+			},
+			{ url: proxiedUrl, timeout: Math.min(timeout, 5000) }
+		);
+		topLevelPage = await context.newPage();
+		stopWatchingTopLevelPage = watchPage(topLevelPage);
+		topLevelNavigationPromise = topLevelPage
+			.goto(proxiedUrl, { waitUntil: "commit" })
+			.then(() => {});
+	} else {
+		if (test.warmProxiedNavigation) {
+			await warmProxiedUrl(testUrl);
+		}
+		await page.evaluate((url) => {
+			// This function should be defined by the harness
+			(window as any).__runwayNavigate(url);
+		}, testUrl);
+	}
+
 	if (serverResult) {
-		const harnessResultPromise = waitForResult(timeout);
 		const raced = await Promise.race([
 			harnessResultPromise.then((value) => ({
 				source: "harness" as const,
 				value,
 			})),
 			serverResult.then((value) => ({ source: "server" as const, value })),
+			...(topLevelNavigationPromise
+				? [
+						topLevelNavigationPromise.then(
+							() =>
+								new Promise<never>(() => {
+									// keep the race pending; completion is driven by pass/fail
+								}),
+							(error) => ({
+								source: "navigation" as const,
+								value: {
+									status: "fail" as const,
+									message:
+										error instanceof Error ? error.message : String(error),
+								},
+							})
+						),
+					]
+				: []),
 		]);
 		if (raced.source === "server") {
 			cancelWaitForResult();
 		}
 		result = raced.value;
 	} else {
-		result = await waitForResult(timeout);
+		if (topLevelNavigationPromise) {
+			const raced = await Promise.race([
+				harnessResultPromise,
+				topLevelNavigationPromise.then(
+					() =>
+						new Promise<never>(() => {
+							// keep pending; pass/fail will resolve separately
+						}),
+					(error) => ({
+						status: "fail" as const,
+						message: error instanceof Error ? error.message : String(error),
+					})
+				),
+			]);
+			result = raced;
+		} else {
+			result = await harnessResultPromise;
+		}
+	}
+	if (stopWatchingTopLevelPage) {
+		stopWatchingTopLevelPage();
+	}
+	if (topLevelPage) {
+		await topLevelPage.close().catch(() => {});
 	}
 
 	// Validate okCount if expectedOkCount is set
@@ -370,6 +577,20 @@ async function runTestOnHarness(
 	}
 
 	return result;
+}
+
+function appendRunwayToken(url: string, token: string, useQuery: boolean) {
+	const parsed = new URL(url);
+	if (useQuery) {
+		parsed.searchParams.set("runway_token", token);
+		return parsed.toString();
+	}
+	const hashParams = new URLSearchParams(
+		parsed.hash.startsWith("#") ? parsed.hash.slice(1) : parsed.hash
+	);
+	hashParams.set("runway_token", token);
+	parsed.hash = hashParams.toString();
+	return parsed.toString();
 }
 
 // Main runner
@@ -398,20 +619,6 @@ async function main() {
 		}
 	}
 
-	// Start the harness servers
-	const { startHarness, PORT: HARNESS_PORT } = await import(
-		"./harness/scramjet/index.ts"
-	);
-	const { startBareHarness, BARE_PORT } = await import(
-		"./harness/bare/index.ts"
-	);
-	await startHarness();
-	await startBareHarness();
-	const scramjetUrl = `http://localhost:${HARNESS_PORT}`;
-	const bareUrl = `http://localhost:${BARE_PORT}`;
-	console.log(`📡 Scramjet harness running at ${scramjetUrl}`);
-	console.log(`📡 Bare harness running at ${bareUrl}\n`);
-
 	const allTests = await discoverTests();
 
 	// Filter tests if a pattern is provided
@@ -422,6 +629,9 @@ async function main() {
 		1,
 		Number(process.env.RUNWAY_PARALLEL ?? parallelArg ?? 1)
 	);
+	const fastMode = process.env.RUNWAY_FAST === "1";
+	const updateFailingTests = process.env.RUNWAY_UPDATE_FAILING === "1";
+	const failingTestsPath = path.join(__dirname, "..", "failing_tests.json");
 
 	if (testFilter) {
 		console.log(`� Filter: "${testFilter}"`);
@@ -432,6 +642,12 @@ async function main() {
 	if (parallelism > 1) {
 		console.log(`🧵 Parallel workers: ${parallelism}\n`);
 	}
+	if (fastMode) {
+		console.log(`⚡ Fast mode: reusing one harness instance per worker\n`);
+	}
+	if (updateFailingTests) {
+		console.log(`📝 Updating failing_tests.json from current run\n`);
+	}
 
 	if (tests.length === 0) {
 		console.log(
@@ -439,6 +655,26 @@ async function main() {
 		);
 		process.exit(1);
 	}
+
+	const needsBareHarness = tests.some((test) => !test.scramjetOnly);
+
+	// Start the harness servers
+	const { startHarness, PORT: HARNESS_PORT } = await import(
+		"./harness/scramjet/index.ts"
+	);
+	await startHarness();
+	const scramjetUrl = `http://localhost:${HARNESS_PORT}`;
+	let bareUrl = "";
+	console.log(`📡 Scramjet harness running at ${scramjetUrl}`);
+	if (needsBareHarness) {
+		const { startBareHarness, BARE_PORT } = await import(
+			"./harness/bare/index.ts"
+		);
+		await startBareHarness();
+		bareUrl = `http://localhost:${BARE_PORT}`;
+		console.log(`📡 Bare harness running at ${bareUrl}`);
+	}
+	console.log();
 
 	const browser = await chromium.launch({
 		headless: process.env.HEADED !== "1",
@@ -491,20 +727,25 @@ async function main() {
 			label: string,
 			value: any
 		) => Promise<void> = async () => {};
-		const createPages = async () => ({
+		const workerNeedsBare = workerTests.some((test) => !test.scramjetOnly);
+		const createPages = async (installScramjetBindings: boolean) => ({
 			scramjet: await createTestPage(browser, {
 				name: "scramjet",
 				onConsistent: (source, label, value) =>
 					consistencyHandler(source, label, value),
 				collectCoverage: coverageEnabled,
+				installBindings: installScramjetBindings,
 			}),
-			bare: await createTestPage(browser, {
-				name: "bare",
-				onConsistent: (source, label, value) =>
-					consistencyHandler(source, label, value),
-			}),
+			bare: workerNeedsBare
+				? await createTestPage(browser, {
+						name: "bare",
+						onConsistent: (source, label, value) =>
+							consistencyHandler(source, label, value),
+					})
+				: null,
 		});
-		let testPages = await createPages();
+		let scramjetBindingsInstalled = fastMode ? true : true;
+		let testPages = await createPages(scramjetBindingsInstalled);
 		let needsReload = true;
 
 		for (const test of workerTests) {
@@ -513,32 +754,40 @@ async function main() {
 
 			const consistencyTracker = createConsistencyTracker(!test.scramjetOnly);
 			consistencyHandler = consistencyTracker.handle;
+			if (!fastMode && test.reloadHarness) {
+				needsReload = true;
+			}
 
 			// Reload pages if needed (first run or after failure)
-			if (needsReload) {
-				testPages.scramjet.cleanup();
-				testPages.bare.cleanup();
+			const desiredScramjetBindings = fastMode ? true : !test.topLevelScramjet;
+			if (
+				needsReload ||
+				desiredScramjetBindings !== scramjetBindingsInstalled
+			) {
 				if (!testPages.scramjet.page.isClosed()) {
 					await flushCoverage(testPages.scramjet.page);
-					await testPages.scramjet.page.close();
 				}
-				if (!testPages.bare.page.isClosed()) {
-					await testPages.bare.page.close();
-				}
-				testPages = await createPages();
+				await Promise.all([
+					testPages.scramjet.cleanup(),
+					testPages.bare?.cleanup(),
+				]);
+				scramjetBindingsInstalled = desiredScramjetBindings;
+				testPages = await createPages(scramjetBindingsInstalled);
 				await ensureHarnessReady(
 					testPages.scramjet.page,
 					scramjetUrl,
 					"Scramjet"
 				);
-				await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
+				if (testPages.bare) {
+					await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
+				}
 				needsReload = false;
 			}
 
 			const start = Date.now();
-			let started = false;
 			let result: TestResult | { status: "error"; message: string } | null =
 				null;
+			let started = false;
 			try {
 				let serverResult: Promise<TestResult> | null = null;
 				let serverResultResolve: (result: TestResult) => void = () => {};
@@ -558,21 +807,27 @@ async function main() {
 
 				const scramjetPromise = runTestOnHarness(
 					testPages.scramjet.page,
+					testPages.scramjet.context,
 					testPages.scramjet.waitForResult,
 					testPages.scramjet.cancelWaitForResult,
 					testPages.scramjet.getOkCount,
+					testPages.scramjet.watchPage,
 					test,
-					serverResult
+					serverResult,
+					test.timeoutMs
 				);
 				const barePromise = test.scramjetOnly
 					? null
 					: runTestOnHarness(
-							testPages.bare.page,
-							testPages.bare.waitForResult,
-							testPages.bare.cancelWaitForResult,
-							testPages.bare.getOkCount,
+							testPages.bare!.page,
+							testPages.bare!.context,
+							testPages.bare!.waitForResult,
+							testPages.bare!.cancelWaitForResult,
+							testPages.bare!.getOkCount,
+							testPages.bare!.watchPage,
 							test,
-							serverResult
+							serverResult,
+							test.timeoutMs
 						);
 
 				const [scramjetResult, bareResult] = test.scramjetOnly
@@ -649,7 +904,7 @@ async function main() {
 				ghaError(
 					`Test "${test.name}" failed: ${finalResult.message || "Unknown error"}`
 				);
-				needsReload = true; // Reload after failure
+				needsReload = !fastMode; // Reload after failure unless fast mode is reusing harnesses
 			} else {
 				console.log(`💥 error (${duration}ms)`);
 				if (finalResult.message) {
@@ -658,13 +913,15 @@ async function main() {
 				ghaError(
 					`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
 				);
-				needsReload = true; // Reload after error
+				needsReload = !fastMode; // Reload after error unless fast mode is reusing harnesses
 			}
 			ghaEndGroup();
 		}
 
-		testPages.scramjet.cleanup();
-		testPages.bare.cleanup();
+		await Promise.all([
+			testPages.scramjet.cleanup(),
+			testPages.bare?.cleanup(),
+		]);
 		await flushCoverage(testPages.scramjet.page);
 	};
 
@@ -813,8 +1070,49 @@ async function main() {
 	console.log(
 		`\n✅ ${passed} passed | ❌ ${failed} failed | 💥 ${errors} errors\n`
 	);
+	const selectedTestNames = new Set(tests.map((test) => test.name));
+	const actualFailing = results
+		.filter((r) => r.result.status !== "pass")
+		.map((r) => r.test.name)
+		.sort();
 
-	process.exit(failed + errors > 0 ? 1 : 0);
+	if (updateFailingTests) {
+		await writeExpectedFailingTests(failingTestsPath, actualFailing);
+		console.log(
+			`📝 Wrote ${actualFailing.length} failing test(s) to ${path.relative(process.cwd(), failingTestsPath)}`
+		);
+		process.exit(0);
+	}
+
+	const allExpectedFailing = await loadExpectedFailingTests(failingTestsPath);
+	const expectedFailing = new Set(
+		[...allExpectedFailing].filter((name) => selectedTestNames.has(name))
+	);
+	const unexpectedFailing = actualFailing.filter(
+		(name) => !expectedFailing.has(name)
+	);
+	const noLongerFailing = [...expectedFailing]
+		.filter((name) => !actualFailing.includes(name))
+		.sort();
+
+	console.log("Expected failing diff:");
+	console.log(
+		`  expected=${expectedFailing.size} actual=${actualFailing.length} unexpected=${unexpectedFailing.length} fixed=${noLongerFailing.length}`
+	);
+	if (unexpectedFailing.length > 0) {
+		console.log("  unexpected failures:");
+		for (const name of unexpectedFailing) {
+			console.log(`    - ${name}`);
+		}
+	}
+	if (noLongerFailing.length > 0) {
+		console.log("  no longer failing:");
+		for (const name of noLongerFailing) {
+			console.log(`    - ${name}`);
+		}
+	}
+
+	process.exit(unexpectedFailing.length > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

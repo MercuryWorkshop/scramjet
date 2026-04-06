@@ -1,17 +1,24 @@
 import { css, type Component } from "dreamland/core";
+import {
+	isHtmlMimeType,
+	isJavascriptMimeType,
+	isXmlMimeType,
+	parseMimeType,
+} from "@mercuryworkshop/scramjet";
 import { MonacoComponent } from "./MonacoComponent";
 
 const SIM_ORIGIN = "https://response-playground.local";
 
 const languageFromContentType = (contentType?: string | null) => {
 	if (!contentType) return "plaintext";
-	const normalized = contentType.toLowerCase();
-	if (normalized.includes("application/json")) return "json";
-	if (normalized.includes("text/html")) return "html";
-	if (normalized.includes("text/css")) return "css";
-	if (normalized.includes("javascript")) return "javascript";
-	if (normalized.includes("xml")) return "xml";
-	if (normalized.includes("text/plain")) return "plaintext";
+	const p = parseMimeType(contentType);
+	if (!p) return "plaintext";
+	if (p.essence === "application/json") return "json";
+	if (isHtmlMimeType(p)) return "html";
+	if (p.essence === "text/css") return "css";
+	if (isJavascriptMimeType(p)) return "javascript";
+	if (isXmlMimeType(p)) return "xml";
+	if (p.essence === "text/plain") return "plaintext";
 	return "plaintext";
 };
 

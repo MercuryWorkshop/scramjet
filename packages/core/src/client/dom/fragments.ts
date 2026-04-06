@@ -4,7 +4,12 @@ import { ScramjetClient } from "@client/index";
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Range.prototype.createContextualFragment", {
 		apply(ctx) {
-			ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta);
+			ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+				loadScripts: false,
+				inline: true,
+				source: client.url.href,
+				apisource: "Range.prototype.createContextualFragment",
+			});
 		},
 	});
 }
