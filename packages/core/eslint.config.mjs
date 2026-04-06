@@ -5,6 +5,14 @@ import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import noGlobalsPlugin from "./tools/eslint/no-globals-plugin.mjs";
+import poisonedCtxPlugin from "./tools/eslint/poisoned-ctx-plugin.mjs";
+
+const scramjetCorePlugin = {
+	rules: {
+		...noGlobalsPlugin.rules,
+		...poisonedCtxPlugin.rules,
+	},
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,10 +75,21 @@ export default [
 	{
 		files: ["src/**/*.ts"],
 		plugins: {
-			"scramjet-core": noGlobalsPlugin,
+			"scramjet-core": scramjetCorePlugin,
 		},
 		rules: {
-			"scramjet-core/no-globals": "error",
+			"scramjet-core/no-globals": [
+				"error",
+				{
+					allow: ["BUILDDATE", "COMMITHASH", "dbg", "setTimeout", "VERSION"],
+				},
+			],
+		},
+	},
+	{
+		files: ["src/client/**/*.ts"],
+		rules: {
+			"scramjet-core/no-poisoned-ctx-value": "warn",
 		},
 	},
 ];

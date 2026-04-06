@@ -8,6 +8,17 @@ function isValueReference(reference) {
 	return true;
 }
 
+/** TS lib globals (e.g. DataView) are ImplicitLibVariable with own isValueVariable; ordinary Variable uses getters. */
+function isImplicitLibVariable(variable) {
+	return Object.hasOwn(variable, "isValueVariable");
+}
+
+function getGlobalScope(scope) {
+	let s = scope;
+	while (s.upper) s = s.upper;
+	return s;
+}
+
 const noGlobalsPlugin = {
 	rules: {
 		"no-globals": {
@@ -38,24 +49,25 @@ const noGlobalsPlugin = {
 			},
 			create(context) {
 				const sourceCode = context.sourceCode;
-				const allowlist = new Set(
-					context.options[0]?.allow ?? DEFAULT_ALLOWLIST
-				);
+				const allowlist = new Set([
+					...DEFAULT_ALLOWLIST,
+					...(context.options[0]?.allow ?? []),
+				]);
 
 				return {
 					"Program:exit"(node) {
-						const scope = sourceCode.getScope(node);
+						const programScope = sourceCode.getScope(node);
+						const globalScope = getGlobalScope(programScope);
+						const reported = new Set();
 
-						for (const reference of scope.through) {
-							if (reference.resolved || !isValueReference(reference)) {
-								continue;
-							}
-
-							const identifier = reference.identifier;
+						function reportGlobal(identifier) {
 							if (!identifier || allowlist.has(identifier.name)) {
-								continue;
+								return;
 							}
-
+							if (reported.has(identifier)) {
+								return;
+							}
+							reported.add(identifier);
 							context.report({
 								node: identifier,
 								messageId: "unexpectedGlobal",
@@ -63,6 +75,30 @@ const noGlobalsPlugin = {
 									name: identifier.name,
 								},
 							});
+						}
+
+						for (const reference of programScope.through) {
+							if (reference.resolved || !isValueReference(reference)) {
+								continue;
+							}
+
+							reportGlobal(reference.identifier);
+						}
+
+						for (const variable of globalScope.variables) {
+							if (!isImplicitLibVariable(variable)) {
+								continue;
+							}
+
+							// TS lib can mark names as type-only (isValueVariable false) after later lib
+							// layers override; value uses still resolve here and must be flagged.
+							for (const reference of variable.references) {
+								if (!isValueReference(reference)) {
+									continue;
+								}
+
+								reportGlobal(reference.identifier);
+							}
 						}
 					},
 				};
