@@ -222,7 +222,8 @@ export class ScramjetClient {
 
 		this.context = init.context;
 		this.clientId = init.clientId;
-		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+		if (init.initHeaders)
+			this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
 		this.history = init.history;
 		this.context.hooks = {
 			rewriter: this.hooks.rewriter,
