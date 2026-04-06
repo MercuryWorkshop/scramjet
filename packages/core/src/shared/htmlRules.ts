@@ -3,6 +3,7 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
 import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
+import { generateClientId } from "@/shared/util";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
@@ -84,6 +85,10 @@ export const htmlRules: {
 					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
 					origin: new URL(meta.origin.origin),
 					base: new URL(meta.origin.origin),
+					clientId: generateClientId(),
+					topFrameName: meta.topFrameName,
+					parentFrameName: meta.parentFrameName,
+					referrerPolicy: meta.referrerPolicy,
 				},
 				{
 					loadScripts: true,

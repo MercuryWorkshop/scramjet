@@ -250,8 +250,12 @@ export function parseRequest(
 		}
 
 		clientId = generateClientId();
-		let client = new ScramjetFetchTrackedClient(clientId);
-		handler.trackedClients.set(clientId, client);
+	}
+
+	let trackedClient = handler.trackedClients.get(clientId);
+	if (!trackedClient) {
+		trackedClient = new ScramjetFetchTrackedClient(clientId);
+		handler.trackedClients.set(clientId, trackedClient);
 	}
 
 	// TODO: figure out what origin and base actually mean
@@ -270,7 +274,7 @@ export function parseRequest(
 		scriptType,
 		referrerPolicy,
 		referrerSourceUrl,
-		trackedClient: clientId ? handler.trackedClients.get(clientId) : undefined,
+		trackedClient,
 		hadExtraParams,
 	};
 

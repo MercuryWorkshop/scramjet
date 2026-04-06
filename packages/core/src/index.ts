@@ -7,6 +7,7 @@ import "./global.d";
 import { ScramjetConfig } from "./types";
 export * from "./client";
 export * from "./shared";
+export { generateClientId } from "./shared/util";
 export * from "./symbols";
 export * from "./types";
 export * from "./fetch";
