@@ -6,6 +6,8 @@ export type URLMeta = {
 	base: URL;
 	topFrameName?: string;
 	parentFrameName?: string;
+	clientId: string;
+	referrerPolicy?: string;
 };
 
 let url_ctor = URL;
@@ -88,10 +90,25 @@ function dataToBlob(url: string) {
 	return { blob, objectUrl };
 }
 
+// user: manually triggered navigation
+// link: link clicked by the user. still user initiated, but doesn't wipe
+// location: location = ...
+export type NavigationType = "user" | "link" | "location";
+export type RewriteUrlOptions = {
+	referrerPolicyOverride?: string;
+	moduleType?: string;
+	navigateType?: NavigationType;
+	// is this an iframe, where we would want to create a new client
+	newClient?: boolean;
+	topFrame?: string;
+	parentFrame?: string;
+};
+
 export function rewriteUrl(
 	url: string | URL,
 	context: ScramjetContext,
-	meta: URLMeta
+	meta: URLMeta,
+	options?: RewriteUrlOptions
 ) {
 	if (url instanceof URL) url = url.toString();
 
@@ -139,9 +156,35 @@ export function rewriteUrl(
 		const realHash = encodedHash ? "#" + encodedHash : "";
 		realUrl.hash = "";
 
+		const paramsInit = new URLSearchParams();
+		if (meta.clientId && !options?.newClient) {
+			paramsInit.append("cid", meta.clientId);
+		}
+
+		if (options?.referrerPolicyOverride) {
+			paramsInit.append("rfp", options.referrerPolicyOverride);
+		} else if (meta.referrerPolicy) {
+			paramsInit.append("rfp", meta.referrerPolicy);
+		}
+
+		if (options?.moduleType) {
+			paramsInit.append("type", options.moduleType);
+		}
+
+		if (options?.topFrame) {
+			paramsInit.append("topFrame", options.topFrame);
+		}
+		if (options?.parentFrame) {
+			paramsInit.append("parentFrame", options.parentFrame);
+		}
+
+		let paramstring = "";
+		if (paramsInit.toString()) paramstring = "?" + paramsInit.toString();
+
 		return (
 			context.prefix.href +
 			context.interface.codecEncode(realUrl.href) +
+			paramstring +
 			realHash
 		);
 	}
@@ -149,11 +192,6 @@ export function rewriteUrl(
 
 export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 	if (url instanceof URL) url = url.toString();
-	// remove query string
-	// if (url.includes("?")) {
-	// 	url = url.split("?")[0];
-	// }
-
 	if (url.startsWith("javascript:")) {
 		//TODO
 		return url;
@@ -173,9 +211,17 @@ export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 			// custom protocol
 			return url;
 		}
+		if (!realUrl.href.startsWith(context.prefix.href)) {
+			dbg.error("unrewriteurl: unexpected url", url);
+			return url;
+		}
 		const decodedHash = context.interface.codecDecode(realUrl.hash.slice(1));
 		const realHash = decodedHash ? "#" + decodedHash : "";
 		realUrl.hash = "";
+
+		for (const [key, _value] of realUrl.searchParams) {
+			realUrl.searchParams.delete(key);
+		}
 
 		return context.interface.codecDecode(
 			realUrl.href.slice(context.prefix.href.length) + realHash

@@ -88,6 +88,7 @@ export class Controller {
 	cookieJar = new $scramjet.CookieJar();
 	flags: typeof defaultCfg.flags = { ...defaultCfg.flags };
 	serviceWorkerController: ServiceWorker;
+	guardServiceWorkerRevive = true;
 
 	rpc: RpcHelper<Controllerbound, SWbound>;
 	private ready: Promise<[void, void]>;
@@ -152,7 +153,6 @@ export class Controller {
 						: undefined,
 					rawUrl: new URL(data.rawUrl),
 					rawReferrer: data.rawReferrer,
-					rawReferrerPolicy: data.rawReferrerPolicy,
 					destination: data.destination,
 					method: data.method,
 					mode: data.mode,
@@ -292,6 +292,11 @@ export class Controller {
 
 		navigator.serviceWorker.addEventListener("message", (e) => {
 			if (e.data.$controller$swrevive) {
+				// if we just spawned the service worker, it will send this even though it's not actually dead
+				// TODO: pretty jank, fix at some point
+				if (this.guardServiceWorkerRevive) {
+					return;
+				}
 				this.setupMessagePort();
 			}
 		});
@@ -364,6 +369,7 @@ function yieldGetInjectScripts(
 	let getInjectScripts: ScramjetGlobal.ScramjetInterface["getInjectScripts"] = (
 		meta,
 		handler,
+		htmlcontext,
 		script
 	) => {
 		function base64Encode(text: string) {
@@ -393,6 +399,9 @@ function yieldGetInjectScripts(
 						yieldGetInjectScripts: ${yieldGetInjectScripts.toString()},
 						codecEncode: ${codecEncode.toString()},
 						codecDecode: ${codecDecode.toString()},
+						clientId: ${JSON.stringify(meta.clientId)},
+						initHeaders: ${JSON.stringify(htmlcontext.headers)},
+						history: ${JSON.stringify(htmlcontext.history)},
 					})
 				`)
 			),

@@ -10,7 +10,9 @@ export const htmlRules: {
 }[] = [
 	{
 		fn: (value, context, meta) => {
-			return rewriteUrl(value, context, meta);
+			return rewriteUrl(value, context, meta, {
+				navigateType: "location",
+			});
 		},
 
 		// url rewrites
@@ -24,9 +26,11 @@ export const htmlRules: {
 	},
 	{
 		fn: (value, context, meta) => {
-			let url = rewriteUrl(value, context, meta);
-			// if (meta.topFrameName)
-			// 	url += `?topFrame=${meta.topFrameName}&parentFrame=${meta.parentFrameName}`;
+			let url = rewriteUrl(value, context, meta, {
+				newClient: true,
+				topFrame: meta.topFrameName,
+				parentFrame: meta.parentFrameName,
+			});
 
 			return url;
 		},
@@ -81,7 +85,12 @@ export const htmlRules: {
 					origin: new URL(meta.origin.origin),
 					base: new URL(meta.origin.origin),
 				},
-				true
+				{
+					loadScripts: true,
+					inline: true,
+					source: meta.origin.href,
+					apisource: "set HTMLIFrameElement.prototype.srcdoc",
+				}
 			),
 
 		// srcdoc

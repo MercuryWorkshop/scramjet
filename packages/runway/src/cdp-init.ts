@@ -3,12 +3,32 @@ export const CDP_INIT_SCRIPT = `
 	try {
 		window.__eval = window.eval;
 		window.__topEval = window.eval;
+		function getRunwayToken() {
+			try {
+				const url = new URL(location.href);
+				const searchToken = url.searchParams.get("runway_token");
+				if (searchToken) return searchToken;
+				const hash = url.hash;
+				if (!hash) return undefined;
+				const params = new URLSearchParams(
+					hash.startsWith("#") ? hash.slice(1) : hash
+				);
+				return params.get("runway_token") || undefined;
+			} catch {
+				return undefined;
+			}
+		}
 		
 		// Test helper functions
 		function emitBinding(name, payload) {
 			const fn = window[name];
 			if (typeof fn === "function") {
-				fn(JSON.stringify(payload));
+				const token = getRunwayToken();
+				if (payload && typeof payload === "object") {
+					fn(JSON.stringify({ ...payload, __runwayToken: token }));
+				} else {
+					fn(JSON.stringify({ value: payload, __runwayToken: token }));
+				}
 			}
 		}
 
@@ -79,12 +99,12 @@ export const CDP_INIT_SCRIPT = `
 		window.ok = ok;
 		window.runTest = runTest;
 		
-		// For checkglobal tests - need to use __eval to get real values
-		const realtop = window.__eval ? window.__eval("top") : window.eval("top");
-		const reallocation = window.__eval ? window.__eval("location") : window.eval("location");
-		const realparent = window.__eval ? window.__eval("parent") : window.eval("parent");
-		const realeval = window.__eval || window.eval;
 		function checkglobal(global) {
+			const evalFn = window.__eval || window.eval;
+			const realtop = evalFn("top");
+			const reallocation = evalFn("location");
+			const realparent = evalFn("top");
+			const realeval = evalFn;
 			assert(global !== realtop, "top was leaked");
 			assert(global !== reallocation, "location was leaked");
 			assert(global !== realparent, "parent was leaked");

@@ -8,16 +8,36 @@ import { CookieJar } from "@/shared/cookie";
 import { ScramjetContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 import { Tap } from "@/Tap";
+import { RawHeaders } from "@mercuryworkshop/proxy-transports";
+import { TrackedHistoryState } from "@/fetch";
+
+export type ForeignContext = "svg" | "math" | undefined;
+export type HtmlContext = {
+	// should we inject scramjet scripts at the top of the document?
+	loadScripts: boolean;
+	// did the document come from the service worker, or from document.write/innerHTML?
+	inline: boolean;
+	// for worker originating documents, the source URL, otherwise the url of the page that triggered the rewrite
+	source: string;
+	// for api originating documents, the name of the api that triggered the rewrite
+	apisource?: string;
+	// response headers for worker originating documents
+	headers?: RawHeaders;
+	foreignContext?: ForeignContext;
+	history?: TrackedHistoryState[];
+};
 
 const encoder = new TextEncoder();
 function rewriteHtmlInner(
 	html: string,
 	context: ScramjetContext,
 	meta: URLMeta,
-	fromTop: boolean = false
+	htmlcontext: HtmlContext
 ) {
 	const handler = new DomHandler((err, dom) => dom);
-	const parser = new Parser(handler);
+	const parser = new Parser(handler, {
+		startingForeignContext: htmlcontext.foreignContext === "svg",
+	});
 
 	parser.write(html);
 	parser.end();
@@ -26,7 +46,7 @@ function rewriteHtmlInner(
 		{
 			handler,
 			meta,
-			fromTop,
+			htmlcontext,
 			origHtml: html,
 		},
 		undefined
@@ -88,12 +108,13 @@ function rewriteHtmlInner(
 
 	let isQuirky = detectQuirks();
 
-	if (fromTop) {
+	if (htmlcontext.loadScripts) {
 		const script = (src: string) =>
 			new Element("script", { src, "scramjet-injected": "true" });
 		const injectScripts = context.interface.getInjectScripts(
 			meta,
 			handler,
+			htmlcontext,
 			script
 		);
 
@@ -120,7 +141,7 @@ function rewriteHtmlInner(
 		{
 			handler,
 			meta,
-			fromTop,
+			htmlcontext,
 			origHtml: html,
 		},
 		props
@@ -140,19 +161,10 @@ export function rewriteHtml(
 	html: string,
 	context: ScramjetContext,
 	meta: URLMeta,
-	fromTop: boolean = false,
-	preRewrite?: (handler: DomHandler) => void,
-	postRewrite?: (handler: DomHandler) => void
+	htmlcontext: HtmlContext
 ) {
 	const before = performance.now();
-	const ret = rewriteHtmlInner(
-		html,
-		context,
-		meta,
-		fromTop,
-		preRewrite,
-		postRewrite
-	);
+	const ret = rewriteHtmlInner(html, context, meta, htmlcontext);
 	dbg.time(meta, before, "html rewrite");
 
 	return ret;

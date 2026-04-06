@@ -1,5 +1,6 @@
 import { rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
+import { createReferrerString } from "@/fetch/headers";
 
 export default function (client: ScramjetClient, _self: Self) {
 	const tostring = String;
@@ -19,19 +20,27 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			if (ctx.args[0])
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "Document.prototype.write",
+					});
 				} catch {}
 		},
 	});
 
 	client.Trap("Document.prototype.referrer", {
 		get() {
-			return client.url.toString();
+			if (!client.history) return "";
+			if (client.history.length < 2) return "";
+			let lastState = client.history[client.history.length - 2];
+			let referrerURL = new URL(lastState.url);
+			return createReferrerString(
+				referrerURL,
+				client.url,
+				lastState.refererPolicy
+			);
 		},
 	});
 
@@ -39,12 +48,12 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			if (ctx.args[0])
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "Document.prototype.writeln",
+					});
 				} catch {}
 		},
 	});
@@ -53,12 +62,12 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			if (ctx.args[0])
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "Document.prototype.parseHTMLUnsafe",
+					});
 				} catch {}
 		},
 	});

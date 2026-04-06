@@ -2,17 +2,24 @@ type ScramjetFrame = any;
 import {
 	BareCompatibleClient,
 	ProxyTransport,
+	RawHeaders,
 } from "@mercuryworkshop/proxy-transports";
 import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { NavigateEvent } from "@client/events";
-import { rewriteUrl, unrewriteUrl, type URLMeta } from "@rewriters/url";
+import {
+	rewriteUrl,
+	RewriteUrlOptions,
+	unrewriteUrl,
+	type URLMeta,
+} from "@rewriters/url";
 import {
 	flagEnabled,
 	HtmlRewriterHooks,
 	ScramjetContext,
+	ScramjetHeaders,
 	ScramjetInterface,
 } from "@/shared";
 import { CookieJar } from "@/shared/cookie";
@@ -20,6 +27,7 @@ import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
 import { ScramjetConfig } from "@/types";
 import { Tap } from "@/Tap";
+import { TrackedHistoryState } from "@/fetch";
 
 export type ScramjetClientInit = {
 	context: ScramjetContext;
@@ -28,6 +36,9 @@ export type ScramjetClientInit = {
 	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
 	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;
+	clientId: string;
+	initHeaders: RawHeaders;
+	history: TrackedHistoryState[];
 };
 
 type NativeStore = {
@@ -141,6 +152,12 @@ export class ScramjetClient {
 
 	context: ScramjetContext;
 
+	clientId: string;
+
+	initHeaders: ScramjetHeaders;
+
+	history: TrackedHistoryState[];
+
 	hooks = {
 		rewriter: {
 			html: Tap.create<HtmlRewriterHooks>(),
@@ -172,6 +189,9 @@ export class ScramjetClient {
 		this.box.registerClient(this, global as Self);
 
 		this.context = init.context;
+		this.clientId = init.clientId;
+		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+		this.history = init.history;
 		this.context.hooks = {
 			rewriter: this.hooks.rewriter,
 		};
@@ -389,6 +409,25 @@ export class ScramjetClient {
 					return frame.name;
 				}
 			},
+			clientId: this.clientId,
+			get referrerPolicy(): string | undefined {
+				if (client.initHeaders.has("referrer-policy")) {
+					return client.initHeaders.get("referrer-policy");
+				}
+
+				// TODO: need to nullify the actual meta tag so it still sends unsafe-url
+				let meta = [
+					...document.querySelectorAll("meta[name='referrer']"),
+					...document.querySelectorAll("meta[name='referrer-policy']"),
+					...document.querySelectorAll("meta[http-equiv='referrer-policy']"),
+				];
+				let last = meta[meta.length - 1];
+				if (last) {
+					return last.getAttribute("content");
+				}
+
+				return;
+			},
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
@@ -478,7 +517,9 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		this.global.location.href = this.rewriteUrl(ev.url);
+		this.global.location.href = this.rewriteUrl(ev.url, {
+			navigateType: "location",
+		});
 	}
 
 	// below are the utilities for proxying and trapping dom APIs
@@ -768,8 +809,8 @@ return { apply, construct };
 		return oldDescriptor;
 	}
 
-	rewriteUrl(url: string | URL): string {
-		return rewriteUrl(url, this.context, this.meta);
+	rewriteUrl(url: string | URL, options?: RewriteUrlOptions): string {
+		return rewriteUrl(url, this.context, this.meta, options);
 	}
 
 	unrewriteUrl(url: string | URL): string {

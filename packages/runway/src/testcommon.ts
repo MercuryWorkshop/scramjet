@@ -1,5 +1,5 @@
 import http from "http";
-import type { Socket } from "node:net";
+import type { AddressInfo, Socket } from "node:net";
 import type { FrameLocator, Page } from "playwright";
 
 export type TestContext = {
@@ -14,6 +14,12 @@ export type TestContext = {
 export type Test = {
 	name: string;
 	port: number;
+	scheme?: "http" | "https";
+	path?: string;
+	timeoutMs?: number;
+	reloadHarness?: boolean;
+	topLevelScramjet?: boolean;
+	warmProxiedNavigation?: boolean;
 	start: (ctx: {
 		pass: (message?: string, details?: any) => Promise<void>;
 		fail: (message?: string, details?: any) => Promise<void>;
@@ -27,7 +33,7 @@ export type Test = {
 	expectedOkCount?: number;
 };
 
-let nextPort = 9000;
+let nextPort = 10000 + Math.floor(Math.random() * 40000);
 
 export function basicTest(props: {
 	name: string;
@@ -36,11 +42,10 @@ export function basicTest(props: {
 	scramjetOnly?: boolean;
 	expectedOkCount?: number;
 }): Test {
-	const port = nextPort++;
+	let port = 0;
 	let server: http.Server;
 	const scramjetOnly = props.scramjetOnly ?? /checkglobal\s*\(/i.test(props.js);
-
-	return {
+	const test: Test = {
 		name: props.name,
 		port,
 		scramjetOnly,
@@ -71,7 +76,11 @@ export function basicTest(props: {
 						res.end("Not found");
 					}
 				});
-				server.listen(port, () => resolve());
+				server.listen(0, () => {
+					port = (server.address() as AddressInfo).port;
+					test.port = port;
+					resolve();
+				});
 			});
 		},
 		async stop() {
@@ -92,6 +101,7 @@ export function basicTest(props: {
 			]);
 		},
 	};
+	return test;
 }
 
 /**
@@ -147,14 +157,13 @@ export function serverTest(props: {
 	scramjetOnly?: boolean;
 	expectedOkCount?: number;
 }) {
-	const port = nextPort++;
+	let port = 0;
 	let server: http.Server;
 	const activeSockets = new Set<Socket>();
 	const scramjetOnly =
 		props.scramjetOnly ??
 		(props.js ? /checkglobal\s*\(/i.test(props.js) : false);
-
-	return {
+	const test: Test = {
 		name: props.name,
 		port,
 		scramjetOnly,
@@ -202,9 +211,13 @@ export function serverTest(props: {
 					activeSockets.delete(socket);
 				});
 			});
-			await props.start(server, port, { pass, fail });
 			return new Promise<void>((resolve) => {
-				server.listen(port, () => resolve());
+				server.listen(0, async () => {
+					port = (server.address() as AddressInfo).port;
+					test.port = port;
+					await props.start(server, port, { pass, fail });
+					resolve();
+				});
 			});
 		},
 		async stop() {
@@ -230,6 +243,7 @@ export function serverTest(props: {
 			]);
 		},
 	};
+	return test;
 }
 
 type Frame = {
