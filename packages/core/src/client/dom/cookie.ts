@@ -1,6 +1,6 @@
 import { ScramjetClient } from "@client/index";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, self: Self) {
 	client.Trap("Document.prototype.cookie", {
 		get() {
 			return client.context.cookieJar.getCookies(client.url, true);

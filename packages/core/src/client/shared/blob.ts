@@ -4,7 +4,7 @@ export default function (client: ScramjetClient) {
 	// hide the origin from object urls from the page
 	client.Proxy("URL.createObjectURL", {
 		apply(ctx) {
-			const url: string = ctx.call();
+			const url = ctx.call();
 			if (url.startsWith("blob:")) {
 				ctx.return(rewriteBlob(url, client.context, client.meta));
 			} else {
