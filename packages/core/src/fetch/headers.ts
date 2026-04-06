@@ -117,32 +117,25 @@ export function rewriteRequestHeaders(
 	// avoid leaking the scramjet referer
 	headers.delete("Referer");
 
-	const clientUrl =
+	const rawOriginUrl =
 		parsed.referrerSourceUrl !== undefined
 			? parsed.referrerSourceUrl
 			: request.rawClientUrl ||
 				(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
 
-	if (clientUrl) {
-		headers.set("Origin", clientUrl.origin);
+	if (
+		rawOriginUrl &&
+		rawOriginUrl.pathname.startsWith(handler.context.prefix.pathname)
+	) {
+		let originUrl = new URL(unrewriteUrl(rawOriginUrl, handler.context));
+		headers.set("Origin", originUrl.origin);
 
-		if (clientUrl.pathname.startsWith(handler.context.prefix.pathname)) {
-			let unrewritten = new URL(unrewriteUrl(clientUrl, handler.context));
-
-			const referer = createReferrerString(
-				unrewritten,
-				parsed.url,
-				parsed.referrerPolicy ?? null
-			);
-			if (referer) headers.set("Referer", referer);
-		} else {
-			const referer = createReferrerString(
-				clientUrl,
-				parsed.url,
-				parsed.referrerPolicy ?? null
-			);
-			if (referer) headers.set("Referer", referer);
-		}
+		const referer = createReferrerString(
+			originUrl,
+			parsed.url,
+			parsed.referrerPolicy ?? null
+		);
+		if (referer) headers.set("Referer", referer);
 	}
 
 	const cookies = handler.context.cookieJar.getCookies(parsed.url, false);
