@@ -1,5 +1,6 @@
+import { generateClientId } from "@mercuryworkshop/scramjet";
 import type {
-	CookieJar,
+	CookieJar as CookieJarType,
 	ScramjetConfig,
 	TrackedHistoryState,
 } from "@mercuryworkshop/scramjet";
@@ -159,7 +160,7 @@ type Init = {
 	cookies: string;
 	prefix: URL;
 	yieldGetInjectScripts: (
-		cookieJar: CookieJar,
+		cookieJar: CookieJarType,
 		config: Config,
 		sjconfig: ScramjetConfig,
 		prefix: URL,
@@ -175,6 +176,14 @@ type Init = {
 
 export function load(init: Init) {
 	if (SCRAMJETCLIENT in globalThis) {
+		(
+			(globalThis as any)[SCRAMJETCLIENT] as ScramjetGlobal.ScramjetClient
+		).syncDocumentInit({
+			clientId: init.clientId,
+			initHeaders: init.initHeaders,
+			history: init.history,
+			cookies: init.cookies,
+		});
 		return;
 	}
 	if (!("WASM" in self)) {
@@ -196,7 +205,7 @@ function createFrameId() {
 
 class ExecutionContextWrapper {
 	client!: ScramjetGlobal.ScramjetClient;
-	cookieJar: CookieJar;
+	cookieJar: CookieJarType;
 	transport: RemoteTransport;
 	clientId: string;
 
@@ -266,7 +275,12 @@ class ExecutionContextWrapper {
 				return false;
 			},
 			hookSubcontext: (frameself, frame) => {
-				const context = new ExecutionContextWrapper(frameself, this.init);
+				const context = new ExecutionContextWrapper(frameself, {
+					...this.init,
+					// TODO: clientId will change over the lifetime once it recieves syncDocumentInit
+					// this is probably okay?
+					clientId: generateClientId(),
+				});
 				return context.client;
 			},
 			clientId: this.clientId,

@@ -441,7 +441,9 @@ export class ScramjetClient {
 					return frame.name;
 				}
 			},
-			clientId: this.clientId,
+			get clientId() {
+				return client.clientId;
+			},
 			get referrerPolicy(): string | undefined {
 				if (client.initHeaders.has("referrer-policy")) {
 					return client.initHeaders.get("referrer-policy");
@@ -464,6 +466,21 @@ export class ScramjetClient {
 		this.locationProxy = createLocationProxy(this, global);
 
 		global[SCRAMJETCLIENT] = this;
+	}
+
+	/** Apply document injection init when a client was already installed (e.g. early contentWindow). */
+	syncDocumentInit(init: {
+		clientId: string;
+		initHeaders: RawHeaders;
+		history: TrackedHistoryState[];
+		cookies?: string;
+	}) {
+		this.clientId = init.clientId;
+		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+		this.history = init.history;
+		if (init.cookies !== undefined) {
+			this.context.cookieJar.load(init.cookies);
+		}
 	}
 
 	get frame(): ScramjetFrame | null {
