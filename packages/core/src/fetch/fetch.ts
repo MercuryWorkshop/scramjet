@@ -11,7 +11,12 @@ import {
 	ScramjetFetchResponse,
 	ScramjetFetchTrackedClient,
 } from ".";
-import { unrewriteBlob, unrewriteUrl, URLMeta } from "@rewriters/url";
+import {
+	rewriteUrl,
+	unrewriteBlob,
+	unrewriteUrl,
+	URLMeta,
+} from "@rewriters/url";
 import { isHtmlMimeType, rewriteHtml, ScramjetHeaders } from "@/shared";
 import { isDocument, isRedirect, normalizeContentType } from "./util";
 import { sniffEncoding } from "@/shared/sniffEncoding";
@@ -28,6 +33,20 @@ export async function doHandleFetch(
 
 	if (isBlobOrDataUrl(parsed.url)) {
 		return handleBlobOrDataUrlFetch(handler, request, parsed);
+	}
+
+	if (parsed.hadExtraParams && isDocument(request)) {
+		const location = rewriteUrl(parsed.url, handler.context, parsed.meta);
+		if (location !== request.rawUrl.href) {
+			const responseHeaders = new ScramjetHeaders();
+			responseHeaders.set("location", location);
+			return {
+				body: "",
+				headers: responseHeaders,
+				status: 307,
+				statusText: "Temporary Redirect",
+			};
+		}
 	}
 
 	const newheaders = rewriteRequestHeaders(request, handler, parsed);
@@ -196,9 +215,10 @@ export function parseRequest(
 				extraParams[param] = value;
 				break;
 		}
-
-		strippedUrl.searchParams.delete(param);
 	}
+	strippedUrl.search = "";
+
+	const hadExtraParams = Object.keys(extraParams).length > 0;
 
 	if (!URL.canParse(unrewriteUrl(strippedUrl, handler.context))) {
 		throw new Error(`unable to parse rewritten url: ${strippedUrl.href}`);
@@ -251,6 +271,7 @@ export function parseRequest(
 		referrerPolicy,
 		referrerSourceUrl,
 		trackedClient: clientId ? handler.trackedClients.get(clientId) : undefined,
+		hadExtraParams,
 	};
 
 	if (request.rawClientUrl) {

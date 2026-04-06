@@ -218,10 +218,7 @@ export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 		const decodedHash = context.interface.codecDecode(realUrl.hash.slice(1));
 		const realHash = decodedHash ? "#" + decodedHash : "";
 		realUrl.hash = "";
-
-		for (const [key, _value] of realUrl.searchParams) {
-			realUrl.searchParams.delete(key);
-		}
+		realUrl.search = "";
 
 		return context.interface.codecDecode(
 			realUrl.href.slice(context.prefix.href.length) + realHash
