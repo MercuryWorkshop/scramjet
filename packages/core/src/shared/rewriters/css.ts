@@ -20,9 +20,9 @@ function handleCss(
 	meta?: URLMeta
 ) {
 	// regex from vk6 (https://github.com/ading2210)
-	const urlRegex = /url\(['"]?(.+?)['"]?\)/gm;
+	const urlRegex = /(?i:url)\(['"]?(.+?)['"]?\)/gm;
 	const Atruleregex =
-		/@import\s+(url\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gm;
+		/@import\s+((?i:url)\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gm;
 	css = new String(css).toString();
 	css = css.replace(urlRegex, (match, url) => {
 		const encodedUrl =

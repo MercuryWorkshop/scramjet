@@ -66,6 +66,8 @@
 		"referer-iframe-document-cross-origin-uses-origin-only",
 		"referer-iframe-document-same-origin-uses-full-url",
 		"referer-iframe-request-same-origin-sends-full-url",
+		"rewriter-css-block-comment-should-not-rewrite-url",
+		"rewriter-css-double-quoted-url-close-paren-in-string",
 		"wpt-fetch-metadata-generated-audioworklet-https-sub-html",
 		"wpt-fetch-metadata-generated-element-a-https-sub-html",
 		"wpt-fetch-metadata-generated-element-a-sub-html",

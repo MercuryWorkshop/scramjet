@@ -11,6 +11,11 @@ export type TestContext = {
 	navigate: (url: string) => Promise<void>;
 };
 
+export type DirectTestContext = {
+	assert: (condition: unknown, message?: string) => void;
+	assertEqual: (actual: unknown, expected: unknown, message?: string) => void;
+};
+
 export type Test = {
 	name: string;
 	port: number;
@@ -29,6 +34,8 @@ export type Test = {
 	scramjetOnly?: boolean;
 	/** If defined, this is a playwright test that controls the browser directly */
 	playwrightFn?: (ctx: TestContext) => Promise<void>;
+	/** If defined, this test runs directly in-process and does not use the harness/browser */
+	directFn?: () => Promise<void>;
 	/** Expected number of ok() calls. Test will fail if actual count doesn't match */
 	expectedOkCount?: number;
 };
@@ -138,6 +145,43 @@ export function playwrightTest(props: {
 		},
 		playwrightFn: props.fn,
 		scramjetOnly: true,
+	};
+}
+
+export function directTest(props: {
+	name: string;
+	fn: (ctx: DirectTestContext) => Promise<void> | void;
+	timeoutMs?: number;
+}): Test {
+	return {
+		name: props.name,
+		port: 0,
+		timeoutMs: props.timeoutMs,
+		async start() {
+			// No server needed
+		},
+		async stop() {
+			// Nothing to stop
+		},
+		scramjetOnly: true,
+		directFn: async () => {
+			const assert = (condition: unknown, message = "Assertion failed") => {
+				if (!condition) throw new Error(message);
+			};
+			const assertEqual = (
+				actual: unknown,
+				expected: unknown,
+				message = "Values are not equal"
+			) => {
+				if (!Object.is(actual, expected)) {
+					throw new Error(
+						`${message}\nExpected: ${String(expected)}\nActual: ${String(actual)}`
+					);
+				}
+			};
+
+			await props.fn({ assert, assertEqual });
+		},
 	};
 }
 
