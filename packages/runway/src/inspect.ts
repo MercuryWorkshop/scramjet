@@ -57,13 +57,18 @@ async function main() {
 
 	console.log(`📋 Found ${tests.length} matching test(s):`);
 	for (const test of tests) {
-		console.log(`  - ${test.name}${test.playwrightFn ? " (playwright)" : ""}`);
+		const suffix = test.directFn
+			? " (direct)"
+			: test.playwrightFn
+				? " (playwright)"
+				: "";
+		console.log(`  - ${test.name}${suffix}`);
 	}
 	console.log();
 
 	// Start all matching tests (only basicTests need servers)
 	for (const test of tests) {
-		if (!test.playwrightFn) {
+		if (!test.playwrightFn && !test.directFn) {
 			await test.start({
 				pass: async (message?: string, details?: any) => {
 					console.log(`\n✅ Test passed${message ? `: ${message}` : ""}`);
@@ -78,6 +83,23 @@ async function main() {
 				`🌐 Test "${test.name}" running at http://localhost:${test.port}/`
 			);
 		}
+	}
+
+	const directOnlyTests = tests.filter((test) => test.directFn);
+	const browserTests = tests.filter((test) => !test.directFn);
+	if (browserTests.length === 0 && directOnlyTests.length > 0) {
+		for (const test of directOnlyTests) {
+			process.stdout.write(`  ${test.name} ... `);
+			try {
+				await test.directFn!();
+				console.log("✅ passed");
+			} catch (error) {
+				console.log(
+					`❌ failed: ${error instanceof Error ? error.message : String(error)}`
+				);
+			}
+		}
+		process.exit(0);
 	}
 
 	// Start the harness server
@@ -143,7 +165,7 @@ async function main() {
 	}
 
 	// Navigate to first test
-	const firstTest = tests[0];
+	const firstTest = browserTests[0];
 
 	if (firstTest.playwrightFn) {
 		console.log(
@@ -209,9 +231,9 @@ async function main() {
 	console.log("🔍 Browser open for manual inspection");
 	console.log("   Press Ctrl+C to exit\n");
 
-	if (tests.length > 1) {
+	if (browserTests.length > 1) {
 		console.log("Other test URLs (navigate manually via harness):");
-		for (const test of tests.slice(1)) {
+		for (const test of browserTests.slice(1)) {
 			console.log(`  - http://localhost:${test.port}/`);
 		}
 		console.log();
