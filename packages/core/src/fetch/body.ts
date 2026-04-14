@@ -6,6 +6,7 @@ import {
 	ScramjetFetchRequest,
 } from ".";
 import {
+	flagEnabled,
 	isHtmlMimeType,
 	isJavascriptMimeType,
 	rewriteCss,
@@ -52,13 +53,24 @@ export async function rewriteBody(
 					return response.body;
 				}
 
-				return rewriteJs(
+				let rewritten = rewriteJs(
 					new Uint8Array(await response.arrayBuffer()),
 					response.url,
 					handler.context,
 					parsed.meta,
 					parsed.scriptType === "module"
-				) as unknown as ArrayBuffer;
+				);
+
+				if (
+					flagEnabled("debugSourceURL", handler.context, parsed.meta.origin)
+				) {
+					if (rewritten instanceof Uint8Array) {
+						rewritten = new TextDecoder().decode(rewritten);
+					}
+					rewritten += `\n//# sourceURL=${parsed.url.href}`;
+				}
+
+				return rewritten as unknown as ArrayBuffer;
 			}
 			return response.body;
 		}
