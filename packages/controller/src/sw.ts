@@ -87,7 +87,7 @@ class ControllerReference {
 			}
 		);
 		port.onmessage = (e: MessageEvent) => {
-			this.rpc.recieve(e.data);
+			this.rpc.receive(e.data);
 		};
 		port.onmessageerror = console.error;
 

@@ -59,7 +59,7 @@ class RemoteTransport implements ProxyTransport {
 			console.error("onmessageerror (this should never happen!)", ev);
 		};
 		port.onmessage = (ev) => {
-			this.rpc.recieve(ev.data);
+			this.rpc.receive(ev.data);
 		};
 		port.start();
 	}
@@ -277,7 +277,7 @@ class ExecutionContextWrapper {
 			hookSubcontext: (frameself, frame) => {
 				const context = new ExecutionContextWrapper(frameself, {
 					...this.init,
-					// TODO: clientId will change over the lifetime once it recieves syncDocumentInit
+					// TODO: clientId will change over the lifetime once it receives syncDocumentInit
 					// this is probably okay?
 					clientId: generateClientId(),
 				});

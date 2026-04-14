@@ -99,7 +99,7 @@ export class Controller {
 
 	private port: MessagePort | null = null;
 	private onTabChannelMessage: (e: MessageEvent) => void = (e) => {
-		this.rpc.recieve(e.data);
+		this.rpc.receive(e.data);
 	};
 
 	private methods: MethodsDefinition<Controllerbound> = {
@@ -257,7 +257,7 @@ export class Controller {
 				);
 			};
 			port.onmessage = (e) => {
-				rpc.recieve(e.data);
+				rpc.receive(e.data);
 			};
 			rpc.call("ready", undefined, []);
 		},

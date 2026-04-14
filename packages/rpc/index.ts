@@ -35,7 +35,7 @@ export class RpcHelper<
 		private sendRaw: (data: any, transfer: Transferable[]) => void
 	) {}
 
-	recieve(data: any) {
+	receive(data: any) {
 		if (data === undefined || data === null || typeof data !== "object") return;
 		const dt = data[this.id];
 		if (dt === undefined || dt === null || typeof dt !== "object") return;

@@ -81,7 +81,7 @@ export default function (client: ScramjetClient, self: Self) {
 						}
 
 						args[0] = new Proxy(realEvent, {
-							get(target, prop, reciever) {
+							get(target, prop, receiver) {
 								const value = Reflect.get(target, prop);
 								if (prop in handler) {
 									return handler[prop].call(target);
@@ -90,7 +90,7 @@ export default function (client: ScramjetClient, self: Self) {
 								if (typeof value === "function") {
 									return new Proxy(value, {
 										apply(target, that, args) {
-											if (that === reciever) {
+											if (that === receiver) {
 												return Reflect.apply(target, realEvent, args);
 											}
 
