@@ -17,17 +17,25 @@ const flagStore = createStore<ScramjetFlags>(
 // Flag descriptions for better UX
 const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 	syncxhr: "Enable synchronous XMLHttpRequest support",
-	strictRewrites: "Use strict URL rewriting rules",
-	rewriterLogs: "Enable rewriter logging (debug mode)",
-	captureErrors: "Capture and handle JavaScript errors",
-	cleanErrors: "Clean error messages for better readability",
-	scramitize: "Apply scramitization transformations",
-	sourcemaps: "Enable source map support",
-	destructureRewrites: "Use destructuring in URL rewrites",
-	allowInvalidJs: "Allow invalid JavaScript to pass through",
-	allowFailedIntercepts: "Allow failed request intercepts",
-	debugTrampolines: "Enable debug trampolines (debug mode)",
-	encapsulateWorkers: "Encapsulate web workers",
+	strictRewrites: "enable extra security in js rewriter at a performance cost",
+	cleanErrors: "prevent sites from noticing scramjet stack frames",
+	sourcemaps:
+		"prevent sites from noticing javascript transformations (at a performance cost)",
+	destructureRewrites:
+		"enable support for rewriting es6 destructure syntax (currently experimental)",
+	allowInvalidJs:
+		"if invalid javascript is evaluated, pass through unsafely instead of throwing",
+	allowFailedIntercepts:
+		"if an api interceptor fails, call the api with original input unsafely instead of throwing",
+	encapsulateWorkers:
+		"wrap web worker scripts in data urls to prevent scope issues (potentially buggy)",
+	scramitize:
+		"Trigger debugger whenever the string 'scramjet' or the real location is detected in attacker code (debug feature)",
+	rewriterLogs: "Enable rewriter logging (debug feature)",
+	captureErrors: "Capture and handle JavaScript errors (debug feature)",
+	debugTrampolines: "Show proxied api in stack traces (debug feature)",
+	debugSourceURL:
+		"Make debugger recognize javascript source urls consistently (debug feature)",
 };
 
 export const FlagEditor: Component<

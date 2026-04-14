@@ -35,7 +35,7 @@ export const defaultConfig: ScramjetConfig = {
 		syncxhr: false,
 		strictRewrites: true,
 		rewriterLogs: false,
-		captureErrors: true,
+		captureErrors: false,
 		cleanErrors: false,
 		scramitize: false,
 		sourcemaps: true,
@@ -44,6 +44,7 @@ export const defaultConfig: ScramjetConfig = {
 		debugTrampolines: false,
 		allowFailedIntercepts: false,
 		encapsulateWorkers: true,
+		debugSourceURL: false,
 	},
 	siteFlags: {},
 	maskedfiles: [],
@@ -54,8 +55,10 @@ export const defaultConfigDev: ScramjetConfig = {
 	flags: {
 		...defaultConfig.flags,
 		rewriterLogs: true,
+		captureErrors: true,
 		cleanErrors: false,
 		debugTrampolines: true,
+		debugSourceURL: true,
 	},
 };
 

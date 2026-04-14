@@ -31,6 +31,7 @@ export type ScramjetFlags = {
 	allowInvalidJs: boolean;
 	allowFailedIntercepts: boolean;
 	debugTrampolines: boolean;
+	debugSourceURL: boolean;
 	encapsulateWorkers: boolean;
 };
 
