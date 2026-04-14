@@ -446,9 +446,10 @@ export class ScramjetClient {
 				return client.clientId;
 			},
 			get referrerPolicy(): string | undefined {
-				if (client.initHeaders.has("referrer-policy")) {
+				if (client.initHeaders && client.initHeaders.has("referrer-policy")) {
 					return client.initHeaders.get("referrer-policy");
 				}
+				if (!iswindow) return "";
 
 				// TODO: need to nullify the actual meta tag so it still sends unsafe-url
 				let meta = [
@@ -461,7 +462,7 @@ export class ScramjetClient {
 					return last.getAttribute("content");
 				}
 
-				return;
+				return "";
 			},
 		};
 		this.locationProxy = createLocationProxy(this, global);
@@ -567,6 +568,7 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
+		debugger;
 		this.global.location.href = this.rewriteUrl(ev.url, {
 			navigateType: "location",
 		});
