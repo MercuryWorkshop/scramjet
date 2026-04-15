@@ -1,21 +1,21 @@
-import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 import { unrewriteLinkHeader } from "./xmlhttprequest";
+import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("fetch", {
 		apply(ctx) {
-			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = client.rewriteUrl(ctx.args[0]);
-			}
+			if (client.box.instanceof(ctx.args[0], "Request")) return;
+			const url = String(ctx.args[0]);
+			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
 	client.Proxy("Request", {
 		construct(ctx) {
-			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
-				ctx.args[0] = client.rewriteUrl(ctx.args[0]);
-			}
+			if (client.box.instanceof(ctx.args[0], "Request")) return;
+			const url = String(ctx.args[0]);
+			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 

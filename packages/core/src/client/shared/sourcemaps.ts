@@ -80,7 +80,7 @@ function extractTag(fn: string): [string, number, number] | null {
 	// it will look like this:
 	// function name()[possible whitespace]/*scramtag [index] [tag]*/[possible whitespace]{ ... }
 
-	let start = fn.indexOf(SCRAMTAG);
+	const start = fn.indexOf(SCRAMTAG);
 	// no scramtag, probably native function or stolen from scramjet
 	if (start === -1) return null;
 
@@ -90,7 +90,7 @@ function extractTag(fn: string): [string, number, number] | null {
 		throw new Error("unreachable");
 	}
 
-	let tag = fn.substring(start + 2, end).split(" ");
+	const tag = fn.substring(start + 2, end).split(" ");
 
 	if (
 		tag.length !== 3 ||

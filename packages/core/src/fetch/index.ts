@@ -2,21 +2,15 @@ import {
 	BareCompatibleClient,
 	BareResponse,
 	ProxyTransport,
-	RawHeaders,
-	TransferrableResponse,
 	BareRequestInit,
 } from "@mercuryworkshop/proxy-transports";
 
-import {
-	rewriteUrl,
-	unrewriteBlob,
-	unrewriteUrl,
-	type URLMeta,
-} from "@rewriters/url";
+import { type URLMeta } from "@rewriters/url";
 import { ScramjetHeaders } from "@/shared/headers";
-import { flagEnabled, HtmlRewriterHooks, ScramjetContext } from "@/shared";
+import { HtmlRewriterHooks, ScramjetContext } from "@/shared";
 import { Tap, TapInstance } from "@/Tap";
 import { doHandleFetch } from "./fetch";
+import { _URL, _Map } from "@/shared/snapshot";
 
 export interface ScramjetFetchRequest {
 	rawUrl: URL;
@@ -34,9 +28,9 @@ export interface ScramjetFetchRequest {
 }
 
 export interface ScramjetFetchParsed {
-	url: URL;
-	clientUrl?: URL;
-	referrerSourceUrl?: URL | null;
+	url: _URL;
+	clientUrl?: _URL;
+	referrerSourceUrl?: _URL | null;
 	hadExtraParams: boolean;
 
 	meta: URLMeta;
@@ -71,12 +65,16 @@ export class ScramjetFetchTrackedClient {
 	constructor(public clientId: string) {}
 }
 
+// eslint-disable-next-line scramjet-core/no-globals
 export class ScramjetFetchHandler extends EventTarget {
 	public client: BareCompatibleClient;
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
 
-	public trackedClients: Map<string, ScramjetFetchTrackedClient> = new Map();
+	public trackedClients = new _Map() as _Map<
+		string,
+		ScramjetFetchTrackedClient
+	>;
 
 	public hooks: {
 		rewriter: {

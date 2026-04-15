@@ -11,11 +11,12 @@ import {
 	ScramjetFetchRequest,
 } from ".";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
+import { _URL, _Set } from "@/shared/snapshot";
 
 /**
  * Headers for security policy features that haven't been emulated yet
  */
-const SEC_HEADERS = new Set([
+const SEC_HEADERS = new _Set([
 	"cross-origin-embedder-policy",
 	"cross-origin-opener-policy",
 	"cross-origin-resource-policy",
@@ -35,12 +36,16 @@ const SEC_HEADERS = new Set([
 	// This needs to be emulated, but for right now it isn't that important of a feature to be worried about
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
 	"clear-site-data",
-]);
+]) as _Set<string>;
 
 /**
  * Headers that are actually URLs that need to be rewritten
  */
-const URL_HEADERS = new Set(["location", "content-location", "referer"]);
+const URL_HEADERS = new _Set([
+	"location",
+	"content-location",
+	"referer",
+]) as _Set<string>;
 
 function rewriteLinkHeader(
 	link: string,
@@ -66,15 +71,15 @@ export async function rewriteResponseHeaders(
 
 	for (const urlHeader of URL_HEADERS) {
 		if (headers.has(urlHeader)) {
-			let url = headers.get(urlHeader)!;
-			let rewrittenUrl = rewriteUrl(url, handler.context, parsed.meta);
+			const url = headers.get(urlHeader)!;
+			const rewrittenUrl = rewriteUrl(url, handler.context, parsed.meta);
 			headers.set(urlHeader, rewrittenUrl);
 		}
 	}
 
 	if (headers.has("link")) {
-		let link = headers.get("link")!;
-		let rewritten = rewriteLinkHeader(link, handler.context, parsed.meta);
+		const link = headers.get("link")!;
+		const rewritten = rewriteLinkHeader(link, handler.context, parsed.meta);
 		headers.set("link", rewritten);
 	}
 
@@ -121,13 +126,13 @@ export function rewriteRequestHeaders(
 		parsed.referrerSourceUrl !== undefined
 			? parsed.referrerSourceUrl
 			: request.rawClientUrl ||
-				(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
+				(request.rawReferrer ? new _URL(request.rawReferrer) : undefined);
 
 	if (
 		rawOriginUrl &&
 		rawOriginUrl.pathname.startsWith(handler.context.prefix.pathname)
 	) {
-		let originUrl = new URL(unrewriteUrl(rawOriginUrl, handler.context));
+		const originUrl = new _URL(unrewriteUrl(rawOriginUrl, handler.context));
 		headers.set("Origin", originUrl.origin);
 
 		const referer = createReferrerString(
@@ -148,8 +153,8 @@ export function rewriteRequestHeaders(
 }
 
 export function createReferrerString(
-	clientUrl: URL,
-	resource: URL,
+	clientUrl: _URL,
+	resource: _URL,
 	policy: string | null
 ): string {
 	policy ||= "strict-origin-when-cross-origin";
@@ -164,7 +169,7 @@ export function createReferrerString(
 
 	const referrerOrigin = clientUrl.origin;
 
-	const referrerUrl = new URL(clientUrl.href);
+	const referrerUrl = new _URL(clientUrl.href);
 	referrerUrl.hash = "";
 	const referrerUrlString = referrerUrl.href;
 

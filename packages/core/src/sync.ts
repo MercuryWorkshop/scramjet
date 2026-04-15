@@ -1,3 +1,5 @@
+/* eslint-disable scramjet-core/no-globals */
+
 addEventListener(
 	"message",
 	({

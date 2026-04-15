@@ -350,7 +350,7 @@ if (isSw) {
 		}
 	}
 } else {
-	let currentScript = document.currentScript as HTMLScriptElement | null;
+	const currentScript = document.currentScript as HTMLScriptElement | null;
 	async function initBootstrap(opts: StaticBootstrapOptions) {
 		let filePath = opts.filePath;
 		if (!filePath) {
@@ -369,7 +369,7 @@ if (isSw) {
 		// Merge with defaults before sending to SW and using in loadRest
 		const fullConfig = { ...defaultConfig, ...opts } as BootstrapOptions;
 
-		let message: InitMessage = {
+		const message: InitMessage = {
 			config: fullConfig,
 		};
 		sw.postMessage({
@@ -377,8 +377,8 @@ if (isSw) {
 			message,
 		});
 
-		let initDone = await new Promise<InitDoneMessage>((resolve) => {
-			let onMessage = (event: MessageEvent) => {
+		const initDone = await new Promise<InitDoneMessage>((resolve) => {
+			const onMessage = (event: MessageEvent) => {
 				if (typeof event.data !== "object" || event.data === null) return;
 				if (event.data.type === "init-bootstrap-done") {
 					navigator.serviceWorker.removeEventListener("message", onMessage);

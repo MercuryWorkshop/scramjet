@@ -13,6 +13,7 @@ export * from "./types";
 export * from "./fetch";
 export * from "./Tap";
 export { BareResponse } from "@mercuryworkshop/proxy-transports";
+import { atob } from "@/shared/snapshot";
 
 declare const REWRITERWASM: string | undefined;
 

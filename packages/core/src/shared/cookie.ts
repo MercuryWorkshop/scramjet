@@ -1,5 +1,7 @@
 // thnank you node unblocker guy
 import parse from "set-cookie-parser";
+import { JSON_parse, JSON_stringify, Object_values } from "@/shared/snapshot";
+import { _Date } from "./snapshot";
 
 export type Cookie = {
 	name: string;
@@ -42,13 +44,13 @@ export class CookieJar {
 	}
 
 	getCookies(url: URL, fromJs: boolean): string {
-		const now = new Date();
-		const cookies = Object.values(this.cookies);
+		const now = new _Date();
+		const cookies = Object_values(this.cookies);
 
 		const validCookies: Cookie[] = [];
 
 		for (const cookie of cookies) {
-			if (cookie.expires && new Date(cookie.expires) < now) {
+			if (cookie.expires && new _Date(cookie.expires) < now) {
 				delete this.cookies[`${cookie.domain}@${cookie.path}@${cookie.name}`];
 				continue;
 			}
@@ -71,10 +73,10 @@ export class CookieJar {
 
 	load(cookies: string) {
 		if (typeof cookies === "object") return cookies;
-		this.cookies = JSON.parse(cookies);
+		this.cookies = JSON_parse(cookies);
 	}
 
 	dump(): string {
-		return JSON.stringify(this.cookies);
+		return JSON_stringify(this.cookies);
 	}
 }

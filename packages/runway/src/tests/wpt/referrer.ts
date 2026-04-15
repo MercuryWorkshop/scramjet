@@ -216,7 +216,7 @@ const WPT_TESTHARNESS_JS = `
 })();
 `;
 
-const WPT_TESTHARNESSREPORT_JS = `window.__wptReportLoaded = true;`;
+const WPT_TESTHARNESSREPORT_JS = "window.__wptReportLoaded = true;";
 
 function mimeType(filePath: string) {
 	if (filePath.endsWith(".html")) return "text/html; charset=utf-8";

@@ -1,6 +1,8 @@
 // WARNING: SLOP FILE
 // DO NOT TRUST THIS CODE
 
+import { _Set } from "./snapshot";
+
 /**
  * MIME type groups (WHATWG-style), for classifying MIME types.
  * @see https://mimesniff.spec.whatwg.org/#mime-type-groups
@@ -55,7 +57,7 @@ function asParsed(mime: string | ParsedMimeType): ParsedMimeType | null {
 	return typeof mime === "string" ? parseMimeType(mime) : mime;
 }
 
-const FONT_ESSENCES = new Set([
+const FONT_ESSENCES = new _Set([
 	"application/font-cff",
 	"application/font-otf",
 	"application/font-sfnt",
@@ -65,13 +67,13 @@ const FONT_ESSENCES = new Set([
 	"application/vnd.ms-opentype",
 ]);
 
-const ARCHIVE_ESSENCES = new Set([
+const ARCHIVE_ESSENCES = new _Set([
 	"application/x-rar-compressed",
 	"application/zip",
 	"application/x-gzip",
 ]);
 
-const JAVASCRIPT_ESSENCES = new Set([
+const JAVASCRIPT_ESSENCES = new _Set([
 	"application/ecmascript",
 	"application/javascript",
 	"application/x-ecmascript",

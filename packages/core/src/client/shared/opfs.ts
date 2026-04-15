@@ -1,4 +1,5 @@
 import { ScramjetClient } from "@client/index";
+import { Object_defineProperty } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("StorageManager.prototype.getDirectory", {
@@ -13,7 +14,7 @@ export default function (client: ScramjetClient) {
 							create: true,
 						}
 					);
-					Object.defineProperty(directory, "name", {
+					Object_defineProperty(directory, "name", {
 						value: "",
 						writable: false,
 					});

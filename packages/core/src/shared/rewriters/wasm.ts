@@ -5,19 +5,15 @@ import { flagEnabled, ScramjetContext } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
-import { rewriteUrl, URLMeta } from "@rewriters/url";
-import { htmlRules } from "@/shared/htmlRules";
-import { rewriteCss } from "@rewriters/css";
-import { rewriteJs } from "@rewriters/js";
-import { CookieJar } from "@/shared/cookie";
+import { URLMeta } from "@rewriters/url";
+import { Error, TextDecoder_decode } from "@/shared/snapshot";
 
 let wasm_u8: Uint8Array;
 export function setWasm(u8: Uint8Array | ArrayBuffer) {
 	wasm_u8 = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8);
 }
 
-export const textDecoder = new TextDecoder();
-let MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
+const MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
 
 function initWasm() {
 	if (!(wasm_u8 instanceof Uint8Array))
@@ -26,7 +22,7 @@ function initWasm() {
 	if (![...wasm_u8.slice(0, 4)].every((x, i) => x === MAGIC[i]))
 		throw new Error(
 			"rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: " +
-				textDecoder.decode(wasm_u8)
+				TextDecoder_decode(wasm_u8)
 		);
 
 	initSync({
@@ -34,22 +30,23 @@ function initWasm() {
 	});
 }
 
-let rewriters = [];
+type RewriterBox = { rewriter: Rewriter; inUse: boolean };
+const rewriters: RewriterBox[] = [];
 export function getRewriter(
 	context: ScramjetContext,
 	meta: URLMeta
 ): [Rewriter, () => void] {
 	initWasm();
 
-	let obj: { rewriter: Rewriter; inUse: boolean };
-	let index = rewriters.findIndex((x) => !x.inUse);
-	let len = rewriters.length;
+	let obj: RewriterBox;
+	const index = rewriters.findIndex((x) => !x.inUse);
+	const len = rewriters.length;
 
 	if (index === -1) {
 		if (flagEnabled("rewriterLogs", context, meta.base))
-			console.log(`creating new rewriter, ${len} rewriters made already`);
+			dbg.log(`creating new rewriter, ${len} rewriters made already`);
 
-		let rewriter = new Rewriter();
+		const rewriter = new Rewriter();
 		obj = { rewriter, inUse: false };
 		rewriters.push(obj);
 	} else {

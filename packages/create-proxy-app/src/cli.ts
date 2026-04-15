@@ -85,7 +85,7 @@ async function project() {
 			}),
 			type: () =>
 				prompt.select({
-					message: chalk.magenta(`How would you like to set up this proxy?`),
+					message: chalk.magenta("How would you like to set up this proxy?"),
 					initialValue: "dedicated",
 					maxItems: 2,
 					options: [

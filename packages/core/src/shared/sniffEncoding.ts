@@ -11,6 +11,8 @@
  * https://encoding.spec.whatwg.org/#concept-encoding-get
  */
 
+import { Math_min, String_fromCharCode } from "./snapshot";
+
 // https://encoding.spec.whatwg.org/#concept-encoding-get
 // Maps all labels (lowercased, stripped of leading/trailing ASCII whitespace) to their encoding name.
 // This is the full table from the Encoding spec §4.2.
@@ -499,9 +501,9 @@ function getAttribute(
 
 		// A-Z -> lowercase
 		if (b >= 0x41 && b <= 0x5a) {
-			name += String.fromCharCode(b + 0x20);
+			name += String_fromCharCode(b + 0x20);
 		} else {
-			name += String.fromCharCode(b);
+			name += String_fromCharCode(b);
 		}
 
 		pos.value++;
@@ -556,9 +558,9 @@ function getAttribute(
 				}
 				// A-Z -> lowercase
 				if (qb >= 0x41 && qb <= 0x5a) {
-					value += String.fromCharCode(qb + 0x20);
+					value += String_fromCharCode(qb + 0x20);
 				} else {
-					value += String.fromCharCode(qb);
+					value += String_fromCharCode(qb);
 				}
 				pos.value++;
 			}
@@ -574,9 +576,9 @@ function getAttribute(
 
 		// A-Z -> lowercase for first char
 		if (b >= 0x41 && b <= 0x5a) {
-			value += String.fromCharCode(b + 0x20);
+			value += String_fromCharCode(b + 0x20);
 		} else {
-			value += String.fromCharCode(b);
+			value += String_fromCharCode(b);
 		}
 		pos.value++;
 
@@ -590,9 +592,9 @@ function getAttribute(
 
 			// A-Z -> lowercase
 			if (ub >= 0x41 && ub <= 0x5a) {
-				value += String.fromCharCode(ub + 0x20);
+				value += String_fromCharCode(ub + 0x20);
 			} else {
-				value += String.fromCharCode(ub);
+				value += String_fromCharCode(ub);
 			}
 			pos.value++;
 		}
@@ -611,7 +613,7 @@ export function prescanByteStream(
 	bytes: Uint8Array,
 	limit: number = 1024
 ): string | null {
-	const end = Math.min(bytes.length, limit);
+	const end = Math_min(bytes.length, limit);
 	const pos = { value: 0 };
 
 	// Step 2: Prescan for UTF-16 XML declarations
@@ -890,7 +892,7 @@ function getXmlEncoding(bytes: Uint8Array, end: number): string | null {
 	}
 
 	// Step 16: Get encoding
-	const encodingName = String.fromCharCode(...potentialEncoding);
+	const encodingName = String_fromCharCode(...potentialEncoding);
 	let encoding = getEncoding(encodingName);
 
 	// Step 17: If UTF-16BE/LE, change to UTF-8

@@ -12,4 +12,5 @@ declare const VERSION: string;
 declare const COMMITHASH: string;
 declare const BUILDDATE: string;
 
-declare type Self = Window & typeof globalThis;
+declare type GlobalThis = typeof globalThis;
+declare type Self = Window & GlobalThis;

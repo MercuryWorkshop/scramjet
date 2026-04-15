@@ -1,10 +1,15 @@
 import { iswindow } from "@client/entry";
-import { unrewriteUrl } from "@rewriters/url";
-import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
+import {
+	Object_defineProperty,
+	Reflect_apply,
+	Reflect_get,
+	Reflect_ownKeys,
+	Symbol_for,
+} from "@/shared/snapshot";
 
-const realOnEvent = Symbol.for("scramjet original onevent function");
+const realOnEvent = Symbol_for("scramjet original onevent function");
 
 export default function (client: ScramjetClient, self: Self) {
 	const handlers = {
@@ -82,7 +87,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 						args[0] = new Proxy(realEvent, {
 							get(target, prop, reciever) {
-								const value = Reflect.get(target, prop);
+								const value = Reflect_get(target, prop);
 								if (prop in handler) {
 									return handler[prop].call(target);
 								}
@@ -91,10 +96,10 @@ export default function (client: ScramjetClient, self: Self) {
 									return new Proxy(value, {
 										apply(target, that, args) {
 											if (that === reciever) {
-												return Reflect.apply(target, realEvent, args);
+												return Reflect_apply(target, realEvent, args);
 											}
 
-											return Reflect.apply(target, that, args);
+											return Reflect_apply(target, that, args);
 										},
 									});
 								}
@@ -107,7 +112,7 @@ export default function (client: ScramjetClient, self: Self) {
 				}
 
 				if (!self.event) {
-					Object.defineProperty(self, "event", {
+					Object_defineProperty(self, "event", {
 						get() {
 							return args[0];
 						},
@@ -115,7 +120,7 @@ export default function (client: ScramjetClient, self: Self) {
 					});
 				}
 
-				const rv = Reflect.apply(target, that, args);
+				const rv = Reflect_apply(target, that, args);
 
 				return rv;
 			},
@@ -167,7 +172,7 @@ export default function (client: ScramjetClient, self: Self) {
 	if (self.Worker) targets.push(self.Worker.prototype);
 
 	for (const target of targets) {
-		const keys = Reflect.ownKeys(target);
+		const keys = Reflect_ownKeys(target);
 
 		for (const key of keys) {
 			if (

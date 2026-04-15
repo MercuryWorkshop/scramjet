@@ -3,7 +3,7 @@ import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 
 declare const $scramjet: typeof ScramjetGlobal;
 
-export let Plugin = $scramjet.Plugin;
+export const Plugin = $scramjet.Plugin;
 
 import {
 	type TransportToController,
@@ -76,7 +76,7 @@ async function loadScramjetWasm() {
 		return;
 	}
 
-	let resp = await fetch(config.wasmPath);
+	const resp = await fetch(config.wasmPath);
 	$scramjet.setWasm(await resp.arrayBuffer());
 	wasmAlreadyFetched = true;
 }
@@ -111,7 +111,7 @@ export class Controller {
 		},
 		request: async (data) => {
 			try {
-				let path = new URL(data.rawUrl).pathname;
+				const path = new URL(data.rawUrl).pathname;
 				const frame = this.frames.find((f) => path.startsWith(f.prefix));
 				if (!frame) throw new Error("No frame found for request");
 
@@ -142,7 +142,7 @@ export class Controller {
 					];
 				}
 
-				let sjheaders = $scramjet.ScramjetHeaders.fromRawHeaders(
+				const sjheaders = $scramjet.ScramjetHeaders.fromRawHeaders(
 					data.initialHeaders
 				);
 
@@ -182,7 +182,7 @@ export class Controller {
 			const rpc = new RpcHelper<TransportToController, ControllerToTransport>(
 				{
 					request: async ({ remote, method, body, headers }) => {
-						let response = await this.transport.request(
+						const response = await this.transport.request(
 							new URL(remote),
 							method,
 							body,
@@ -193,7 +193,7 @@ export class Controller {
 					},
 					connect: async ({ url, protocols, requestHeaders, port }) => {
 						let resolve: (arg: TransportToController["connect"][1]) => void;
-						let promise = new Promise<TransportToController["connect"][1]>(
+						const promise = new Promise<TransportToController["connect"][1]>(
 							(res) => (resolve = res)
 						);
 						const [send, close] = this.transport.connect(
@@ -366,30 +366,26 @@ function yieldGetInjectScripts(
 	codecEncode: (input: string) => string,
 	codecDecode: (input: string) => string
 ) {
-	let getInjectScripts: ScramjetGlobal.ScramjetInterface["getInjectScripts"] = (
-		meta,
-		handler,
-		htmlcontext,
-		script
-	) => {
-		function base64Encode(text: string) {
-			return btoa(
-				new TextEncoder()
-					.encode(text)
-					.reduce(
-						(data, byte) => (data.push(String.fromCharCode(byte)), data),
-						[] as any
-					)
-					.join("")
-			);
-		}
-		return [
-			script(config.scramjetPath),
-			script(config.injectPath),
-			script(prefix.href + config.virtualWasmPath),
-			script(
-				"data:text/javascript;charset=utf-8;base64," +
-					base64Encode(`
+	const getInjectScripts: ScramjetGlobal.ScramjetInterface["getInjectScripts"] =
+		(meta, handler, htmlcontext, script) => {
+			function base64Encode(text: string) {
+				return btoa(
+					new TextEncoder()
+						.encode(text)
+						.reduce(
+							(data, byte) => (data.push(String.fromCharCode(byte)), data),
+							[] as any
+						)
+						.join("")
+				);
+			}
+			return [
+				script(config.scramjetPath),
+				script(config.injectPath),
+				script(prefix.href + config.virtualWasmPath),
+				script(
+					"data:text/javascript;charset=utf-8;base64," +
+						base64Encode(`
 					document.querySelectorAll("script[scramjet-injected]").forEach(script => script.remove());
 					$scramjetController.load({
 						config: ${JSON.stringify(config)},
@@ -404,9 +400,9 @@ function yieldGetInjectScripts(
 						history: ${JSON.stringify(htmlcontext.history)},
 					})
 				`)
-			),
-		];
-	};
+				),
+			];
+		};
 	return getInjectScripts;
 }
 
@@ -420,7 +416,7 @@ export class Frame {
 	};
 
 	get context(): ScramjetGlobal.ScramjetContext {
-		let sjcfg = {
+		const sjcfg = {
 			...$scramjet.defaultConfig,
 			flags: this.controller.flags,
 			maskedfiles: defaultCfg.maskedfiles,

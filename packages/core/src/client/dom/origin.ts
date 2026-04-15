@@ -3,7 +3,7 @@ import { ScramjetClient } from "@client/index";
 export default function (client: ScramjetClient, _self: Self) {
 	client.Trap("origin", {
 		get() {
-			// this isn't right!!
+			// TODO: this isn't right!!
 			return client.url.origin;
 		},
 		set() {

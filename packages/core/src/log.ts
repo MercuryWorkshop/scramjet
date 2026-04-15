@@ -1,11 +1,17 @@
 // import { flagEnabled } from "@/shared";
 import type { URLMeta } from "@rewriters/url";
+import { Error, Math_min, Performance_now } from "@/shared/snapshot";
 
 const logfuncs = {
+	// eslint-disable-next-line scramjet-core/no-globals
 	log: console.log,
+	// eslint-disable-next-line scramjet-core/no-globals
 	warn: console.warn,
+	// eslint-disable-next-line scramjet-core/no-globals
 	error: console.error,
+	// eslint-disable-next-line scramjet-core/no-globals
 	debug: console.debug,
+	// eslint-disable-next-line scramjet-core/no-globals
 	info: console.info,
 };
 
@@ -19,7 +25,7 @@ export default {
 			stack.shift();
 
 			let fmt = "";
-			for (let i = 1; i < Math.min(2, stack.length); i++) {
+			for (let i = 1; i < Math_min(2, stack.length); i++) {
 				if (stack[i].getFunctionName()) {
 					// const f = stack[i].getThis()?.constructor?.name;
 					// if (f) fmt += `${f}.`
@@ -91,8 +97,7 @@ export default {
 		this.fmt("debug", message, ...args);
 	},
 	time(meta: URLMeta, before: number, type: string) {
-		if (1) return;
-		const after = performance.now();
+		const after = Performance_now();
 		const duration = after - before;
 
 		let timespan: string;

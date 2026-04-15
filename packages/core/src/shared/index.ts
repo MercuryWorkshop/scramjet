@@ -2,16 +2,15 @@ import { ScramjetConfig, ScramjetFlags, ScramjetVersionInfo } from "@/types";
 import DomHandler, { Element } from "domhandler";
 import { URLMeta } from "@rewriters/url";
 import { CookieJar } from "./cookie";
-import { Tap, TapInstance } from "@/Tap";
-import { ScramjetFetchParsed, ScramjetFetchRequest } from "@/fetch";
+import { TapInstance } from "@/Tap";
 import { HtmlContext } from "@/shared/rewriters/html";
+import { _RegExp } from "./snapshot";
 
 export * from "./cookie";
 export * from "./headers";
 export * from "./htmlRules";
 export * from "./mime";
 export * from "./rewriters";
-export * from "./security";
 
 export function flagEnabled(
 	flag: keyof ScramjetFlags,
@@ -21,7 +20,7 @@ export function flagEnabled(
 	const value = context.config.flags[flag];
 	for (const regex in context.config.siteFlags) {
 		const partialflags = context.config.siteFlags[regex];
-		if (new RegExp(regex).test(url.href) && flag in partialflags) {
+		if (new _RegExp(regex).test(url.href) && flag in partialflags) {
 			return partialflags[flag];
 		}
 	}

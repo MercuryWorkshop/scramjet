@@ -1,4 +1,4 @@
-declare var clients: Clients;
+declare let clients: Clients;
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type { Controllerbound, SWbound } from "./types";
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
@@ -8,7 +8,7 @@ function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
 }
 
-let cookieResolvers: Record<string, (value: void) => void> = {};
+const cookieResolvers: Record<string, (value: void) => void> = {};
 addEventListener("message", (e) => {
 	if (!e.data) return;
 	if (typeof e.data != "object") return;
@@ -50,11 +50,11 @@ class ControllerReference {
 		this.rpc = new RpcHelper(
 			{
 				sendSetCookie: async ({ url, cookie }) => {
-					let clients = await self.clients.matchAll();
-					let promises = [];
+					const clients = await self.clients.matchAll();
+					const promises = [];
 
 					for (const client of clients) {
-						let id = makeId();
+						const id = makeId();
 						client.postMessage({
 							$controller$setCookie: {
 								url,

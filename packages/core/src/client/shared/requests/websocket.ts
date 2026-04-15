@@ -1,12 +1,13 @@
-import { type BareWebSocket } from "@mercuryworkshop/proxy-transports";
+import { type BareCompatibleWebSocket } from "@mercuryworkshop/proxy-transports";
 import { ScramjetClient } from "@client/index";
+import { Object_setPrototypeOf, Reflect_get } from "@/shared/snapshot";
 
 type FakeWebSocketState = {
 	extensions: string;
 	protocol: string;
 	url: string;
 	binaryType: string;
-	barews: BareWebSocket;
+	barews: BareCompatibleWebSocket;
 
 	onclose?: (ev: CloseEvent) => any;
 	onerror?: (ev: Event) => any;
@@ -17,14 +18,14 @@ type FakeWebSocketStreamState = {
 	extensions: string;
 	protocol: string;
 	url: string;
-	barews: BareWebSocket;
+	barews: BareCompatibleWebSocket;
 
 	opened: any;
 	closed: any;
 	readable: ReadableStream;
 	writable: WritableStream;
 };
-export default function (client: ScramjetClient, self: typeof globalThis) {
+export default function (client: ScramjetClient, self: GlobalThis) {
 	const socketmap: WeakMap<WebSocket, FakeWebSocketState> = new WeakMap();
 	const socketstreammap: WeakMap<object, FakeWebSocketStreamState> =
 		new WeakMap();
@@ -34,7 +35,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
 			}
 			const fakeWebSocket = new EventTarget() as WebSocket;
-			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
+			Object_setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;
 
 			// websockets can take relative URLs
@@ -46,14 +47,14 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					"wss:" + rawurl.href.substring(rawurl.protocol.length)
 				);
 			}
-			let url = rawurl.href;
+			const url = rawurl.href;
 
 			const trustEvent = (ev: Event) =>
 				new Proxy(ev, {
 					get(target, prop) {
 						if (prop === "isTrusted") return true;
 
-						return Reflect.get(target, prop);
+						return Reflect_get(target, prop);
 					},
 				});
 
@@ -95,13 +96,13 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 					if (state.binaryType === "blob") {
 						payload = new Blob([payload]);
 					} else {
-						Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+						Object_setPrototypeOf(payload, ArrayBuffer.prototype);
 					}
 				} else if ("arrayBuffer" in payload) {
 					// blob, convert to arraybuffer if neccesary.
 					if (state.binaryType === "arraybuffer") {
 						payload = await payload.arrayBuffer();
-						Object.setPrototypeOf(payload, ArrayBuffer.prototype);
+						Object_setPrototypeOf(payload, ArrayBuffer.prototype);
 					}
 				}
 

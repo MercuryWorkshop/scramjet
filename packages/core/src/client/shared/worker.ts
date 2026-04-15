@@ -1,7 +1,7 @@
 import { rewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 
-export default function (client: ScramjetClient, _self: typeof globalThis) {
+export default function (client: ScramjetClient, _self: GlobalThis) {
 	client.Proxy("Worker", {
 		construct(ctx) {
 			ctx.args[0] = client.rewriteUrl(ctx.args[0]) + "?dest=worker";

@@ -81,7 +81,7 @@ export default [
 		name: "rewriter-css-import-string",
 		url: "/styles/theme.css",
 		fn: (url, encoded) => [
-			`@import "/styles/theme.css";`,
+			'@import "/styles/theme.css";',
 			`@import "${encoded}";`,
 		],
 	}),
@@ -89,7 +89,7 @@ export default [
 		name: "rewriter-css-import-url",
 		url: "/styles/theme.css",
 		fn: (url, encoded) => [
-			`@import url("/styles/theme.css");`,
+			'@import url("/styles/theme.css");',
 			`@import url("${encoded}");`,
 		],
 	}),
@@ -192,7 +192,7 @@ export default [
 	}),
 	cssRewriteMultiTest({
 		name: "rewriter-css-multiple-url-same-rule",
-		input: `a{background:url(/a.png), url(/b.png) 1x, url(/c.png) 2x;}`,
+		input: "a{background:url(/a.png), url(/b.png) 1x, url(/c.png) 2x;}",
 		urls: ["/a.png", "/b.png", "/c.png"],
 	}),
 	cssRewriteTest({
@@ -232,7 +232,7 @@ export default [
 		name: "rewriter-css-about-url-left-unproxied",
 		fn: ({ assertEqual }) => {
 			const { context, meta } = createRewriteContext();
-			const input = `f{behavior:url(about:blank)}`;
+			const input = "f{behavior:url(about:blank)}";
 			assertEqual(rewriteCss(input, context, meta), input);
 		},
 	}),

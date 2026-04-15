@@ -1,4 +1,12 @@
 import { ScramjetClient } from "@client/index";
+import {
+	Number,
+	Object_keys,
+	Reflect_apply,
+	Reflect_get,
+	Reflect_has,
+	Reflect_ownKeys,
+} from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
 	client.Trap("Element.prototype.attributes", {
@@ -6,10 +14,10 @@ export default function (client: ScramjetClient) {
 			const map = ctx.get() as NamedNodeMap;
 			const proxy = new Proxy(map, {
 				get(target, prop, _receiver) {
-					const value = Reflect.get(target, prop);
+					const value = Reflect_get(target, prop);
 
 					if (prop === "length") {
-						return Object.keys(proxy).length;
+						return Object_keys(proxy).length;
 					}
 
 					if (prop === "getNamedItem") {
@@ -24,10 +32,10 @@ export default function (client: ScramjetClient) {
 						return new Proxy(value, {
 							apply(target, that, args) {
 								if (that === proxy) {
-									return Reflect.apply(target, map, args);
+									return Reflect_apply(target, map, args);
 								}
 
-								return Reflect.apply(target, that, args);
+								return Reflect_apply(target, that, args);
 							},
 						});
 					}
@@ -36,7 +44,7 @@ export default function (client: ScramjetClient) {
 						(typeof prop === "string" || typeof prop === "number") &&
 						!isNaN(Number(prop))
 					) {
-						const position = Object.keys(proxy)[prop];
+						const position = Object_keys(proxy)[prop];
 
 						return map[position];
 					}
@@ -46,16 +54,16 @@ export default function (client: ScramjetClient) {
 					return value;
 				},
 				ownKeys(target) {
-					const keys = Reflect.ownKeys(target);
+					const keys = Reflect_ownKeys(target);
 
 					return keys.filter((key) => this.has(target, key));
 				},
 				has(target, prop) {
-					if (typeof prop === "symbol") return Reflect.has(target, prop);
+					if (typeof prop === "symbol") return Reflect_has(target, prop);
 					if (prop.startsWith("scramjet-attr-")) return false;
 					if (map[prop]?.name?.startsWith("scramjet-attr-")) return false;
 
-					return Reflect.has(target, prop);
+					return Reflect_has(target, prop);
 				},
 			});
 

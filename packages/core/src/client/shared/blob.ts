@@ -1,5 +1,7 @@
 import { rewriteBlob, unrewriteBlob } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
+import { String } from "@/shared/snapshot";
+
 export default function (client: ScramjetClient) {
 	// hide the origin from object urls from the page
 	client.Proxy("URL.createObjectURL", {
@@ -23,7 +25,8 @@ export default function (client: ScramjetClient) {
 				// for some reason this is not an issue natively
 				// simple delay is enough
 				// TODO: find a way to make this not necessary
-				ctx.args[0] = unrewriteBlob(ctx.args[0], client.context, client.meta);
+				const url = String(ctx.args[0]);
+				ctx.args[0] = unrewriteBlob(url, client.context, client.meta);
 				ctx.call();
 			}, 1000);
 			ctx.return(undefined);

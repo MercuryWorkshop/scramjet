@@ -30,7 +30,7 @@ function ghaGroup(name: string) {
 
 function ghaEndGroup() {
 	if (!isGitHubActions) return;
-	console.log(`::endgroup::`);
+	console.log("::endgroup::");
 }
 
 type TestResult = {
@@ -643,10 +643,10 @@ async function main() {
 		console.log(`🧵 Parallel workers: ${parallelism}\n`);
 	}
 	if (fastMode) {
-		console.log(`⚡ Fast mode: reusing one harness instance per worker\n`);
+		console.log("⚡ Fast mode: reusing one harness instance per worker\n");
 	}
 	if (updateFailingTests) {
-		console.log(`📝 Updating failing_tests.json from current run\n`);
+		console.log("📝 Updating failing_tests.json from current run\n");
 	}
 
 	if (tests.length === 0) {

@@ -1,4 +1,5 @@
 import { ScramjetClient } from "@client/index";
+import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("IDBFactory.prototype.open", {
@@ -9,7 +10,7 @@ export default function (client: ScramjetClient) {
 
 	client.Trap("IDBDatabase.prototype.name", {
 		get(ctx) {
-			const name = ctx.get() as string;
+			const name = String(ctx.get());
 
 			return name.substring(name.indexOf("@") + 1);
 		},

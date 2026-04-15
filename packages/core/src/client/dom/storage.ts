@@ -1,6 +1,7 @@
 import { ScramjetClient } from "@client/index";
+import { Object_keys, Reflect_get, Reflect_ownKeys } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function (client: ScramjetClient, self: Self) {
 	const handler: ProxyHandler<Storage> = {
 		get(target, prop) {
 			switch (prop) {
@@ -21,7 +22,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 				case "clear":
 					return () => {
-						for (const key in Object.keys(target)) {
+						for (const key in Object_keys(target)) {
 							if (key.startsWith(client.url.host)) {
 								target.removeItem(key);
 							}
@@ -30,7 +31,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 				case "key":
 					return (index: number) => {
-						const keys = Object.keys(target).filter((key) =>
+						const keys = Object_keys(target).filter((key) =>
 							key.startsWith(client.url.host)
 						);
 
@@ -38,13 +39,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 					};
 
 				case "length":
-					return Object.keys(target).filter((key) =>
+					return Object_keys(target).filter((key) =>
 						key.startsWith(client.url.host)
 					).length;
 
 				default:
 					if (prop in Object.prototype || typeof prop === "symbol") {
-						return Reflect.get(target, prop);
+						return Reflect_get(target, prop);
 					}
 
 					return target.getItem(client.url.host + "@" + (prop as string));
@@ -62,7 +63,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 
 		ownKeys(target) {
-			return Reflect.ownKeys(target)
+			return Reflect_ownKeys(target)
 				.filter((f) => typeof f === "string" && f.startsWith(client.url.host))
 				.map((f) =>
 					typeof f === "string" ? f.substring(client.url.host.length + 1) : f
@@ -94,8 +95,6 @@ export default function (client: ScramjetClient, self: typeof window) {
 			return true;
 		},
 	};
-
-	const realLocalStorage = self.localStorage;
 
 	const localStorageProxy = new Proxy(self.localStorage, handler);
 	const sessionStorageProxy = new Proxy(self.sessionStorage, handler);

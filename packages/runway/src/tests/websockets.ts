@@ -34,7 +34,7 @@ export default [
 				console.log("WebSocket connection closed");
 			});
 		`,
-		async start(server, port) {
+		async start(server) {
 			echo(server);
 		},
 	}),
@@ -63,7 +63,7 @@ export default [
 				fail("WebSocket error: " + event.message);
 			});
 		`,
-		async start(server, port) {
+		async start(server) {
 			echo(server);
 		},
 	}),
@@ -89,7 +89,7 @@ export default [
 				fail("WebSocket error: " + event.message);
 			});
 		`,
-		async start(server, port) {
+		async start(server) {
 			echo(server);
 		},
 	}),
@@ -106,10 +106,10 @@ export default [
 				fail("WebSocket error: " + event.message);
 			});
 		`,
-		async start(server, port) {
+		async start(server) {
 			const wss = new WebSocketServer({ server });
 			wss.on("connection", (socket, request) => {
-				socket.send(request.headers.origin);
+				socket.send(request.headers.origin!);
 			});
 		},
 	}),
@@ -125,9 +125,9 @@ export default [
 					fail("WebSocket error: " + event.message);
 				});
 			`,
-		async start(server, port) {
+		async start(server) {
 			const wss = new WebSocketServer({ server });
-			wss.on("connection", (socket, request) => {});
+			wss.on("connection", () => {});
 		},
 	}),
 ];
