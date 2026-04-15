@@ -1,4 +1,5 @@
 import { ScramjetClient } from "@client/index";
+import { Object_defineProperty, _URL } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, self: Self) {
 	const boundimport = client.natives.call(
@@ -8,9 +9,9 @@ export default function (client: ScramjetClient, self: Self) {
 		"return import(url)"
 	);
 
-	Object.defineProperty(self, client.config.globals.importfn, {
+	Object_defineProperty(self, client.config.globals.importfn, {
 		value: function (base: string, url: string) {
-			const resolved = new URL(url, base).href;
+			const resolved = new _URL(url, base).href;
 
 			if (
 				url.includes(":") ||
@@ -31,11 +32,11 @@ export default function (client: ScramjetClient, self: Self) {
 		configurable: false,
 		enumerable: false,
 	});
-	Object.defineProperty(self, client.config.globals.metafn, {
+	Object_defineProperty(self, client.config.globals.metafn, {
 		value: function (metaobj: any, base: string) {
 			metaobj.url = base;
 			metaobj.resolve = function (url: string) {
-				return new URL(url, base).href;
+				return new _URL(url, base).href;
 			};
 
 			return metaobj;

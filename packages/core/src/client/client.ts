@@ -20,14 +20,27 @@ import {
 	HtmlRewriterHooks,
 	ScramjetContext,
 	ScramjetHeaders,
-	ScramjetInterface,
 } from "@/shared";
-import { CookieJar } from "@/shared/cookie";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
 import { ScramjetConfig } from "@/types";
 import { Tap } from "@/Tap";
 import { TrackedHistoryState } from "@/fetch";
+import { AnyFunction } from "@/types";
+import {
+	_URL,
+	Error,
+	String,
+	Reflect_get,
+	Array_isArray,
+	Reflect_has,
+	Reflect_apply,
+	Reflect_construct,
+	Object_getOwnPropertyDescriptor,
+	Object_defineProperty,
+	Object_defineProperties,
+	_Map,
+} from "@/shared/snapshot";
 
 export type ScramjetClientInit = {
 	context: ScramjetContext;
@@ -57,15 +70,12 @@ type Traverse<
 	P extends string,
 > = P extends `${infer K}.${infer R}` ? Traverse<O[K], R> : O[P];
 type GlobalTraverse<P extends string> = Traverse<
-	typeof globalThis & Record<string, any>,
+	GlobalThis & Record<string, any>,
 	P
 >;
 // https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
 type IfEquals<T, U, Y = unknown, N = never> =
 	(<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2 ? Y : N;
-
-//eslint-disable-next-line
-export type AnyFunction = Function;
 
 type ProxyApplyThis<T extends string> =
 	unknown extends ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>
@@ -78,12 +88,9 @@ type ProxyApplyThis<T extends string> =
 
 export type ScramjetModule = {
 	enabled: (client: ScramjetClient) => boolean | undefined;
-	disabled: (
-		client: ScramjetClient,
-		self: typeof globalThis
-	) => void | undefined;
+	disabled: (client: ScramjetClient, self: GlobalThis) => void | undefined;
 	order: number | undefined;
-	default: (client: ScramjetClient, self: typeof globalThis) => void;
+	default: (client: ScramjetClient, self: GlobalThis) => void;
 };
 
 export type ProxyCtx<
@@ -209,11 +216,11 @@ export class ScramjetClient {
 	};
 
 	constructor(
-		public global: typeof globalThis,
+		public global: GlobalThis,
 		public init: ScramjetClientInit
 	) {
 		if (SCRAMJETCLIENT in global) {
-			console.error(
+			dbg.error(
 				"attempted to initialize a scramjet client, but one is already loaded - this is very bad"
 			);
 			throw new Error();
@@ -265,7 +272,7 @@ export class ScramjetClient {
 
 						if (!realTarget) return;
 
-						const original = Reflect.get(realTarget, realProp);
+						const original = Reflect_get(realTarget, realProp);
 						target[prop] = original;
 
 						return target[prop];
@@ -345,7 +352,7 @@ export class ScramjetClient {
 						url = url.substring(0, frag === -1 ? undefined : frag);
 						if (!url) return client.url;
 
-						return new URL(url, client.url.origin);
+						return new _URL(url, client.url.origin);
 					}
 				}
 
@@ -388,7 +395,7 @@ export class ScramjetClient {
 				}
 				if (!frame.name) {
 					// the top frame is scramjet-controlled, but it has no name. this is user error
-					console.error(
+					dbg.error(
 						"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
 					);
 
@@ -427,7 +434,7 @@ export class ScramjetClient {
 
 					if (!frame.name) {
 						// the parent frame is scramjet-controlled, but it has no name. this is user error
-						console.error(
+						dbg.error(
 							"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
 						);
 
@@ -444,7 +451,7 @@ export class ScramjetClient {
 					);
 					if (!frame.name) {
 						// the parent frame is not scramjet-controlled, so we can't get a parent frame name
-						console.error(
+						dbg.error(
 							"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
 						);
 
@@ -464,12 +471,12 @@ export class ScramjetClient {
 				if (!iswindow) return "";
 
 				// TODO: need to nullify the actual meta tag so it still sends unsafe-url
-				let meta = [
+				const meta = [
 					...document.querySelectorAll("meta[name='referrer']"),
 					...document.querySelectorAll("meta[name='referrer-policy']"),
 					...document.querySelectorAll("meta[http-equiv='referrer-policy']"),
 				];
-				let last = meta[meta.length - 1];
+				const last = meta[meta.length - 1];
 				if (last) {
 					return last.getAttribute("content");
 				}
@@ -567,12 +574,12 @@ export class ScramjetClient {
 		}
 	}
 
-	get url(): URL {
-		return new URL(this.unrewriteUrl(this.global.location.href));
+	get url(): _URL {
+		return new _URL(this.unrewriteUrl(this.global.location.href));
 	}
 
-	set url(url: URL | string) {
-		if (url instanceof URL) url = url.toString();
+	set url(url: _URL | string) {
+		url = String(url);
 
 		const ev = new NavigateEvent(url);
 		if (this.frame) {
@@ -595,7 +602,7 @@ export class ScramjetClient {
 		handler: Proxy<T[number]>
 	): void;
 	Proxy(name: string | string[], handler: Proxy<any>): void {
-		if (Array.isArray(name)) {
+		if (Array_isArray(name)) {
 			for (const n of name) {
 				this.Proxy(n, handler);
 			}
@@ -610,7 +617,7 @@ export class ScramjetClient {
 		if (!prop) return;
 
 		if (!(name in this.natives.store)) {
-			const original = Reflect.get(target, prop);
+			const original = Reflect_get(target, prop);
 			this.natives.store[name] = original;
 		}
 
@@ -619,16 +626,16 @@ export class ScramjetClient {
 	RawProxy(target: any, prop: string, handler: Proxy<any>, debugname?: string) {
 		if (!target) return;
 		if (!prop) return;
-		if (!Reflect.has(target, prop)) return;
+		if (!Reflect_has(target, prop)) return;
 
-		const value = Reflect.get(target, prop);
-		const originalDescriptor = Object.getOwnPropertyDescriptor(target, prop);
+		const value = Reflect_get(target, prop);
+		const originalDescriptor = Object_getOwnPropertyDescriptor(target, prop);
 		delete target[prop];
 
 		const h: ProxyHandler<any> = {};
 
-		let applyFn: typeof Reflect.apply;
-		let constructFn: typeof Reflect.construct;
+		let applyFn: typeof Reflect_apply;
+		let constructFn: typeof Reflect_construct;
 		if (this.flagEnabled("debugTrampolines")) {
 			let fnName: string;
 			if (debugname) {
@@ -676,8 +683,8 @@ return { apply, construct };
 			applyFn = apply;
 			constructFn = construct;
 		} else {
-			applyFn = Reflect.apply;
-			constructFn = Reflect.construct;
+			applyFn = Reflect_apply;
+			constructFn = Reflect_construct;
 		}
 
 		if (handler.construct) {
@@ -740,6 +747,7 @@ return { apply, construct };
 
 				const pst = Error.prepareStackTrace;
 
+				// eslint-disable-next-line @typescript-eslint/no-this-alias
 				const client = this;
 				Error.prepareStackTrace = function (err, s) {
 					if (
@@ -753,10 +761,11 @@ return { apply, construct };
 				try {
 					handler.apply(ctx);
 				} catch (err) {
-					if (err instanceof Error) {
-						if ((err.stack as any) instanceof Object) {
-							//@ts-expect-error i'm not going to explain this
+					if (this.box.instanceof(err, "Error")) {
+						if (this.box.instanceof(err.stack, "Object")) {
+							//i'm not going to explain this
 							err.stack = err.stack.stack;
+							// eslint-disable-next-line scramjet-core/no-globals
 							console.error("ERROR FROM SCRAMJET INTERNALS", err);
 							if (!this.flagEnabled("allowFailedIntercepts")) {
 								Error.prepareStackTrace = pst;
@@ -784,7 +793,7 @@ return { apply, construct };
 
 		h.getOwnPropertyDescriptor = getOwnPropertyDescriptorHandler;
 		// Preserve original property descriptor (enumerable, configurable, etc.)
-		Object.defineProperty(target, prop, {
+		Object_defineProperty(target, prop, {
 			value: new Proxy(value, h),
 			writable: originalDescriptor?.writable ?? true,
 			enumerable: originalDescriptor?.enumerable ?? false,
@@ -797,7 +806,7 @@ return { apply, construct };
 		handler: Trap<T[number]>
 	): void;
 	Trap(name: string | string[], descriptor: Trap<any>): void {
-		if (Array.isArray(name)) {
+		if (Array_isArray(name)) {
 			for (const n of name) {
 				this.Trap(n, descriptor);
 			}
@@ -824,7 +833,7 @@ return { apply, construct };
 	RawTrap(target: any, prop: string, descriptor: Trap<any>) {
 		if (!target) return;
 		if (!prop) return;
-		if (!Reflect.has(target, prop)) return;
+		if (!Reflect_has(target, prop)) return;
 
 		const oldDescriptor = this.natives.call(
 			"Object.getOwnPropertyDescriptor",
@@ -875,7 +884,7 @@ return { apply, construct };
 		else if (oldDescriptor?.configurable)
 			desc.configurable = oldDescriptor.configurable;
 
-		Object.defineProperty(target, prop, desc);
+		Object_defineProperty(target, prop, desc);
 	}
 
 	rewriteUrl(url: string | URL, options?: RewriteUrlOptions): string {

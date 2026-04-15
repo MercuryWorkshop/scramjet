@@ -1,15 +1,18 @@
 import { ScramjetClient } from "@client/index";
 import { UrlChangeEvent } from "@client/events";
 import { iswindow } from "@client/entry";
+import {
+	Reflect_apply,
+	Object_setPrototypeOf,
+	_URL,
+	Object_defineProperty,
+} from "@/shared/snapshot";
 
-export function createLocationProxy(
-	client: ScramjetClient,
-	self: typeof globalThis
-) {
+export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 	const Location = iswindow ? self.Location : self.WorkerLocation;
 	// location cannot be Proxy()d
 	const fakeLocation: any = {};
-	Object.setPrototypeOf(fakeLocation, Location.prototype);
+	Object_setPrototypeOf(fakeLocation, Location.prototype);
 	fakeLocation.constructor = Location;
 
 	// for some reason it's on the object for Location and on the prototype for WorkerLocation??
@@ -61,13 +64,13 @@ export function createLocationProxy(
 
 						return;
 					}
-					const url = new URL(client.url.href);
+					const url = new _URL(client.url.href);
 					url[prop] = args[0];
 					client.url = url;
 				},
 			});
 		}
-		Object.defineProperty(fakeLocation, prop, desc);
+		Object_defineProperty(fakeLocation, prop, desc);
 	}
 
 	// functions
@@ -87,7 +90,7 @@ export function createLocationProxy(
 		fakeLocation.assign = new Proxy(self.location.assign, {
 			apply(target, that, args) {
 				args[0] = client.rewriteUrl(args[0]);
-				Reflect.apply(target, self.location, args);
+				Reflect_apply(target, self.location, args);
 
 				const urlchangeev = new UrlChangeEvent(client.url.href);
 				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
@@ -96,14 +99,14 @@ export function createLocationProxy(
 	if (self.location.reload)
 		fakeLocation.reload = new Proxy(self.location.reload, {
 			apply(target, that, args) {
-				Reflect.apply(target, self.location, args);
+				Reflect_apply(target, self.location, args);
 			},
 		});
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
 			apply(target, that, args) {
 				args[0] = client.rewriteUrl(args[0]);
-				Reflect.apply(target, self.location, args);
+				Reflect_apply(target, self.location, args);
 
 				const urlchangeev = new UrlChangeEvent(client.url.href);
 				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);

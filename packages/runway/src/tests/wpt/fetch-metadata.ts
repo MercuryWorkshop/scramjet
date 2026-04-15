@@ -216,7 +216,7 @@ const WPT_TESTHARNESS_JS = `
 })();
 `;
 
-const WPT_TESTHARNESSREPORT_JS = `window.__wptReportLoaded = true;`;
+const WPT_TESTHARNESSREPORT_JS = "window.__wptReportLoaded = true;";
 const WPT_TESTDRIVER_JS = `window.test_driver = window.test_driver || {
 	bless(_message, callback = () => {}) {
 		return Promise.resolve().then(() => callback());
@@ -226,7 +226,8 @@ const WPT_TESTDRIVER_JS = `window.test_driver = window.test_driver || {
 		return Promise.resolve();
 	},
 };`;
-const WPT_TESTDRIVER_VENDOR_JS = `window.test_driver_internal = window.test_driver_internal || {};`;
+const WPT_TESTDRIVER_VENDOR_JS =
+	"window.test_driver_internal = window.test_driver_internal || {};";
 const WPT_SERVICE_WORKER_HELPERS_JS = `
 function with_iframe(url) {
 	return new Promise((resolve, reject) => {

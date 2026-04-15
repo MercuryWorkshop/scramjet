@@ -1,18 +1,8 @@
 import { flagEnabled, ScramjetContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 import { URLMeta } from "@rewriters/url";
-
-function base64Encode(text: string) {
-	return btoa(
-		new TextEncoder()
-			.encode(text)
-			.reduce(
-				(data, byte) => (data.push(String.fromCharCode(byte)), data),
-				[] as any
-			)
-			.join("")
-	);
-}
+import { TextDecoder_decode } from "@/shared/snapshot";
+import { base64Encode } from "@/shared/util";
 
 export function rewriteWorkers(
 	context: ScramjetContext,
@@ -33,8 +23,8 @@ export function rewriteWorkers(
 	let str = context.interface.getWorkerInjectScripts(meta, type, script);
 
 	let rewritten = rewriteJs(js, url, context, meta, module);
-	if (rewritten instanceof Uint8Array) {
-		rewritten = new TextDecoder().decode(rewritten);
+	if (typeof rewritten !== "string") {
+		rewritten = TextDecoder_decode(rewritten);
 	}
 
 	if (flagEnabled("encapsulateWorkers", context, meta.origin)) {

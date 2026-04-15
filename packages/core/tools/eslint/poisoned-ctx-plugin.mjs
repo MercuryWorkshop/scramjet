@@ -17,6 +17,25 @@ function unwrapTS(node) {
 	return node;
 }
 
+function getTSExpressionContainer(node) {
+	let current = node;
+	while (current.parent) {
+		const parent = current.parent;
+		if (
+			(parent.type === "TSAsExpression" ||
+				parent.type === "TSNonNullExpression" ||
+				parent.type === "TSSatisfiesExpression" ||
+				parent.type === "TSTypeAssertion") &&
+			parent.expression === current
+		) {
+			current = parent;
+			continue;
+		}
+		break;
+	}
+	return current;
+}
+
 function isCtxIdentifier(node, contextParamNames) {
 	const u = unwrapTS(node);
 	return u.type === "Identifier" && contextParamNames.has(u.name);
@@ -43,6 +62,22 @@ function isCtxGetCallExpression(node, contextParamNames) {
 		return false;
 	}
 	return true;
+}
+
+function isDirectCtxArgElement(node, contextParamNames) {
+	const n = unwrapTS(node);
+	if (n.type !== "MemberExpression" || n.optional) return false;
+	const object = unwrapTS(n.object);
+	return isDirectCtxRealmMember(object, contextParamNames);
+}
+
+function isSafeCtxArgsLength(node, contextParamNames) {
+	const n = unwrapTS(node);
+	if (n.type !== "MemberExpression" || n.optional || n.computed) return false;
+	if (n.property.type !== "Identifier" || n.property.name !== "length") {
+		return false;
+	}
+	return isDirectCtxRealmMember(n.object, contextParamNames);
 }
 
 function isInterceptorFunction(node, contextParamNames) {
@@ -124,6 +159,140 @@ function isBenignNullishCompare(node) {
 	return false;
 }
 
+function isSnapshotStringCallCallee(node, snapshotStringNames) {
+	const callee = unwrapTS(node);
+	return callee.type === "Identifier" && snapshotStringNames.has(callee.name);
+}
+
+function isRawProxyCallCallee(node) {
+	const callee = unwrapTS(node);
+	if (
+		callee.type !== "MemberExpression" ||
+		callee.optional ||
+		callee.computed
+	) {
+		return false;
+	}
+	if (
+		callee.property.type !== "Identifier" ||
+		callee.property.name !== "RawProxy"
+	) {
+		return false;
+	}
+	const object = unwrapTS(callee.object);
+	return (
+		object.type === "ThisExpression" ||
+		(object.type === "Identifier" && object.name === "client")
+	);
+}
+
+function isClientBoxInstanceofCallCallee(node) {
+	const callee = unwrapTS(node);
+	if (
+		callee.type !== "MemberExpression" ||
+		callee.optional ||
+		callee.computed
+	) {
+		return false;
+	}
+	if (
+		callee.property.type !== "Identifier" ||
+		callee.property.name !== "instanceof"
+	) {
+		return false;
+	}
+	const object = unwrapTS(callee.object);
+	if (
+		object.type !== "MemberExpression" ||
+		object.optional ||
+		object.computed
+	) {
+		return false;
+	}
+	if (object.property.type !== "Identifier" || object.property.name !== "box") {
+		return false;
+	}
+	const base = unwrapTS(object.object);
+	return base.type === "Identifier" && base.name === "client";
+}
+
+function isAllowedMapConstructor(node, mapConstructorNames) {
+	const callee = unwrapTS(node);
+	return callee.type === "Identifier" && mapConstructorNames.has(callee.name);
+}
+
+function isMapMethodName(name) {
+	return (
+		name === "get" || name === "has" || name === "delete" || name === "set"
+	);
+}
+
+function isAllowedMapMethodArgumentIndex(name, index) {
+	if (name === "set") return index === 0 || index === 1;
+	return index === 0;
+}
+
+function isAllowedPoisonSink(
+	node,
+	contextParamNames,
+	snapshotStringNames,
+	isMapLikeObject
+) {
+	const candidate = getTSExpressionContainer(node);
+	const parent = candidate.parent;
+	if (!parent) return false;
+
+	if (
+		parent.type === "TemplateLiteral" &&
+		parent.expressions.includes(candidate)
+	) {
+		return true;
+	}
+
+	if (parent.type !== "CallExpression" && parent.type !== "NewExpression") {
+		return false;
+	}
+
+	const argumentIndex = parent.arguments.indexOf(candidate);
+	if (argumentIndex === -1) return false;
+
+	if (
+		parent.type === "CallExpression" &&
+		isSnapshotStringCallCallee(parent.callee, snapshotStringNames) &&
+		(isDirectCtxRealmMember(node, contextParamNames) ||
+			isDirectCtxArgElement(node, contextParamNames))
+	) {
+		return true;
+	}
+
+	if (parent.type === "CallExpression" && isRawProxyCallCallee(parent.callee)) {
+		return true;
+	}
+
+	if (parent.type === "CallExpression") {
+		const callee = unwrapTS(parent.callee);
+		if (
+			callee.type === "MemberExpression" &&
+			!callee.optional &&
+			!callee.computed &&
+			callee.property.type === "Identifier" &&
+			isMapMethodName(callee.property.name) &&
+			isAllowedMapMethodArgumentIndex(callee.property.name, argumentIndex) &&
+			isMapLikeObject(callee.object)
+		) {
+			return true;
+		}
+	}
+
+	return (
+		parent.type === "CallExpression" &&
+		argumentIndex === 0 &&
+		isClientBoxInstanceofCallCallee(parent.callee) &&
+		(isDirectCtxRealmMember(node, contextParamNames) ||
+			isDirectCtxArgElement(node, contextParamNames))
+	);
+}
+
 const poisonedCtxPlugin = {
 	rules: {
 		"no-poisoned-ctx-value": {
@@ -157,6 +326,56 @@ const poisonedCtxPlugin = {
 			},
 			create(context) {
 				const sourceCode = context.sourceCode;
+				const snapshotStringNames = new Set();
+				const mapConstructorNames = new Set(["Map", "WeakMap"]);
+				const mapLikePropertyNames = new Set();
+				for (const node of sourceCode.ast.body) {
+					if (node.type === "ImportDeclaration") {
+						if (
+							typeof node.source.value !== "string" ||
+							!/(^|\/)snapshot$/.test(node.source.value)
+						) {
+							continue;
+						}
+						for (const specifier of node.specifiers) {
+							if (
+								specifier.type === "ImportSpecifier" &&
+								specifier.imported.type === "Identifier" &&
+								specifier.imported.name === "String"
+							) {
+								snapshotStringNames.add(specifier.local.name);
+							}
+							if (
+								specifier.type === "ImportSpecifier" &&
+								specifier.imported.type === "Identifier" &&
+								(specifier.imported.name === "_Map" ||
+									specifier.imported.name === "_WeakMap")
+							) {
+								mapConstructorNames.add(specifier.local.name);
+							}
+						}
+						continue;
+					}
+
+					if (node.type !== "ClassDeclaration") continue;
+					for (const member of node.body.body) {
+						if (
+							member.type !== "PropertyDefinition" ||
+							member.computed ||
+							member.key.type !== "Identifier" ||
+							!member.value
+						) {
+							continue;
+						}
+						const value = unwrapTS(member.value);
+						if (
+							value.type === "NewExpression" &&
+							isAllowedMapConstructor(value.callee, mapConstructorNames)
+						) {
+							mapLikePropertyNames.add(member.key.name);
+						}
+					}
+				}
 				const contextParamNames = new Set(
 					context.options[0]?.contextParamNames ?? ["ctx"]
 				);
@@ -164,6 +383,8 @@ const poisonedCtxPlugin = {
 
 				/** @type {Array<Map<string, boolean>>} */
 				const scopeStack = [];
+				/** @type {Array<Map<string, boolean>>} */
+				const mapLikeStack = [];
 				let interceptorDepth = 0;
 
 				function reportOnce(node, messageId) {
@@ -189,11 +410,43 @@ const poisonedCtxPlugin = {
 					scopeStack[scopeStack.length - 1].set(name, poisoned);
 				}
 
+				function lookupMapLike(name) {
+					for (let i = mapLikeStack.length - 1; i >= 0; i--) {
+						const m = mapLikeStack[i];
+						if (m.has(name)) return m.get(name);
+					}
+					return false;
+				}
+
+				function declareMapLike(name, mapLike) {
+					if (!mapLikeStack.length) return;
+					mapLikeStack[mapLikeStack.length - 1].set(name, mapLike);
+				}
+
+				function exprIsMapLikeObject(node) {
+					const n = unwrapTS(node);
+					if (!n) return false;
+					if (n.type === "Identifier") return lookupMapLike(n.name);
+					if (
+						n.type === "MemberExpression" &&
+						!n.optional &&
+						!n.computed &&
+						n.property.type === "Identifier"
+					) {
+						return mapLikePropertyNames.has(n.property.name);
+					}
+					if (n.type === "NewExpression") {
+						return isAllowedMapConstructor(n.callee, mapConstructorNames);
+					}
+					return false;
+				}
+
 				function exprIsPoisonValue(node) {
 					const n = unwrapTS(node);
 					if (!n) return false;
 					if (n.type === "Identifier") return lookupPoison(n.name);
 					if (n.type === "MemberExpression") {
+						if (isSafeCtxArgsLength(n, contextParamNames)) return false;
 						if (isDirectCtxRealmMember(n, contextParamNames)) return true;
 						return exprIsPoisonValue(n.object);
 					}
@@ -232,16 +485,27 @@ const poisonedCtxPlugin = {
 
 				function processAssignmentLike(left, right) {
 					const poisoned = exprIsPoisonValue(right);
+					const mapLike = exprIsMapLikeObject(right);
 					const u = unwrapTS(left);
 					if (u.type === "Identifier") {
 						declarePoison(u.name, poisoned);
+						declareMapLike(u.name, mapLike);
 					} else if (u.type === "ObjectPattern" || u.type === "ArrayPattern") {
 						if (poisoned) addPatternBindings(u, true);
+					} else if (
+						u.type === "MemberExpression" &&
+						!u.optional &&
+						!u.computed &&
+						u.property.type === "Identifier" &&
+						mapLike
+					) {
+						mapLikePropertyNames.add(u.property.name);
 					}
 				}
 
 				function enterFunction(node) {
 					scopeStack.push(new Map());
+					mapLikeStack.push(new Map());
 					if (isInterceptorFunction(node, contextParamNames)) {
 						interceptorDepth++;
 					}
@@ -252,6 +516,7 @@ const poisonedCtxPlugin = {
 						interceptorDepth--;
 					}
 					scopeStack.pop();
+					mapLikeStack.pop();
 				}
 
 				return {
@@ -263,17 +528,26 @@ const poisonedCtxPlugin = {
 					"ArrowFunctionExpression:exit": exitFunction,
 
 					VariableDeclarator(node) {
-						if (interceptorDepth === 0 || !node.init) return;
+						if (!node.init) return;
 						const poisoned = exprIsPoisonValue(node.init);
-						addPatternBindings(node.id, poisoned);
+						const mapLike = exprIsMapLikeObject(node.init);
+						if (interceptorDepth !== 0) {
+							addPatternBindings(node.id, poisoned);
+						}
+						const id = unwrapTS(node.id);
+						if (id.type === "Identifier") {
+							declareMapLike(id.name, mapLike);
+						}
 					},
 
 					AssignmentExpression(node) {
-						if (interceptorDepth === 0) return;
 						if (node.operator !== "=") {
 							const u = unwrapTS(node.left);
-							if (u.type === "Identifier") {
+							if (interceptorDepth !== 0 && u.type === "Identifier") {
 								declarePoison(u.name, exprIsPoisonValue(node.right));
+							}
+							if (u.type === "Identifier") {
+								declareMapLike(u.name, exprIsMapLikeObject(node.right));
 							}
 							return;
 						}
@@ -283,8 +557,19 @@ const poisonedCtxPlugin = {
 					MemberExpression(node) {
 						if (interceptorDepth === 0) return;
 						if (isDirectAssignmentTarget(node)) return;
+						if (isSafeCtxArgsLength(node, contextParamNames)) return;
 						if (isBenignPoisonRead(node)) return;
 						if (isBenignNullishCompare(node)) return;
+						if (
+							isAllowedPoisonSink(
+								node,
+								contextParamNames,
+								snapshotStringNames,
+								exprIsMapLikeObject
+							)
+						) {
+							return;
+						}
 						if (
 							node.parent?.type === "MemberExpression" &&
 							node.parent.object === node

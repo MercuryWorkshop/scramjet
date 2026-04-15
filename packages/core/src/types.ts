@@ -1,7 +1,5 @@
 import { ScramjetClient } from "@client/index";
-import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
-import * as client from "@/client/entry";
-import { DBSchema } from "idb";
+import { SCRAMJETCLIENT } from "@/symbols";
 
 /**
  * Version information for the current Scramjet build.
@@ -84,47 +82,13 @@ declare global {
 		[SCRAMJETCLIENT]: ScramjetClient;
 	}
 
-	interface HTMLIFrameElement {
-		/**
-		 * The event target belonging to an iframe element holding an encoded URL.
-		 */
-		// [SCRAMJETFRAME]: ScramjetFrame;
-	}
+	// interface HTMLIFrameElement {
+	/**
+	 * The event target belonging to an iframe element holding an encoded URL.
+	 */
+	// [SCRAMJETFRAME]: ScramjetFrame;
+	// }
 }
 
-export type SiteDirective = "same-origin" | "same-site" | "cross-site" | "none";
-
-export interface RedirectTracker {
-	originalReferrer: string;
-	mostRestrictiveSite: SiteDirective;
-	referrerPolicy: string;
-	chainStarted: number;
-}
-
-export interface ReferrerPolicyData {
-	policy: string;
-	referrer: string;
-}
-
-export interface ScramjetDB extends DBSchema {
-	config: {
-		key: string;
-		value: ScramjetConfig;
-	};
-	cookies: {
-		key: string;
-		value: any;
-	};
-	redirectTrackers: {
-		key: string;
-		value: RedirectTracker;
-	};
-	referrerPolicies: {
-		key: string;
-		value: ReferrerPolicyData;
-	};
-	publicSuffixList: {
-		key: string;
-		value: { data: string[]; expiry: number };
-	};
-}
+//eslint-disable-next-line
+export type AnyFunction = Function;

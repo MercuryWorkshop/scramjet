@@ -1,6 +1,7 @@
 import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
+import { Object_defineProperty } from "@/shared/snapshot";
 import { POLLUTANT } from "./realm";
 
 export default function (client: ScramjetClient, self: Self) {
@@ -82,7 +83,7 @@ export default function (client: ScramjetClient, self: Self) {
 			};
 		},
 	});
-	Object.defineProperty(self, client.config.globals.wrappostmessagefn, {
+	Object_defineProperty(self, client.config.globals.wrappostmessagefn, {
 		value: function (obj: any) {
 			if (!obj || typeof obj.postMessage !== "function") return obj;
 			return {

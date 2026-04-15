@@ -25,20 +25,20 @@ function navIncumbenceTest(props: {
 				} else if (req.url! === "/dir/flag.html") {
 					res.setHeader("Content-Type", "text/html");
 					if (props.reverse) {
-						res.end(doc(`<script>opener.fail("wrong window opened")</script>`));
+						res.end(doc('<script>opener.fail("wrong window opened")</script>'));
 					} else {
 						res.end(
-							doc(`<script>opener.pass("correct window opened")</script>`)
+							doc('<script>opener.pass("correct window opened")</script>')
 						);
 					}
 				} else if (req.url! === "/flag.html") {
 					res.setHeader("Content-Type", "text/html");
 					if (props.reverse) {
 						res.end(
-							doc(`<script>opener.pass("correct window opened")</script>`)
+							doc('<script>opener.pass("correct window opened")</script>')
 						);
 					} else {
-						res.end(doc(`<script>opener.fail("wrong window opened")</script>`));
+						res.end(doc('<script>opener.fail("wrong window opened")</script>'));
 					}
 				} else {
 					res.statusCode = 404;
@@ -67,7 +67,7 @@ export default [
 	}),
 	navIncumbenceTest({
 		name: "incumbent-window-open-functioncall",
-		topjs: `function doOpen(){ window.open('flag.html') }`,
+		topjs: "function doOpen(){ window.open('flag.html') }",
 		js: "parent.doOpen()",
 	}),
 	navIncumbenceTest({
@@ -76,7 +76,7 @@ export default [
 	}),
 	navIncumbenceTest({
 		name: "incumbent-window-open-eval-functioncall",
-		topjs: `function doOpen(){ window.open('flag.html') }`,
+		topjs: "function doOpen(){ window.open('flag.html') }",
 		js: "parent.eval('doOpen()')",
 	}),
 	navIncumbenceTest({

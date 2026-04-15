@@ -1,3 +1,5 @@
+import { Promise_all } from "@/shared/snapshot";
+
 type Description = {
 	context?: object;
 	props?: object;
@@ -48,7 +50,7 @@ export class Tap {
 		context: T["context"],
 		props: T["props"]
 	): Promise<void[]> {
-		let internal = hook as unknown as InternalHookDescription;
+		const internal = hook as unknown as InternalHookDescription;
 		let callbacks = internal.tap.callbacks[internal.key];
 		if (!callbacks || callbacks.length === 0) return;
 
@@ -56,7 +58,7 @@ export class Tap {
 		callbacks.sort((a, b) => a.sorter(b.plugin));
 
 		const results = callbacks.map((cb) => cb.callback(context, props));
-		return Promise.all(results);
+		return Promise_all(results);
 	}
 
 	static tap<T extends Description>(
@@ -65,8 +67,8 @@ export class Tap {
 		plugin: Plugin,
 		sorter: Sorter
 	) {
-		let internal = hook as unknown as InternalHookDescription;
-		let callbacks = internal.tap.callbacks;
+		const internal = hook as unknown as InternalHookDescription;
+		const callbacks = internal.tap.callbacks;
 		if (!callbacks[internal.key]) callbacks[internal.key] = [];
 		callbacks[internal.key]!.push({
 			callback,

@@ -1,8 +1,17 @@
 import { flagEnabled, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
-import { getRewriter, JsRewriterOutput, textDecoder } from "@rewriters/wasm";
+import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
+import {
+	Array_from,
+	TextDecoder_decode,
+	_RegExp,
+	_Uint8Array,
+	Object_keys,
+	Performance_now,
+} from "../snapshot";
 
+// eslint-disable-next-line scramjet-core/no-globals
 Error.stackTraceLimit = 50;
 
 type RewriterResult = {
@@ -18,16 +27,16 @@ function rewriteJsWasm(
 	meta: URLMeta,
 	module: boolean
 ): RewriterResult {
-	let [rewriter, ret] = getRewriter(context, meta);
+	const [rewriter, ret] = getRewriter(context, meta);
 
-	let flagsobj = {};
-	for (const flag of Object.keys(context.config.flags)) {
+	const flagsobj = {};
+	for (const flag of Object_keys(context.config.flags)) {
 		flagsobj[flag] = flagEnabled(flag as any, context, meta.base);
 	}
 
 	try {
 		let out: JsRewriterOutput;
-		const before = performance.now();
+		const before = Performance_now();
 		// try {
 		if (typeof input === "string") {
 			out = rewriter.rewrite_js(
@@ -72,7 +81,7 @@ function rewriteJsWasm(
 		const { js, map, scramtag, errors } = out;
 
 		return {
-			js: typeof input === "string" ? textDecoder.decode(js) : js,
+			js: typeof input === "string" ? TextDecoder_decode(js) : js,
 			tag: scramtag,
 			map,
 			errors,
@@ -106,15 +115,16 @@ export function rewriteJs(
 		if (flagEnabled("sourcemaps", context, meta.base)) {
 			const pushmap = globalThis[context.config.globals.pushsourcemapfn];
 			if (pushmap) {
-				pushmap(Array.from(res.map), res.tag);
+				pushmap(Array_from(res.map), res.tag);
 			} else {
-				if (newjs instanceof Uint8Array) {
-					newjs = new TextDecoder().decode(newjs);
+				// TODO: how do we check instanceof here?
+				if (typeof newjs !== "string") {
+					newjs = TextDecoder_decode(newjs);
 				}
 				const sourcemapfn = `${context.config.globals.pushsourcemapfn}([${res.map.join(",")}], "${res.tag}");`;
 
 				// don't put the sourcemap call before "use strict"
-				const strictMode = /^\s*(['"])use strict\1;?/;
+				const strictMode = new _RegExp(/^\s*(['"])use strict\1;?/);
 				if (strictMode.test(newjs)) {
 					newjs = newjs.replace(strictMode, `$&\n${sourcemapfn}`);
 				} else {
@@ -125,17 +135,17 @@ export function rewriteJs(
 
 		if (flagEnabled("rewriterLogs", context, meta.base)) {
 			for (const error of res.errors) {
-				console.error("oxc parse error", error);
+				dbg.error("oxc parse error", error);
 			}
 		}
 
 		return newjs;
 	} catch (err) {
-		console.warn(
+		dbg.warn(
 			"failed rewriting js for",
 			url || "(unknown)",
 			err.message,
-			js instanceof Uint8Array ? textDecoder.decode(js) : js
+			typeof js !== "string" ? TextDecoder_decode(js) : js
 		);
 		if (flagEnabled("allowInvalidJs", context, meta.base)) {
 			return js;

@@ -3,7 +3,7 @@ import { basicTest, serverTest, playwrightTest } from "../../testcommon.ts";
 
 const PAYLOAD = "checkglobal(top);pass()";
 const IFRAME_PAYLOAD = "parent.checkglobal(top);parent.pass()";
-const SAFE_COMPLETION = `setTimeout(() => pass("no escape"), 100);`;
+const SAFE_COMPLETION = 'setTimeout(() => pass("no escape"), 100);';
 
 function escapeTest(props: { name: string; js: string }) {
 	return basicTest({

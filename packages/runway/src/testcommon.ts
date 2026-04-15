@@ -309,15 +309,15 @@ export function multiFrameTest(props: {
 		subframes: Record<string, string[]>;
 	};
 
-	let servers: Record<string, Server> = {};
-	let serversOpenPromise: Promise<void>[] = [];
+	const servers: Record<string, Server> = {};
+	const serversOpenPromise: Promise<void>[] = [];
 
 	const createServer = (originid: string) => {
 		const js: Record<string, string> = {};
-		let subframes: Record<string, string[]> = {};
-		let port = nextPort++;
+		const subframes: Record<string, string[]> = {};
+		const port = nextPort++;
 
-		let server = http.createServer((req, res) => {
+		const server = http.createServer((req, res) => {
 			if (req.url === "/") {
 				res.writeHead(302, {
 					Location: `http://localhost:${port}/${props.root.id}`,
@@ -325,7 +325,7 @@ export function multiFrameTest(props: {
 				res.end();
 			} else {
 				if (req.url!.endsWith(".js")) {
-					let id = req.url!.split("/").pop()!.split(".")[0];
+					const id = req.url!.split("/").pop()!.split(".")[0];
 					if (!js[id]) {
 						res.writeHead(404);
 						res.end("Not found");
@@ -334,11 +334,11 @@ export function multiFrameTest(props: {
 					res.writeHead(200, { "Content-Type": "application/javascript" });
 					res.end(js[id]);
 				} else {
-					let id = req.url!.split("/").pop()!;
+					const id = req.url!.split("/").pop()!;
 
-					let subframesHtml: string[] = [];
+					const subframesHtml: string[] = [];
 					for (const subframe of subframes[id]) {
-						let server = Object.values(servers).find(
+						const server = Object.values(servers).find(
 							(server) => server.js[subframe]
 						)!;
 						subframesHtml.push(`
@@ -388,7 +388,7 @@ export function multiFrameTest(props: {
 			servers[frame.originid] = server;
 		}
 
-		let url = `http://localhost:${server.port}/${frame.id}`;
+		const url = `http://localhost:${server.port}/${frame.id}`;
 		server.js[frame.id] = frame.js({
 			url,
 		});
@@ -410,7 +410,7 @@ export function multiFrameTest(props: {
 			await Promise.all(serversOpenPromise);
 		},
 		async stop() {
-			let promises: Promise<void>[] = [];
+			const promises: Promise<void>[] = [];
 			for (const server of Object.values(servers)) {
 				promises.push(
 					new Promise((resolve) => {

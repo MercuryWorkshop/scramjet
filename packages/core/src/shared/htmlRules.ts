@@ -1,9 +1,9 @@
-import { CookieJar } from "@/shared/cookie";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
 import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
 import { generateClientId } from "@/shared/util";
+import { _URL } from "./snapshot";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
@@ -27,7 +27,7 @@ export const htmlRules: {
 	},
 	{
 		fn: (value, context, meta) => {
-			let url = rewriteUrl(value, context, meta, {
+			const url = rewriteUrl(value, context, meta, {
 				newClient: true,
 				topFrame: meta.topFrameName,
 				parentFrame: meta.parentFrameName,
@@ -39,7 +39,7 @@ export const htmlRules: {
 	},
 	{
 		// is this a good idea?
-		fn: (value, context, meta) => {
+		fn: (_value, _context, _meta) => {
 			return null;
 		},
 		sandbox: ["iframe"],
@@ -83,8 +83,8 @@ export const htmlRules: {
 				context,
 				{
 					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
-					origin: new URL(meta.origin.origin),
-					base: new URL(meta.origin.origin),
+					origin: new _URL(meta.origin.origin),
+					base: new _URL(meta.origin.origin),
 					clientId: generateClientId(),
 					topFrameName: meta.topFrameName,
 					parentFrameName: meta.parentFrameName,

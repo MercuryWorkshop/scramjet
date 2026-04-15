@@ -76,7 +76,7 @@ class RemoteTransport implements ProxyTransport {
 		(code: number, reason: string) => void,
 	] {
 		const channel = new MessageChannel();
-		let port = channel.port1;
+		const port = channel.port1;
 		console.warn("connecting");
 		this.rpc
 			.call(
@@ -193,7 +193,7 @@ export function load(init: Init) {
 	delete (self as any).WASM;
 	setWasm(wasm);
 
-	let context = new ExecutionContextWrapper(globalThis, init);
+	const context = new ExecutionContextWrapper(globalThis, init);
 }
 
 function createFrameId() {

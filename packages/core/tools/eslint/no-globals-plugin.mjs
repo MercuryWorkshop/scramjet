@@ -100,6 +100,21 @@ const noGlobalsPlugin = {
 								reportGlobal(reference.identifier);
 							}
 						}
+
+						// `globalThis` resolves as a normal env global, not a TS ImplicitLibVariable,
+						// so it is not covered by the loops above.
+						const globalThisVar =
+							globalScope.set?.get("globalThis") ??
+							globalScope.variables.find((v) => v.name === "globalThis");
+						if (globalThisVar) {
+							for (const reference of globalThisVar.references) {
+								if (!isValueReference(reference)) {
+									continue;
+								}
+
+								reportGlobal(reference.identifier);
+							}
+						}
 					},
 				};
 			},
