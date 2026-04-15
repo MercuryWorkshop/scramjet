@@ -15,11 +15,17 @@ export const RequestCard: Component<
 			class={use(this.selected).map(
 				(selected) => `request-row ${selected ? "selected" : ""}`
 			)}
+			data-request-id={this.request.id}
 			data-status={this.request.status ?? ""}
 			on:click={() => this.onSelect?.(this.request.id)}
 		>
-			<div class="request-main">
+			<div class="request-primary">
 				<span class="request-method">{this.request.method}</span>
+				<div class="request-url" title={this.request.url}>
+					{this.request.url}
+				</div>
+			</div>
+			<div class="request-main">
 				<span
 					class={
 						this.request.status !== undefined
@@ -38,66 +44,68 @@ export const RequestCard: Component<
 					{this.request.destination ?? "unknown"}
 				</span>
 				<span class="request-time">{this.request.time}</span>
+				{this.request.contentType ? (
+					<span class="request-type">{this.request.contentType}</span>
+				) : null}
 			</div>
-			<div class="request-url" title={this.request.url}>
-				{this.request.url}
-			</div>
-			{this.request.contentType ? (
-				<div class="request-type">{this.request.contentType}</div>
-			) : null}
 		</div>
 	);
 };
 
 RequestCard.style = css`
 	.request-row {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35em;
-		padding: 0.65em 0.75em;
+		display: grid;
+		gap: 0.18em;
+		padding: 0.38em 0.5em;
 		border: 1px solid #262626;
-		border-radius: 8px;
-		background: linear-gradient(135deg, #141414 0%, #101010 100%);
+		border-radius: 6px;
+		background: #101010;
 		cursor: pointer;
 		transition:
 			border-color 0.15s ease,
 			box-shadow 0.15s ease,
-			transform 0.15s ease,
 			background 0.15s ease;
 	}
 	.request-row:hover {
 		border-color: #3a3a3a;
-		background: linear-gradient(135deg, #181818 0%, #121212 100%);
-		transform: translateY(-1px);
+		background: #141414;
 	}
 	.request-row.selected {
 		border-color: #60a5fa;
 		box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.5);
-		background: linear-gradient(135deg, #1a1f2b 0%, #12161f 100%);
+		background: #141a22;
+	}
+	.request-primary {
+		display: flex;
+		align-items: center;
+		gap: 0.4em;
+		min-width: 0;
 	}
 	.request-main {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.5em;
-		font-size: 0.8em;
+		gap: 0.35em 0.45em;
+		font-size: 0.72em;
+		line-height: 1.15;
 	}
 	.request-method {
 		font-weight: 600;
 		color: #fff;
-		padding: 0.15em 0.5em;
-		border-radius: 6px;
+		padding: 0.08em 0.36em;
+		border-radius: 4px;
 		background: rgba(59, 130, 246, 0.2);
 		border: 1px solid rgba(59, 130, 246, 0.35);
 		letter-spacing: 0.02em;
+		flex: 0 0 auto;
 	}
 	.request-status {
-		padding: 0.15em 0.45em;
-		border-radius: 6px;
+		padding: 0.08em 0.35em;
+		border-radius: 4px;
 		background: rgba(148, 163, 184, 0.15);
 		border: 1px solid rgba(148, 163, 184, 0.35);
 		color: #e2e8f0;
-		min-width: 2.5em;
+		min-width: 2.2em;
 		text-align: center;
 		font-variant-numeric: tabular-nums;
 	}
@@ -125,21 +133,25 @@ RequestCard.style = css`
 	.request-destination,
 	.request-time {
 		color: #9ca3af;
+		font-variant-numeric: tabular-nums;
 	}
 	.request-url {
-		font-size: 0.85em;
+		font-size: 0.76em;
+		line-height: 1.15;
 		color: #e5e7eb;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		min-width: 0;
+		flex: 1 1 auto;
 	}
 	.request-type {
-		font-size: 0.75em;
+		font-size: 1em;
+		line-height: 1;
 		color: #93c5fd;
 		background: rgba(59, 130, 246, 0.1);
 		border: 1px solid rgba(59, 130, 246, 0.2);
-		padding: 0.1em 0.4em;
+		padding: 0.08em 0.3em;
 		border-radius: 999px;
-		width: fit-content;
 	}
 `;
