@@ -67,6 +67,15 @@ type IfEquals<T, U, Y = unknown, N = never> =
 //eslint-disable-next-line
 export type AnyFunction = Function;
 
+type ProxyApplyThis<T extends string> =
+	unknown extends ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>
+		? T extends `${infer ClassName}.prototype.${string}`
+			? GlobalTraverse<ClassName> extends { prototype: infer Proto }
+				? Proto
+				: unknown
+			: unknown
+		: ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>;
+
 export type ScramjetModule = {
 	enabled: (client: ScramjetClient) => boolean | undefined;
 	disabled: (
@@ -77,9 +86,12 @@ export type ScramjetModule = {
 	default: (client: ScramjetClient, self: typeof globalThis) => void;
 };
 
-export type ProxyCtx<T extends string, U extends "construct" | "apply"> = {
+export type ProxyCtx<
+	T extends string = string,
+	U extends "construct" | "apply" = "apply",
+> = {
 	fn: GlobalTraverse<T>;
-	this: any;
+	this: IfEquals<U, "construct", null, ProxyApplyThis<T>>;
 	args: IfEquals<
 		U,
 		"construct",
@@ -102,7 +114,7 @@ export type ProxyCtx<T extends string, U extends "construct" | "apply"> = {
 		ReturnType<GlobalTraverse<T>>
 	>;
 };
-export type Proxy<T extends string> = {
+export type Proxy<T extends string = string> = {
 	construct?(ctx: ProxyCtx<T, "construct">): any;
 	apply?(ctx: ProxyCtx<T, "apply">): any;
 };

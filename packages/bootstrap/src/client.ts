@@ -39,7 +39,6 @@ export async function loadRest(sw: ServiceWorker, cfg: BootstrapOptions) {
 		serviceworker: sw,
 		transport,
 	});
-	console.log(">?/");
 
 	return controller;
 }
