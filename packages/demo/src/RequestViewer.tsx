@@ -166,6 +166,13 @@ export const RequestViewer: Component<
 		responseBodyView: "pre" | "post";
 		pluginReady: boolean;
 		requestSeq: number;
+		listEl?: HTMLDivElement;
+		pendingListRestore?: number;
+		listAnchor?: {
+			id: string | null;
+			offset: number;
+			stickToBottom: boolean;
+		} | null;
 		requestIdByRequest: WeakMap<object, string>;
 		requestStartByRequest: WeakMap<object, number>;
 		preResponseBodyStreamByRequest: WeakMap<object, ReadableStream>;
@@ -178,6 +185,8 @@ export const RequestViewer: Component<
 	this.responseBodyView ??= "post";
 	this.pluginReady ??= false;
 	this.requestSeq ??= 0;
+	this.pendingListRestore ??= undefined;
+	this.listAnchor ??= null;
 	this.requestIdByRequest ??= new WeakMap();
 	this.requestStartByRequest ??= new WeakMap();
 	this.preResponseBodyStreamByRequest ??= new WeakMap();
@@ -187,6 +196,68 @@ export const RequestViewer: Component<
 			if (id != null) this.onSelect?.(id);
 		};
 	}
+
+	const isNearBottom = (el: HTMLElement) =>
+		el.scrollHeight - el.clientHeight - el.scrollTop <= 8;
+
+	const captureListAnchor = () => {
+		const listEl = this.listEl;
+		if (!listEl) return;
+
+		const rows = Array.from(
+			listEl.querySelectorAll<HTMLElement>("[data-request-id]")
+		);
+		const firstVisible =
+			rows.find(
+				(row) => row.offsetTop + row.offsetHeight > listEl.scrollTop + 1
+			) ?? rows[0];
+
+		this.listAnchor = {
+			id: firstVisible?.dataset.requestId ?? null,
+			offset: firstVisible ? firstVisible.offsetTop - listEl.scrollTop : 0,
+			stickToBottom: isNearBottom(listEl),
+		};
+	};
+
+	const restoreListAnchor = () => {
+		if (this.pendingListRestore !== undefined) {
+			cancelAnimationFrame(this.pendingListRestore);
+		}
+
+		this.pendingListRestore = requestAnimationFrame(() => {
+			this.pendingListRestore = undefined;
+			const listEl = this.listEl;
+			const anchor = this.listAnchor;
+			if (!listEl || !anchor) return;
+
+			if (anchor.stickToBottom) {
+				listEl.scrollTop = listEl.scrollHeight - listEl.clientHeight;
+				this.listAnchor = null;
+				return;
+			}
+
+			if (!anchor.id) {
+				this.listAnchor = null;
+				return;
+			}
+
+			const anchorEl = listEl.querySelector<HTMLElement>(
+				`[data-request-id="${anchor.id}"]`
+			);
+			if (anchorEl) {
+				listEl.scrollTop = anchorEl.offsetTop - anchor.offset;
+			}
+			this.listAnchor = null;
+		});
+	};
+
+	const updateRequests = (
+		updater: (prev: RequestEntry[]) => RequestEntry[]
+	) => {
+		captureListAnchor();
+		this.onRequestsChange?.(updater);
+		restoreListAnchor();
+	};
 
 	const initPlugin = (frame: any) => {
 		if (this.pluginReady || !frame) return;
@@ -218,9 +289,7 @@ export const RequestViewer: Component<
 				requestBodySize: reqBodyInfo.size,
 			};
 
-			this.onRequestsChange?.((prev) =>
-				[entry, ...prev].slice(0, this.maxRequests)
-			);
+			updateRequests((prev) => [...prev, entry].slice(-this.maxRequests));
 			if (!this.selectedId) {
 				this.onSelectedChange?.(id);
 			}
@@ -283,7 +352,7 @@ export const RequestViewer: Component<
 						: getBodyPreview(props.response?.body);
 				}
 
-				this.onRequestsChange?.((prev) =>
+				updateRequests((prev) =>
 					prev.map((entry) =>
 						entry.id === id
 							? {
@@ -349,7 +418,7 @@ export const RequestViewer: Component<
 					: getBodyPreview(props.response.body);
 			}
 
-			this.onRequestsChange?.((prev) =>
+			updateRequests((prev) =>
 				prev.map((entry) =>
 					entry.id === id
 						? {
@@ -381,7 +450,8 @@ export const RequestViewer: Component<
 			{activeSignal.map(() => null)}
 			<div class="requests-header">
 				<span>
-					Recent requests (latest {use(this.maxRequests).map((max) => max)})
+					Requests, oldest to newest (latest{" "}
+					{use(this.maxRequests).map((max) => max)})
 				</span>
 				{this.onClear ? (
 					<button class="tab-action" on:click={() => this.onClear?.()}>
@@ -400,7 +470,7 @@ export const RequestViewer: Component<
 				/>
 			</div>
 			<div class="requests-content">
-				<div class="requests-list">
+				<div class="requests-list" this={use(this.listEl)}>
 					{use(this.requests, this.search).map(([requests, search]) => {
 						const query = search.trim().toLowerCase();
 						const filtered = query
@@ -739,7 +809,7 @@ RequestViewer.style = css`
 		background: #0f0f0f;
 		border: 1px solid #222;
 		border-radius: 0;
-		padding: 0.75em;
+		padding: 0.5em;
 		color: #e5e5e5;
 		font-family:
 			system-ui,
@@ -751,9 +821,9 @@ RequestViewer.style = css`
 			sans-serif;
 	}
 	.requests-header {
-		font-size: 0.9em;
+		font-size: 0.82em;
 		color: #aaa;
-		margin-bottom: 0.5em;
+		margin-bottom: 0.35em;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -761,7 +831,7 @@ RequestViewer.style = css`
 	.requests-toolbar {
 		display: flex;
 		gap: 0.5em;
-		margin-bottom: 0.75em;
+		margin-bottom: 0.45em;
 	}
 	.requests-search {
 		flex: 1;
@@ -778,7 +848,7 @@ RequestViewer.style = css`
 	.requests-content {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		gap: 0.75em;
+		gap: 0.5em;
 		flex: 1;
 		min-height: 0;
 	}
@@ -787,7 +857,7 @@ RequestViewer.style = css`
 		overflow: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5em;
+		gap: 0.2em;
 	}
 	.requests-detail {
 		display: flex;
