@@ -1,7 +1,10 @@
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetClient, ProxyCtx, Proxy } from "@client/index";
 
-function rewriteFunction(ctx: ProxyCtx, client: ScramjetClient) {
+function rewriteFunction<T extends string, U extends "construct" | "apply">(
+	ctx: ProxyCtx<T, U>,
+	client: ScramjetClient
+) {
 	const stringifiedFunction = ctx.call().toString();
 
 	// TODO: also check if the function comes from a weird realm. if so we need to completely block it or do something else weird
