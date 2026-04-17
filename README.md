@@ -34,11 +34,16 @@ An easy to deploy version of Scramjet can be found at [Scramjet-App](https://git
 
 ### Dependencies
 
-- Recent versions of `node.js` and `pnpm`
-- `rustup`
-- `wasm-bindgen`
-- [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
-- [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
+### - Recent versions of [`node.js`](https://nodejs.org/en/download) and
+ ### `pnpm`
+```npm install -g pnpm```
+  ### [`rustup`](https://rustup.rs/)
+```curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh```
+  ### [`wasm-bindgen`](https://github.com/wasm-bindgen/wasm-bindgen)
+```cargo install wasm-bindgen-cli --version 0.2.100 --force```
+### [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
+### [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
+```cargo install wasm-snip```
 
 #### Building
 
