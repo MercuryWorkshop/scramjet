@@ -1,5 +1,19 @@
 import { rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
+import { ForeignContext } from "@/shared/rewriters/html";
+
+// TODO: this function is untested / llm slop
+function foreignContextForRange(
+	client: ScramjetClient,
+	range: Range
+): ForeignContext {
+	const node = range.startContainer;
+	const element = node.nodeType === 1 ? node : node.parentElement;
+	if (!element) return "none";
+	if (client.box.instanceof(element, "SVGElement")) return "svg";
+	if (client.box.instanceof(element, "MathMLElement")) return "mathml";
+	return "none";
+}
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Range.prototype.createContextualFragment", {
@@ -9,6 +23,7 @@ export default function (client: ScramjetClient, _self: Self) {
 				inline: true,
 				source: client.url.href,
 				apisource: "Range.prototype.createContextualFragment",
+				foreignContext: foreignContextForRange(client, ctx.this),
 			});
 		},
 	});

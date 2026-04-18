@@ -43,7 +43,6 @@ const renderOptions = {
 	encodeEntities: "utf8" as const,
 	decodeEntities: false,
 };
-
 function serializeHtmlNode(node: ChildNode) {
 	return render(node, renderOptions);
 }
@@ -157,7 +156,7 @@ function rewriteHtmlInner(
 
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler, {
-		startingForeignContext: htmlcontext.foreignContext === "svg",
+		startingForeignContext: htmlcontext.foreignContext,
 	});
 
 	parser.write(html);
@@ -293,9 +292,11 @@ export function rewriteHtml(
 // 	origin?: URL;
 // };
 
-export function unrewriteHtml(html: string) {
+export function unrewriteHtml(html: string, foreignContext?: ForeignContext) {
 	const handler = new DomHandler((err, dom) => dom);
-	const parser = new Parser(handler);
+	const parser = new Parser(handler, {
+		startingForeignContext: foreignContext,
+	});
 
 	parser.write(html);
 	parser.end();

@@ -172,12 +172,16 @@ function createConsistencyTracker(requireBoth: boolean) {
 }
 
 async function discoverTests(): Promise<Test[]> {
+	const omitWpt = process.env.OMIT_WPT === "1";
 	const testFiles = glob("**/*.ts", {
 		cwd: path.join(__dirname, "tests"),
 	});
 
 	const tests: Test[] = [];
 	for await (const file of testFiles) {
+		if (omitWpt && file.startsWith("wpt/")) {
+			continue;
+		}
 		const fullPath = path.join(__dirname, "tests", file);
 		const module = await import(fullPath);
 		if (module.default) {
@@ -630,8 +634,10 @@ async function main() {
 		Number(process.env.RUNWAY_PARALLEL ?? parallelArg ?? 1)
 	);
 	const fastMode = process.env.RUNWAY_FAST === "1";
+	const omitWpt = process.env.OMIT_WPT === "1";
 	const updateFailingTests = process.env.RUNWAY_UPDATE_FAILING === "1";
 	const failingTestsPath = path.join(__dirname, "..", "failing_tests.json");
+	const runBareTests = !fastMode;
 
 	if (testFilter) {
 		console.log(`� Filter: "${testFilter}"`);
@@ -643,10 +649,15 @@ async function main() {
 		console.log(`🧵 Parallel workers: ${parallelism}\n`);
 	}
 	if (fastMode) {
-		console.log("⚡ Fast mode: reusing one harness instance per worker\n");
+		console.log(
+			"⚡ Fast mode: reusing one scramjet harness instance per worker and skipping bare tests\n"
+		);
 	}
 	if (updateFailingTests) {
 		console.log("📝 Updating failing_tests.json from current run\n");
+	}
+	if (omitWpt) {
+		console.log("🚫 WPT tests omitted via OMIT_WPT=1\n");
 	}
 
 	if (tests.length === 0) {
@@ -657,9 +668,8 @@ async function main() {
 	}
 
 	const needsHarness = tests.some((test) => !test.directFn);
-	const needsBareHarness = tests.some(
-		(test) => !test.directFn && !test.scramjetOnly
-	);
+	const needsBareHarness =
+		runBareTests && tests.some((test) => !test.directFn && !test.scramjetOnly);
 	let scramjetUrl = "";
 	let bareUrl = "";
 	let browser: Browser | null = null;
@@ -736,9 +746,9 @@ async function main() {
 			label: string,
 			value: any
 		) => Promise<void> = async () => {};
-		const workerNeedsBare = workerTests.some(
-			(test) => !test.directFn && !test.scramjetOnly
-		);
+		const workerNeedsBare =
+			runBareTests &&
+			workerTests.some((test) => !test.directFn && !test.scramjetOnly);
 		const createPages = async (installScramjetBindings: boolean) => {
 			if (!browser) {
 				throw new Error("Browser is unavailable for harness-based tests");
@@ -766,9 +776,9 @@ async function main() {
 
 		for (const test of workerTests) {
 			ghaGroup(`Test: ${test.name}`);
-			process.stdout.write(`  ${test.name} ... `);
 
-			const consistencyTracker = createConsistencyTracker(!test.scramjetOnly);
+			const runBareForTest = runBareTests && !test.scramjetOnly;
+			const consistencyTracker = createConsistencyTracker(runBareForTest);
 			consistencyHandler = consistencyTracker.handle;
 			if (!test.directFn && !fastMode && test.reloadHarness) {
 				needsReload = true;
@@ -841,9 +851,8 @@ async function main() {
 						serverResult,
 						test.timeoutMs
 					);
-					const barePromise = test.scramjetOnly
-						? null
-						: runTestOnHarness(
+					const barePromise = runBareForTest
+						? runTestOnHarness(
 								testPages.bare!.page,
 								testPages.bare!.context,
 								testPages.bare!.waitForResult,
@@ -853,16 +862,17 @@ async function main() {
 								test,
 								serverResult,
 								test.timeoutMs
-							);
+							)
+						: null;
 
-					const [scramjetResult, bareResult] = test.scramjetOnly
-						? [await scramjetPromise, null]
-						: await Promise.all([scramjetPromise, barePromise!]);
+					const [scramjetResult, bareResult] = runBareForTest
+						? await Promise.all([scramjetPromise, barePromise!])
+						: [await scramjetPromise, null];
 
 					const consistencyResult = await consistencyTracker.finalize(30000);
 
 					let computedResult: TestResult;
-					if (test.scramjetOnly) {
+					if (!runBareForTest) {
 						computedResult = scramjetResult;
 					} else if (
 						scramjetResult.status !== "pass" ||
@@ -923,12 +933,16 @@ async function main() {
 			});
 
 			if (finalResult.status === "pass") {
-				console.log(`✅ passed (${duration}ms)`);
+				console.log(`  ${test.name} ... ✅ passed (${duration}ms)`);
 			} else if (finalResult.status === "fail") {
-				console.log(`❌ failed (${duration}ms)`);
-				if (finalResult.message) {
-					console.log(`     ${finalResult.message}`);
-				}
+				console.log(
+					[
+						`  ${test.name} ... ❌ failed (${duration}ms)`,
+						finalResult.message ? `     ${finalResult.message}` : null,
+					]
+						.filter(Boolean)
+						.join("\n")
+				);
 				ghaError(
 					`Test "${test.name}" failed: ${finalResult.message || "Unknown error"}`
 				);
@@ -936,10 +950,14 @@ async function main() {
 					needsReload = !fastMode; // Reload after failure unless fast mode is reusing harnesses
 				}
 			} else {
-				console.log(`💥 error (${duration}ms)`);
-				if (finalResult.message) {
-					console.log(`     ${finalResult.message}`);
-				}
+				console.log(
+					[
+						`  ${test.name} ... 💥 error (${duration}ms)`,
+						finalResult.message ? `     ${finalResult.message}` : null,
+					]
+						.filter(Boolean)
+						.join("\n")
+				);
 				ghaError(
 					`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
 				);
