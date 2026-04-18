@@ -169,7 +169,9 @@ export default function (client: ScramjetClient, self: Self) {
 		value: (buf: Array<number>, tag: string) => {
 			const before = performance.now();
 			registerRewrites(client, buf, tag);
-			dbg.time(client.meta, before, `scramtag parse for ${tag}`);
+			if (client.flagEnabled("rewriterLogs")) {
+				dbg.time(client.meta, before, `scramtag parse for ${tag}`);
+			}
 		},
 		enumerable: false,
 		writable: false,

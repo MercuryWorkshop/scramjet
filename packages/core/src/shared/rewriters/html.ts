@@ -21,6 +21,7 @@ import {
 	btoa,
 	_URL,
 } from "@/shared/snapshot";
+import { flagEnabled } from "..";
 
 export type ForeignContext = "svg" | "math" | undefined;
 
@@ -282,7 +283,9 @@ export function rewriteHtml(
 ) {
 	const before = Performance_now();
 	const ret = rewriteHtmlInner(html, context, meta, htmlcontext);
-	dbg.time(meta, before, "html rewrite");
+	if (flagEnabled("rewriterLogs", context, meta.base)) {
+		dbg.time(meta, before, "html rewrite");
+	}
 
 	return ret;
 }
