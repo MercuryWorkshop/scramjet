@@ -76,7 +76,9 @@ function rewriteJsWasm(
 
 		// 	return { js: input, tag: "", map: null };
 		// }
-		dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
+		if (flagEnabled("rewriterLogs", context, meta.base)) {
+			dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
+		}
 
 		const { js, map, scramtag, errors } = out;
 
