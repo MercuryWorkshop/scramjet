@@ -1,4 +1,3 @@
-import { generateClientId } from "@mercuryworkshop/scramjet";
 import type {
 	CookieJar as CookieJarType,
 	ScramjetConfig,
@@ -17,7 +16,6 @@ import { RpcHelper } from "@mercuryworkshop/rpc";
 import type {
 	ControllerToTransport,
 	TransportToController,
-	WebSocketData,
 	WebSocketMessage,
 } from "./types";
 
@@ -151,7 +149,8 @@ class RemoteTransport implements ProxyTransport {
 }
 
 const sw = navigator.serviceWorker.controller;
-const { SCRAMJETCLIENT, ScramjetClient, CookieJar, setWasm } = $scramjet;
+const { SCRAMJETCLIENT, ScramjetClient, CookieJar, setWasm, generateClientId } =
+	$scramjet;
 
 type Config = any;
 type Init = {
