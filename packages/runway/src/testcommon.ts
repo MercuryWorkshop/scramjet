@@ -112,6 +112,63 @@ export function basicTest(props: {
 }
 
 /**
+ * Serves `html` as the full response for `/`. Put your markup and inline scripts
+ * in that string (for example call `runTest` from the CDP harness globals).
+ */
+export function htmlTest(props: {
+	name: string;
+	html: string;
+	scramjetOnly?: boolean;
+	expectedOkCount?: number;
+}): Test {
+	let port = 0;
+	let server: http.Server;
+	const scramjetOnly =
+		props.scramjetOnly ?? /checkglobal\s*\(/i.test(props.html);
+	const test: Test = {
+		name: props.name,
+		port,
+		scramjetOnly,
+		expectedOkCount: props.expectedOkCount,
+		async start() {
+			return new Promise((resolve) => {
+				server = http.createServer((req, res) => {
+					if (req.url === "/") {
+						res.writeHead(200, { "Content-Type": "text/html" });
+						res.end(props.html);
+					} else {
+						res.writeHead(404);
+						res.end("Not found");
+					}
+				});
+				server.listen(0, () => {
+					port = (server.address() as AddressInfo).port;
+					test.port = port;
+					resolve();
+				});
+			});
+		},
+		async stop() {
+			return Promise.race([
+				new Promise<void>((resolve) => {
+					if (server.closeAllConnections) {
+						server.closeAllConnections();
+					}
+					server.close(() => resolve());
+				}),
+				new Promise<void>((_, reject) => {
+					setTimeout(
+						() => reject(new Error("Server stop timed out after 5 seconds")),
+						5000
+					);
+				}),
+			]);
+		},
+	};
+	return test;
+}
+
+/**
  * Create a test that uses Playwright to control the browser directly.
  * The test function receives a TestContext with:
  * - page: The Playwright Page object

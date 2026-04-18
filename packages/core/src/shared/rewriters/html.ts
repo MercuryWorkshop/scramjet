@@ -39,12 +39,122 @@ export type HtmlContext = {
 	history?: TrackedHistoryState[];
 };
 
+const renderOptions = {
+	encodeEntities: "utf8" as const,
+	decodeEntities: false,
+};
+
+function serializeHtmlNode(node: ChildNode) {
+	return render(node, renderOptions);
+}
+
+function isElementNode(node: ChildNode): node is Element {
+	return (
+		node.type === ElementType.Tag ||
+		node.type === ElementType.Script ||
+		node.type === ElementType.Style
+	);
+}
+
+export class IncrementalHtmlRewriter {
+	private readonly handler: DomHandler;
+	private readonly parser: Parser;
+	private readonly completedElements = new WeakSet<Element>();
+	private readonly emittedLengths = new WeakMap<ChildNode, number>();
+	private readonly rewrittenNodes = new WeakMap<ChildNode, string>();
+	private ended = false;
+
+	constructor(
+		private readonly context: ScramjetContext,
+		private readonly meta: URLMeta,
+		private readonly htmlcontext: HtmlContext
+	) {
+		this.handler = new DomHandler(undefined, undefined, (element) => {
+			this.completedElements.add(element);
+		});
+		this.parser = new Parser(this.handler, {
+			startingForeignContext: htmlcontext.foreignContext === "svg",
+		});
+	}
+
+	write(html: string) {
+		if (this.ended) {
+			throw new Error("IncrementalHtmlRewriter stream already ended");
+		}
+
+		this.parser.write(html);
+
+		return this.flush();
+	}
+
+	end(html = "") {
+		if (this.ended) {
+			return "";
+		}
+
+		if (html) {
+			this.parser.write(html);
+		}
+
+		this.parser.end();
+		this.ended = true;
+
+		return this.flush();
+	}
+
+	private flush() {
+		let output = "";
+
+		for (const node of this.handler.root.childNodes) {
+			const rewritten = this.getAvailableOutput(node);
+			if (rewritten === null) {
+				break;
+			}
+
+			const emittedLength = this.emittedLengths.get(node) ?? 0;
+			if (rewritten.length > emittedLength) {
+				output += rewritten.slice(emittedLength);
+				this.emittedLengths.set(node, rewritten.length);
+			}
+		}
+
+		return output;
+	}
+
+	private getAvailableOutput(node: ChildNode) {
+		if (!isElementNode(node)) {
+			return serializeHtmlNode(node);
+		}
+
+		if (!this.completedElements.has(node)) {
+			return null;
+		}
+
+		let rewritten = this.rewrittenNodes.get(node);
+		if (rewritten === undefined) {
+			rewritten = rewriteHtmlInner(
+				node,
+				this.context,
+				this.meta,
+				this.htmlcontext
+			);
+			this.rewrittenNodes.set(node, rewritten);
+		}
+
+		return rewritten;
+	}
+}
+
 function rewriteHtmlInner(
-	html: string,
+	html: string | ChildNode,
 	context: ScramjetContext,
 	meta: URLMeta,
 	htmlcontext: HtmlContext
 ) {
+	if (typeof html !== "string") {
+		html = serializeHtmlNode(html);
+	}
+
 	const handler = new DomHandler((err, dom) => dom);
 	const parser = new Parser(handler, {
 		startingForeignContext: htmlcontext.foreignContext === "svg",
@@ -162,10 +272,7 @@ function rewriteHtmlInner(
 		return props.setRawHtml;
 	}
 
-	return render(handler.root, {
-		encodeEntities: "utf8",
-		decodeEntities: false,
-	});
+	return render(handler.root, renderOptions);
 }
 
 export function rewriteHtml(
@@ -219,7 +326,7 @@ export function unrewriteHtml(html: string) {
 	traverse(handler.root);
 
 	return render(handler.root, {
-		decodeEntities: false,
+		...renderOptions,
 	});
 }
 
