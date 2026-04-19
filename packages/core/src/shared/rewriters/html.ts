@@ -6,6 +6,7 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
+import { parseDeclarativeRefresh } from "@/shared/refresh";
 import { Tap } from "@/Tap";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import { TrackedHistoryState } from "@/fetch";
@@ -438,14 +439,15 @@ function traverseParsedHtml(
 		) {
 			// just delete it. this needs to be emulated eventually but like
 			node = new Comment(node.attribs.content);
-		} else if (
-			node.attribs["http-equiv"] === "refresh" &&
-			node.attribs.content.includes("url")
-		) {
-			const contentArray = node.attribs.content.split("url=");
-			if (contentArray[1])
-				contentArray[1] = rewriteUrl(contentArray[1].trim(), context, meta);
-			node.attribs.content = contentArray.join("url=");
+		} else if (node.attribs["http-equiv"].toLowerCase() === "refresh") {
+			const refresh = parseDeclarativeRefresh(node.attribs.content || "");
+			if (refresh && refresh.url !== null && refresh.url.length > 0) {
+				const rewritten = rewriteUrl(refresh.url.trim(), context, meta);
+				node.attribs.content =
+					node.attribs.content.slice(0, refresh.urlStart) +
+					rewritten +
+					node.attribs.content.slice(refresh.urlEnd);
+			}
 		}
 	}
 

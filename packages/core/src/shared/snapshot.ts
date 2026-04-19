@@ -2,9 +2,10 @@
 // this is NOT a place for putting dom apis
 
 export const String = globalThis.String;
-export const Number = globalThis.Number;
 export const String_fromCodePoint = globalThis.String.fromCodePoint;
 export const String_fromCharCode = globalThis.String.fromCharCode;
+export const Number = globalThis.Number;
+export const Number_parseInt = globalThis.Number.parseInt;
 
 export const Object_keys = globalThis.Object.keys;
 export const Object_values = globalThis.Object.values;
@@ -27,6 +28,7 @@ export const Reflect_has = globalThis.Reflect.has;
 export const Reflect_ownKeys = globalThis.Reflect.ownKeys;
 export const Reflect_construct = globalThis.Reflect.construct;
 export const Reflect_apply = globalThis.Reflect.apply;
+
 
 export const Array_from = globalThis.Array.from;
 export const Array_isArray = globalThis.Array.isArray;
