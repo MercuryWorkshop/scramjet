@@ -82,20 +82,12 @@ const readStreamBlob = async (stream: ReadableStream): Promise<Blob | null> => {
 	}
 };
 
-const ensureScramjetResponse = (response: any) => {
-	if (!response) return response;
-	const BareResponseCtor = (globalThis as any).$scramjet?.BareResponse;
-	if (response instanceof Response && BareResponseCtor?.fromNativeResponse) {
-		return BareResponseCtor.fromNativeResponse(response);
+const getResponseHeaders = (response: any): Array<[string, string]> => {
+	if (!response) return [];
+	if (Array.isArray(response.rawHeaders)) {
+		return response.rawHeaders;
 	}
-	if (!Array.isArray(response.rawHeaders) && response.headers) {
-		try {
-			response.rawHeaders = [...response.headers.entries()];
-		} catch {
-			response.rawHeaders = [];
-		}
-	}
-	return response;
+	return normalizeHeaders(response.headers);
 };
 
 const languageFromContentType = (contentType?: string | null) => {
@@ -145,6 +137,280 @@ const getMediaUrlFromBody = (
 	return {};
 };
 
+const LARGE_BODY_BYTES = 50 * 1024;
+const LARGE_BODY_PREVIEW_CHARS = 12000;
+
+const getTextByteLength = (value: string): number =>
+	new TextEncoder().encode(value).byteLength;
+
+const truncateLargeBodyPreview = (value: string): string =>
+	value.length <= LARGE_BODY_PREVIEW_CHARS
+		? value
+		: value.slice(0, LARGE_BODY_PREVIEW_CHARS);
+
+const StableBodyViewer: Component<
+	{
+		value: string;
+		language?: string;
+		emptyMessage: string;
+		mediaUrl?: string;
+		mediaKind?: "none" | "image" | "video";
+	},
+	{
+		expanded: boolean;
+		lastValue: string;
+	},
+	{}
+> = function () {
+	this.expanded ??= false;
+	this.lastValue ??= this.value ?? "";
+
+	const value = use(this.value);
+	const mediaUrl = use(this.mediaUrl);
+	const mediaKind = use(this.mediaKind);
+	const expanded = use(this.expanded);
+
+	const mode = value
+		.zip(mediaUrl, mediaKind)
+		.map(([value, mediaUrl, mediaKind]) => {
+			const kind = mediaKind ?? "none";
+			if (kind === "image" && mediaUrl) return "image";
+			if (kind === "video" && mediaUrl) return "video";
+			if (value) return "code";
+			return "empty";
+		});
+	const bodyBytes = value.map((value) => getTextByteLength(value ?? ""));
+	const largeText = mode
+		.zip(bodyBytes)
+		.map(
+			([mode, bodyBytes]) => mode === "code" && bodyBytes > LARGE_BODY_BYTES
+		);
+	const previewValue = value.map((value) =>
+		truncateLargeBodyPreview(value ?? "")
+	);
+	const loadedFullText = largeText
+		.zip(expanded)
+		.map(([largeText, expanded]) => !largeText || expanded);
+	const previewSummary = bodyBytes.zip(value).map(([bodyBytes, value]) => {
+		const shownChars = Math.min((value ?? "").length, LARGE_BODY_PREVIEW_CHARS);
+		return `Large body (${Math.round(bodyBytes / 1024)} KB). Showing the first ${shownChars.toLocaleString()} characters.`;
+	});
+
+	value.listen((value) => {
+		if (this.lastValue !== value) {
+			this.lastValue = value;
+			this.expanded = false;
+		}
+	});
+
+	return (
+		<div class="body-viewer">
+			<div
+				class={mode.map(
+					(mode) => `body-empty ${mode === "empty" ? "" : "hidden"}`
+				)}
+			>
+				{use(this.emptyMessage)}
+			</div>
+			<img
+				class={mode.map(
+					(mode) => `body-media ${mode === "image" ? "" : "hidden"}`
+				)}
+				src={mediaUrl}
+				alt="Response preview"
+			/>
+			<video
+				class={mode.map(
+					(mode) => `body-media ${mode === "video" ? "" : "hidden"}`
+				)}
+				src={mediaUrl}
+				controls
+			/>
+			<div
+				class={mode.map(
+					(mode) => `body-editor ${mode === "code" ? "" : "hidden"}`
+				)}
+			>
+				<div
+					class={largeText.map(
+						(largeText) => `body-large-preview ${largeText ? "" : "hidden"}`
+					)}
+				>
+					<div class="body-large-meta">{previewSummary}</div>
+					<pre class="body-large-text">{previewValue}</pre>
+					<button
+						class={loadedFullText.map(
+							(loaded) => `body-load-button ${loaded ? "hidden" : ""}`
+						)}
+						on:click={() => {
+							this.expanded = true;
+						}}
+					>
+						Load full contents
+					</button>
+				</div>
+				<div
+					class={mode
+						.zip(loadedFullText)
+						.map(
+							([mode, loaded]) =>
+								`body-monaco ${mode === "code" && loaded ? "" : "hidden"}`
+						)}
+				>
+					<MonacoComponent
+						value={value}
+						language={use(this.language).map(
+							(language) => language ?? "plaintext"
+						)}
+						readOnly={true}
+						minHeight={320}
+					/>
+				</div>
+			</div>
+		</div>
+	);
+};
+
+StableBodyViewer.style = css`
+	:scope {
+		display: block;
+	}
+	.body-viewer {
+		min-height: 320px;
+	}
+	.body-empty {
+		color: #9ca3af;
+		font-style: italic;
+		padding: 0.4em 0.2em;
+	}
+	.body-media {
+		max-width: 100%;
+		max-height: 480px;
+		border-radius: 8px;
+		border: 1px solid #222;
+		background: #0b0b0b;
+		display: block;
+	}
+	.body-editor {
+		min-height: 320px;
+	}
+	.body-editor.hidden,
+	.body-media.hidden,
+	.body-empty.hidden {
+		display: none;
+	}
+	.body-monaco.hidden,
+	.body-large-preview.hidden,
+	.body-load-button.hidden {
+		display: none;
+	}
+	.body-large-preview {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65em;
+	}
+	.body-large-meta {
+		color: #9ca3af;
+		font-size: 0.78em;
+	}
+	.body-large-text {
+		margin: 0;
+		padding: 0.8em;
+		max-height: 420px;
+		overflow: auto;
+		border: 1px solid #222;
+		border-radius: 8px;
+		background: #0b0b0b;
+		color: #e5e7eb;
+		font-family:
+			"JetBrains Mono", "SF Mono", "Fira Code", Consolas, "Liberation Mono",
+			monospace;
+		font-size: 0.78em;
+		line-height: 1.45;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+	.body-load-button {
+		align-self: flex-start;
+		border: 1px solid #2a2a2a;
+		background: #121212;
+		color: #e5e7eb;
+		padding: 0.45em 0.7em;
+		border-radius: 6px;
+		font-size: 0.78em;
+		cursor: pointer;
+	}
+	.body-load-button:hover {
+		border-color: #60a5fa;
+		background: rgba(96, 165, 250, 0.12);
+	}
+`;
+
+const HeadersTable: Component<
+	{
+		headers?: Array<[string, string]>;
+	},
+	{},
+	{}
+> = function () {
+	return (
+		<div class="headers-table">
+			{use(this.headers).map((headers) =>
+				(headers ?? []).length === 0 ? (
+					<div class="headers-empty">(none)</div>
+				) : (
+					(headers ?? []).map(([key, value]) => (
+						<div class="header-row">
+							<span class="header-key">{key}</span>
+							<span class="header-value">{value}</span>
+						</div>
+					))
+				)
+			)}
+		</div>
+	);
+};
+
+HeadersTable.style = css`
+	:scope {
+		display: block;
+	}
+	.headers-table {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25em;
+		font-size: 0.75em;
+		color: #e5e7eb;
+	}
+	.header-row {
+		display: grid;
+		grid-template-columns: minmax(140px, 0.55fr) minmax(0, 1.45fr);
+		gap: 0.6em;
+		padding: 0.2em 0.1em;
+		border-bottom: 1px dashed rgba(148, 163, 184, 0.18);
+	}
+	.header-row:last-child {
+		border-bottom: none;
+	}
+	.header-key {
+		color: #93c5fd;
+		font-family:
+			"JetBrains Mono", "SF Mono", "Fira Code", Consolas, "Liberation Mono",
+			monospace;
+		font-size: 0.95em;
+		word-break: break-all;
+	}
+	.header-value {
+		color: #e5e7eb;
+		word-break: break-word;
+		line-height: 1.35;
+	}
+	.headers-empty {
+		color: #9ca3af;
+		font-style: italic;
+	}
+`;
+
 export const RequestViewer: Component<
 	{
 		frame: any;
@@ -161,6 +427,8 @@ export const RequestViewer: Component<
 	},
 	{
 		search: string;
+		captureStreamBodies: boolean;
+		selectedRequest: RequestEntry | null;
 		responseHeadersView: "pre" | "post";
 		requestHeadersView: "pre" | "post";
 		responseBodyView: "pre" | "post";
@@ -173,13 +441,16 @@ export const RequestViewer: Component<
 			offset: number;
 			stickToBottom: boolean;
 		} | null;
+		pendingRequestsFlush?: number;
+		pendingRequestsUpdater?: ((prev: RequestEntry[]) => RequestEntry[]) | null;
 		requestIdByRequest: WeakMap<object, string>;
 		requestStartByRequest: WeakMap<object, number>;
-		preResponseBodyStreamByRequest: WeakMap<object, ReadableStream>;
 	},
 	{}
 > = function () {
 	this.search ??= "";
+	this.captureStreamBodies ??= false;
+	this.selectedRequest ??= null;
 	this.responseHeadersView ??= "post";
 	this.requestHeadersView ??= "post";
 	this.responseBodyView ??= "post";
@@ -187,9 +458,10 @@ export const RequestViewer: Component<
 	this.requestSeq ??= 0;
 	this.pendingListRestore ??= undefined;
 	this.listAnchor ??= null;
+	this.pendingRequestsFlush ??= undefined;
+	this.pendingRequestsUpdater ??= null;
 	this.requestIdByRequest ??= new WeakMap();
 	this.requestStartByRequest ??= new WeakMap();
-	this.preResponseBodyStreamByRequest ??= new WeakMap();
 
 	if (!this.onSelectedChange && this.onSelect) {
 		this.onSelectedChange = (id) => {
@@ -254,10 +526,124 @@ export const RequestViewer: Component<
 	const updateRequests = (
 		updater: (prev: RequestEntry[]) => RequestEntry[]
 	) => {
-		captureListAnchor();
-		this.onRequestsChange?.(updater);
-		restoreListAnchor();
+		const previousUpdater = this.pendingRequestsUpdater;
+		this.pendingRequestsUpdater = previousUpdater
+			? (prev) => updater(previousUpdater(prev))
+			: updater;
+
+		if (this.pendingRequestsFlush !== undefined) return;
+
+		this.pendingRequestsFlush = requestAnimationFrame(() => {
+			this.pendingRequestsFlush = undefined;
+			const queuedUpdater = this.pendingRequestsUpdater;
+			this.pendingRequestsUpdater = null;
+			if (!queuedUpdater) return;
+
+			captureListAnchor();
+			this.onRequestsChange?.(queuedUpdater);
+			restoreListAnchor();
+		});
 	};
+
+	const shouldCaptureStreamBodies = () => this.captureStreamBodies !== false;
+	const getRequestById = (id: string | null, requests: RequestEntry[]) =>
+		id ? (requests.find((entry) => entry.id === id) ?? null) : null;
+
+	use(this.selectedId, this.requests).listen(([selectedId, requests]) => {
+		const nextSelected = getRequestById(selectedId, requests);
+		if (this.selectedRequest !== nextSelected) {
+			this.selectedRequest = nextSelected;
+		}
+	});
+
+	const hasSelected = use(this.selectedRequest).map((selected) => !!selected);
+	const selectedUrl = use(this.selectedRequest).map(
+		(selected) => selected?.url ?? ""
+	);
+	const selectedMethod = use(this.selectedRequest).map(
+		(selected) => selected?.method ?? ""
+	);
+	const selectedStatus = use(this.selectedRequest).map((selected) =>
+		selected
+			? `${selected.status ?? "…"} ${selected.statusText ?? ""}`.trim()
+			: ""
+	);
+	const selectedDuration = use(this.selectedRequest).map((selected) =>
+		selected?.durationMs !== undefined ? `${selected.durationMs}ms` : "…"
+	);
+	const selectedDestination = use(this.selectedRequest).map(
+		(selected) => selected?.destination ?? "unknown"
+	);
+	const selectedMode = use(this.selectedRequest).map(
+		(selected) => selected?.mode ?? "unknown"
+	);
+	const selectedContentType = use(this.selectedRequest).map(
+		(selected) => selected?.contentType ?? "unknown"
+	);
+	const responseHeaders = use(
+		this.selectedRequest,
+		this.responseHeadersView
+	).map(([selected, view]) =>
+		!selected
+			? []
+			: view === "pre"
+				? (selected.responseHeadersPre ?? [])
+				: (selected.responseHeaders ?? [])
+	);
+	const requestHeaders = use(this.selectedRequest, this.requestHeadersView).map(
+		([selected, view]) =>
+			!selected
+				? []
+				: view === "pre"
+					? (selected.requestHeadersPre ?? [])
+					: (selected.requestHeaders ?? [])
+	);
+	const responseBodyValue = use(
+		this.selectedRequest,
+		this.responseBodyView
+	).map(([selected, view]) =>
+		!selected
+			? ""
+			: view === "pre"
+				? (selected.responseBodyPreviewPre ?? "")
+				: (selected.responseBodyPreview ?? "")
+	);
+	const responseBodyMediaUrl = use(
+		this.selectedRequest,
+		this.responseBodyView
+	).map(([selected, view]) =>
+		!selected
+			? undefined
+			: view === "pre"
+				? selected.responseBodyMediaUrlPre
+				: selected.responseBodyMediaUrl
+	);
+	const responseBodyLanguage = use(this.selectedRequest).map((selected) =>
+		languageFromContentType(selected?.contentType)
+	);
+	const responseBodyIsMedia = use(this.selectedRequest).map(
+		(selected) => !!selected && isMediaContentType(selected.contentType)
+	);
+	const responseBodyEmptyMessage = responseBodyIsMedia.map((isMedia) =>
+		isMedia ? "(media not captured)" : "(empty)"
+	);
+	const responseBodyMediaKind = use(this.selectedRequest).map((selected) => {
+		if (!selected || !isMediaContentType(selected.contentType)) return "none";
+		return selected.contentType && isImageMimeType(selected.contentType)
+			? "image"
+			: "video";
+	});
+	const showRequestBody = use(this.selectedRequest).map(
+		(selected) => !!selected?.requestBodyPreview
+	);
+	const requestBodyValue = use(this.selectedRequest).map(
+		(selected) => selected?.requestBodyPreview ?? ""
+	);
+	const requestBodyLanguage = use(this.selectedRequest).map((selected) =>
+		languageFromContentType(
+			getHeaderValue(selected?.requestHeaders, "content-type")
+		)
+	);
 
 	const initPlugin = (frame: any) => {
 		if (this.pluginReady || !frame) return;
@@ -289,7 +675,13 @@ export const RequestViewer: Component<
 				requestBodySize: reqBodyInfo.size,
 			};
 
-			updateRequests((prev) => [...prev, entry].slice(-this.maxRequests));
+			updateRequests((prev) => {
+				const next = [...prev, entry].slice(-this.maxRequests);
+				if (!this.selectedId) {
+					this.selectedRequest = entry;
+				}
+				return next;
+			});
 			if (!this.selectedId) {
 				this.onSelectedChange?.(id);
 			}
@@ -300,10 +692,8 @@ export const RequestViewer: Component<
 			async (context: any, props: any) => {
 				const id = this.requestIdByRequest.get(context.request as object);
 				if (!id) return;
-				props.response = ensureScramjetResponse(props.response);
-				const preHeaders = normalizeHeaders(
-					(props.response as any)?.rawHeaders
-				);
+				const inspectedResponse = props.response;
+				const preHeaders = getResponseHeaders(inspectedResponse);
 				const preContentType = getHeaderValue(preHeaders, "content-type");
 
 				let preBodyInfo: { preview: string; size?: number } = {
@@ -311,59 +701,50 @@ export const RequestViewer: Component<
 				};
 				let preMediaUrl: string | undefined;
 				if (
-					props.response?.body &&
+					inspectedResponse?.body &&
 					typeof ReadableStream !== "undefined" &&
-					props.response.body instanceof ReadableStream
+					inspectedResponse.body instanceof ReadableStream
 				) {
-					const [streamForResponse, streamForPreview] =
-						props.response.body.tee();
-					const [streamForStore, streamForRead] = streamForPreview.tee();
-					if (props.response instanceof Response) {
-						const rebuilt = new Response(streamForResponse, props.response);
-						props.response = ensureScramjetResponse(rebuilt);
-					} else {
-						props.response.body = streamForResponse;
-					}
-					this.preResponseBodyStreamByRequest.set(
-						context.request as object,
-						streamForStore
-					);
-					if (isMediaContentType(preContentType)) {
-						const blob = await readStreamBlob(streamForRead);
-						if (blob) {
-							preMediaUrl = URL.createObjectURL(blob);
-							preBodyInfo = {
-								preview: "",
-								size: blob.size,
-							};
-						}
-					} else {
-						const previewText = await readStreamBody(streamForRead);
-						preBodyInfo = getBodyPreview(previewText);
-					}
+					preBodyInfo = {
+						preview: shouldCaptureStreamBodies()
+							? "(pre-rewrite stream preview unavailable)"
+							: "(stream capture disabled)",
+					};
 				} else {
 					const media = getMediaUrlFromBody(
-						props.response?.body,
+						inspectedResponse?.body,
 						preContentType
 					);
 					preMediaUrl = media.url;
 					preBodyInfo = media.url
 						? { preview: "", size: media.size }
-						: getBodyPreview(props.response?.body);
+						: getBodyPreview(inspectedResponse?.body);
+					if (
+						!shouldCaptureStreamBodies() &&
+						typeof ReadableStream !== "undefined" &&
+						inspectedResponse?.body instanceof ReadableStream
+					) {
+						preBodyInfo = {
+							preview: "(stream capture disabled)",
+						};
+					}
 				}
 
 				updateRequests((prev) =>
-					prev.map((entry) =>
-						entry.id === id
-							? {
-									...entry,
-									responseHeadersPre: preHeaders,
-									responseBodyPreviewPre: preBodyInfo.preview,
-									responseBodySizePre: preBodyInfo.size,
-									responseBodyMediaUrlPre: preMediaUrl,
-								}
-							: entry
-					)
+					prev.map((entry) => {
+						if (entry.id !== id) return entry;
+						const nextEntry = {
+							...entry,
+							responseHeadersPre: preHeaders,
+							responseBodyPreviewPre: preBodyInfo.preview,
+							responseBodySizePre: preBodyInfo.size,
+							responseBodyMediaUrlPre: preMediaUrl,
+						};
+						if (this.selectedId === id) {
+							this.selectedRequest = nextEntry;
+						}
+						return nextEntry;
+					})
 				);
 			}
 		);
@@ -371,34 +752,34 @@ export const RequestViewer: Component<
 		plugin.tap(frame.hooks.fetch.response, async (context: any, props: any) => {
 			const id = this.requestIdByRequest.get(context.request as object);
 			if (!id) return;
-			props.response = ensureScramjetResponse(props.response);
+			let inspectedResponse = props.response;
 			const start = this.requestStartByRequest.get(context.request as object);
 			const durationMs =
 				start !== undefined
 					? Math.max(0, Math.round(performance.now() - start))
 					: undefined;
-			const contentType = props.response.headers?.get?.("content-type");
-			const respHeaders = normalizeHeaders(
-				props.response.headers?.toRawHeaders?.() ??
-					props.response.headers ??
-					(props.response as any)?.rawHeaders
-			);
+			const contentType = inspectedResponse?.headers?.get?.("content-type");
+			const respHeaders = getResponseHeaders(inspectedResponse);
 
 			let respBodyInfo: { preview: string; size?: number } = {
 				preview: "",
 			};
 			let respMediaUrl: string | undefined;
 			if (
-				props.response?.body &&
+				shouldCaptureStreamBodies() &&
+				inspectedResponse?.body &&
 				typeof ReadableStream !== "undefined" &&
-				props.response.body instanceof ReadableStream
+				inspectedResponse.body instanceof ReadableStream
 			) {
-				const [streamForResponse, streamForPreview] = props.response.body.tee();
-				if (props.response instanceof Response) {
-					const rebuilt = new Response(streamForResponse, props.response);
-					props.response = ensureScramjetResponse(rebuilt);
+				const [streamForResponse, streamForPreview] =
+					inspectedResponse.body.tee();
+				if (inspectedResponse instanceof Response) {
+					const rebuilt = new Response(streamForResponse, inspectedResponse);
+					props.response = rebuilt;
+					inspectedResponse = rebuilt;
 				} else {
 					props.response.body = streamForResponse;
+					inspectedResponse = props.response;
 				}
 				if (isMediaContentType(contentType)) {
 					const blob = await readStreamBlob(streamForPreview);
@@ -411,29 +792,41 @@ export const RequestViewer: Component<
 					respBodyInfo = getBodyPreview(previewText);
 				}
 			} else {
-				const media = getMediaUrlFromBody(props.response?.body, contentType);
+				const media = getMediaUrlFromBody(inspectedResponse?.body, contentType);
 				respMediaUrl = media.url;
 				respBodyInfo = media.url
 					? { preview: "", size: media.size }
-					: getBodyPreview(props.response.body);
+					: getBodyPreview(inspectedResponse?.body);
+				if (
+					!shouldCaptureStreamBodies() &&
+					typeof ReadableStream !== "undefined" &&
+					inspectedResponse?.body instanceof ReadableStream
+				) {
+					respBodyInfo = {
+						preview: "(stream capture disabled)",
+					};
+				}
 			}
 
 			updateRequests((prev) =>
-				prev.map((entry) =>
-					entry.id === id
-						? {
-								...entry,
-								status: props.response.status,
-								statusText: props.response.statusText,
-								durationMs,
-								contentType,
-								responseHeaders: respHeaders,
-								responseBodyPreview: respBodyInfo.preview,
-								responseBodySize: respBodyInfo.size,
-								responseBodyMediaUrl: respMediaUrl,
-							}
-						: entry
-				)
+				prev.map((entry) => {
+					if (entry.id !== id) return entry;
+					const nextEntry = {
+						...entry,
+						status: props.response.status,
+						statusText: props.response.statusText,
+						durationMs,
+						contentType,
+						responseHeaders: respHeaders,
+						responseBodyPreview: respBodyInfo.preview,
+						responseBodySize: respBodyInfo.size,
+						responseBodyMediaUrl: respMediaUrl,
+					};
+					if (this.selectedId === id) {
+						this.selectedRequest = nextEntry;
+					}
+					return nextEntry;
+				})
 			);
 		});
 	};
@@ -468,6 +861,16 @@ export const RequestViewer: Component<
 						this.search = (e.target as HTMLInputElement).value;
 					}}
 				/>
+				<label class="requests-toggle">
+					<input
+						type="checkbox"
+						checked={use(this.captureStreamBodies)}
+						on:change={(e: Event) => {
+							this.captureStreamBodies = (e.target as HTMLInputElement).checked;
+						}}
+					/>
+					<span>Capture post-rewrite stream bodies</span>
+				</label>
 			</div>
 			<div class="requests-content">
 				<div class="requests-list" this={use(this.listEl)}>
@@ -511,274 +914,181 @@ export const RequestViewer: Component<
 					})}
 				</div>
 				<div class="requests-detail">
-					{use(this.selectedId, this.requests).map(([selectedId, requests]) => {
-						const selected = requests.find((req) => req.id === selectedId);
-						if (!selected) {
-							return (
-								<div class="requests-empty">
-									Select a request to see details.
+					<div
+						class={hasSelected.map(
+							(hasSelected) => `requests-empty ${hasSelected ? "hidden" : ""}`
+						)}
+					>
+						Select a request to see details.
+					</div>
+					<div
+						class={hasSelected.map(
+							(hasSelected) => `detail-panel ${hasSelected ? "" : "hidden"}`
+						)}
+					>
+						<details class="detail-section" open>
+							<summary>General</summary>
+							<div class="detail-body">
+								<div class="detail-meta-table">
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Request URL</span>
+										<span class="detail-meta-value">{selectedUrl}</span>
+									</div>
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Request Method</span>
+										<span class="detail-meta-value">{selectedMethod}</span>
+									</div>
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Status Code</span>
+										<span class="detail-meta-value">{selectedStatus}</span>
+									</div>
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Duration</span>
+										<span class="detail-meta-value">{selectedDuration}</span>
+									</div>
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Destination</span>
+										<span class="detail-meta-value">{selectedDestination}</span>
+									</div>
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Mode</span>
+										<span class="detail-meta-value">{selectedMode}</span>
+									</div>
+									<div class="detail-meta-row">
+										<span class="detail-meta-key">Content Type</span>
+										<span class="detail-meta-value">{selectedContentType}</span>
+									</div>
 								</div>
-							);
-						}
-
-						return (
-							<div class="detail-panel">
-								<details class="detail-section" open>
-									<summary>General</summary>
-									<div class="detail-body">
-										<div class="detail-meta-table">
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Request URL</span>
-												<span class="detail-meta-value">{selected.url}</span>
-											</div>
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Request Method</span>
-												<span class="detail-meta-value">{selected.method}</span>
-											</div>
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Status Code</span>
-												<span class="detail-meta-value">
-													{selected.status ?? "…"} {selected.statusText ?? ""}
-												</span>
-											</div>
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Duration</span>
-												<span class="detail-meta-value">
-													{selected.durationMs !== undefined
-														? `${selected.durationMs}ms`
-														: "…"}
-												</span>
-											</div>
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Destination</span>
-												<span class="detail-meta-value">
-													{selected.destination ?? "unknown"}
-												</span>
-											</div>
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Mode</span>
-												<span class="detail-meta-value">
-													{selected.mode ?? "unknown"}
-												</span>
-											</div>
-											<div class="detail-meta-row">
-												<span class="detail-meta-key">Content Type</span>
-												<span class="detail-meta-value">
-													{selected.contentType ?? "unknown"}
-												</span>
-											</div>
-										</div>
-									</div>
-								</details>
-								<details class="detail-section" open>
-									<summary>Response Headers</summary>
-									<div class="detail-body">
-										<div class="detail-toggle">
-											<button
-												class={use(this.responseHeadersView).map(
-													(view) =>
-														`toggle-button ${view === "post" ? "active" : ""}`
-												)}
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													this.responseHeadersView = "post";
-												}}
-											>
-												Post-rewrite
-											</button>
-											<button
-												class={use(this.responseHeadersView).map(
-													(view) =>
-														`toggle-button ${view === "pre" ? "active" : ""}`
-												)}
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													this.responseHeadersView = "pre";
-												}}
-											>
-												Pre-rewrite
-											</button>
-										</div>
-										<div class="detail-block">
-											{use(this.responseHeadersView).map((view) => {
-												const headers =
-													view === "pre"
-														? selected.responseHeadersPre
-														: selected.responseHeaders;
-												return (
-													<div class="headers-table">
-														{(headers ?? []).length === 0 ? (
-															<div class="headers-empty">(none)</div>
-														) : (
-															headers?.map(([key, value]) => (
-																<div class="header-row">
-																	<span class="header-key">{key}</span>
-																	<span class="header-value">{value}</span>
-																</div>
-															))
-														)}
-													</div>
-												);
-											})}
-										</div>
-									</div>
-								</details>
-								<details class="detail-section" open>
-									<summary>Request Headers</summary>
-									<div class="detail-body">
-										<div class="detail-toggle">
-											<button
-												class={use(this.requestHeadersView).map(
-													(view) =>
-														`toggle-button ${view === "post" ? "active" : ""}`
-												)}
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													this.requestHeadersView = "post";
-												}}
-											>
-												Post-rewrite
-											</button>
-											<button
-												class={use(this.requestHeadersView).map(
-													(view) =>
-														`toggle-button ${view === "pre" ? "active" : ""}`
-												)}
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													this.requestHeadersView = "pre";
-												}}
-											>
-												Pre-rewrite
-											</button>
-										</div>
-										<div class="detail-block">
-											{use(this.requestHeadersView).map((view) => {
-												const headers =
-													view === "pre"
-														? selected.requestHeadersPre
-														: selected.requestHeaders;
-												return (
-													<div class="headers-table">
-														{(headers ?? []).length === 0 ? (
-															<div class="headers-empty">(none)</div>
-														) : (
-															headers?.map(([key, value]) => (
-																<div class="header-row">
-																	<span class="header-key">{key}</span>
-																	<span class="header-value">{value}</span>
-																</div>
-															))
-														)}
-													</div>
-												);
-											})}
-										</div>
-									</div>
-								</details>
-								<details class="detail-section" open>
-									<summary>Response Body</summary>
-									<div class="detail-body">
-										<div class="detail-toggle">
-											<button
-												class={use(this.responseBodyView).map(
-													(view) =>
-														`toggle-button ${view === "post" ? "active" : ""}`
-												)}
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													this.responseBodyView = "post";
-												}}
-											>
-												Post-rewrite
-											</button>
-											<button
-												class={use(this.responseBodyView).map(
-													(view) =>
-														`toggle-button ${view === "pre" ? "active" : ""}`
-												)}
-												on:click={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													this.responseBodyView = "pre";
-												}}
-											>
-												Pre-rewrite
-											</button>
-										</div>
-										{use(this.responseBodyView).map((view) => {
-											const body =
-												view === "pre"
-													? selected.responseBodyPreviewPre
-													: selected.responseBodyPreview;
-											const mediaUrl =
-												view === "pre"
-													? selected.responseBodyMediaUrlPre
-													: selected.responseBodyMediaUrl;
-											const isMedia = isMediaContentType(selected.contentType);
-											if (isMedia && mediaUrl) {
-												if (
-													selected.contentType &&
-													isImageMimeType(selected.contentType)
-												) {
-													return (
-														<img
-															src={mediaUrl}
-															alt="Response preview"
-															class="body-media"
-														/>
-													);
-												}
-												return (
-													<video src={mediaUrl} class="body-media" controls />
-												);
-											}
-											if (isMedia && !mediaUrl) {
-												return (
-													<div class="body-empty">(media not captured)</div>
-												);
-											}
-											return body ? (
-												<MonacoComponent
-													value={body}
-													language={languageFromContentType(
-														selected.contentType
-													)}
-													readOnly={true}
-													minHeight={320}
-												/>
-											) : (
-												<div class="body-empty">(empty)</div>
-											);
-										})}
-									</div>
-								</details>
-								{selected.requestBodyPreview ? (
-									<details class="detail-section" open>
-										<summary>Request Body</summary>
-										<div class="detail-body">
-											<MonacoComponent
-												value={selected.requestBodyPreview}
-												language={languageFromContentType(
-													getHeaderValue(
-														selected.requestHeaders,
-														"content-type"
-													)
-												)}
-												readOnly={true}
-												minHeight={320}
-											/>
-										</div>
-									</details>
-								) : null}
 							</div>
-						);
-					})}
+						</details>
+						<details class="detail-section" open>
+							<summary>Response Headers</summary>
+							<div class="detail-body">
+								<div class="detail-toggle">
+									<button
+										class={use(this.responseHeadersView).map(
+											(view) =>
+												`toggle-button ${view === "post" ? "active" : ""}`
+										)}
+										on:click={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											this.responseHeadersView = "post";
+										}}
+									>
+										Post-rewrite
+									</button>
+									<button
+										class={use(this.responseHeadersView).map(
+											(view) =>
+												`toggle-button ${view === "pre" ? "active" : ""}`
+										)}
+										on:click={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											this.responseHeadersView = "pre";
+										}}
+									>
+										Pre-rewrite
+									</button>
+								</div>
+								<div class="detail-block">
+									<HeadersTable headers={responseHeaders} />
+								</div>
+							</div>
+						</details>
+						<details class="detail-section" open>
+							<summary>Request Headers</summary>
+							<div class="detail-body">
+								<div class="detail-toggle">
+									<button
+										class={use(this.requestHeadersView).map(
+											(view) =>
+												`toggle-button ${view === "post" ? "active" : ""}`
+										)}
+										on:click={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											this.requestHeadersView = "post";
+										}}
+									>
+										Post-rewrite
+									</button>
+									<button
+										class={use(this.requestHeadersView).map(
+											(view) =>
+												`toggle-button ${view === "pre" ? "active" : ""}`
+										)}
+										on:click={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											this.requestHeadersView = "pre";
+										}}
+									>
+										Pre-rewrite
+									</button>
+								</div>
+								<div class="detail-block">
+									<HeadersTable headers={requestHeaders} />
+								</div>
+							</div>
+						</details>
+						<details class="detail-section" open>
+							<summary>Response Body</summary>
+							<div class="detail-body">
+								<div class="detail-toggle">
+									<button
+										class={use(this.responseBodyView).map(
+											(view) =>
+												`toggle-button ${view === "post" ? "active" : ""}`
+										)}
+										on:click={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											this.responseBodyView = "post";
+										}}
+									>
+										Post-rewrite
+									</button>
+									<button
+										class={use(this.responseBodyView).map(
+											(view) =>
+												`toggle-button ${view === "pre" ? "active" : ""}`
+										)}
+										on:click={(e: MouseEvent) => {
+											e.preventDefault();
+											e.stopPropagation();
+											this.responseBodyView = "pre";
+										}}
+									>
+										Pre-rewrite
+									</button>
+								</div>
+								<StableBodyViewer
+									value={responseBodyValue}
+									language={responseBodyLanguage}
+									emptyMessage={responseBodyEmptyMessage}
+									mediaUrl={responseBodyMediaUrl}
+									mediaKind={responseBodyMediaKind}
+								/>
+							</div>
+						</details>
+						{showRequestBody.map((showRequestBody) =>
+							showRequestBody ? (
+								<details class="detail-section" open>
+									<summary>Request Body</summary>
+									<div class="detail-body">
+										<StableBodyViewer
+											value={requestBodyValue}
+											language={requestBodyLanguage}
+											emptyMessage="(empty)"
+											mediaKind="none"
+										/>
+									</div>
+								</details>
+							) : null
+						)}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -832,6 +1142,7 @@ RequestViewer.style = css`
 		display: flex;
 		gap: 0.5em;
 		margin-bottom: 0.45em;
+		align-items: center;
 	}
 	.requests-search {
 		flex: 1;
@@ -844,6 +1155,18 @@ RequestViewer.style = css`
 	}
 	.requests-search::placeholder {
 		color: #6b7280;
+	}
+	.requests-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		font-size: 0.8em;
+		color: #cbd5e1;
+		white-space: nowrap;
+		user-select: none;
+	}
+	.requests-toggle input[type="checkbox"] {
+		margin: 0;
 	}
 	.requests-content {
 		display: grid;
@@ -875,6 +1198,9 @@ RequestViewer.style = css`
 		border-radius: 8px;
 		text-align: center;
 		color: #777;
+	}
+	.hidden {
+		display: none !important;
 	}
 	.detail-panel {
 		display: flex;
@@ -970,6 +1296,9 @@ RequestViewer.style = css`
 		color: #9ca3af;
 		font-style: italic;
 		padding: 0.4em 0.2em;
+	}
+	.body-viewer {
+		min-height: 320px;
 	}
 	.body-media {
 		max-width: 100%;

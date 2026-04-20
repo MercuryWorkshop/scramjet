@@ -587,7 +587,6 @@ export class ScramjetClient {
 		}
 		if (ev.defaultPrevented) return;
 
-		debugger;
 		this.global.location.href = this.rewriteUrl(ev.url, {
 			navigateType: "location",
 		});

@@ -59,12 +59,18 @@ export const Error = globalThis.Error;
 export const Math_random = globalThis.Math.random;
 export const Math_min = globalThis.Math.min;
 
-export const Promise_all = globalThis.Promise.all;
-export const Promise_race = globalThis.Promise.race;
-export const Promise_resolve = globalThis.Promise.resolve;
-export const Promise_reject = globalThis.Promise.reject;
-export const Promise_allSettled = globalThis.Promise.allSettled;
-export const Promise_any = globalThis.Promise.any;
+export const Promise_all = globalThis.Promise.all.bind(globalThis.Promise);
+export const Promise_race = globalThis.Promise.race.bind(globalThis.Promise);
+export const Promise_resolve = globalThis.Promise.resolve.bind(
+	globalThis.Promise
+);
+export const Promise_reject = globalThis.Promise.reject.bind(
+	globalThis.Promise
+);
+export const Promise_allSettled = globalThis.Promise.allSettled.bind(
+	globalThis.Promise
+);
+export const Promise_any = globalThis.Promise.any.bind(globalThis.Promise);
 
 export const Symbol_for = globalThis.Symbol.for;
 
