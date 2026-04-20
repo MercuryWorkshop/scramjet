@@ -17,7 +17,10 @@ export const RequestCard: Component<
 			)}
 			data-request-id={this.request.id}
 			data-status={this.request.status ?? ""}
-			on:click={() => this.onSelect?.(this.request.id)}
+			on:pointerdown={(e: PointerEvent) => {
+				if (e.button !== 0) return;
+				this.onSelect?.(this.request.id);
+			}}
 		>
 			<div class="request-primary">
 				<span class="request-method">{this.request.method}</span>
