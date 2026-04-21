@@ -443,14 +443,10 @@ export class Controller {
 					id?: string;
 				};
 
-				if (typeof payload.options?.dump === "string") {
-					this.cookieJar.load(payload.options.dump);
-				} else {
-					if (payload.options?.clear) {
-						this.cookieJar.clear();
-					}
-					this.applyCookieSyncEntries(payload.cookies);
+				if (payload.options?.clear) {
+					this.cookieJar.clear();
 				}
+				this.applyCookieSyncEntries(payload.cookies);
 
 				if (typeof payload.id === "string") {
 					this.serviceWorkerController.postMessage({
@@ -546,10 +542,6 @@ export class Controller {
 			if (persisted && persisted.updatedAt > this.cookieUpdatedAt) {
 				this.cookieJar.load(persisted.cookies);
 				this.cookieUpdatedAt = persisted.updatedAt;
-				await this.propagateCookieSync([], {
-					clear: true,
-					dump: persisted.cookies,
-				});
 			}
 			this.cookieSyncDirty = false;
 		})().finally(() => {
