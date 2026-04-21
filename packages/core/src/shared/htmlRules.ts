@@ -17,7 +17,7 @@ export const htmlRules: {
 		},
 
 		// url rewrites
-		src: ["embed", "script", "img", "frame", "source", "input", "track"],
+		src: ["embed", "script", "img", "frame", "input", "track"],
 		href: ["a", "link", "area", "use", "image"],
 		data: ["object"],
 		action: ["form"],
@@ -54,7 +54,7 @@ export const htmlRules: {
 
 			return rewriteUrl(value, context, meta);
 		},
-		src: ["video", "audio"],
+		src: ["video", "audio", "source"],
 	},
 	{
 		fn: () => "",
