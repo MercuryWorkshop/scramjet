@@ -80,6 +80,33 @@ export async function doHandleFetch(
 		// when going through a redirect, we need to hold on to the original referer, because it can change origins during a redirect
 		// easiest way of accomplishing this is just tacking on an extra query parameter that's read below
 		location.searchParams.set("rfs", referer ?? "");
+
+		// Cross-site redirect poisoning (SameSite): if this hop was cross-site, or a
+		// previous hop already was, propagate the flag so the final destination enforces
+		// cross-site SameSite restrictions.
+		if (!parsed.crossSiteRedirect) {
+			// Compute originUrl the same way rewriteRequestHeaders does
+			const rawOUrl =
+				parsed.referrerSourceUrl !== undefined
+					? parsed.referrerSourceUrl
+					: request.rawClientUrl ||
+						(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
+			if (
+				rawOUrl &&
+				rawOUrl.pathname.startsWith(handler.context.prefix.pathname)
+			) {
+				const originUrl = new URL(unrewriteUrl(rawOUrl, handler.context));
+				if (
+					registrableDomainForRedirect(originUrl.hostname) !==
+					registrableDomainForRedirect(parsed.url.hostname)
+				) {
+					location.searchParams.set("sj$csr", "1");
+				}
+			}
+		} else {
+			location.searchParams.set("sj$csr", "1");
+		}
+
 		responseHeaders.set("location", location.href);
 
 		// ensure that ?type=module is not lost in a redirect
@@ -186,6 +213,7 @@ export function parseRequest(
 	let clientId: string | undefined;
 	let referrerPolicy: string | undefined;
 	let referrerSourceUrl: _URL | null | undefined;
+	let crossSiteRedirect = false;
 	for (const [param, value] of [...request.rawUrl.searchParams.entries()]) {
 		switch (param) {
 			case "type":
@@ -207,6 +235,10 @@ export function parseRequest(
 				break;
 			case "rfs":
 				referrerSourceUrl = value ? new _URL(value) : null;
+				break;
+			case "sj$csr":
+				// Cross-site redirect flag: set when any hop in the redirect chain was cross-site
+				crossSiteRedirect = value === "1";
 				break;
 			default:
 				dbg.warn(
@@ -276,6 +308,7 @@ export function parseRequest(
 		referrerSourceUrl,
 		trackedClient,
 		hadExtraParams,
+		crossSiteRedirect,
 	};
 
 	if (request.rawClientUrl) {
@@ -340,25 +373,39 @@ async function handleBlobOrDataUrlFetch(
 	};
 }
 
+/** Simplified registrable-domain check used for cross-site redirect detection. */
+export function registrableDomainForRedirect(hostname: string): string {
+	if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) return hostname;
+	const labels = hostname.split(".");
+	if (labels.length <= 1) return hostname;
+	if (labels[0] === "www") return labels.slice(1).join(".");
+	if (labels.length === 2) return hostname;
+	return labels.slice(-2).join(".");
+}
+
 async function handleCookies(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest,
 	parsed: ScramjetFetchParsed,
 	rawHeaders: RawHeaders
 ) {
+	const cookies = [];
+
 	for (const [key, value] of rawHeaders) {
 		if (key.toLowerCase() !== "set-cookie") continue;
 
-		handler.context.cookieJar.setCookies([value], parsed.url);
-		const promise = handler.sendSetCookie(parsed.url, value);
-
-		// we want the client to have the cookies before fetch returns
-		// for navigations though, there's no race since we send the entire cookie dump in the same request
-		if (
-			request.destination !== "document" &&
-			request.destination !== "iframe"
-		) {
-			await promise;
-		}
+		handler.context.cookieJar.setCookies(value, parsed.url);
+		cookies.push({
+			url: parsed.url,
+			cookie: value,
+		});
 	}
+
+	if (cookies.length === 0) {
+		return;
+	}
+
+	await handler.sendSetCookie(cookies, {
+		destination: request.destination,
+	});
 }

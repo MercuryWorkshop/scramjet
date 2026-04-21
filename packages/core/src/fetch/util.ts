@@ -22,3 +22,60 @@ export function isRedirect(response: BareResponse) {
 export function isDocument(request: ScramjetFetchRequest) {
 	return request.destination === "document" || request.destination === "iframe";
 }
+
+export function createReferrerString(
+	clientUrl: URL,
+	resource: URL,
+	policy: string | null
+): string {
+	policy ||= "strict-origin-when-cross-origin";
+	const originIsHttps = clientUrl.protocol === "https:";
+	const destIsHttps = resource.protocol === "https:";
+
+	const isPotentialDowngrade = originIsHttps && !destIsHttps;
+
+	const isSameOrigin =
+		clientUrl.protocol === resource.protocol &&
+		clientUrl.host === resource.host;
+
+	const referrerOrigin = clientUrl.origin;
+
+	const referrerUrl = new URL(clientUrl.href);
+	referrerUrl.hash = "";
+	const referrerUrlString = referrerUrl.href;
+
+	switch (policy) {
+		case "no-referrer":
+			return "";
+
+		case "no-referrer-when-downgrade":
+			if (isPotentialDowngrade) return "";
+			return referrerUrlString;
+
+		case "same-origin":
+			if (isSameOrigin) return referrerUrlString;
+			return "";
+
+		case "origin":
+			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
+
+		case "strict-origin":
+			if (isPotentialDowngrade) return "";
+			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
+
+		case "origin-when-cross-origin":
+			if (isSameOrigin) return referrerUrlString;
+			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
+
+		case "strict-origin-when-cross-origin":
+			if (isSameOrigin) return referrerUrlString;
+			if (isPotentialDowngrade) return "";
+			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
+
+		case "unsafe-url":
+			return referrerUrlString;
+
+		default:
+			return "";
+	}
+}

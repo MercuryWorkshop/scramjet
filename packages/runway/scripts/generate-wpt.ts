@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import {
+	COOKIE_WPT_FILES,
+	includeCookieFile,
 	includeFetchMetadataGeneratedFile,
 	includeReferrerGeneratedFile,
 } from "../src/tests/wpt/selection.ts";
@@ -59,6 +61,7 @@ async function ensureUpstreamRoot() {
 		"sparse-checkout",
 		"set",
 		"--no-cone",
+		"cookies",
 		"fetch/metadata/generated",
 		"referrer-policy/gen",
 	]);
@@ -101,6 +104,29 @@ async function copySelectedFiles(options: {
 	return selected;
 }
 
+async function copyExplicitFiles(options: {
+	upstreamRoot: string;
+	targetRoot: string;
+	files: readonly string[];
+	include?: (relPath: string) => boolean;
+}) {
+	const selected = (
+		options.include ? options.files.filter(options.include) : [...options.files]
+	).map((file) => file.replaceAll("\\", "/"));
+
+	await rm(options.targetRoot, { recursive: true, force: true });
+	await mkdir(options.targetRoot, { recursive: true });
+
+	for (const relPath of selected) {
+		const sourcePath = path.join(options.upstreamRoot, relPath);
+		const targetPath = path.join(vendorRoot, relPath);
+		await mkdir(path.dirname(targetPath), { recursive: true });
+		await cp(sourcePath, targetPath);
+	}
+
+	return selected;
+}
+
 async function main() {
 	const upstream = await ensureUpstreamRoot();
 
@@ -117,9 +143,15 @@ async function main() {
 			targetRoot: path.join(vendorRoot, "fetch/metadata/generated"),
 			include: includeFetchMetadataGeneratedFile,
 		});
+		const cookieFiles = await copyExplicitFiles({
+			upstreamRoot: upstream.root,
+			targetRoot: path.join(vendorRoot, "cookies"),
+			files: COOKIE_WPT_FILES,
+			include: includeCookieFile,
+		});
 
 		console.log(
-			`Generated ${referrerFiles.length} referrer-policy file(s) and ${fetchMetadataFiles.length} fetch-metadata file(s).`
+			`Generated ${referrerFiles.length} referrer-policy file(s), ${fetchMetadataFiles.length} fetch-metadata file(s), and ${cookieFiles.length} cookie file(s).`
 		);
 	} finally {
 		await upstream.cleanup();

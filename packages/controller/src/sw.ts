@@ -49,36 +49,82 @@ class ControllerReference {
 	) {
 		this.rpc = new RpcHelper(
 			{
-				sendSetCookie: async ({ url, cookie }) => {
+				sendSetCookie: async ({ cookies, options }) => {
 					const clients = await self.clients.matchAll();
-					const promises = [];
+					const ids: string[] = [];
+					const promises: Promise<string>[] = [];
+
+					// Navigation fetches (document/iframe) deliver cookies via the inject
+					// script's embedded cookieJar dump — the destination page doesn't have
+					// inject.ts loaded yet to ack, so awaiting would deadlock. Broadcast
+					// so any already-loaded clients can update their jars, but don't wait.
+					const isNavigation =
+						options?.destination === "document" ||
+						options?.destination === "iframe";
 
 					for (const client of clients) {
 						const id = makeId();
+						ids.push(id);
 						client.postMessage({
 							$controller$setCookie: {
-								url,
-								cookie,
+								cookies,
+								options,
 								id,
 							},
 						});
-						promises.push(
-							new Promise<void>((resolve) => {
-								cookieResolvers[id] = resolve;
-							})
-						);
+						if (!isNavigation) {
+							promises.push(
+								new Promise<string>((resolve) => {
+									// Resolve with the id so we know which client replied.
+									cookieResolvers[id] = () => resolve(id);
+								})
+							);
+						}
 					}
-					await Promise.race([
-						new Promise<void>((resolve) =>
-							setTimeout(() => {
-								console.error(
-									"timed out waiting for set cookie response (deadlock?)"
-								);
+					// Wait for the first client to acknowledge the cookie sync.
+					// Using Promise.any (not Promise.all) so that extra SW clients created by
+					// window.open (e.g. test popup windows) don't cause timeouts — only the
+					// main controller client needs to respond.
+					if (promises.length > 0) {
+						let timeoutId: ReturnType<typeof setTimeout> | undefined;
+						let responded = false;
+						const timeoutPromise = new Promise<void>((resolve) => {
+							timeoutId = setTimeout(() => {
+								if (!responded) {
+									const pending = ids.filter(
+										(id) => cookieResolvers[id] !== undefined
+									);
+									console.error(
+										`timed out waiting for set cookie response (deadlock?): ` +
+											`cookies=${cookies.length} clients=${clients.length} ` +
+											`pending=${pending.length}/${ids.length} ` +
+											`clientUrls=${clients.map((c) => c.url).join(",")}`
+									);
+								}
 								resolve();
-							}, 1000)
-						),
-						promises,
-					]);
+							}, 1000);
+						});
+
+						try {
+							await Promise.race([
+								timeoutPromise,
+								Promise.any(promises)
+									.then(() => {
+										responded = true;
+									})
+									.catch(() => {}),
+							]);
+						} finally {
+							// Clear the timeout so it doesn't fire spuriously after the
+							// race has already been won by Promise.any.
+							if (timeoutId !== undefined) clearTimeout(timeoutId);
+							// Clean up any pending resolvers so clients that never
+							// responded don't leak entries in cookieResolvers.
+							for (const id of ids) {
+								delete cookieResolvers[id];
+							}
+						}
+					}
 				},
 			},
 			"tabchannel-" + id,

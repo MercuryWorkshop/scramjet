@@ -1,7 +1,7 @@
 import { IncrementalHtmlRewriter, rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
-import { createReferrerString } from "@/fetch/headers";
 import { String, _URL } from "@/shared/snapshot";
+import { createReferrerString } from "@/fetch/util";
 
 export default function (client: ScramjetClient, _self: Self) {
 	const tostring = String;

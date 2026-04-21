@@ -14,6 +14,8 @@ import type {
 
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type {
+	SerializedCookieSyncEntry,
+	CookieSyncOptions,
 	ControllerToTransport,
 	TransportToController,
 	WebSocketMessage,
@@ -143,6 +145,19 @@ class RemoteTransport implements ProxyTransport {
 		});
 	}
 
+	async sendSetCookie(
+		cookies: Array<{ url: URL; cookie: string }>,
+		options: CookieSyncOptions = {}
+	): Promise<void> {
+		await this.rpc.call("sendSetCookie", {
+			cookies: cookies.map(({ url, cookie }) => ({
+				url: url.href,
+				cookie,
+			})),
+			options,
+		});
+	}
+
 	meta() {
 		return {};
 	}
@@ -207,6 +222,7 @@ class ExecutionContextWrapper {
 	cookieJar: CookieJarType;
 	transport: RemoteTransport;
 	clientId: string;
+	private handleServiceWorkerCookieMessage: (event: MessageEvent) => void;
 
 	constructor(
 		public global: typeof globalThis,
@@ -228,6 +244,60 @@ class ExecutionContextWrapper {
 		this.cookieJar.load(this.init.cookies);
 
 		this.clientId = init.clientId;
+
+		this.handleServiceWorkerCookieMessage = (event: MessageEvent) => {
+			if (
+				!event.data?.$controller$setCookie ||
+				typeof event.data.$controller$setCookie !== "object"
+			) {
+				return;
+			}
+
+			const payload = event.data.$controller$setCookie as {
+				cookies?: SerializedCookieSyncEntry[];
+				options?: CookieSyncOptions;
+				id?: string;
+			};
+
+			if (typeof payload.options?.dump === "string") {
+				this.cookieJar.load(payload.options.dump);
+			} else {
+				if (payload.options?.clear) {
+					this.cookieJar.clear();
+				}
+
+				if (Array.isArray(payload.cookies)) {
+					for (const cookie of payload.cookies) {
+						if (
+							typeof cookie?.url !== "string" ||
+							typeof cookie.cookie !== "string"
+						) {
+							continue;
+						}
+
+						try {
+							this.cookieJar.setCookies(cookie.cookie, new URL(cookie.url));
+						} catch {
+							console.error("Failed to set cookie", cookie);
+						}
+					}
+				}
+			}
+
+			if (typeof payload.id === "string") {
+				const targetSw = navigator.serviceWorker?.controller ?? sw;
+				targetSw?.postMessage({
+					$sw$setCookieDone: {
+						id: payload.id,
+					},
+				});
+			}
+		};
+
+		navigator.serviceWorker?.addEventListener(
+			"message",
+			this.handleServiceWorkerCookieMessage
+		);
 
 		this.injectScramjet();
 	}
@@ -259,13 +329,8 @@ class ExecutionContextWrapper {
 		this.client = new ScramjetClient(this.global, {
 			context,
 			transport: this.transport,
-			sendSetCookie: async (url, cookie) => {
-				// sw.postMessage({
-				// 	$controller$setCookie: {
-				// 		url,
-				// 		cookie
-				// 	}
-				// });
+			sendSetCookie: async (cookies, options) => {
+				await this.transport.sendSetCookie(cookies, options);
 			},
 			shouldPassthroughWebsocket: (url) => {
 				return url === "wss://anura.pro/";
@@ -276,6 +341,7 @@ class ExecutionContextWrapper {
 			hookSubcontext: (frameself, frame) => {
 				const context = new ExecutionContextWrapper(frameself, {
 					...this.init,
+					cookies: this.cookieJar.dump(),
 					// TODO: clientId will change over the lifetime once it recieves syncDocumentInit
 					// this is probably okay?
 					clientId: generateClientId(),
