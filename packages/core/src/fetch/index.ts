@@ -32,6 +32,9 @@ export interface ScramjetFetchParsed {
 	clientUrl?: _URL;
 	referrerSourceUrl?: _URL | null;
 	hadExtraParams: boolean;
+	/** True when this request follows a redirect chain that passed through a cross-site origin.
+	 *  Used to enforce SameSite "cross-site redirect poisoning" semantics. */
+	crossSiteRedirect: boolean;
 
 	meta: URLMeta;
 	scriptType: "module" | "regular";
@@ -46,12 +49,26 @@ export interface ScramjetFetchResponse {
 	statusText: string;
 }
 
+export type CookieSyncEntry = {
+	url: URL;
+	cookie: string;
+};
+
+export type CookieSyncOptions = {
+	clear?: boolean;
+	dump?: string;
+	destination?: RequestDestination;
+};
+
 export type FetchHandlerInit = {
 	transport: ProxyTransport;
 	context: ScramjetContext;
 	crossOriginIsolated?: boolean;
 
-	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	sendSetCookie: (
+		cookies: CookieSyncEntry[],
+		options?: CookieSyncOptions
+	) => Promise<void>;
 	fetchDataUrl(dataUrl: string): Promise<BareResponse>;
 	fetchBlobUrl(blobUrl: string): Promise<BareResponse>;
 };
@@ -85,7 +102,10 @@ export class ScramjetFetchHandler extends EventTarget {
 
 	public fetchDataUrl: (dataUrl: string) => Promise<Response>;
 	public fetchBlobUrl: (blobUrl: string) => Promise<Response>;
-	public sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	public sendSetCookie: (
+		cookies: CookieSyncEntry[],
+		options?: CookieSyncOptions
+	) => Promise<void>;
 
 	constructor(init: FetchHandlerInit) {
 		super();

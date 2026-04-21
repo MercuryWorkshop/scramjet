@@ -1,6 +1,11 @@
 import { chromium } from "playwright";
 import type { Page, Browser, BrowserContext } from "playwright";
-import type { Test } from "./testcommon.ts";
+import {
+	runwayCleartextHttpsHostList,
+	runwayCleartextSiteForHarness,
+	runwayTestTargetUrl,
+	type Test,
+} from "./testcommon.ts";
 import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -378,6 +383,21 @@ async function createTestPage(
 	};
 }
 
+async function syncRunwayCleartextHarness(page: Page, test: Test) {
+	const hosts = runwayCleartextHttpsHostList(test);
+	const site = runwayCleartextSiteForHarness(test);
+	await page.evaluate(
+		(payload: {
+			hosts: string[];
+			site: { roots: string[]; httpPort: number } | null;
+		}) => {
+			(window as any).__runwayCleartextHttpsHosts = payload.hosts;
+			(window as any).__runwayCleartextSite = payload.site;
+		},
+		{ hosts, site }
+	);
+}
+
 async function runTestOnHarness(
 	page: Page,
 	context: BrowserContext,
@@ -389,6 +409,8 @@ async function runTestOnHarness(
 	serverResult: Promise<TestResult> | null,
 	timeout: number = 30000
 ): Promise<TestResult> {
+	await syncRunwayCleartextHarness(page, test);
+
 	const warmProxiedUrl = async (url: string) => {
 		const proxiedUrl = await page.evaluate((targetUrl) => {
 			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
@@ -446,11 +468,10 @@ async function runTestOnHarness(
 	}
 
 	const runwayToken = crypto.randomUUID();
-	const testScheme = test.scheme ?? "http";
 	const testUrl = test.topLevelScramjet
-		? `${testScheme}://localhost:${test.port}${test.path ?? "/"}`
+		? runwayTestTargetUrl(test)
 		: appendRunwayToken(
-				`${testScheme}://localhost:${test.port}${test.path ?? "/"}`,
+				runwayTestTargetUrl(test),
 				runwayToken,
 				test.name.startsWith("wpt-")
 			);

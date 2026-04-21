@@ -25,7 +25,11 @@ import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
 import { ScramjetConfig } from "@/types";
 import { Tap } from "@/Tap";
-import { TrackedHistoryState } from "@/fetch";
+import {
+	type CookieSyncEntry,
+	type CookieSyncOptions,
+	TrackedHistoryState,
+} from "@/fetch";
 import { AnyFunction } from "@/types";
 import {
 	_URL,
@@ -45,7 +49,10 @@ import {
 export type ScramjetClientInit = {
 	context: ScramjetContext;
 	transport: ProxyTransport;
-	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	sendSetCookie: (
+		cookies: CookieSyncEntry[],
+		options?: CookieSyncOptions
+	) => Promise<void>;
 	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
 	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;

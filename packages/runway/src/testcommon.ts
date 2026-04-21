@@ -19,6 +19,20 @@ export type DirectTestContext = {
 export type Test = {
 	name: string;
 	port: number;
+	/**
+	 * Hostname used in the URL passed to the harness (default `localhost`).
+	 * Cleartext traffic goes to `127.0.0.1:testPort` with a matching `Host` header (no `/etc/hosts`).
+	 * When set to anything other than `localhost` or `127.0.0.1`, {@link runwayTestTargetUrl}
+	 * defaults the scheme to `https` unless {@link Test.scheme} is set.
+	 */
+	hostname?: string;
+	/**
+	 * Extra hostnames handled by the same test server (same port). A request to
+	 * `https://api.example/check` is routed like {@link Test.hostname} if the host is
+	 * an exact match or a subdomain of any entry (including `hostname`). Use this when
+	 * the extra name is not a subdomain of `hostname` (e.g. `cdn.net` alongside `x.com`).
+	 */
+	cleartextHosts?: string[];
 	scheme?: "http" | "https";
 	path?: string;
 	timeoutMs?: number;
@@ -40,6 +54,49 @@ export type Test = {
 	expectedOkCount?: number;
 };
 
+/**
+ * Hostnames for which the runway harness transport may speak cleartext HTTP to the
+ * origin while the document URL uses `https:` (runway cleartext HTTPS transport).
+ */
+/** All fake hostnames for this test (document host + {@link Test.cleartextHosts}). */
+export function runwayCleartextRoots(test: Test): string[] {
+	if (!test.hostname) return [];
+	return [...new Set([test.hostname, ...(test.cleartextHosts ?? [])])];
+}
+
+export function runwayCleartextHttpsHostList(test: Test): string[] {
+	const roots = runwayCleartextRoots(test);
+	if (roots.length === 0) return [];
+	return [...new Set([...roots, "localhost", "127.0.0.1"])];
+}
+
+/**
+ * When {@link Test.hostname} is set, the harness transport maps default-port
+ * `https://(sub.)host/…` to the real HTTP port {@link Test.port}.
+ */
+export function runwayCleartextSiteForHarness(
+	test: Test
+): { roots: string[]; httpPort: number } | null {
+	const roots = runwayCleartextRoots(test);
+	if (roots.length === 0 || !test.port) return null;
+	return { roots, httpPort: test.port };
+}
+
+/** URL the harness loads for this test (honours {@link Test.hostname} and {@link Test.scheme}). */
+export function runwayTestTargetUrl(test: Test): string {
+	const hostname = test.hostname ?? "localhost";
+	let scheme = test.scheme;
+	if (!scheme) {
+		scheme =
+			hostname !== "localhost" && hostname !== "127.0.0.1" ? "https" : "http";
+	}
+	const path = test.path ?? "/";
+	if (test.hostname) {
+		return `${scheme}://${hostname}${path.startsWith("/") ? path : `/${path}`}`;
+	}
+	return `${scheme}://${hostname}:${test.port}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 let nextPort = 10000 + Math.floor(Math.random() * 40000);
 
 export function basicTest(props: {
@@ -48,13 +105,21 @@ export function basicTest(props: {
 	autoPass?: boolean;
 	scramjetOnly?: boolean;
 	expectedOkCount?: number;
+	hostname?: string;
+	cleartextHosts?: string[];
+	scheme?: "http" | "https";
 }): Test {
 	let port = 0;
 	let server: http.Server;
-	const scramjetOnly = props.scramjetOnly ?? /checkglobal\s*\(/i.test(props.js);
+	const scramjetOnly =
+		props.scramjetOnly ??
+		(props.hostname ? true : /checkglobal\s*\(/i.test(props.js));
 	const test: Test = {
 		name: props.name,
 		port,
+		hostname: props.hostname,
+		cleartextHosts: props.cleartextHosts,
+		scheme: props.scheme,
 		scramjetOnly,
 		expectedOkCount: props.expectedOkCount,
 		async start() {
@@ -120,14 +185,21 @@ export function htmlTest(props: {
 	html: string;
 	scramjetOnly?: boolean;
 	expectedOkCount?: number;
+	hostname?: string;
+	cleartextHosts?: string[];
+	scheme?: "http" | "https";
 }): Test {
 	let port = 0;
 	let server: http.Server;
 	const scramjetOnly =
-		props.scramjetOnly ?? /checkglobal\s*\(/i.test(props.html);
+		props.scramjetOnly ??
+		(props.hostname ? true : /checkglobal\s*\(/i.test(props.html));
 	const test: Test = {
 		name: props.name,
 		port,
+		hostname: props.hostname,
+		cleartextHosts: props.cleartextHosts,
+		scheme: props.scheme,
 		scramjetOnly,
 		expectedOkCount: props.expectedOkCount,
 		async start() {
@@ -190,10 +262,14 @@ export function htmlTest(props: {
 export function playwrightTest(props: {
 	name: string;
 	fn: (ctx: TestContext) => Promise<void>;
+	hostname?: string;
+	cleartextHosts?: string[];
 }): Test {
 	return {
 		name: props.name,
 		port: 0, // Not used for playwright tests
+		hostname: props.hostname,
+		cleartextHosts: props.cleartextHosts,
 		async start() {
 			// No server needed
 		},
@@ -257,16 +333,26 @@ export function serverTest(props: {
 	js?: string;
 	scramjetOnly?: boolean;
 	expectedOkCount?: number;
+	hostname?: string;
+	cleartextHosts?: string[];
+	scheme?: "http" | "https";
 }) {
 	let port = 0;
 	let server: http.Server;
 	const activeSockets = new Set<Socket>();
 	const scramjetOnly =
 		props.scramjetOnly ??
-		(props.js ? /checkglobal\s*\(/i.test(props.js) : false);
+		(props.hostname
+			? true
+			: props.js
+				? /checkglobal\s*\(/i.test(props.js)
+				: false);
 	const test: Test = {
 		name: props.name,
 		port,
+		hostname: props.hostname,
+		cleartextHosts: props.cleartextHosts,
+		scheme: props.scheme,
 		scramjetOnly,
 		expectedOkCount: props.expectedOkCount,
 		async start({

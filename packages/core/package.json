@@ -89,7 +89,6 @@
 		"domutils": "^3.2.2",
 		"htmlparser2": "catalog:",
 		"idb": "^8.0.3",
-		"parse-domain": "^8.2.2",
-		"set-cookie-parser": "^2.7.1"
+		"parse-domain": "^8.2.2"
 	}
 }

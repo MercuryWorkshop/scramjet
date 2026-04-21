@@ -1,5 +1,10 @@
 import { chromium } from "playwright";
-import type { Test } from "./testcommon.ts";
+import {
+	runwayCleartextHttpsHostList,
+	runwayCleartextSiteForHarness,
+	runwayTestTargetUrl,
+	type Test,
+} from "./testcommon.ts";
 import { glob } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,7 +85,7 @@ async function main() {
 				},
 			});
 			console.log(
-				`🌐 Test "${test.name}" running at http://localhost:${test.port}/`
+				`🌐 Test "${test.name}" running at ${runwayTestTargetUrl(test)}`
 			);
 		}
 	}
@@ -190,9 +195,22 @@ async function main() {
 			);
 		}
 	} else {
-		const testScheme = firstTest.scheme ?? "http";
-		const testUrl = `${testScheme}://localhost:${firstTest.port}${firstTest.path ?? "/"}`;
+		const testUrl = runwayTestTargetUrl(firstTest);
 		console.log(`🚀 Navigating to test: ${testUrl}`);
+
+		await page.evaluate(
+			(payload: {
+				hosts: string[];
+				site: { roots: string[]; httpPort: number } | null;
+			}) => {
+				(window as any).__runwayCleartextHttpsHosts = payload.hosts;
+				(window as any).__runwayCleartextSite = payload.site;
+			},
+			{
+				hosts: runwayCleartextHttpsHostList(firstTest),
+				site: runwayCleartextSiteForHarness(firstTest),
+			}
+		);
 
 		if (firstTest.topLevelScramjet) {
 			const proxiedUrl = await page.evaluate((url) => {
@@ -234,7 +252,7 @@ async function main() {
 	if (browserTests.length > 1) {
 		console.log("Other test URLs (navigate manually via harness):");
 		for (const test of browserTests.slice(1)) {
-			console.log(`  - http://localhost:${test.port}/`);
+			console.log(`  - ${runwayTestTargetUrl(test)}`);
 		}
 		console.log();
 	}
