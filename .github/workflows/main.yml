@@ -3,9 +3,6 @@ name: CI
 on:
   push:
     paths-ignore: &ci_ignore_paths
-      - "assets/**"
-      - "scripts/**"
-      # Editor configs
       - ".zed/**"
       - ".vscode/**"
       # Docs
@@ -33,19 +30,39 @@ jobs:
     name: Check Version
     runs-on: ubuntu-latest
     outputs:
-      version_changed: ${{ steps.check.outputs.exit_code }}
-      new_version: ${{ steps.check.outputs.exit_code }}
+      scramjet_version_changed: ${{ steps.check-scramjet.outputs.version_changed }}
+      scramjet_new_version: ${{ steps.check-scramjet.outputs.new_version }}
+      controller_version_changed: ${{ steps.check-scramjet-controller.outputs.version_changed }}
+      controller_new_version: ${{ steps.check-scramjet-controller.outputs.new_version }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Check the version
-        id: check
+      - name: Check the version (scramjet/core)
+        id: check-scramjet
         run: |
-          CURRENT_VERSION=$(jq -r .version package.json)
+          CURRENT_VERSION=$(jq -r .version packages/core/package.json)
           echo "Current version: $CURRENT_VERSION"
           LATEST_VERSION=$(npm view @mercuryworkshop/scramjet versions --json | jq -r '.[-1]' || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the version (scramjet/controller)
+        id: check-scramjet-controller
+        run: |
+          CURRENT_VERSION=$(jq -r .version packages/controller/package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet-controller versions --json | jq -r '.[-1]' || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
@@ -89,16 +106,17 @@ jobs:
         run: pnpm pack
         working-directory: packages/core
 
+      - name: Pack Scramjet Controller
+        run: pnpm pack
+        working-directory: packages/controller
+
       - name: Upload Artifact (scramjet/core)
         uses: actions/upload-artifact@v4
         with:
           name: scramjet
-          path: |
-            packages/core/dist/*.js
-            packages/core/dist/*.js.map
-            packages/core/dist/*.wasm
+          path: packages/core/dist/*
 
-      - name: Upload Artifact (packaged)
+      - name: Upload Artifact (scramjet/core) (packaged)
         uses: actions/upload-artifact@v4
         with:
           name: scramjet-package
@@ -108,8 +126,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: scramjet-controller
-          path: |
-            packages/controller/dist/*
+          path: packages/controller/dist/*
+
+      - name: Upload Artifact (scramjet/controller) (packaged)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scramjet-controller-package
+          path: packages/controller/mercuryworkshop-scramjet-controller-*.tgz
 
   package-validation:
     name: Validate Package Structure
@@ -224,7 +247,7 @@ jobs:
   upload:
     name: Upload release
     runs-on: ubuntu-latest
-    needs: [version-check, build, package-validation, rewritertests, tests]
+    needs: [version-check, build, package-validation, tests, rewritertests]
     permissions: write-all
     if: github.ref == 'refs/heads/main'
 
@@ -239,7 +262,13 @@ jobs:
       - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: packaged-scramjet
+          name: scramjet-package
+          path: .
+
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet-controller-package
           path: .
 
       - name: Release unstable build to GitHub
@@ -249,25 +278,35 @@ jobs:
           tag: latest
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-*.tgz"
+          artifacts: "mercuryworkshop-scramjet-*.tgz,mercuryworkshop-scramjet-controller-*.tgz"
           prerelease: true
 
-      - name: Release tagged version to GitHub
-        if: needs.version-check.outputs.version_changed == 'true'
+      - name: Release tagged version to GitHub (scramjet/core)
+        if: needs.version-check.outputs.scramjet_version_changed == 'true'
         uses: ncipollo/release-action@v1
         with:
-          name: "${{ needs.version-check.outputs.new_version }}"
-          tag: "v${{ needs.version-check.outputs.new_version }}"
+          name: "${{ needs.version-check.outputs.scramjet_new_version }}"
+          tag: "v${{ needs.version-check.outputs.scramjet_new_version }}"
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
           artifacts: "mercuryworkshop-scramjet-*.tgz"
 
+      - name: Release tagged version to GitHub (scramjet/controller)
+        if: needs.version-check.outputs.controller_version_changed == 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          name: "${{ needs.version-check.outputs.controller_new_version }}-controller"
+          tag: "v${{ needs.version-check.outputs.controller_new_version }}-controller"
+          commit: main
+          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
+          artifacts: "mercuryworkshop-scramjet-controller-*.tgz"
+
   publish:
     name: Publish Scramjet to NPM
     runs-on: ubuntu-latest
-    needs: [version-check, build, package-validation, rewritertests, tests]
+    needs: [version-check, build, package-validation, tests, rewritertests]
     permissions: write-all
-    if: ${{ (needs.version-check.outputs.version_changed == 'true') && (github.ref == 'refs/heads/main') }}
+    if: ${{ (github.ref == 'refs/heads/main') && (needs.version-check.outputs.scramjet_version_changed == 'true' || needs.version-check.outputs.controller_version_changed == 'true') }}
 
     steps:
       - name: Setup Node.js
@@ -276,28 +315,40 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Get artifacts
+      - name: Get artifacts (scramjet/core)
         uses: actions/download-artifact@v4
         with:
-          name: packaged-scramjet
+          name: scramjet-package
+          path: .
+
+      - name: Get artifacts (scramjet/controller)
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet-controller-package
           path: .
 
       - name: Update npm
         run: npm install -g npm@latest
 
-      - name: Publish
-        run: npm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.new_version }}.tgz --access public --no-git-checks
+      - name: Publish Scramjet
+        if: needs.version-check.outputs.scramjet_version_changed == 'true'
+        run: npm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --no-git-checks
 
-  pages:
-    name: Upload to Github Pages
+      - name: Publish Scramjet Controller
+        if: needs.version-check.outputs.controller_version_changed == 'true'
+        run: npm publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --no-git-checks
+
+  frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
-    needs: [build, package-validation, rewritertests, tests]
     permissions: write-all
-    if: github.ref == 'refs/heads/main'
+    needs: [build, package-validation]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -311,20 +362,46 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get artifacts
+      - name: Get artifacts (scramjet/core)
         uses: actions/download-artifact@v4
         with:
           name: scramjet
-          path: ./packages/scramjet/dist
+          path: packages/core/dist
 
-      - name: Build static assets
+      - name: Get artifacts (scramjet/controller)
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet-controller
+          path: packages/controller/dist
+
+      - name: Build Frontend
         run: VITE_WISP_URL="wss://anura.pro" pnpm build
         working-directory: packages/demo
+
+      - name: Upload Artifact (frontend)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: ./packages/demo/dist
+
+  pages:
+    name: Upload to Github Pages
+    runs-on: ubuntu-latest
+    needs: [frontend, tests, rewritertests]
+    permissions: write-all
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: .
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./packages/demo/dist
+          path: .
 
       - name: Deploy to github
         id: deployment
