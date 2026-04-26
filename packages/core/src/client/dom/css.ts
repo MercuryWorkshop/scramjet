@@ -14,7 +14,7 @@ export default function (client: ScramjetClient) {
 		apply(ctx) {
 			const v = ctx.call();
 			if (!v) return v;
-			ctx.return(unrewriteCss(v));
+			ctx.return(unrewriteCss(v, client.context));
 		},
 	});
 
@@ -23,7 +23,7 @@ export default function (client: ScramjetClient) {
 			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
 		get(ctx) {
-			return unrewriteCss(ctx.get());
+			return unrewriteCss(ctx.get(), client.context);
 		},
 	});
 
@@ -50,7 +50,7 @@ export default function (client: ScramjetClient) {
 			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
 		get(ctx) {
-			return unrewriteCss(ctx.get());
+			return unrewriteCss(ctx.get(), client.context);
 		},
 	});
 
@@ -83,7 +83,7 @@ export default function (client: ScramjetClient) {
 					if (prop in CSSStyleDeclaration.prototype) return value;
 					if (!value) return value;
 
-					return unrewriteCss(value);
+					return unrewriteCss(value, client.context);
 				},
 				set(target, prop, value) {
 					if (prop == "cssText" || value == "" || typeof value !== "string") {
