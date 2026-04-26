@@ -442,7 +442,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return ctx.get();
 			}
 			if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
-				return unrewriteCss(ctx.get() as string);
+				return unrewriteCss(ctx.get() as string, client.context);
 			}
 
 			return ctx.get();
@@ -565,7 +565,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Text.prototype.wholeText", {
 		get(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
-				return unrewriteCss(ctx.get() as string);
+				return unrewriteCss(ctx.get() as string, client.context);
 			}
 
 			return ctx.get();

@@ -1,4 +1,8 @@
-import { rewriteCss, rewriteUrl } from "@mercuryworkshop/scramjet";
+import {
+	rewriteCss,
+	rewriteUrl,
+	unrewriteCss,
+} from "@mercuryworkshop/scramjet";
 import { directTest, type Test } from "../testcommon.ts";
 
 function createRewriteContext() {
@@ -63,6 +67,28 @@ function cssRewriteMultiTest(props: {
 				rewriteCss(input, context, meta),
 				expected,
 				`${name}: multi-url rewrite`
+			);
+		},
+	});
+}
+
+function cssUnrewriteTest(props: {
+	name: string;
+	url: string;
+	fn: (url: string, encoded: string) => [string, string];
+}) {
+	const { name, url, fn } = props;
+	return directTest({
+		name,
+		fn: ({ assertEqual }) => {
+			const { context, meta } = createRewriteContext();
+			const encoded = rewriteUrl(url, context, meta);
+			const [input, expected] = fn(url, encoded);
+			const unrewritten = unrewriteCss(input, context);
+			assertEqual(
+				unrewritten,
+				expected,
+				`${name}: ${input} should be unrewritten to ${expected}`
 			);
 		},
 	});
@@ -275,6 +301,45 @@ export default [
 			const { context, meta } = createRewriteContext();
 			const input = "e{background:url()}";
 			assertEqual(rewriteCss(input, context, meta), input);
+		},
+	}),
+	cssUnrewriteTest({
+		name: "rewriter-css-unrewrite-url",
+		url: "/assets/bg.png",
+		fn: (url, encoded) => [
+			`body{background:url("${encoded}")}`,
+			`body{background:url("${url}")}`,
+		],
+	}),
+	cssUnrewriteTest({
+		name: "rewriter-css-unrewrite-import-string",
+		url: "/styles/theme.css",
+		fn: (url, encoded) => [`@import "${encoded}";`, `@import "${url}";`],
+	}),
+	cssUnrewriteTest({
+		name: "rewriter-css-unrewrite-import-url",
+		url: "/styles/theme.css",
+		fn: (url, encoded) => [
+			`@import url("${encoded}");`,
+			`@import url("${url}");`,
+		],
+	}),
+	cssUnrewriteTest({
+		name: "rewriter-css-unrewrite-uppercase-url-function",
+		url: "/z.png",
+		fn: (url, encoded) => [
+			`b{background:URL("${encoded}")}`,
+			`b{background:URL("${url}")}`,
+		],
+	}),
+	directTest({
+		name: "rewriter-css-unrewrite-regression-import-layer-supports-media",
+		fn: ({ assertEqual }) => {
+			const { context, meta } = createRewriteContext();
+			const input =
+				'@import url("/bundle.css") layer(theme) supports(display: grid) screen, print;';
+			const rewritten = rewriteCss(input, context, meta);
+			assertEqual(unrewriteCss(rewritten, context), input);
 		},
 	}),
 ];
