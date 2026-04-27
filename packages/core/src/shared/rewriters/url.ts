@@ -226,8 +226,10 @@ export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 		realUrl.hash = "";
 		realUrl.search = "";
 
-		return context.interface.codecDecode(
-			realUrl.href.slice(context.prefix.href.length) + realHash
+		return (
+			context.interface.codecDecode(
+				realUrl.href.slice(context.prefix.href.length)
+			) + realHash
 		);
 	} else if (url == "") {
 		return url;
