@@ -273,7 +273,7 @@ export const App: Component<
 					<FlagEditor
 						inline={true}
 						onFlagsChange={(flags) => {
-							Object.assign(controller.flags, flags);
+							Object.assign(controller.scramjetConfig.flags, flags);
 						}}
 					/>
 				</div>

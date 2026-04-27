@@ -1,6 +1,5 @@
 import { ScramjetClient } from "@client/index";
-import { UrlChangeEvent } from "@client/events";
-import { SCRAMJETCLIENT } from "@/symbols";
+import { Tap } from "@/Tap";
 
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy(
@@ -10,16 +9,15 @@ export default function (client: ScramjetClient, _self: Self) {
 				if (ctx.args[2] || ctx.args[2] === "")
 					ctx.args[2] = client.rewriteUrl(ctx.args[2]);
 				ctx.call();
-				const {
-					constructor: { constructor: Function },
-				} = ctx.this;
-				const callerGlobalThisProxied: Self = Function("return globalThis")();
-				const callerClient = callerGlobalThisProxied[SCRAMJETCLIENT];
-
-				if (callerGlobalThisProxied.name === client.meta.topFrameName) {
-					const ev = new UrlChangeEvent(callerClient.url.href);
-					client.frame?.dispatchEvent(ev);
-				}
+				Tap.dispatch(
+					client.hooks.lifecycle.navigate,
+					{
+						type: "history",
+					},
+					{
+						url: client.url.href,
+					}
+				);
 			},
 		}
 	);

@@ -6,8 +6,9 @@
 	"main": "index.ts",
 	"types": "./dist/types/typesEntry.d.ts",
 	"dependencies": {
-		"@mercuryworkshop/scramjet": "workspace:*",
-		"@mercuryworkshop/proxy-transports": "catalog:"
+		"@fastify/deepmerge": "^3.2.1",
+		"@mercuryworkshop/proxy-transports": "catalog:",
+		"@mercuryworkshop/scramjet": "workspace:*"
 	},
 	"devDependencies": {
 		"@mercuryworkshop/rpc": "workspace:*"

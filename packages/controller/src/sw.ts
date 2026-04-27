@@ -95,7 +95,7 @@ class ControllerReference {
 										(id) => cookieResolvers[id] !== undefined
 									);
 									console.error(
-										`timed out waiting for set cookie response (deadlock?): ` +
+										"timed out waiting for set cookie response (deadlock?): " +
 											`cookies=${cookies.length} clients=${clients.length} ` +
 											`pending=${pending.length}/${ids.length} ` +
 											`clientUrls=${clients.map((c) => c.url).join(",")}`
