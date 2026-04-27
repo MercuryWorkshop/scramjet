@@ -6,7 +6,7 @@
 	"types": "./dist/types/index.d.ts",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/MercuryWorkshop/scramjet"
+		"url": "git+https://github.com/MercuryWorkshop/scramjet.git"
 	},
 	"scripts": {
 		"build": "rspack build --mode production",

@@ -290,11 +290,11 @@ jobs:
           name: packaged-scramjet
           path: .
 
-      - name: Extract package
-        run: tar xvf mercuryworkshop-scramjet-*.tgz package --strip-components=1
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Publish
-        run: npm publish --access public --no-git-checks
+        run: npm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.new_version }}.tgz --access public --no-git-checks
 
   pages:
     name: Upload to Github Pages
