@@ -19,6 +19,7 @@ export type TransferRequest = {
 	forceCrossOriginIsolated: boolean;
 	initialHeaders: RawHeaders;
 	rawClientUrl?: string;
+	clientId?: string;
 };
 
 export type TransferResponse = {

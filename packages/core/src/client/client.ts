@@ -55,7 +55,6 @@ export type ScramjetClientInit = {
 	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
 	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;
-	clientId: string;
 	initHeaders: RawHeaders;
 	history: TrackedHistoryState[];
 };
@@ -209,8 +208,6 @@ export class ScramjetClient {
 
 	context: ScramjetContext;
 
-	clientId: string;
-
 	initHeaders: ScramjetHeaders;
 
 	history: TrackedHistoryState[];
@@ -247,7 +244,6 @@ export class ScramjetClient {
 		this.box.registerClient(this, global as Self);
 
 		this.context = init.context;
-		this.clientId = init.clientId;
 		if (init.initHeaders)
 			this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
 		this.history = init.history;
@@ -468,9 +464,6 @@ export class ScramjetClient {
 					return frame.name;
 				}
 			},
-			get clientId() {
-				return client.clientId;
-			},
 			get referrerPolicy(): string | undefined {
 				if (client.initHeaders && client.initHeaders.has("referrer-policy")) {
 					return client.initHeaders.get("referrer-policy");
@@ -498,12 +491,10 @@ export class ScramjetClient {
 
 	/** Apply document injection init when a client was already installed (e.g. early contentWindow). */
 	syncDocumentInit(init: {
-		clientId: string;
 		initHeaders: RawHeaders;
 		history: TrackedHistoryState[];
 		cookies?: string;
 	}) {
-		this.clientId = init.clientId;
 		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
 		this.history = init.history;
 		if (init.cookies !== undefined) {

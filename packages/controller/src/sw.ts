@@ -185,6 +185,7 @@ export async function route(event: FetchEvent): Promise<Response> {
 				forceCrossOriginIsolated: false,
 				initialHeaders: rawheaders,
 				rawClientUrl: client ? client.url : undefined,
+				clientId: event.clientId || event.resultingClientId,
 			},
 			event.request.body instanceof ReadableStream ||
 				// @ts-expect-error the types for fetchevent are messed up

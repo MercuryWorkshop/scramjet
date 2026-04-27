@@ -20,7 +20,6 @@ function createRewriteContext() {
 	const meta = {
 		origin: new URL("https://example.com"),
 		base: new URL("https://example.com/css/app.css"),
-		clientId: "runway-cid",
 	} as any;
 
 	return { context, meta };
