@@ -12,7 +12,7 @@
 		"allowImportingTsExtensions": true,
 		"noEmit": false
 	},
-	"include": ["src/index.ts", "src/global.d.ts", "src/rslib/buildGlobals.d.ts"],
+	"include": ["src/index.ts", "src/global.d.ts"],
 	"exclude": [
 		"**/*.test.ts",
 		"node_modules",

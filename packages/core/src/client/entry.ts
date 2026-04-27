@@ -3,7 +3,6 @@
 import { ScramjetContext, ScramjetInterface } from "@/shared/index";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
-import { ScramjetContextEvent, UrlChangeEvent } from "@client/events";
 import { ScramjetConfig } from "@/types";
 
 export const iswindow = "window" in globalThis && window instanceof Window;

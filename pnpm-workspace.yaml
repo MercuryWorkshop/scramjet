@@ -2,9 +2,7 @@ packages:
   - packages/core
   - packages/bootstrap
   - packages/controller
-  - packages/scramjetserver
   - packages/demo
-  - packages/rewriter_demo
   - packages/rpc
   - packages/create-proxy-app
   - packages/runway

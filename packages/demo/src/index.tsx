@@ -1,6 +1,8 @@
 import { css } from "dreamland/core";
 import { App } from "./App";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
+import { defaultConfigDev } from "@mercuryworkshop/scramjet";
+const { Controller } = $scramjetController;
 import { demoSettingsDefaults } from "./demoSettings";
 
 let transport = new LibcurlClient({
@@ -40,26 +42,7 @@ LoadInterstitial.style = css`
 	}
 `;
 
-const { Controller } = $scramjetController;
-export let controller;
-
-export async function swapTransport(wispUrl: string) {
-	const nextTransport = new LibcurlClient({
-		wisp: wispUrl,
-	});
-
-	transport = nextTransport;
-
-	if (!controller) {
-		return;
-	}
-
-	controller.transport = nextTransport;
-	for (const frame of controller.frames) {
-		frame.controller.transport = nextTransport;
-		frame.fetchHandler.client.transport = nextTransport;
-	}
-}
+let controller: InstanceType<typeof Controller>;
 
 async function init() {
 	const interstitial: any = (
@@ -70,19 +53,6 @@ async function init() {
 
 	try {
 		const registration = await navigator.serviceWorker.register("./sw.js");
-
-		// If already controlled or active, don't block the UI.
-		const earlySw = navigator.serviceWorker.controller ?? registration.active;
-		if (earlySw) {
-			interstitial.$.state.status = "Service worker active";
-			controller = new Controller({
-				serviceworker: earlySw,
-				transport,
-			});
-			await controller.ready;
-			interstitial.close();
-			return;
-		}
 
 		// Non-blocking progress updates on state transitions.
 		const updateStatus = (sw: ServiceWorker | null) => {
@@ -126,8 +96,9 @@ async function init() {
 		controller = new Controller({
 			serviceworker: readySw,
 			transport,
+			scramjetConfig: defaultConfigDev,
 		});
-		await controller.ready;
+		await controller.wait();
 		console.log(controller);
 		interstitial.$.state.status = "Controller initialized";
 		interstitial.close();
@@ -165,7 +136,7 @@ async function waitForControllerOrReady(timeoutMs = 10000): Promise<void> {
 
 async function mount() {
 	try {
-		const root = <App></App>;
+		const root = <App />;
 		app.replaceWith(root);
 	} catch (e) {
 		let err = e as any;
@@ -180,3 +151,4 @@ async function mount() {
 }
 
 init().then(() => mount());
+export { controller };

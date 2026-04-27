@@ -1,11 +1,10 @@
 import { createStore, css, type Component } from "dreamland/core";
 import type { ScramjetFlags } from "@mercuryworkshop/scramjet";
-import { defaultConfig } from "@mercuryworkshop/scramjet";
+import { defaultConfigDev } from "@mercuryworkshop/scramjet";
 
 const flagStore = createStore<ScramjetFlags>(
 	{
-		...defaultConfig.flags,
-		allowFailedIntercepts: true,
+		...defaultConfigDev.flags,
 	},
 	{
 		ident: "scramjet-flags",
@@ -59,8 +58,7 @@ export const FlagEditor: Component<
 
 	const resetToDefaults = () => {
 		Object.assign(flagStore, {
-			...defaultConfig.flags,
-			allowFailedIntercepts: true,
+			...defaultConfigDev.flags,
 		});
 		if (this.onFlagsChange) {
 			this.onFlagsChange(flagStore);

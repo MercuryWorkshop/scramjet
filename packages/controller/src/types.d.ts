@@ -1,6 +1,6 @@
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
-import type { CookieSyncOptions } from "@mercuryworkshop/scramjet";
-
+import type { CONTROLLERFRAME } from "./symbols";
+import type { Frame } from ".";
 export type BodyType =
 	| string
 	| ArrayBuffer
@@ -100,3 +100,26 @@ export type WebSocketMessage =
 			code: number;
 			reason: string;
 	  };
+export type FrameInitHooks = {
+	pre: {
+		context: {
+			window: Window;
+			client: ScramjetClient;
+			isTopLevel: boolean;
+		};
+		props: {};
+	};
+	post: {
+		context: {
+			window: Window;
+			client: ScramjetClient;
+			isTopLevel: boolean;
+		};
+		props: {};
+	};
+};
+declare global {
+	interface HTMLIFrameElement {
+		[CONTROLLERFRAME]: Frame;
+	}
+}

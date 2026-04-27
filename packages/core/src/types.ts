@@ -81,13 +81,6 @@ declare global {
 		 */
 		[SCRAMJETCLIENT]: ScramjetClient;
 	}
-
-	// interface HTMLIFrameElement {
-	/**
-	 * The event target belonging to an iframe element holding an encoded URL.
-	 */
-	// [SCRAMJETFRAME]: ScramjetFrame;
-	// }
 }
 
 //eslint-disable-next-line

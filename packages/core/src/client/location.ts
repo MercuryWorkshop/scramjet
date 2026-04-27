@@ -1,5 +1,5 @@
 import { ScramjetClient } from "@client/index";
-import { UrlChangeEvent } from "@client/events";
+import { Tap } from "@/Tap";
 import { iswindow } from "@client/entry";
 import {
 	Reflect_apply,
@@ -59,8 +59,15 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 					}
 					if (prop === "hash") {
 						self.location.hash = args[0];
-						const ev = new UrlChangeEvent(client.url.href);
-						if (!client.isSubframe) client.frame?.dispatchEvent(ev);
+						Tap.dispatch(
+							client.hooks.lifecycle.navigate,
+							{
+								type: "hashchange",
+							},
+							{
+								url: client.url.href,
+							}
+						);
 
 						return;
 					}
@@ -91,9 +98,15 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 			apply(target, that, args) {
 				args[0] = client.rewriteUrl(args[0]);
 				Reflect_apply(target, self.location, args);
-
-				const urlchangeev = new UrlChangeEvent(client.url.href);
-				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
+				Tap.dispatch(
+					client.hooks.lifecycle.navigate,
+					{
+						type: "location",
+					},
+					{
+						url: client.url.href,
+					}
+				);
 			},
 		});
 	if (self.location.reload)
@@ -108,8 +121,15 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 				args[0] = client.rewriteUrl(args[0]);
 				Reflect_apply(target, self.location, args);
 
-				const urlchangeev = new UrlChangeEvent(client.url.href);
-				if (!client.isSubframe) client.frame?.dispatchEvent(urlchangeev);
+				Tap.dispatch(
+					client.hooks.lifecycle.navigate,
+					{
+						type: "location",
+					},
+					{
+						url: client.url.href,
+					}
+				);
 			},
 		});
 
