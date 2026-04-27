@@ -30,8 +30,8 @@ jobs:
     name: Check Version
     runs-on: ubuntu-latest
     outputs:
-      version_changed: ${{ steps.check.outputs.exit_code }}
-      new_version: ${{ steps.check.outputs.exit_code }}
+      version_changed: ${{ steps.check.outputs.version_changed }}
+      new_version: ${{ steps.check.outputs.new_version }}
 
     steps:
       - name: Checkout Code
