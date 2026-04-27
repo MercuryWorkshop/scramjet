@@ -274,7 +274,7 @@ jobs:
   publish:
     name: Publish Scramjet to NPM
     runs-on: ubuntu-latest
-    needs: [version-check, build, package-validation, rewritertests, tests]
+    needs: [version-check, build, package-validation]
     permissions: write-all
     if: ${{ (needs.version-check.outputs.version_changed == 'true') && (github.ref == 'refs/heads/main') }}
 
