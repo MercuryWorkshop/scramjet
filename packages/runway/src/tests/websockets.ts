@@ -130,4 +130,92 @@ export default [
 			wss.on("connection", () => {});
 		},
 	}),
+	serverTest({
+		name: "websocketstream-sanity",
+		autoPass: false,
+		js: `
+			assert(typeof WebSocketStream === "function", "WebSocketStream should exist");
+
+			const stream = new WebSocketStream("ws://localhost:" + location.port);
+			const { readable, writable } = await stream.opened;
+
+			const writer = writable.getWriter();
+			await writer.write("Hello from WebSocketStream");
+			writer.releaseLock();
+
+			const reader = readable.getReader();
+			const result = await reader.read();
+			reader.releaseLock();
+
+			assert(!result.done, "Readable stream should produce a message");
+			assert(result.value === "Hello from WebSocketStream", "Echoed message should match sent data");
+
+			stream.close({ closeCode: 1000, reason: "done" });
+			const closeInfo = await stream.closed;
+			assert(closeInfo.closeCode === 1000, "WebSocketStream should close with normal code");
+			
+			pass("WebSocketStream echo successful");
+		`,
+		async start(server) {
+			echo(server);
+		},
+	}),
+	serverTest({
+		name: "websocketstream-binary",
+		autoPass: false,
+		js: `
+			assert(typeof WebSocketStream === "function", "WebSocketStream should exist");
+
+			const stream = new WebSocketStream("ws://localhost:" + location.port);
+			const { readable, writable } = await stream.opened;
+
+			const payload = new ArrayBuffer([0, 1, 2, 3, 4, 5, 6, 7]);
+			const writer = writable.getWriter();
+			await writer.write(payload);
+			writer.releaseLock();
+
+			const reader = readable.getReader();
+			const result = await reader.read();
+			reader.releaseLock();
+
+			assert(!result.done, "Readable stream should produce a binary message");
+			// TODO: this needs to be changed to uint8array later, chrome isnt following spec though so we are just going to do this
+			assert(result.value instanceof ArrayBuffer, "Binary message should be ArrayBuffer");
+			
+			stream.close({ closeCode: 1000, reason: "done" });
+			await stream.closed;
+			pass("WebSocketStream binary echo successful");
+		`,
+		async start(server) {
+			echo(server);
+		},
+	}),
+	serverTest({
+		name: "websocketstream-origin-header",
+		autoPass: false,
+		scramjetOnly: true,
+		js: `
+			assert(typeof WebSocketStream === "function", "WebSocketStream should exist");
+
+			const stream = new WebSocketStream("ws://localhost:" + location.port);
+			const { readable } = await stream.opened;
+
+			const reader = readable.getReader();
+			const result = await reader.read();
+			reader.releaseLock();
+
+			assert(!result.done, "Readable stream should produce an origin value");
+			assert(result.value === "http://localhost:" + location.port, "Origin header should match");
+
+			stream.close({ closeCode: 1000, reason: "done" });
+			await stream.closed;
+			pass("WebSocketStream origin header check successful");
+		`,
+		async start(server) {
+			const wss = new WebSocketServer({ server });
+			wss.on("connection", (socket, request) => {
+				socket.send(request.headers.origin || "");
+			});
+		},
+	}),
 ];
