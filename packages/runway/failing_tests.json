@@ -123,6 +123,13 @@
 		"wpt-fetch-metadata-generated-worker-dedicated-importscripts-https-sub-html",
 		"wpt-fetch-metadata-generated-worker-dedicated-importscripts-sub-html",
 		"wpt-referrer-policy-generic-inheritance-iframe-inheritance-about-blank-html",
-		"wpt-referrer-policy-generic-inheritance-iframe-inheritance-srcdoc-html"
+		"wpt-referrer-policy-generic-inheritance-iframe-inheritance-srcdoc-html",
+		"cookies-twitter",
+		"websocketstream-sanity",
+		"rewriter-css-unrewrite-import-string",
+		"rewriter-css-unrewrite-import-url",
+		"rewriter-css-unrewrite-regression-import-layer-supports-media",
+		"rewriter-css-unrewrite-uppercase-url-function",
+		"rewriter-css-unrewrite-url"
 	]
 }

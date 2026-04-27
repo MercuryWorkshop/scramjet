@@ -31,7 +31,7 @@ export function foreignContextForElement(
 ): ForeignContext {
 	if (client.box.instanceof(element, "SVGElement")) return "svg";
 	if (client.box.instanceof(element, "MathMLElement")) return "math";
-	return undefined;
+	return "html";
 }
 
 // NOTE: NOT INCLUSIVE OF THE CURRENT ELEMENT
@@ -43,14 +43,14 @@ export function insideForeignContext(
 
 	while (current) {
 		const context = foreignContextForElement(client, current);
-		if (context) return context;
+		if (context !== "html") return context;
 		// EXPLICITLY an html context, don't go up further
 		if (client.box.instanceof(current, "SVGForeignObjectElement"))
-			return undefined;
+			return "html";
 		current = current.parentElement;
 	}
 
-	return undefined;
+	return "html";
 }
 
 export default function (client: ScramjetClient, self: typeof window) {
@@ -396,7 +396,10 @@ export default function (client: ScramjetClient, self: typeof window) {
 				return ctx.get();
 			}
 
-			return unrewriteHtml(ctx.get());
+			return unrewriteHtml(
+				ctx.get(),
+				foreignContextForElement(client, ctx.this)
+			);
 		},
 	});
 
@@ -457,11 +460,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 					inline: true,
 					source: client.url.href,
 					apisource: "set Element.prototype.outerHTML",
+					foreignContext: insideForeignContext(client, ctx.this),
 				})
 			);
 		},
 		get(ctx) {
-			return unrewriteHtml(ctx.get());
+			return unrewriteHtml(ctx.get(), insideForeignContext(client, ctx.this));
 		},
 	});
 
