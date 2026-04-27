@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     paths-ignore: &ci_ignore_paths
-      - ".github/workflows/**"
       - "assets/**"
       - "scripts/**"
       # Editor configs
