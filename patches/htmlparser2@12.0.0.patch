@@ -1,0 +1,124 @@
+diff --git a/dist/Parser.d.ts b/dist/Parser.d.ts
+index 08d4a77..022c34f 100644
+--- a/dist/Parser.d.ts
++++ b/dist/Parser.d.ts
+@@ -38,6 +38,16 @@ export interface ParserOptions {
+      * @default xmlMode
+      */
+     recognizeSelfClosing?: boolean;
++    /**
++     * Seeds the parser's foreign-context stack so a chunk of markup can be
++     * parsed as though it were already inside an `<svg>` or `<math>` element.
++     *
++     * `"html"` (the default, equivalent to omitting the option) parses as
++     * regular HTML with no foreign context.
++     *
++     * @default "html"
++     */
++    startingForeignContext?: "svg" | "math" | "html";
+     /**
+      * Allows the default tokenizer to be overwritten.
+      */
+diff --git a/dist/Parser.js b/dist/Parser.js
+index c73086d..9fc2075 100644
+--- a/dist/Parser.js
++++ b/dist/Parser.js
+@@ -149,6 +149,16 @@ var ForeignContext;
+     ForeignContext[ForeignContext["Svg"] = 1] = "Svg";
+     ForeignContext[ForeignContext["MathML"] = 2] = "MathML";
+ })(ForeignContext || (ForeignContext = {}));
++function getInitialForeignContext(startingForeignContext) {
++    switch (startingForeignContext) {
++        case "svg":
++            return ForeignContext.Svg;
++        case "math":
++            return ForeignContext.MathML;
++        default:
++            return ForeignContext.None;
++    }
++}
+ const reNameEnd = /\s|\//;
+ /**
+  * Incremental parser implementation.
+@@ -193,7 +203,7 @@ export class Parser {
+         this.recognizeSelfClosing =
+             options.recognizeSelfClosing ?? !this.htmlMode;
+         this.tokenizer = new (options.Tokenizer ?? Tokenizer)(this.options, this);
+-        this.foreignContext = [ForeignContext.None];
++        this.foreignContext = [getInitialForeignContext(options.startingForeignContext)];
+         this.cbs.onparserinit?.(this);
+     }
+     // Tokenizer event handlers
+@@ -560,7 +570,7 @@ export class Parser {
+         this.cbs.onparserinit?.(this);
+         this.buffers.length = 0;
+         this.foreignContext.length = 0;
+-        this.foreignContext.unshift(ForeignContext.None);
++        this.foreignContext.unshift(getInitialForeignContext(this.options.startingForeignContext));
+         this.bufferOffset = 0;
+         this.writeIndex = 0;
+         this.ended = false;
+diff --git a/src/Parser.ts b/src/Parser.ts
+index 800ca0e..609498e 100644
+--- a/src/Parser.ts
++++ b/src/Parser.ts
+@@ -158,6 +158,19 @@ const enum ForeignContext {
+     MathML,
+ }
+ 
++function getInitialForeignContext(
++    startingForeignContext: ParserOptions["startingForeignContext"],
++): ForeignContext {
++    switch (startingForeignContext) {
++        case "svg":
++            return ForeignContext.Svg;
++        case "math":
++            return ForeignContext.MathML;
++        default:
++            return ForeignContext.None;
++    }
++}
++
+ /**
+  * Options for the streaming HTML/XML parser.
+  */
+@@ -203,6 +216,17 @@ export interface ParserOptions {
+      */
+     recognizeSelfClosing?: boolean;
+ 
++    /**
++     * Seeds the parser's foreign-context stack so a chunk of markup can be
++     * parsed as though it were already inside an `<svg>` or `<math>` element.
++     *
++     * `"html"` (the default, equivalent to omitting the option) parses as
++     * regular HTML with no foreign context.
++     *
++     * @default "html"
++     */
++    startingForeignContext?: "svg" | "math" | "html";
++
+     /**
+      * Allows the default tokenizer to be overwritten.
+      */
+@@ -303,7 +327,9 @@ export class Parser implements Callbacks {
+             this.options,
+             this,
+         );
+-        this.foreignContext = [ForeignContext.None];
++        this.foreignContext = [
++            getInitialForeignContext(options.startingForeignContext),
++        ];
+         this.cbs.onparserinit?.(this);
+     }
+ 
+@@ -722,7 +748,9 @@ export class Parser implements Callbacks {
+         this.cbs.onparserinit?.(this);
+         this.buffers.length = 0;
+         this.foreignContext.length = 0;
+-        this.foreignContext.unshift(ForeignContext.None);
++        this.foreignContext.unshift(
++            getInitialForeignContext(this.options.startingForeignContext),
++        );
+         this.bufferOffset = 0;
+         this.writeIndex = 0;
+         this.ended = false;

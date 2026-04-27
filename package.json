@@ -13,10 +13,10 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"htmlparser2": "10.1.0"
+			"htmlparser2": "12.0.0"
 		},
 		"patchedDependencies": {
-			"htmlparser2@10.1.0": "../../patches/htmlparser2@10.1.0.patch"
+			"htmlparser2@12.0.0": "patches/htmlparser2@12.0.0.patch"
 		}
 	},
 	"devDependencies": {

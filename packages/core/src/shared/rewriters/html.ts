@@ -24,7 +24,7 @@ import {
 } from "@/shared/snapshot";
 import { flagEnabled } from "..";
 
-export type ForeignContext = "svg" | "math" | undefined;
+export type ForeignContext = "svg" | "math" | "html";
 
 export type HtmlContext = {
 	// should we inject scramjet scripts at the top of the document?
@@ -74,7 +74,7 @@ export class IncrementalHtmlRewriter {
 			this.completedElements.add(element);
 		});
 		this.parser = new Parser(this.handler, {
-			startingForeignContext: htmlcontext.foreignContext === "svg",
+			startingForeignContext: htmlcontext.foreignContext,
 		});
 	}
 

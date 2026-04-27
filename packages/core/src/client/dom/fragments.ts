@@ -9,10 +9,10 @@ function foreignContextForRange(
 ): ForeignContext {
 	const node = range.startContainer;
 	const element = node.nodeType === 1 ? node : node.parentElement;
-	if (!element) return "none";
+	if (!element) return "html";
 	if (client.box.instanceof(element, "SVGElement")) return "svg";
-	if (client.box.instanceof(element, "MathMLElement")) return "mathml";
-	return "none";
+	if (client.box.instanceof(element, "MathMLElement")) return "math";
+	return "html";
 }
 
 export default function (client: ScramjetClient, _self: Self) {
