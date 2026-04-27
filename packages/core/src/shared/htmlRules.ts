@@ -17,7 +17,7 @@ export const htmlRules: {
 
 		// url rewrites
 		src: ["embed", "script", "img", "frame", "input", "track"],
-		href: ["a", "link", "area", "use", "image"],
+		href: ["a", "link", "area", "image"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
@@ -110,5 +110,28 @@ export const htmlRules: {
 			else return value;
 		},
 		target: ["a", "base"],
+	},
+	{
+		// svg elements with an href property
+		fn: (value, context, meta) => {
+			// #id values are not rewritten
+			if (value.startsWith("#")) return value;
+			return rewriteUrl(value, context, meta);
+		},
+		href: [
+			"use",
+			"textPath",
+			"mpath",
+			"feImage",
+			"animate",
+			"animateMotion",
+			"animateTransform",
+			"set",
+			"discard",
+			"linearGradient",
+			"radialGradient",
+			"pattern",
+			"filter",
+		],
 	},
 ];
