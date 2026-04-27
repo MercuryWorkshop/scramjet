@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@mercuryworkshop/bare-mux':
-        specifier: ^2.1.7
-        version: 2.1.7
+        specifier: ^2.1.9
+        version: 2.1.9
       dom-serializer:
         specifier: ^2.0.0
         version: 2.0.0
@@ -230,24 +230,28 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@ast-grep/napi-linux-arm64-musl@0.37.0':
     resolution: {integrity: sha512-LF9sAvYy6es/OdyJDO3RwkX3I82Vkfsng1sqUBcoWC1jVb1wX5YVzHtpQox9JrEhGl+bNp7FYxB4Qba9OdA5GA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@ast-grep/napi-linux-x64-gnu@0.37.0':
     resolution: {integrity: sha512-TViz5/klqre6aSmJzswEIjApnGjJzstG/SE8VDWsrftMBMYt2PTu3MeluZVwzSqDao8doT/P+6U11dU05UOgxw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@ast-grep/napi-linux-x64-musl@0.37.0':
     resolution: {integrity: sha512-/BcCH33S9E3ovOAEoxYngUNXgb+JLg991sdyiNP2bSoYd30a9RHrG7CYwW6fMgua3ijQ474eV6cq9yZO1bCpXg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@ast-grep/napi-win32-arm64-msvc@0.37.0':
     resolution: {integrity: sha512-TjQA4cFoIEW2bgjLkaL9yqT4XWuuLa5MCNd0VCDhGRDMNQ9+rhwi9eLOWRaap3xzT7g+nlbcEHL3AkVCD2+b3A==}
@@ -488,8 +492,8 @@ packages:
   '@mercuryworkshop/bare-as-module3@2.2.5':
     resolution: {integrity: sha512-KWlMVJoJ3h1ya3chlpzIyQrt01rSU21AU1vBsGUrhZngCVTs9SIMGMqBx61TM0gWtEUogYFfU5U0UF1XCYeUHQ==}
 
-  '@mercuryworkshop/bare-mux@2.1.7':
-    resolution: {integrity: sha512-BUamyc7jsIFbWQVVWjVjaD+Wot77EPwolkrbP3UuIs6QeHR1RY52+IR2fq3GkRAbOOrAZNT7EgZSsupkh1NowQ==}
+  '@mercuryworkshop/bare-mux@2.1.9':
+    resolution: {integrity: sha512-fiOqWm3VP0Bl8T+0l+qnb7ab9zO+PpKVbtJvOnMsefUv6kWIaoDtqyr9hd/t4gA8oBwgtyZVqIwO2J9nKY9ylw==}
 
   '@mercuryworkshop/epoxy-tls@2.1.18-1':
     resolution: {integrity: sha512-2N1BYn/+FJxIbRw+sipbl3mQPinRflqQDB9HGAXJEVj4Ok4FIlTlS4fO2cpXKEq5yoD3oaKb8GyNaQfndNui9w==}
@@ -689,41 +693,49 @@ packages:
     resolution: {integrity: sha512-rNxRfgC5khlrhyEP6y93+45uQ4TI7CdtWqh5PKsaR6lPepG1rH4L8VE+etejSdhzXH6wQ76Rw4wzb96Hx+5vuQ==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-arm64-gnu@1.5.3':
     resolution: {integrity: sha512-NeDJJRNTLx8wOQT+si90th7cdt04I2F697Mp5w0a3Jf3XHAmsraBMn0phdLGWJoUWrrfVGthjgZDl5lcc1UHEA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-arm64-musl@1.5.2':
     resolution: {integrity: sha512-kTFX+KsGgArWC5q+jJWz0K/8rfVqZOn1ojv1xpCCcz/ogWRC/qhDGSOva6Wandh157BiR93Vfoe1gMvgjpLe5g==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-arm64-musl@1.5.3':
     resolution: {integrity: sha512-M9utPq9s7zJkKapUlyfwwYT/rjZ+XM56NHQMUH9MVYgMJIl+66QURgWUXCAbuogxf1XWayUGQaZsgypoOrTG9A==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-x64-gnu@1.5.2':
     resolution: {integrity: sha512-Lh/6WZGq30lDV6RteQQu7Phw0RH2Z1f4kGR+MsplJ6X4JpnziDow+9oxKdu6FvFHWxHByncpveVeInusQPmL7Q==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-x64-gnu@1.5.3':
     resolution: {integrity: sha512-AsKqU4pIg0yYg1VvSEU0NspIwCexqXD2AYE0wujAAwBo0hOfbt5dl1JCK7idiZdIQvoFg86HbfGwdHIVcFLI0w==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rspack/binding-linux-x64-musl@1.5.2':
     resolution: {integrity: sha512-CsLC/SIOIFs6CBmusSAF0FECB62+J36alMdwl7j6TgN6nX3UQQapnL1aVWuQaxU6un/1Vpim0V/EZbUYIdJQ4g==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-linux-x64-musl@1.5.3':
     resolution: {integrity: sha512-0aHuvDef92pFZaHhk8Mp8RP9TfTzhQ+Pjqrc2ixRS/FeJA+jVB2CSaYlAPP4QrgXdmW7tewSxEw8hYhF9CNv/A==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rspack/binding-wasm32-wasi@1.5.2':
     resolution: {integrity: sha512-cuVbGr1b4q0Z6AtEraI3becZraPMMgZtZPRaIsVLeDXCmxup/maSAR3T6UaGf4Q2SNcFfjw4neGz5UJxPK8uvA==}
@@ -3415,6 +3427,7 @@ packages:
   tar@7.4.3:
     resolution: {integrity: sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   temp-dir@3.0.0:
     resolution: {integrity: sha512-nHc6S/bwIilKHNRgK/3jlhDoIHcp45YgyiwcAk46Tr0LfEqGBVpmiAyuiuxeVE44m3mXnEeVhaipLOEWmH+Njw==}
@@ -4180,7 +4193,7 @@ snapshots:
     dependencies:
       typescript: 5.9.2
 
-  '@mercuryworkshop/bare-mux@2.1.7': {}
+  '@mercuryworkshop/bare-mux@2.1.9': {}
 
   '@mercuryworkshop/epoxy-tls@2.1.18-1': {}
 
