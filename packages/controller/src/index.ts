@@ -287,6 +287,7 @@ export class Controller {
 					referrer: data.referrer,
 					body: data.body,
 					cache: data.cache,
+					clientId: data.clientId,
 				});
 
 				return [
@@ -646,7 +647,6 @@ function yieldGetInjectScripts(
 						yieldGetInjectScripts: ${yieldGetInjectScripts.toString()},
 						codecEncode: ${codecEncode.toString()},
 						codecDecode: ${codecDecode.toString()},
-						clientId: ${JSON.stringify(meta.clientId)},
 						initHeaders: ${JSON.stringify(htmlcontext.headers)},
 						history: ${JSON.stringify(htmlcontext.history)},
 					})

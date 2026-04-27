@@ -15,7 +15,6 @@ export type URLMeta = {
 	base: _URL;
 	topFrameName?: string;
 	parentFrameName?: string;
-	clientId: string;
 	referrerPolicy?: string;
 };
 
@@ -104,8 +103,6 @@ export type RewriteUrlOptions = {
 	referrerPolicyOverride?: string;
 	moduleType?: string;
 	navigateType?: NavigationType;
-	// is this an iframe, where we would want to create a new client
-	newClient?: boolean;
 	topFrame?: string;
 	parentFrame?: string;
 };
@@ -163,9 +160,6 @@ export function rewriteUrl(
 		realUrl.hash = "";
 
 		const paramsInit = new _URLSearchParams();
-		if (meta.clientId && !options?.newClient) {
-			paramsInit.append("cid", meta.clientId);
-		}
 
 		if (options?.referrerPolicyOverride) {
 			paramsInit.append("rfp", options.referrerPolicyOverride);

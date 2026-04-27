@@ -155,8 +155,7 @@ class RemoteTransport implements ProxyTransport {
 }
 
 const sw = navigator.serviceWorker.controller;
-const { SCRAMJETCLIENT, ScramjetClient, CookieJar, setWasm, generateClientId } =
-	$scramjet;
+const { SCRAMJETCLIENT, ScramjetClient, CookieJar, setWasm } = $scramjet;
 
 type Init = {
 	config: Config;
@@ -173,7 +172,6 @@ type Init = {
 	) => any;
 	codecEncode: (input: string) => string;
 	codecDecode: (input: string) => string;
-	clientId: string;
 	initHeaders: RawHeaders;
 	history: ScramjetGlobal.TrackedHistoryState[];
 };
@@ -183,7 +181,6 @@ export function load(init: Init) {
 		(
 			(globalThis as any)[SCRAMJETCLIENT] as ScramjetGlobal.ScramjetClient
 		).syncDocumentInit({
-			clientId: init.clientId,
 			initHeaders: init.initHeaders,
 			history: init.history,
 			cookies: init.cookies,
@@ -211,7 +208,6 @@ class ExecutionContextWrapper {
 	client!: ScramjetGlobal.ScramjetClient;
 	cookieJar: ScramjetGlobal.CookieJar;
 	transport: RemoteTransport;
-	clientId: string;
 	private handleServiceWorkerCookieMessage: (event: MessageEvent) => void;
 
 	constructor(
@@ -232,8 +228,6 @@ class ExecutionContextWrapper {
 
 		this.cookieJar = new CookieJar();
 		this.cookieJar.load(this.init.cookies);
-
-		this.clientId = init.clientId;
 
 		this.handleServiceWorkerCookieMessage = (event: MessageEvent) => {
 			if (
@@ -348,13 +342,9 @@ class ExecutionContextWrapper {
 				const context = new ExecutionContextWrapper(frameself, {
 					...this.init,
 					cookies: this.cookieJar.dump(),
-					// TODO: clientId will change over the lifetime once it recieves syncDocumentInit
-					// this is probably okay?
-					clientId: generateClientId(),
 				});
 				return context.client;
 			},
-			clientId: this.clientId,
 			initHeaders: this.init.initHeaders,
 			history: this.init.history,
 		});

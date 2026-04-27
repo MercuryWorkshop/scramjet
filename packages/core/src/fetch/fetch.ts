@@ -20,7 +20,6 @@ import {
 import { ScramjetHeaders } from "@/shared";
 import { isDocument, isRedirect, normalizeContentType } from "./util";
 import { rewriteBody } from "./body";
-import { generateClientId } from "@/shared/util";
 import { Tap } from "@/Tap";
 import { rewriteRequestHeaders, rewriteResponseHeaders } from "./headers";
 import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
@@ -59,7 +58,7 @@ export async function doHandleFetch(
 
 	if (isDocument(request)) {
 		// for document.referer
-		parsed.trackedClient.history.push({
+		parsed.trackedClient?.history.push({
 			url: parsed.url.href,
 			refererPolicy: ScramjetHeaders.fromRawHeaders(response.rawHeaders).get(
 				"referrer-policy"
@@ -210,7 +209,6 @@ export function parseRequest(
 	let scriptType: "module" | "regular" = "regular";
 	let topFrameName: string | undefined;
 	let parentFrameName: string | undefined;
-	let clientId: string | undefined;
 	let referrerPolicy: string | undefined;
 	let referrerSourceUrl: _URL | null | undefined;
 	let crossSiteRedirect = false;
@@ -226,9 +224,6 @@ export function parseRequest(
 				break;
 			case "parentFrame":
 				parentFrameName = value;
-				break;
-			case "cid":
-				clientId = value;
 				break;
 			case "rfp":
 				referrerPolicy = value;
@@ -269,25 +264,17 @@ export function parseRequest(
 		url.searchParams.set(param, value);
 	}
 
-	const documentFetch =
-		request.destination === "document" || request.destination === "iframe";
-	if (!clientId) {
-		if (
-			!documentFetch &&
-			(url.protocol === "https:" || url.protocol === "http:")
-		) {
-			dbg.error(
-				`no clientId provided for non-document/iframe fetch: ${request.rawUrl.href}`
-			);
+	const clientId = request.clientId;
+
+	let trackedClient: ScramjetFetchTrackedClient | undefined;
+	// realistically, this will always be true
+	// but try not to blow up if it's not
+	if (clientId) {
+		trackedClient = handler.trackedClients.get(clientId);
+		if (!trackedClient) {
+			trackedClient = new ScramjetFetchTrackedClient(clientId);
+			handler.trackedClients.set(clientId, trackedClient);
 		}
-
-		clientId = generateClientId();
-	}
-
-	let trackedClient = handler.trackedClients.get(clientId);
-	if (!trackedClient) {
-		trackedClient = new ScramjetFetchTrackedClient(clientId);
-		handler.trackedClients.set(clientId, trackedClient);
 	}
 
 	// TODO: figure out what origin and base actually mean
@@ -296,7 +283,6 @@ export function parseRequest(
 		base: url,
 		topFrameName,
 		parentFrameName,
-		clientId,
 		referrerPolicy: referrerPolicy,
 	};
 
