@@ -80,6 +80,7 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	},
 
 	SetRealmFn,
+	OpeningParen,
 	/// insert `)`
 	ClosingParen {
 		semi: bool,
@@ -266,6 +267,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				op,
 				"t))("
 			]),
+			Ty::OpeningParen => LL::insert(transforms!["("]),
 			Ty::ClosingParen { semi, replace } => {
 				let vec = if semi {
 					transforms![");"]

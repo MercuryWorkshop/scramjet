@@ -470,8 +470,10 @@ where
 			Expression::StaticMemberExpression(_) | Expression::Identifier(_) => {
 				// new top(), new location.top(), etc
 				// rewriting to new $wrap(location).top() WILL change semantics
-
-				// TODO: new top.Function("...") escapes here. this needs to be fixed but i cant really be bothered right now
+				// so it has to be wrapped to new ($wrap(location).top)()
+				// TODO: skip paren wrap if it's determined to be safe
+				self.jschanges.add(rewrite!(it.callee.span(), WrapNew));
+				walk::walk_expression(self, &it.callee);
 			}
 			Expression::ComputedMemberExpression(c) => {
 				walk::walk_expression(self, &c.expression);
