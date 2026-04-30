@@ -285,7 +285,7 @@ class ExecutionContextWrapper {
 	injectScramjet() {
 		const frame = this.global.frameElement as HTMLIFrameElement | null;
 		if (frame && !frame.name) {
-			frame.name = createFrameId();
+			window.name = frame.name = createFrameId();
 		}
 		let controllerFrame = frame?.[CONTROLLERFRAME];
 		let isTopLevel = true;
