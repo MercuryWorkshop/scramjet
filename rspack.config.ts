@@ -157,7 +157,7 @@ const createScramjetConfig = (options) => {
 
 						return hash;
 					} catch {
-						return "unknown";
+						return JSON.stringify("unknown");
 					}
 				})(),
 			}),
