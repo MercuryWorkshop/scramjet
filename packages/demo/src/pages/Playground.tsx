@@ -1,5 +1,7 @@
 import { css, type Component } from "dreamland/core";
-import { MonacoComponent } from "./MonacoComponent";
+import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import { controller } from "..";
+import Monaco from "../components/Monaco";
 
 const DEFAULT_ORIGIN = "https://fakeorigin.com";
 const DEFAULT_PREVIEW_URL = `${DEFAULT_ORIGIN}/`;
@@ -177,12 +179,12 @@ const requestPathToFilePath = (pathname: string) => {
 	return path;
 };
 
-export const PlaygroundPanel: Component<
+const PlaygroundView: Component<
 	{
-		frame: any;
 		active?: boolean;
 	},
 	{
+		frame: Frame;
 		pluginReady: boolean;
 		origin: string;
 		originInput: string;
@@ -195,7 +197,7 @@ export const PlaygroundPanel: Component<
 		isResizing: boolean;
 	},
 	{}
-> = function () {
+> = function (cx) {
 	this.pluginReady ??= false;
 	this.origin ??= DEFAULT_ORIGIN;
 	this.originInput ??= DEFAULT_ORIGIN;
@@ -206,6 +208,11 @@ export const PlaygroundPanel: Component<
 	this.isResizing ??= false;
 	this.projects ??= loadProjects();
 	this.selectedProjectId ??= this.projects[0]?.id ?? "default";
+
+	cx.mount = async () => {
+		await controller.wait();
+		this.frame = controller.createFrame();
+	};
 
 	const getActiveProject = () =>
 		this.projects.find((project) => project.id === this.selectedProjectId) ??
@@ -599,7 +606,7 @@ export const PlaygroundPanel: Component<
 						<div class="editor-header">
 							{use(this.selectedFile).map((path) => displayFilePath(path))}
 						</div>
-						<MonacoComponent
+						<Monaco
 							value={use(
 								this.selectedFile,
 								this.projects,
@@ -708,7 +715,7 @@ export const PlaygroundPanel: Component<
 	);
 };
 
-PlaygroundPanel.style = css`
+PlaygroundView.style = css`
 	@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0");
 
 	:scope {
@@ -1252,3 +1259,4 @@ PlaygroundPanel.style = css`
 		}
 	}
 `;
+export default PlaygroundView;

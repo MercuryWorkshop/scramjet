@@ -1,11 +1,22 @@
 import { createStore } from "dreamland/core";
 
+export type AvailableTransports = "libcurl" | "epoxy";
+
+export const AVAILABLE_TRANSPORTS: ReadonlyArray<{
+	value: AvailableTransports;
+	label: string;
+}> = [
+	{ value: "libcurl", label: "libcurl" },
+	{ value: "epoxy", label: "epoxy" },
+];
 const DEFAULT_WISP_URL = import.meta.env.VITE_WISP_URL;
+const DEFAULT_TRANSPORT: AvailableTransports = "libcurl";
 const DEFAULT_HOME_URL = "https://google.com";
 const DEFAULT_MAX_REQUESTS = 200;
 
 export const demoSettingsStore = createStore(
 	{
+		transport: DEFAULT_TRANSPORT as AvailableTransports,
 		wispUrl: DEFAULT_WISP_URL,
 		homeUrl: DEFAULT_HOME_URL,
 		maxRequests: DEFAULT_MAX_REQUESTS,
@@ -52,6 +63,13 @@ export function normalizeHomeUrl(value: string) {
 	return new URL(normalized).toString();
 }
 
+export function normalizeTransport(value: string): AvailableTransports {
+	if (AVAILABLE_TRANSPORTS.some((t) => t.value === value)) {
+		return value as AvailableTransports;
+	}
+	throw new TypeError(`Unknown transport: ${value}`);
+}
+
 export function normalizeMaxRequests(value: string | number) {
 	const parsed = Number(value);
 	if (!Number.isFinite(parsed)) {
@@ -68,6 +86,7 @@ export function normalizeMaxRequests(value: string | number) {
 
 export const demoSettingsDefaults = {
 	wispUrl: normalizeWispUrl(DEFAULT_WISP_URL),
+	transport: DEFAULT_TRANSPORT,
 	homeUrl: normalizeHomeUrl(DEFAULT_HOME_URL),
 	maxRequests: DEFAULT_MAX_REQUESTS,
 };

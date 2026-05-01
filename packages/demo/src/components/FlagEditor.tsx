@@ -1,6 +1,7 @@
 import { createStore, css, type Component } from "dreamland/core";
 import type { ScramjetFlags } from "@mercuryworkshop/scramjet";
 import { defaultConfigDev } from "@mercuryworkshop/scramjet";
+import { controller } from "..";
 
 const flagStore = createStore<ScramjetFlags>(
 	{
@@ -37,9 +38,8 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 		"Make debugger recognize javascript source urls consistently (debug feature)",
 };
 
-export const FlagEditor: Component<
+const FlagEditor: Component<
 	{
-		onFlagsChange?: (flags: ScramjetFlags) => void;
 		inline?: boolean;
 	},
 	{},
@@ -51,21 +51,17 @@ export const FlagEditor: Component<
 
 	const toggleFlag = (flag: keyof ScramjetFlags, value: boolean) => {
 		flagStore[flag] = value;
-		if (this.onFlagsChange) {
-			this.onFlagsChange(flagStore);
-		}
+		Object.assign(flagStore, controller.scramjetConfig.flags);
 	};
 
 	const resetToDefaults = () => {
 		Object.assign(flagStore, {
 			...defaultConfigDev.flags,
 		});
-		if (this.onFlagsChange) {
-			this.onFlagsChange(flagStore);
-		}
+		Object.assign(flagStore, controller.scramjetConfig.flags);
 	};
 	cx.mount = () => {
-		this.onFlagsChange!(flagStore);
+		Object.assign(flagStore, controller.scramjetConfig.flags);
 	};
 
 	return (
@@ -272,4 +268,4 @@ FlagEditor.style = css`
 	}
 `;
 
-export { flagStore };
+export default FlagEditor;
