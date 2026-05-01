@@ -4,8 +4,13 @@ import {
 	isJavascriptMimeType,
 	isXmlMimeType,
 	parseMimeType,
+	type ScramjetFetchRequest,
 } from "@mercuryworkshop/scramjet";
-import { MonacoComponent } from "./MonacoComponent";
+const { ScramjetFetchHandler, ScramjetHeaders, BareResponse, rewriteUrl } =
+	window.$scramjet;
+import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import { controller } from "..";
+import Monaco from "../components/Monaco";
 
 const SIM_ORIGIN = "https://response-playground.local";
 
@@ -28,12 +33,12 @@ const normalizePath = (value: string) => {
 	return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 };
 
-export const ResponsePlayground: Component<
+const ResponsePlayground: Component<
 	{
-		frame: any;
 		active?: boolean;
 	},
 	{
+		frame: Frame;
 		requestPath: string;
 		contentType: string;
 		sourceBody: string;
@@ -43,7 +48,7 @@ export const ResponsePlayground: Component<
 		hasRun: boolean;
 	},
 	{}
-> = function () {
+> = function (cx) {
 	this.requestPath ??= "/index.html";
 	this.contentType ??= "text/html; charset=utf-8";
 	this.sourceBody ??= `<!doctype html>
@@ -59,13 +64,21 @@ export const ResponsePlayground: Component<
   <body>
     <h1>Hello from simulated response</h1>
     <a href="/next">Relative link</a>
+	<script>
+		console.log(window.location)
+	</script>
   </body>
 </html>
 `;
-	this.rewrittenBody ??= "";
 	this.rewrittenContentType ??= this.contentType;
+	this.rewrittenBody ??= "";
 	this.status ??= "Ready";
 	this.hasRun ??= false;
+
+	cx.mount = async () => {
+		await controller.wait();
+		this.frame = controller.createFrame();
+	};
 
 	const readBodyText = async (body: unknown): Promise<string> => {
 		if (body == null) return "";
@@ -85,51 +98,30 @@ export const ResponsePlayground: Component<
 		return String(body);
 	};
 
-	const runSimulation = async (frame: any) => {
+	const runSimulation = async (frame: Frame) => {
 		if (!frame) return;
-		const ScramjetFetchHandlerCtor = (globalThis as any).$scramjet
-			?.ScramjetFetchHandler;
-		const ScramjetHeadersCtor = (globalThis as any).$scramjet?.ScramjetHeaders;
-		const BareResponseCtor = (globalThis as any).$scramjet?.BareResponse;
-		const rewriteUrl = (globalThis as any).$scramjet?.rewriteUrl;
-		if (
-			!ScramjetFetchHandlerCtor ||
-			!ScramjetHeadersCtor ||
-			!BareResponseCtor?.fromNativeResponse ||
-			!rewriteUrl
-		) {
-			console.log(
-				typeof ScramjetFetchHandlerCtor,
-				typeof ScramjetHeadersCtor,
-				typeof BareResponseCtor,
-				typeof rewriteUrl
-			);
-			this.status = "$scramjet runtime unavailable";
-			return;
-		}
-
 		const path = normalizePath(this.requestPath);
 		this.requestPath = path;
 		this.status = "Rewriting...";
 		this.hasRun = true;
 
 		try {
-			const handler = new ScramjetFetchHandlerCtor({
+			const handler = new ScramjetFetchHandler({
 				crossOriginIsolated: self.crossOriginIsolated,
 				context: frame.context,
 				transport: frame.controller.transport,
 				async sendSetCookie() {},
 				async fetchBlobUrl(url: string) {
-					return BareResponseCtor.fromNativeResponse(await fetch(url));
+					return BareResponse.fromNativeResponse(await fetch(url));
 				},
 				async fetchDataUrl(url: string) {
-					return BareResponseCtor.fromNativeResponse(await fetch(url));
+					return BareResponse.fromNativeResponse(await fetch(url));
 				},
 			});
 
 			const originalFetch = handler.client.fetch.bind(handler.client);
 			handler.client.fetch = async () =>
-				BareResponseCtor.fromNativeResponse(
+				BareResponse.fromNativeResponse(
 					new Response(this.sourceBody, {
 						status: 200,
 						statusText: "OK",
@@ -142,23 +134,29 @@ export const ResponsePlayground: Component<
 
 			const targetUrl = `${SIM_ORIGIN}${path}`;
 			const encoded = rewriteUrl(targetUrl, frame.context, {
+				//@ts-expect-error
 				origin: new URL(location.href),
+				//@ts-expect-error
 				base: new URL(location.href),
 			});
 
 			const request = {
 				rawUrl: new URL(encoded, location.href),
 				rawClientUrl: new URL(location.href),
+				rawReferrer: "",
 				destination: "document",
 				mode: "navigate",
 				referrer: "",
 				method: "GET",
 				body: null,
 				cache: "default",
-				initialHeaders: new ScramjetHeadersCtor(),
+				initialHeaders: new ScramjetHeaders(),
+				clientId: frame.id,
 			};
 
-			const rewritten = await handler.handleFetch(request as any);
+			const rewritten = await handler.handleFetch(
+				request as ScramjetFetchRequest
+			);
 			handler.client.fetch = originalFetch;
 
 			this.rewrittenBody = await readBodyText(rewritten.body);
@@ -214,7 +212,7 @@ export const ResponsePlayground: Component<
 					</button>
 				</div>
 				<div class="editor-wrap">
-					<MonacoComponent
+					<Monaco
 						value={use(this.sourceBody)}
 						language={use(this.contentType).map((ct) =>
 							languageFromContentType(ct)
@@ -239,7 +237,7 @@ export const ResponsePlayground: Component<
 					</span>
 				</div>
 				<div class="editor-wrap">
-					<MonacoComponent
+					<Monaco
 						value={use(this.rewrittenBody)}
 						language={use(this.rewrittenContentType).map((ct) =>
 							languageFromContentType(ct)
@@ -348,3 +346,4 @@ ResponsePlayground.style = css`
 		}
 	}
 `;
+export default ResponsePlayground;

@@ -1,4 +1,9 @@
-import { css, type Component } from "dreamland/core";
+import {
+	css,
+	type Component,
+	type Delegate,
+	createState,
+} from "dreamland/core";
 import {
 	isHtmlMimeType,
 	isImageMimeType,
@@ -6,8 +11,11 @@ import {
 	isXmlMimeType,
 	parseMimeType,
 } from "@mercuryworkshop/scramjet";
-import { MonacoComponent } from "./MonacoComponent";
-import { RequestCard } from "./RequestCard";
+const { Plugin: ScramjetPlugin } = window.$scramjet;
+import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import { demoSettingsStore } from "../store";
+import Monaco from "../components/Monaco";
+import { browserState } from "./BrowserView";
 
 export type RequestEntry = {
 	id: string;
@@ -257,7 +265,7 @@ const StableBodyViewer: Component<
 								`body-monaco ${mode === "code" && loaded ? "" : "hidden"}`
 						)}
 				>
-					<MonacoComponent
+					<Monaco
 						value={value}
 						language={use(this.language).map(
 							(language) => language ?? "plaintext"
@@ -411,21 +419,174 @@ HeadersTable.style = css`
 	}
 `;
 
-export const RequestViewer: Component<
+const RequestCard: Component<
 	{
-		frame: any;
-		active?: boolean;
-		requests: RequestEntry[];
-		selectedId: string | null;
-		maxRequests: number;
+		request: RequestEntry;
+		selected: boolean;
 		onSelect?: (id: string) => void;
-		onClear?: () => void;
-		onRequestsChange?: (
-			updater: (prev: RequestEntry[]) => RequestEntry[]
-		) => void;
-		onSelectedChange?: (id: string | null) => void;
+	},
+	{},
+	{}
+> = function () {
+	return (
+		<div
+			class={use(this.selected).map(
+				(selected) => `request-row ${selected ? "selected" : ""}`
+			)}
+			data-request-id={this.request.id}
+			data-status={this.request.status ?? ""}
+			on:pointerdown={(e: PointerEvent) => {
+				if (e.button !== 0) return;
+				this.onSelect?.(this.request.id);
+			}}
+		>
+			<div class="request-primary">
+				<span class="request-method">{this.request.method}</span>
+				<div class="request-url" title={this.request.url}>
+					{this.request.url}
+				</div>
+			</div>
+			<div class="request-main">
+				<span
+					class={
+						this.request.status !== undefined
+							? `request-status status-${Math.floor(this.request.status / 100)}`
+							: "request-status"
+					}
+				>
+					{this.request.status ?? "…"}
+				</span>
+				<span class="request-duration">
+					{this.request.durationMs !== undefined
+						? `${this.request.durationMs}ms`
+						: "…"}
+				</span>
+				<span class="request-destination">
+					{this.request.destination ?? "unknown"}
+				</span>
+				<span class="request-time">{this.request.time}</span>
+				{this.request.contentType ? (
+					<span class="request-type">{this.request.contentType}</span>
+				) : null}
+			</div>
+		</div>
+	);
+};
+
+RequestCard.style = css`
+	.request-row {
+		display: grid;
+		gap: 0.18em;
+		padding: 0.38em 0.5em;
+		border: 1px solid #262626;
+		border-radius: 6px;
+		background: #101010;
+		cursor: pointer;
+		transition:
+			border-color 0.15s ease,
+			box-shadow 0.15s ease,
+			background 0.15s ease;
+	}
+	.request-row:hover {
+		border-color: #3a3a3a;
+		background: #141414;
+	}
+	.request-row.selected {
+		border-color: #60a5fa;
+		box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.5);
+		background: #141a22;
+	}
+	.request-primary {
+		display: flex;
+		align-items: center;
+		gap: 0.4em;
+		min-width: 0;
+	}
+	.request-main {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.35em 0.45em;
+		font-size: 0.72em;
+		line-height: 1.15;
+	}
+	.request-method {
+		font-weight: 600;
+		color: #fff;
+		padding: 0.08em 0.36em;
+		border-radius: 4px;
+		background: rgba(59, 130, 246, 0.2);
+		border: 1px solid rgba(59, 130, 246, 0.35);
+		letter-spacing: 0.02em;
+		flex: 0 0 auto;
+	}
+	.request-status {
+		padding: 0.08em 0.35em;
+		border-radius: 4px;
+		background: rgba(148, 163, 184, 0.15);
+		border: 1px solid rgba(148, 163, 184, 0.35);
+		color: #e2e8f0;
+		min-width: 2.2em;
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
+	.request-status.status-2 {
+		background: rgba(34, 197, 94, 0.15);
+		border: 1px solid rgba(34, 197, 94, 0.35);
+		color: #bbf7d0;
+	}
+	.request-status.status-3 {
+		background: rgba(56, 189, 248, 0.15);
+		border: 1px solid rgba(56, 189, 248, 0.35);
+		color: #bae6fd;
+	}
+	.request-status.status-4 {
+		background: rgba(251, 191, 36, 0.15);
+		border: 1px solid rgba(251, 191, 36, 0.35);
+		color: #fde68a;
+	}
+	.request-status.status-5 {
+		background: rgba(248, 113, 113, 0.18);
+		border: 1px solid rgba(248, 113, 113, 0.4);
+		color: #fecaca;
+	}
+	.request-duration,
+	.request-destination,
+	.request-time {
+		color: #9ca3af;
+		font-variant-numeric: tabular-nums;
+	}
+	.request-url {
+		font-size: 0.76em;
+		line-height: 1.15;
+		color: #e5e7eb;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+	.request-type {
+		font-size: 1em;
+		line-height: 1;
+		color: #93c5fd;
+		background: rgba(59, 130, 246, 0.1);
+		border: 1px solid rgba(59, 130, 246, 0.2);
+		padding: 0.08em 0.3em;
+		border-radius: 999px;
+	}
+`;
+
+export const requestsState = createState({
+	requests: [] as RequestEntry[],
+});
+
+const RequestViewer: Component<
+	{
+		active?: boolean;
 	},
 	{
+		selectedId: string | null;
 		search: string;
 		captureStreamBodies: boolean;
 		selectedRequest: RequestEntry | null;
@@ -448,6 +609,7 @@ export const RequestViewer: Component<
 	},
 	{}
 > = function () {
+	this.selectedId ??= null;
 	this.search ??= "";
 	this.captureStreamBodies ??= false;
 	this.selectedRequest ??= null;
@@ -462,12 +624,6 @@ export const RequestViewer: Component<
 	this.pendingRequestsUpdater ??= null;
 	this.requestIdByRequest ??= new WeakMap();
 	this.requestStartByRequest ??= new WeakMap();
-
-	if (!this.onSelectedChange && this.onSelect) {
-		this.onSelectedChange = (id) => {
-			if (id != null) this.onSelect?.(id);
-		};
-	}
 
 	const isNearBottom = (el: HTMLElement) =>
 		el.scrollHeight - el.clientHeight - el.scrollTop <= 8;
@@ -540,21 +696,32 @@ export const RequestViewer: Component<
 			if (!queuedUpdater) return;
 
 			captureListAnchor();
-			this.onRequestsChange?.(queuedUpdater);
+			requestsState.requests = queuedUpdater(requestsState.requests);
 			restoreListAnchor();
 		});
+	};
+
+	const select = (id: string | null) => {
+		this.selectedId = id;
+	};
+
+	const clear = () => {
+		requestsState.requests = [];
+		this.selectedId = null;
 	};
 
 	const shouldCaptureStreamBodies = () => this.captureStreamBodies !== false;
 	const getRequestById = (id: string | null, requests: RequestEntry[]) =>
 		id ? (requests.find((entry) => entry.id === id) ?? null) : null;
 
-	use(this.selectedId, this.requests).listen(([selectedId, requests]) => {
-		const nextSelected = getRequestById(selectedId, requests);
-		if (this.selectedRequest !== nextSelected) {
-			this.selectedRequest = nextSelected;
+	use(this.selectedId, requestsState.requests).listen(
+		([selectedId, requests]) => {
+			const nextSelected = getRequestById(selectedId, requests);
+			if (this.selectedRequest !== nextSelected) {
+				this.selectedRequest = nextSelected;
+			}
 		}
-	});
+	);
 
 	const hasSelected = use(this.selectedRequest).map((selected) => !!selected);
 	const selectedUrl = use(this.selectedRequest).map(
@@ -645,12 +812,11 @@ export const RequestViewer: Component<
 		)
 	);
 
-	const initPlugin = (frame: any) => {
-		if (this.pluginReady || !frame) return;
+	const initPlugin = (frame: Frame) => {
+		if (this.pluginReady) return;
 		this.pluginReady = true;
-		const ScramjetPlugin = (globalThis as any).$scramjet.Plugin;
 		const plugin = new ScramjetPlugin("demo-request-viewer");
-		plugin.tap(frame.hooks.fetch.request, (context: any, props: any) => {
+		plugin.tap(frame.hooks.fetch.request, (context, props) => {
 			const id = `${Date.now()}-${++this.requestSeq}`;
 			const url = props.url?.toString?.() ?? context.parsed.url.toString();
 			this.requestIdByRequest.set(context.request as object, id);
@@ -659,7 +825,9 @@ export const RequestViewer: Component<
 				performance.now()
 			);
 			const reqHeaders = normalizeHeaders(props.init?.headers);
-			const reqHeadersPre = normalizeHeaders(context.request.initialHeaders);
+			const reqHeadersPre = normalizeHeaders(
+				context.request.initialHeaders.toRawHeaders()
+			);
 			const reqBodyInfo = getBodyPreview(props.init?.body);
 
 			const entry: RequestEntry = {
@@ -676,14 +844,14 @@ export const RequestViewer: Component<
 			};
 
 			updateRequests((prev) => {
-				const next = [...prev, entry].slice(-this.maxRequests);
+				const next = [...prev, entry].slice(-demoSettingsStore.maxRequests);
 				if (!this.selectedId) {
 					this.selectedRequest = entry;
 				}
 				return next;
 			});
 			if (!this.selectedId) {
-				this.onSelectedChange?.(id);
+				this.selectedId = id;
 			}
 		});
 
@@ -830,8 +998,7 @@ export const RequestViewer: Component<
 			);
 		});
 	};
-
-	const activeSignal = use(this.active ?? false, this.frame).map(
+	const activeSignal = use(this.active ?? false, browserState.frame).map(
 		([active, frame]) => {
 			if (active) initPlugin(frame);
 			return active;
@@ -844,13 +1011,11 @@ export const RequestViewer: Component<
 			<div class="requests-header">
 				<span>
 					Requests, oldest to newest (latest{" "}
-					{use(this.maxRequests).map((max) => max)})
+					{use(demoSettingsStore.maxRequests).map((max) => max)})
 				</span>
-				{this.onClear ? (
-					<button class="tab-action" on:click={() => this.onClear?.()}>
-						Clear
-					</button>
-				) : null}
+				<button class="tab-action" on:click={clear}>
+					Clear
+				</button>
 			</div>
 			<div class="requests-toolbar">
 				<input
@@ -874,44 +1039,46 @@ export const RequestViewer: Component<
 			</div>
 			<div class="requests-content">
 				<div class="requests-list" this={use(this.listEl)}>
-					{use(this.requests, this.search).map(([requests, search]) => {
-						const query = search.trim().toLowerCase();
-						const filtered = query
-							? requests.filter((req) => {
-									const haystack = [
-										req.url,
-										req.method,
-										String(req.status ?? ""),
-										req.contentType ?? "",
-										req.destination ?? "",
-										req.time,
-									]
-										.join(" ")
-										.toLowerCase();
-									return haystack.includes(query);
-								})
-							: requests;
+					{use(requestsState.requests, this.search).map(
+						([requests, search]) => {
+							const query = search.trim().toLowerCase();
+							const filtered = query
+								? requests.filter((req) => {
+										const haystack = [
+											req.url,
+											req.method,
+											String(req.status ?? ""),
+											req.contentType ?? "",
+											req.destination ?? "",
+											req.time,
+										]
+											.join(" ")
+											.toLowerCase();
+										return haystack.includes(query);
+									})
+								: requests;
 
-						if (filtered.length === 0) {
-							return (
-								<div class="requests-empty">
-									{requests.length === 0
-										? "No requests captured yet."
-										: "No requests match your search."}
-								</div>
-							);
+							if (filtered.length === 0) {
+								return (
+									<div class="requests-empty">
+										{requests.length === 0
+											? "No requests captured yet."
+											: "No requests match your search."}
+									</div>
+								);
+							}
+
+							return filtered.map((req) => (
+								<RequestCard
+									request={req}
+									selected={use(this.selectedId).map(
+										(selectedId) => selectedId === req.id
+									)}
+									onSelect={select}
+								/>
+							));
 						}
-
-						return filtered.map((req) => (
-							<RequestCard
-								request={req}
-								selected={use(this.selectedId).map(
-									(selectedId) => selectedId === req.id
-								)}
-								onSelect={this.onSelect}
-							/>
-						));
-					})}
+					)}
 				</div>
 				<div class="requests-detail">
 					<div
@@ -1343,3 +1510,5 @@ RequestViewer.style = css`
 		font-style: italic;
 	}
 `;
+
+export default RequestViewer;

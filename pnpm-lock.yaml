@@ -16,7 +16,7 @@ catalogs:
       specifier: 1.0.2
       version: 1.0.2
     '@mercuryworkshop/wisp-js':
-      specifier: ^0.4.1
+      specifier: 0.4.1
       version: 0.4.1
 
 overrides:
@@ -245,6 +245,9 @@ importers:
 
   packages/demo:
     dependencies:
+      '@mercuryworkshop/epoxy-transport':
+        specifier: 'catalog:'
+        version: 3.0.1
       '@mercuryworkshop/libcurl-transport':
         specifier: 'catalog:'
         version: 2.0.5

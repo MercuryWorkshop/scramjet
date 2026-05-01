@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Scramjet Demo</title>
+		<style>
+			:root {
+				color-scheme: dark;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				font-family:
+					system-ui,
+					-apple-system,
+					"Segoe UI",
+					Roboto,
+					"Helvetica Neue",
+					Arial,
+					sans-serif;
+				background: #0f0f0f;
+				color: #e5e7eb;
+				display: grid;
+				place-items: start center;
+				padding: 30px 18px;
+			}
+			.sheet {
+				width: min(760px, 100%);
+				/*border: 1px solid #222;
+        background: #111;
+		*/
+				padding: 26px 28px;
+			}
+			h1 {
+				margin: 0 0 8px;
+				font-size: 1.55rem;
+				font-weight: 650;
+				letter-spacing: 0.005em;
+			}
+			.meta {
+				color: #9ca3af;
+				font-size: 0.78rem;
+				margin: 0 0 20px;
+			}
+			.section {
+				margin: 0 0 18px;
+			}
+			.label {
+				display: block;
+				margin-bottom: 6px;
+				color: #e5e7eb;
+				font-size: 1.1rem;
+				font-weight: 630;
+				letter-spacing: 0.01em;
+				text-transform: none;
+			}
+			p {
+				margin: 0;
+				color: #c7c7c7;
+				line-height: 1.62;
+				font-size: 0.94rem;
+				max-width: 70ch;
+			}
+			code {
+				font-family: "SF Mono", Menlo, Consolas, monospace;
+				color: #e5e7eb;
+				background: #181818;
+				border: 1px solid #2a2a2a;
+				padding: 1px 5px;
+			}
+			a {
+				color: inherit;
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+		</style>
+	</head>
+	<body>
+		<main class="sheet">
+			<h1>Welcome to Scramjet!</h1>
+			<p class="meta">
+				Version {{SCRAMJET_VERSION}} |
+				<a
+					href="https://github.com/MercuryWorkshop/scramjet/commit/{{SCRAMJET_BUILD}}"
+					target="_blank"
+					>Build {{SCRAMJET_BUILD}}</a
+				>
+				| Updated {{SCRAMJET_DATE_PRETTY}}
+			</p>
+
+			<section class="section">
+				<p>
+					<a href="https://github.com/MercuryWorkshop/scramjet" target="_blank"
+						><strong>Scramjet</strong></a
+					>
+					is an experimental <strong>interception-based web proxy</strong>,
+					designed to evade internet censorship and bypass arbitrary browser
+					restrictions.<br /><br />
+					Scramjet allows you to sandbox arbitrary web content, bypass CORS
+					restrictions on loading websites, and instrument and debug websites
+					inside the browser itself. This is accomplished through a combination
+					of interception, rewriting, and sandboxing techniques. You can learn
+					more about the technical details
+					<a
+						href="https://developer.puter.com/blog/how-I-ported-the-web-to-the-web/"
+						target="_blank"
+						><strong>here</strong></a
+					>.<br /><br />
+					If you're interested in contributing to scramjet, or want to build
+					your own web proxy or application using it, you should check out the
+					<a href="https://github.com/MercuryWorkshop/scramjet" target="_blank"
+						><strong>GitHub repository</strong></a
+					>.<br /><br />
+					This website is a demo of scramjet's capabilities, letting you browse
+					the web proxied through scramjet, inspect how scramjet rewrites
+					requests and responses, and see how scramjet handles your custom
+					content in the playground.
+				</p>
+			</section>
+
+			<section class="section">
+				<span class="label">Browser</span>
+				<p>
+					Try entering a URL in the box above to browse the web proxied through
+					scramjet.<br />
+					All traffic sent through scramjet is
+					<strong>fully end-to-end encrypted</strong> with TLS, powered by
+					<a href="https://github.com/ading2210/libcurl.js" target="_blank"
+						><strong>libcurl.js</strong></a
+					>
+					and the
+					<a
+						href="https://github.com/MercuryWorkshop/wisp-protocol"
+						target="_blank"
+						><strong>wisp protocol</strong></a
+					>.
+				</p>
+			</section>
+
+			<section class="section">
+				<span class="label">Requests</span>
+				<p>
+					You can inspect all the requests sent through scramjet, and what
+					transformations are applied in the requests tab.<br />
+					Note that requests will not be captured until you first click on the
+					requests tab.
+				</p>
+			</section>
+
+			<section class="section">
+				<span class="label">Playground</span>
+				<p>
+					The playground lets you write your own html/css/js snippets which will
+					be run inside the scramjet sandbox. Your files are "served" by
+					scramjet from a fake origin, which can be configured to be any URL.
+					Notice that if you add a <code>console.log(location.href)</code> in
+					your code, the page will really be running on the fake origin.
+				</p>
+			</section>
+		</main>
+	</body>
+</html>

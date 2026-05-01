@@ -1,20 +1,21 @@
 import { css, type Component } from "dreamland/core";
-import LibcurlClient from "@mercuryworkshop/libcurl-transport";
-import { controller } from ".";
+import { controller, getTransport } from "..";
 import {
+	AVAILABLE_TRANSPORTS,
+	type AvailableTransports,
 	demoSettingsDefaults,
 	demoSettingsStore,
 	normalizeHomeUrl,
 	normalizeMaxRequests,
+	normalizeTransport,
 	normalizeWispUrl,
-} from "./demoSettings";
+} from "../store";
 
-export const SettingsPanel: Component<
-	{
-		onHomeUrlApply?: (url: string) => void;
-	},
+const SettingsView: Component<
+	{},
 	{
 		wispUrlInput: string;
+		transportInput: AvailableTransports;
 		homeUrlInput: string;
 		maxRequestsInput: string;
 		status: string;
@@ -23,6 +24,7 @@ export const SettingsPanel: Component<
 	{}
 > = function () {
 	this.wispUrlInput ??= demoSettingsStore.wispUrl;
+	this.transportInput ??= demoSettingsStore.transport;
 	this.homeUrlInput ??= demoSettingsStore.homeUrl;
 	this.maxRequestsInput ??= String(demoSettingsStore.maxRequests);
 	this.status ??= "";
@@ -30,6 +32,7 @@ export const SettingsPanel: Component<
 
 	const syncInputsFromStore = () => {
 		this.wispUrlInput = demoSettingsStore.wispUrl;
+		this.transportInput = demoSettingsStore.transport;
 		this.homeUrlInput = demoSettingsStore.homeUrl;
 		this.maxRequestsInput = String(demoSettingsStore.maxRequests);
 	};
@@ -40,26 +43,29 @@ export const SettingsPanel: Component<
 
 		try {
 			const nextWispUrl = normalizeWispUrl(this.wispUrlInput);
+			const nextTransport = normalizeTransport(this.transportInput);
 			const nextHomeUrl = normalizeHomeUrl(this.homeUrlInput);
 			const nextMaxRequests = normalizeMaxRequests(this.maxRequestsInput);
 			const wispChanged = nextWispUrl !== demoSettingsStore.wispUrl;
+			const transportChanged = nextTransport !== demoSettingsStore.transport;
 
 			demoSettingsStore.wispUrl = nextWispUrl;
+			demoSettingsStore.transport = nextTransport;
 			demoSettingsStore.homeUrl = nextHomeUrl;
 			demoSettingsStore.maxRequests = nextMaxRequests;
 
 			this.wispUrlInput = nextWispUrl;
+			this.transportInput = nextTransport;
 			this.homeUrlInput = nextHomeUrl;
 			this.maxRequestsInput = String(nextMaxRequests);
 
-			if (wispChanged) {
-				controller.setTransport(new LibcurlClient({ wisp: nextWispUrl }));
+			if (wispChanged || transportChanged) {
+				controller.setTransport(getTransport());
 			}
-
-			this.onHomeUrlApply?.(nextHomeUrl);
-			this.status = wispChanged
-				? "Settings saved. Wisp transport updated for new requests."
-				: "Settings saved.";
+			this.status =
+				wispChanged || transportChanged
+					? "Settings saved. Transport updated for new requests."
+					: "Settings saved.";
 		} catch (error) {
 			this.status = "";
 			this.error =
@@ -71,6 +77,7 @@ export const SettingsPanel: Component<
 		this.error = "";
 		this.status = "Resetting settings...";
 		this.wispUrlInput = demoSettingsDefaults.wispUrl;
+		this.transportInput = demoSettingsDefaults.transport;
 		this.homeUrlInput = demoSettingsDefaults.homeUrl;
 		this.maxRequestsInput = String(demoSettingsDefaults.maxRequests);
 		await applySettings();
@@ -97,6 +104,24 @@ export const SettingsPanel: Component<
 					}}
 				/>
 				<span class="hint">Example: ws://localhost:4142/</span>
+			</label>
+
+			<label class="field">
+				<span class="label">Transport</span>
+				<select
+					value={use(this.transportInput)}
+					on:change={(e: Event) => {
+						this.transportInput = (e.target as HTMLSelectElement)
+							.value as AvailableTransports;
+					}}
+				>
+					{AVAILABLE_TRANSPORTS.map((option) => (
+						<option value={option.value}>{option.label}</option>
+					))}
+				</select>
+				<span class="hint">
+					Transport client used to dispatch outbound requests over Wisp.
+				</span>
 			</label>
 
 			<label class="field">
@@ -160,7 +185,7 @@ export const SettingsPanel: Component<
 	);
 };
 
-SettingsPanel.style = css`
+SettingsView.style = css`
 	:scope {
 		display: block;
 		flex: 1;
@@ -211,7 +236,8 @@ SettingsPanel.style = css`
 		color: #e5e7eb;
 	}
 
-	input {
+	input,
+	select {
 		width: 100%;
 		padding: 0.55em 0.65em;
 		border: 1px solid #2a2a2a;
@@ -224,8 +250,27 @@ SettingsPanel.style = css`
 		box-sizing: border-box;
 	}
 
-	input:focus {
+	input:focus,
+	select:focus {
 		border-color: #4a4a4a;
+	}
+
+	select {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		background-image:
+			linear-gradient(45deg, transparent 50%, #8f8f8f 50%),
+			linear-gradient(135deg, #8f8f8f 50%, transparent 50%);
+		background-position:
+			calc(100% - 14px) 50%,
+			calc(100% - 9px) 50%;
+		background-size:
+			5px 5px,
+			5px 5px;
+		background-repeat: no-repeat;
+		padding-right: 28px;
+		cursor: pointer;
 	}
 
 	.hint {
@@ -284,3 +329,4 @@ SettingsPanel.style = css`
 		color: #b8c2cc;
 	}
 `;
+export default SettingsView;
