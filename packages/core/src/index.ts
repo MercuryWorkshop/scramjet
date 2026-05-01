@@ -54,7 +54,7 @@ export const defaultConfigDev: ScramjetConfig = {
 	...defaultConfig,
 	flags: {
 		...defaultConfig.flags,
-		rewriterLogs: true,
+		rewriterLogs: false,
 		captureErrors: true,
 		cleanErrors: false,
 		debugTrampolines: true,

@@ -361,6 +361,7 @@ export class ScramjetClient {
 
 				return client.url;
 			},
+			// TODO: very bad assumptions made here, window.parent never throws
 			get topFrameName() {
 				if (!iswindow)
 					throw new Error("topFrameName was called from a worker?");
@@ -412,56 +413,60 @@ export class ScramjetClient {
 					throw new Error("parentFrameName was called from a worker?");
 
 				try {
-					if (client.global.parent.window == client.global.window) {
-						// we're top level & we don't have a frame name
+					try {
+						if (client.global.parent.window == client.global.window) {
+							// we're top level & we don't have a frame name
+							return null;
+						}
+					} catch {
+						// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
 						return null;
+					}
+
+					const parentWin = client.global.parent.window;
+					if (parentWin[SCRAMJETCLIENT]) {
+						// we're inside an iframe, and the parent is scramjet-controlled
+						const parentClient = parentWin[SCRAMJETCLIENT];
+						const frame = parentClient.descriptors.get(
+							"window.frameElement",
+							parentWin
+						);
+
+						if (!frame) {
+							// parent is scramjet controlled and top-level. there is no parent frame name
+							return null;
+						}
+
+						if (!frame.name) {
+							// the parent frame is scramjet-controlled, but it has no name. this is user error
+							dbg.error(
+								"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+							);
+
+							return null;
+						}
+
+						return frame.name;
+					} else {
+						// we're inside an iframe, and the parent is not scramjet-controlled
+						// return our own frame name
+						const frame = client.descriptors.get(
+							"window.frameElement",
+							client.global
+						);
+						if (!frame.name) {
+							// the parent frame is not scramjet-controlled, so we can't get a parent frame name
+							dbg.error(
+								"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+							);
+
+							return null;
+						}
+
+						return frame.name;
 					}
 				} catch {
-					// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
 					return null;
-				}
-
-				const parentWin = client.global.parent.window;
-				if (parentWin[SCRAMJETCLIENT]) {
-					// we're inside an iframe, and the parent is scramjet-controlled
-					const parentClient = parentWin[SCRAMJETCLIENT];
-					const frame = parentClient.descriptors.get(
-						"window.frameElement",
-						parentWin
-					);
-
-					if (!frame) {
-						// parent is scramjet controlled and top-level. there is no parent frame name
-						return null;
-					}
-
-					if (!frame.name) {
-						// the parent frame is scramjet-controlled, but it has no name. this is user error
-						dbg.error(
-							"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
-						);
-
-						return null;
-					}
-
-					return frame.name;
-				} else {
-					// we're inside an iframe, and the parent is not scramjet-controlled
-					// return our own frame name
-					const frame = client.descriptors.get(
-						"window.frameElement",
-						client.global
-					);
-					if (!frame.name) {
-						// the parent frame is not scramjet-controlled, so we can't get a parent frame name
-						dbg.error(
-							"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
-						);
-
-						return null;
-					}
-
-					return frame.name;
 				}
 			},
 			get referrerPolicy(): string | undefined {
