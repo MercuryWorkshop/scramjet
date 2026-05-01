@@ -60,7 +60,8 @@ const FlagEditor: Component<
 		});
 		Object.assign(flagStore, controller.scramjetConfig.flags);
 	};
-	cx.mount = () => {
+	cx.mount = async () => {
+		await controller.wait();
 		Object.assign(flagStore, controller.scramjetConfig.flags);
 	};
 
