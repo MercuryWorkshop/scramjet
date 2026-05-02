@@ -725,6 +725,18 @@ return { apply, construct };
 						return returnValue;
 					},
 				};
+				if (
+					!this.flagEnabled("debugTrampolines") &&
+					this.flagEnabled("allowFailedIntercepts")
+				) {
+					// fast path, no error detection
+					handler.apply(ctx);
+
+					if (earlyreturn) {
+						return returnValue;
+					}
+					return applyFn(ctx.fn, ctx.this, ctx.args);
+				}
 
 				const pst = Error.prepareStackTrace;
 
