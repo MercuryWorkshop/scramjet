@@ -6,7 +6,7 @@ import {
 } from "dreamland/core";
 const { Plugin: ScramjetPlugin } = window.$scramjet;
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
-import { controller } from "..";
+import { cachePlugin, controller } from "..";
 import { demoSettingsStore } from "../store";
 import homepage from "./homepage.html?raw";
 
@@ -136,6 +136,7 @@ const BrowserView: Component<
 	cx.mount = async () => {
 		await controller.wait();
 		browserState.frame = controller.createFrame(this.frameel);
+		cachePlugin.install(browserState.frame);
 		const versionInfo = window.$scramjet.versionInfo ?? {};
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(
@@ -160,7 +161,7 @@ const BrowserView: Component<
 		const plugin = new ScramjetPlugin("url-watcher");
 		plugin.tap(frame.hooks.frameInit.post, (context, props) => {
 			if (!context.isTopLevel) return;
-			browserState.url = context.client.url;
+			browserState.url = context.client.url.href;
 			plugin.tap(context.client.hooks.lifecycle.navigate, (context, props) => {
 				browserState.url = props.url;
 			});
