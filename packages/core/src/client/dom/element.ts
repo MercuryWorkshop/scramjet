@@ -1,13 +1,12 @@
 import { htmlRules } from "@/shared/htmlRules";
 import {
 	String,
-	Array_from,
 	TextEncoder_encode,
-	btoa,
 	Object_keys,
 	Object_defineProperty,
 	atob,
 } from "@/shared/snapshot";
+import { bytesToBase64 } from "@/shared/util";
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { rewriteJs } from "@rewriters/js";
@@ -16,14 +15,6 @@ import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { isHtmlMimeType } from "@/shared/mime";
 import { ForeignContext } from "@/shared/rewriters/html";
-
-function bytesToBase64(bytes: Uint8Array) {
-	const binString = Array_from(bytes, (byte) =>
-		String.fromCodePoint(byte)
-	).join("");
-
-	return btoa(binString);
-}
 
 export function foreignContextForElement(
 	client: ScramjetClient,
