@@ -34,6 +34,20 @@ export async function doHandleFetch(
 		return handleBlobOrDataUrlFetch(handler, request, parsed);
 	}
 
+	const interceptCtx: typeof handler.hooks.fetch.intercept.context = {
+		request,
+		parsed,
+	};
+	const interceptProps: typeof handler.hooks.fetch.intercept.props = {};
+	await Tap.dispatch(
+		handler.hooks.fetch.intercept,
+		interceptCtx,
+		interceptProps
+	);
+	if (interceptProps.response) {
+		return interceptProps.response;
+	}
+
 	if (parsed.hadExtraParams && isDocument(request)) {
 		const location = rewriteUrl(parsed.url, handler.context, parsed.meta);
 		if (location !== request.rawUrl.href) {
