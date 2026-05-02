@@ -4,7 +4,8 @@ import {
 	type Component,
 	createState,
 } from "dreamland/core";
-const { Plugin: ScramjetPlugin } = window.$scramjet;
+const { Plugin: ScramjetPlugin, ScramjetHeaders } = window.$scramjet;
+import type { Plugin } from "@mercuryworkshop/scramjet";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
 import { cachePlugin, controller } from "..";
 import { demoSettingsStore } from "../store";
@@ -137,6 +138,29 @@ const BrowserView: Component<
 		await controller.wait();
 		browserState.frame = controller.createFrame(this.frameel);
 		cachePlugin.install(browserState.frame);
+		const openfix = new ScramjetPlugin("openfix");
+		openfix.tap(
+			browserState.frame.hooks.fetch.intercept,
+			(context, props) => {
+				if (context.request.destination === "document") {
+					props.response = {
+						body: "",
+						status: 302,
+						statusText: "Found",
+						headers: ScramjetHeaders.fromRawHeaders([
+							[
+								"Location",
+								new URL(
+									`/?goto=${encodeURIComponent(context.parsed.url.href)}`,
+									location.origin
+								).href,
+							],
+						]),
+					};
+				}
+			},
+			(other: Plugin) => (other.name === cachePlugin.name ? 1 : -1)
+		);
 		const versionInfo = window.$scramjet.versionInfo ?? {};
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(
@@ -156,6 +180,12 @@ const BrowserView: Component<
 		);
 		this.frameel.src = `data:text/html;base64,${btoa(realHomepage)}`;
 		initPlugin(browserState.frame);
+
+		let goto = new URL(location.href).searchParams.get("goto");
+		if (goto) {
+			browserState.frame?.go(goto);
+			history.replaceState(null, "", location.href.split("?")[0]);
+		}
 	};
 	const initPlugin = (frame: Frame) => {
 		const plugin = new ScramjetPlugin("url-watcher");
