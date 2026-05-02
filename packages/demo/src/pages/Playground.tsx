@@ -1,7 +1,11 @@
 import { css, type Component } from "dreamland/core";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
+import type { ScramjetFetchRequest } from "@mercuryworkshop/scramjet";
 import { controller } from "..";
 import Monaco from "../components/Monaco";
+
+const { ScramjetFetchHandler, ScramjetHeaders, BareResponse, rewriteUrl } =
+	window.$scramjet;
 
 const DEFAULT_ORIGIN = "https://fakeorigin.com";
 const DEFAULT_PREVIEW_URL = `${DEFAULT_ORIGIN}/`;
@@ -195,6 +199,11 @@ const PlaygroundView: Component<
 		selectedFile: string;
 		editorSplit: number;
 		isResizing: boolean;
+		previewMode: "iframe" | "rewritten";
+		rewrittenBody: string;
+		rewrittenContentType: string;
+		rewriteStatus: string;
+		rewriteFile: string;
 	},
 	{}
 > = function (cx) {
@@ -208,10 +217,21 @@ const PlaygroundView: Component<
 	this.isResizing ??= false;
 	this.projects ??= loadProjects();
 	this.selectedProjectId ??= this.projects[0]?.id ?? "default";
+	this.previewMode ??= "iframe";
+	this.rewrittenBody ??= "";
+	this.rewrittenContentType ??= "";
+	this.rewriteStatus ??= "Idle";
+	this.rewriteFile ??= "";
 
 	cx.mount = async () => {
 		await controller.wait();
 		this.frame = controller.createFrame();
+
+		use(this.selectedFile, this.selectedProjectId).listen(() => {
+			if (this.previewMode === "rewritten") {
+				runRewrite(this.frame);
+			}
+		});
 	};
 
 	const getActiveProject = () =>
@@ -362,6 +382,111 @@ const PlaygroundView: Component<
 			frame.go(normalized);
 		} catch (error) {
 			console.error("Invalid preview URL", error);
+		}
+	};
+
+	const readBodyText = async (body: unknown): Promise<string> => {
+		if (body == null) return "";
+		if (typeof body === "string") return body;
+		if (body instanceof ArrayBuffer) {
+			return new TextDecoder().decode(new Uint8Array(body));
+		}
+		if (body instanceof Blob) {
+			return await body.text();
+		}
+		if (
+			typeof ReadableStream !== "undefined" &&
+			body instanceof ReadableStream
+		) {
+			return await new Response(body).text();
+		}
+		return String(body);
+	};
+
+	const destinationFromPath = (path: string) => {
+		if (path.endsWith(".js") || path.endsWith(".mjs")) return "script";
+		if (path.endsWith(".css")) return "style";
+		if (path.endsWith(".html")) return "document";
+		return "document";
+	};
+
+	const runRewrite = async (frame: Frame | undefined) => {
+		if (!frame) return;
+		const filePath = this.selectedFile;
+		const files = getActiveFiles();
+		const body = files[filePath];
+		if (body == null) {
+			this.rewriteStatus = "File missing";
+			this.rewrittenBody = "";
+			this.rewrittenContentType = "";
+			this.rewriteFile = filePath;
+			return;
+		}
+		const ct = contentTypeFromPath(filePath);
+		this.rewriteFile = filePath;
+		this.rewriteStatus = "Rewriting...";
+
+		try {
+			const handler = new ScramjetFetchHandler({
+				crossOriginIsolated: self.crossOriginIsolated,
+				context: frame.context,
+				transport: frame.controller.transport,
+				async sendSetCookie() {},
+				async fetchBlobUrl(url: string) {
+					return BareResponse.fromNativeResponse(await fetch(url));
+				},
+				async fetchDataUrl(url: string) {
+					return BareResponse.fromNativeResponse(await fetch(url));
+				},
+			});
+
+			const originalFetch = handler.client.fetch.bind(handler.client);
+			handler.client.fetch = async () =>
+				BareResponse.fromNativeResponse(
+					new Response(body, {
+						status: 200,
+						statusText: "OK",
+						headers: {
+							"content-type": ct,
+							"cache-control": "no-store",
+						},
+					})
+				);
+
+			const targetUrl = `${this.origin}${filePath}`;
+			const encoded = rewriteUrl(targetUrl, frame.context, {
+				//@ts-expect-error
+				origin: new URL(location.href),
+				//@ts-expect-error
+				base: new URL(location.href),
+			});
+
+			const request = {
+				rawUrl: new URL(encoded, location.href),
+				rawClientUrl: new URL(location.href),
+				rawReferrer: "",
+				destination: destinationFromPath(filePath),
+				mode: "navigate",
+				referrer: "",
+				method: "GET",
+				body: null,
+				cache: "default",
+				initialHeaders: new ScramjetHeaders(),
+				clientId: frame.id,
+			};
+
+			const rewritten = await handler.handleFetch(
+				request as ScramjetFetchRequest
+			);
+			handler.client.fetch = originalFetch;
+
+			this.rewrittenBody = await readBodyText(rewritten.body);
+			this.rewrittenContentType =
+				rewritten.headers?.get?.("content-type") || ct;
+			this.rewriteStatus = "Done";
+		} catch (error) {
+			console.error("Playground rewrite failed", error);
+			this.rewriteStatus = "Failed";
 		}
 	};
 
@@ -625,6 +750,9 @@ const PlaygroundView: Component<
 							fill={true}
 							onSave={() => {
 								goPreview(this.frame, this.previewUrl);
+								if (this.previewMode === "rewritten") {
+									runRewrite(this.frame);
+								}
 							}}
 							onChange={(value) => {
 								const selected = this.selectedFile;
@@ -641,45 +769,122 @@ const PlaygroundView: Component<
 			</div>
 			<div class="split-handle" on:mousedown={startResize} />
 			<div class="preview-column">
-				<div class="section-title">Preview</div>
-				<form
-					class="preview-omnibox"
-					on:submit={(e: SubmitEvent) => {
-						e.preventDefault();
-						goPreview(this.frame);
-					}}
-				>
-					<div class="omnibox-shell">
-						<div class="omnibox-nav" aria-hidden="true">
-							<button type="button" class="nav-btn">
-								<span class="material-symbols-outlined">arrow_back</span>
-							</button>
-							<button type="button" class="nav-btn">
-								<span class="material-symbols-outlined">arrow_forward</span>
-							</button>
+				<div class="preview-tab-strip">
+					<button
+						type="button"
+						class={use(this.previewMode).map(
+							(m) => `preview-tab ${m === "iframe" ? "active" : ""}`
+						)}
+						on:click={() => {
+							this.previewMode = "iframe";
+						}}
+					>
+						Preview
+					</button>
+					<button
+						type="button"
+						class={use(this.previewMode).map(
+							(m) => `preview-tab ${m === "rewritten" ? "active" : ""}`
+						)}
+						on:click={() => {
+							this.previewMode = "rewritten";
+							runRewrite(this.frame);
+						}}
+					>
+						Rewritten
+					</button>
+				</div>
+				{use(this.previewMode)
+					.map((mode) => mode === "iframe")
+					.andThen(
+						<form
+							class="preview-omnibox"
+							on:submit={(e: SubmitEvent) => {
+								e.preventDefault();
+								goPreview(this.frame);
+							}}
+						>
+							<div class="omnibox-shell">
+								<div class="omnibox-nav" aria-hidden="true">
+									<button type="button" class="nav-btn">
+										<span class="material-symbols-outlined">arrow_back</span>
+									</button>
+									<button type="button" class="nav-btn">
+										<span class="material-symbols-outlined">arrow_forward</span>
+									</button>
+									<button
+										type="button"
+										class="nav-btn"
+										on:click={() => {
+											goPreview(this.frame, this.previewUrl);
+										}}
+									>
+										<span class="material-symbols-outlined">refresh</span>
+									</button>
+								</div>
+								<input
+									type="text"
+									value={use(this.previewUrlInput)}
+									spellcheck={false}
+									on:input={(e: InputEvent) => {
+										this.previewUrlInput = (e.target as HTMLInputElement).value;
+									}}
+									placeholder="Enter URL or search..."
+								/>
+							</div>
+						</form>
+					)}
+				{use(this.previewMode)
+					.map((mode) => mode === "rewritten")
+					.andThen(
+						<div class="rewrite-meta">
+							<span class="rewrite-meta-file">
+								{use(this.rewriteFile).map((p) =>
+									p ? displayFilePath(p) : ""
+								)}
+							</span>
 							<button
 								type="button"
-								class="nav-btn"
-								on:click={() => {
-									goPreview(this.frame, this.previewUrl);
-								}}
+								class="rewrite-refresh"
+								on:click={() => runRewrite(this.frame)}
+								title="Re-run rewrite"
 							>
 								<span class="material-symbols-outlined">refresh</span>
 							</button>
+							<span class="rewrite-meta-status">
+								{use(this.rewriteStatus).map((s) => s)}
+							</span>
+							<span class="rewrite-meta-ct">
+								{use(this.rewrittenContentType).map((ct) => ct || "")}
+							</span>
 						</div>
-						<input
-							type="text"
-							value={use(this.previewUrlInput)}
-							spellcheck={false}
-							on:input={(e: InputEvent) => {
-								this.previewUrlInput = (e.target as HTMLInputElement).value;
-							}}
-							placeholder="Enter URL or search..."
+					)}
+				<div
+					class={use(this.previewMode).map(
+						(m) => `preview-body preview-body-${m}`
+					)}
+				>
+					<div
+						class={use(this.previewMode).map(
+							(m) => `preview-frame ${m === "iframe" ? "active" : "hidden"}`
+						)}
+					>
+						{use(this.frame).map((f) => f?.element)}
+					</div>
+					<div
+						class={use(this.previewMode).map(
+							(m) => `rewrite-pane ${m === "rewritten" ? "active" : "hidden"}`
+						)}
+					>
+						<Monaco
+							value={use(this.rewrittenBody)}
+							language={use(this.rewriteFile, this.rewrittenContentType).map(
+								([file]) => languageFromPath(file)
+							)}
+							readOnly={true}
+							fill={true}
 						/>
 					</div>
-				</form>
-				<div class="preview-frame">
-					{use(this.frame).map((f) => f?.element)}
 				</div>
 				<form
 					class="origin-bar"
@@ -692,6 +897,9 @@ const PlaygroundView: Component<
 							this.previewUrl = nextUrl;
 							this.previewUrlInput = nextUrl;
 							goPreview(this.frame, nextUrl);
+							if (this.previewMode === "rewritten") {
+								runRewrite(this.frame);
+							}
 						} catch (error) {
 							console.error("Invalid fake origin", error);
 						}
@@ -1210,6 +1418,99 @@ PlaygroundView.style = css`
 		border-color: #7a7a7a;
 		box-shadow: inset 0 0 0 1px #7a7a7a;
 	}
+	.preview-tab-strip {
+		display: flex;
+		gap: 0;
+		border-bottom: 1px solid #222;
+		background: #111;
+		padding: 0;
+	}
+	.preview-tab {
+		border: 0;
+		background: transparent;
+		color: #aaa;
+		font-size: 0.72em;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		font-weight: 600;
+		padding: 0.7em 0.9em;
+		cursor: pointer;
+		border-right: 1px solid #222;
+		font-family: inherit;
+	}
+	.preview-tab:hover {
+		background: #181818;
+		color: #d0d0d0;
+	}
+	.preview-tab.active {
+		background: #1f1f1f;
+		color: #fff;
+	}
+	.rewrite-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.7em;
+		padding: 0.45em 0.6em;
+		border-bottom: 1px solid #222;
+		background: #0f0f0f;
+		color: #9ca3af;
+		font-size: 0.76em;
+	}
+	.rewrite-meta-file {
+		color: #d1d5db;
+		font-family:
+			"JetBrains Mono", "SF Mono", "Fira Code", Consolas, "Liberation Mono",
+			monospace;
+		font-size: 0.92em;
+	}
+	.rewrite-meta-status {
+		color: #8f8f8f;
+	}
+	.rewrite-meta-ct {
+		color: #6b7280;
+		margin-left: auto;
+		font-family:
+			"JetBrains Mono", "SF Mono", "Fira Code", Consolas, "Liberation Mono",
+			monospace;
+		font-size: 0.92em;
+	}
+	.rewrite-refresh {
+		border: 0;
+		background: transparent;
+		color: #8f8f8f;
+		width: 1.5em;
+		height: 1.5em;
+		padding: 0;
+		border-radius: 3px;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.rewrite-refresh:hover {
+		background: #1f1f1f;
+		color: #d0d0d0;
+	}
+	.rewrite-refresh .material-symbols-outlined {
+		font-size: 14px;
+	}
+	.preview-body {
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+		display: flex;
+		position: relative;
+	}
+	.rewrite-pane {
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+		display: flex;
+		background: #111;
+	}
+	.rewrite-pane.hidden {
+		display: none;
+	}
 	.preview-frame {
 		flex: 1;
 		min-width: 0;
@@ -1219,6 +1520,9 @@ PlaygroundView.style = css`
 		overflow: hidden;
 		background: #fff;
 		display: flex;
+	}
+	.preview-frame.hidden {
+		display: none;
 	}
 	iframe {
 		border: 0;
