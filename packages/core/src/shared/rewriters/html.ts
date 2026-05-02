@@ -7,6 +7,7 @@ import { rewriteJs } from "@rewriters/js";
 import { ScramjetContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 import { parseDeclarativeRefresh } from "@/shared/refresh";
+import { bytesToBase64 } from "@/shared/util";
 import { Tap } from "@/Tap";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import { TrackedHistoryState } from "@/fetch";
@@ -492,13 +493,6 @@ export function rewriteSrcset(
 // 	return Uint8Array.from(binString, (m) => m.codePointAt(0));
 // }
 
-function bytesToBase64(bytes: Uint8Array) {
-	const binString = Array_from(bytes, (byte) =>
-		String_fromCodePoint(byte)
-	).join("");
-
-	return btoa(binString);
-}
 const eventAttributes = [
 	"onbeforexrselect",
 	"onabort",
