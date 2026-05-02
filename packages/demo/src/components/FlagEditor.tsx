@@ -51,18 +51,18 @@ const FlagEditor: Component<
 
 	const toggleFlag = (flag: keyof ScramjetFlags, value: boolean) => {
 		flagStore[flag] = value;
-		Object.assign(flagStore, controller.scramjetConfig.flags);
+		Object.assign(controller.scramjetConfig.flags, flagStore);
 	};
 
 	const resetToDefaults = () => {
 		Object.assign(flagStore, {
 			...defaultConfigDev.flags,
 		});
-		Object.assign(flagStore, controller.scramjetConfig.flags);
+		Object.assign(controller.scramjetConfig.flags, flagStore);
 	};
 	cx.mount = async () => {
 		await controller.wait();
-		Object.assign(flagStore, controller.scramjetConfig.flags);
+		Object.assign(controller.scramjetConfig.flags, flagStore);
 	};
 
 	return (
