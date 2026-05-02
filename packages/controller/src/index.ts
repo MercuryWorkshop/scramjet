@@ -17,6 +17,8 @@ import type {
 	WebSocketMessage,
 } from "./types";
 
+export { HttpCachePlugin, type HttpCachePluginOptions } from "./cache";
+
 export type Config = {
 	prefix: string;
 	scramjetPath: string;

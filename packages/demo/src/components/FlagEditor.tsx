@@ -1,7 +1,7 @@
 import { createStore, css, type Component } from "dreamland/core";
 import type { ScramjetFlags } from "@mercuryworkshop/scramjet";
 import { defaultConfigDev } from "@mercuryworkshop/scramjet";
-import { controller } from "..";
+import { cachePlugin, controller } from "..";
 
 const flagStore = createStore<ScramjetFlags>(
 	{
@@ -45,9 +45,11 @@ const FlagEditor: Component<
 	{},
 	{
 		isOpen: boolean;
+		cacheBustStatus: string;
 	}
 > = function (cx) {
 	this.isOpen = false;
+	this.cacheBustStatus = "";
 
 	const toggleFlag = (flag: keyof ScramjetFlags, value: boolean) => {
 		flagStore[flag] = value;
@@ -59,6 +61,20 @@ const FlagEditor: Component<
 			...defaultConfigDev.flags,
 		});
 		Object.assign(controller.scramjetConfig.flags, flagStore);
+	};
+
+	const bustCache = async () => {
+		this.cacheBustStatus = "Busting…";
+		try {
+			const ok = await cachePlugin.bust();
+			this.cacheBustStatus = ok ? "Cache cleared" : "Nothing to clear";
+		} catch (err) {
+			console.error("[FlagEditor] cache bust failed:", err);
+			this.cacheBustStatus = "Bust failed (see console)";
+		}
+		setTimeout(() => {
+			this.cacheBustStatus = "";
+		}, 2000);
 	};
 	cx.mount = async () => {
 		await controller.wait();
@@ -83,10 +99,18 @@ const FlagEditor: Component<
 				<div class="editor-panel">
 					<div class="header">
 						<h3>Scramjet Feature Flags</h3>
-						<button class="reset-button" on:click={resetToDefaults}>
-							Reset to Defaults
-						</button>
+						<div class="header-actions">
+							<button class="cache-bust-button" on:click={bustCache}>
+								Bust Cache
+							</button>
+							<button class="reset-button" on:click={resetToDefaults}>
+								Reset to Defaults
+							</button>
+						</div>
 					</div>
+					{use(this.cacheBustStatus).andThen(
+						<div class="cache-bust-status">{use(this.cacheBustStatus)}</div>
+					)}
 					<div class="flags-list">
 						{(Object.keys(flagStore) as Array<keyof ScramjetFlags>).map(
 							(flag) => (
@@ -220,6 +244,34 @@ FlagEditor.style = css`
 
 	.reset-button:hover {
 		background: #666;
+	}
+
+	.header-actions {
+		display: flex;
+		gap: 0.4em;
+	}
+
+	.cache-bust-button {
+		padding: 0.4em 0.8em;
+		background: #7a2e2e;
+		border: 1px solid #9a3a3a;
+		border-radius: 4px;
+		color: white;
+		cursor: pointer;
+		font-size: 12px;
+		transition: background 0.2s;
+	}
+
+	.cache-bust-button:hover {
+		background: #9a3a3a;
+	}
+
+	.cache-bust-status {
+		font-size: 12px;
+		color: #aaa;
+		text-align: right;
+		margin-bottom: 0.5em;
+		font-family: "Courier New", monospace;
 	}
 
 	.flags-list {

@@ -4,7 +4,6 @@ import FlagEditor from "./components/FlagEditor";
 import BrowserView from "./pages/BrowserView";
 import RequestViewer from "./pages/RequestViewer";
 import PlaygroundView from "./pages/Playground";
-import ResponsePlayground from "./pages/ResponsePlayground";
 import SettingsView from "./pages/SettingsPage";
 import { Omnibox } from "./pages/BrowserView";
 import { requestsState } from "./pages/RequestViewer";
@@ -13,12 +12,7 @@ const App: Component<
 	{},
 	{},
 	{
-		activeTab:
-			| "browser"
-			| "requests"
-			| "playground"
-			| "response-playground"
-			| "settings";
+		activeTab: "browser" | "requests" | "playground" | "settings";
 	}
 > = function (cx) {
 	this.activeTab ??= "browser";
@@ -58,17 +52,6 @@ const App: Component<
 						}}
 					>
 						Playground
-					</button>
-					<button
-						class={use(this.activeTab).map(
-							(tab) =>
-								`tab-button ${tab === "response-playground" ? "active" : ""}`
-						)}
-						on:click={() => {
-							this.activeTab = "response-playground";
-						}}
-					>
-						Response Playground
 					</button>
 					<button
 						class={use(this.activeTab).map(
@@ -116,18 +99,6 @@ const App: Component<
 			>
 				<PlaygroundView
 					active={use(this.activeTab).map((tab) => tab === "playground")}
-				/>
-			</div>
-			<div
-				class={use(this.activeTab).map(
-					(tab) =>
-						`tab-panel response-playground-panel ${tab === "response-playground" ? "active" : ""}`
-				)}
-			>
-				<ResponsePlayground
-					active={use(this.activeTab).map(
-						(tab) => tab === "response-playground"
-					)}
 				/>
 			</div>
 			<div
@@ -235,11 +206,6 @@ App.style = css`
 		flex-direction: column;
 	}
 	.playground-panel {
-		width: 100%;
-		min-width: 0;
-		min-height: 0;
-	}
-	.response-playground-panel {
 		width: 100%;
 		min-width: 0;
 		min-height: 0;

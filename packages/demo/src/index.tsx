@@ -3,12 +3,13 @@ import App from "./App";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
 import EpoxyClient from "@mercuryworkshop/epoxy-transport";
 import { defaultConfigDev } from "@mercuryworkshop/scramjet";
-const { Controller } = $scramjetController;
+const { Controller, HttpCachePlugin } = $scramjetController;
 import { demoSettingsStore } from "./store";
 
 let app = document.getElementById("app")!;
 
 let controller: InstanceType<typeof Controller>;
+const cachePlugin = new HttpCachePlugin();
 
 export function getTransport(): LibcurlClient | EpoxyClient {
 	const wispUrl = demoSettingsStore.wispUrl;
@@ -128,4 +129,4 @@ async function mount() {
 }
 
 init().then(() => mount());
-export { controller };
+export { controller, cachePlugin };
