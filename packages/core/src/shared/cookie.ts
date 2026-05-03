@@ -64,10 +64,7 @@ export class CookieJar {
 
 	private sweepExpired() {
 		const now = _Date.now();
-		const ids = Object.keys(this.cookies);
-		for (let i = 0; i < ids.length; i++) {
-			const id = ids[i];
-			const c = this.cookies[id];
+		for (const [id, c] of Object.entries(this.cookies)) {
 			if (c.expires !== undefined && c.expires < now) {
 				this.removeById(id);
 			}
@@ -78,6 +75,16 @@ export class CookieJar {
 		const parsedCookies = parse(cookieString);
 
 		for (const parsedCookie of parsedCookies) {
+			const lowerName = parsedCookie.name.toLowerCase();
+
+			if (lowerName.startsWith("__secure-")) {
+				if (!parsedCookie.secure) continue;
+			} else if (lowerName.startsWith("__host-")) {
+				if (!parsedCookie.secure) continue;
+				if (parsedCookie.domain) continue;
+				if (parsedCookie.path !== "/") continue;
+			}
+
 			const hostOnly = !parsedCookie.domain;
 			const expiresTime = parsedCookie.expires?.getTime();
 			const expires = Number.isFinite(expiresTime) ? expiresTime : undefined;
@@ -139,9 +146,7 @@ export class CookieJar {
 		while (key !== undefined) {
 			const bucket = this.byDomain.get(key);
 			if (bucket) {
-				for (let i = 0; i < bucket.length; i++) {
-					const cookie = bucket[i];
-
+				for (const cookie of bucket) {
 					if (cookie.expires !== undefined && cookie.expires < now) continue;
 
 					if (cookie.hostOnly && key !== hostname) continue;
@@ -171,13 +176,11 @@ export class CookieJar {
 			key = dot === -1 ? undefined : key.slice(dot + 1);
 		}
 
-		let out = "";
-		for (let i = 0; i < validCookies.length; i++) {
-			const cookie = validCookies[i];
-			if (i > 0) out += "; ";
-			out += cookie.name ? `${cookie.name}=${cookie.value}` : cookie.value;
-		}
-		return out;
+		return validCookies
+			.map((cookie) =>
+				cookie.name ? `${cookie.name}=${cookie.value}` : cookie.value
+			)
+			.join("; ");
 	}
 
 	load(cookies: string | Record<string, Cookie>) {
