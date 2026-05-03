@@ -1,5 +1,5 @@
 // thnank you node unblocker guy
-import { JSON_parse, JSON_stringify, Object_values } from "@/shared/snapshot";
+import { JSON_parse, JSON_stringify } from "@/shared/snapshot";
 import { _Date } from "./snapshot";
 import parse from "./set-cookie-parser";
 
@@ -7,7 +7,7 @@ export type Cookie = {
 	name: string;
 	value: string;
 	path?: string;
-	expires?: string;
+	expires?: number;
 	maxAge?: number;
 	domain?: string;
 	hostOnly?: boolean;
@@ -18,6 +18,9 @@ export type Cookie = {
 
 export class CookieJar {
 	private cookies: Record<string, Cookie> = {};
+	// Index by domain (without leading dot)
+	private byDomain: Map<string, Cookie[]> = new Map();
+	private writeCount = 0;
 
 	private defaultPath(url: URL): string {
 		const pathname = url.pathname;
@@ -34,18 +37,61 @@ export class CookieJar {
 		return requestPath.charAt(cookiePath.length) === "/";
 	}
 
+	private indexCookie(c: Cookie) {
+		const key = c.domain!.slice(1);
+		let bucket = this.byDomain.get(key);
+		if (!bucket) {
+			bucket = [];
+			this.byDomain.set(key, bucket);
+		}
+		bucket.push(c);
+	}
+
+	private unindexCookie(c: Cookie) {
+		const key = c.domain!.slice(1);
+		const bucket = this.byDomain.get(key);
+		if (!bucket) return;
+		const i = bucket.indexOf(c);
+		if (i >= 0) bucket.splice(i, 1);
+		if (bucket.length === 0) this.byDomain.delete(key);
+	}
+
+	private removeById(id: string) {
+		const prev = this.cookies[id];
+		if (prev) this.unindexCookie(prev);
+		delete this.cookies[id];
+	}
+
+	private sweepExpired() {
+		const now = _Date.now();
+		for (const [id, c] of Object.entries(this.cookies)) {
+			if (c.expires !== undefined && c.expires < now) {
+				this.removeById(id);
+			}
+		}
+	}
+
 	setCookies(cookieString: string, url: URL) {
 		const parsedCookies = parse(cookieString);
 
 		for (const parsedCookie of parsedCookies) {
+			const lowerName = parsedCookie.name.toLowerCase();
+
+			if (lowerName.startsWith("__secure-")) {
+				if (!parsedCookie.secure) continue;
+			} else if (lowerName.startsWith("__host-")) {
+				if (!parsedCookie.secure) continue;
+				if (parsedCookie.domain) continue;
+				if (parsedCookie.path !== "/") continue;
+			}
+
 			const hostOnly = !parsedCookie.domain;
-			const domain = parsedCookie.domain;
-			const sameSite = parsedCookie.sameSite;
+			const expiresTime = parsedCookie.expires?.getTime();
+			const expires = Number.isFinite(expiresTime) ? expiresTime : undefined;
 			const cookie: Cookie = {
-				domain,
-				hostOnly,
-				sameSite,
 				...parsedCookie,
+				hostOnly,
+				expires,
 			};
 
 			if (!cookie.domain) cookie.domain = url.hostname;
@@ -61,17 +107,23 @@ export class CookieJar {
 				if (!Number.isFinite(cookie.maxAge)) {
 					delete cookie.maxAge;
 				} else if (cookie.maxAge <= 0) {
-					delete this.cookies[id];
+					this.removeById(id);
 					continue;
 				} else {
-					cookie.expires = new Date(
-						Date.now() + cookie.maxAge * 1000
-					).toString();
+					cookie.expires = _Date.now() + cookie.maxAge * 1000;
 				}
 			}
 
-			if (cookie.expires) cookie.expires = cookie.expires.toString();
+			const prev = this.cookies[id];
+			if (prev) this.unindexCookie(prev);
 			this.cookies[id] = cookie;
+			this.indexCookie(cookie);
+		}
+
+		this.writeCount += parsedCookies.length;
+		if (this.writeCount >= 100) {
+			this.sweepExpired();
+			this.writeCount = 0;
 		}
 	}
 
@@ -84,42 +136,44 @@ export class CookieJar {
 		fromJs: boolean,
 		sameSiteContext: "strict" | "lax" | "cross-site" = "strict"
 	): string {
-		const now = new _Date();
-		const cookies = Object_values(this.cookies);
-
+		const now = _Date.now();
+		const hostname = url.hostname;
+		const pathname = url.pathname;
 		const validCookies: Cookie[] = [];
 
-		for (const cookie of cookies) {
-			if (cookie.expires && new _Date(cookie.expires) < now) {
-				delete this.cookies[`${cookie.domain}@${cookie.path}@${cookie.name}`];
-				continue;
+		// Walk the hostname's domain suffix chain
+		let key: string | undefined = hostname;
+		while (key !== undefined) {
+			const bucket = this.byDomain.get(key);
+			if (bucket) {
+				for (const cookie of bucket) {
+					if (cookie.expires !== undefined && cookie.expires < now) continue;
+
+					if (cookie.hostOnly && key !== hostname) continue;
+
+					// Scramjet proxies all origins as HTTPS (including those served over HTTP),
+					// so we don't enforce the Secure attribute based on protocol here.
+					// if (cookie.secure && url.protocol !== "https:") continue;
+					if (cookie.httpOnly && fromJs) continue;
+					if (!this.pathMatches(pathname, cookie.path!)) continue;
+
+					// SameSite enforcement — compare case-insensitively since parsers may
+					// return "Strict"/"Lax"/"None" (titlecase) or "strict"/"lax"/"none".
+					const cs = (cookie.sameSite ?? "lax").toLowerCase();
+					if (sameSiteContext === "cross-site") {
+						// Only SameSite=None cookies are sent cross-site
+						if (cs !== "none") continue;
+					} else if (sameSiteContext === "lax") {
+						// Lax top-level navigation: block Strict, allow Lax and None
+						if (cs === "strict") continue;
+					}
+					// "strict" context: all cookies allowed (no filtering)
+
+					validCookies.push(cookie);
+				}
 			}
-
-			// Scramjet proxies all origins as HTTPS (including those served over HTTP),
-			// so we don't enforce the Secure attribute based on protocol here.
-			// if (cookie.secure && url.protocol !== "https:") continue;
-			if (cookie.httpOnly && fromJs) continue;
-			if (!this.pathMatches(url.pathname, cookie.path)) continue;
-
-			if (cookie.hostOnly) {
-				if (url.hostname !== cookie.domain.slice(1)) continue;
-			} else if (cookie.domain.startsWith(".")) {
-				if (!url.hostname.endsWith(cookie.domain.slice(1))) continue;
-			}
-
-			// SameSite enforcement — compare case-insensitively since parsers may
-			// return "Strict"/"Lax"/"None" (titlecase) or "strict"/"lax"/"none".
-			const cs = (cookie.sameSite ?? "lax").toLowerCase();
-			if (sameSiteContext === "cross-site") {
-				// Only SameSite=None cookies are sent cross-site
-				if (cs !== "none") continue;
-			} else if (sameSiteContext === "lax") {
-				// Lax top-level navigation: block Strict, allow Lax and None
-				if (cs === "strict") continue;
-			}
-			// "strict" context: all cookies allowed (no filtering)
-
-			validCookies.push(cookie);
+			const dot = key.indexOf(".");
+			key = dot === -1 ? undefined : key.slice(dot + 1);
 		}
 
 		return validCookies
@@ -134,11 +188,25 @@ export class CookieJar {
 			console.error("??");
 			return;
 		}
-		this.cookies = JSON_parse(cookies);
+		const parsed: Record<string, Cookie> = JSON_parse(cookies);
+		this.cookies = {};
+		this.byDomain.clear();
+		const ids = Object.keys(parsed);
+		for (let i = 0; i < ids.length; i++) {
+			const id = ids[i];
+			const c = parsed[id];
+			if (typeof c.expires === "string") {
+				const t = Date.parse(c.expires as unknown as string);
+				c.expires = Number.isFinite(t) ? t : undefined;
+			}
+			this.cookies[id] = c;
+			this.indexCookie(c);
+		}
 	}
 
 	clear() {
 		this.cookies = {};
+		this.byDomain.clear();
 	}
 
 	dump(): string {
