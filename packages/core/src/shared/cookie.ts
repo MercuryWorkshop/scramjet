@@ -69,8 +69,7 @@ export class CookieJar {
 			const id = ids[i];
 			const c = this.cookies[id];
 			if (c.expires !== undefined && c.expires < now) {
-				this.unindexCookie(c);
-				delete this.cookies[id];
+				this.removeById(id);
 			}
 		}
 	}
@@ -80,7 +79,8 @@ export class CookieJar {
 
 		for (const parsedCookie of parsedCookies) {
 			const hostOnly = !parsedCookie.domain;
-			const expires = parsedCookie.expires?.getTime();
+			const expiresTime = parsedCookie.expires?.getTime();
+			const expires = Number.isFinite(expiresTime) ? expiresTime : undefined;
 			const cookie: Cookie = {
 				...parsedCookie,
 				hostOnly,
