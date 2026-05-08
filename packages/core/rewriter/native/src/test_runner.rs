@@ -119,7 +119,7 @@ function check(val) {
 			trysetfn: String::from("$tryset"),
 			templocid: String::from("$temploc"),
 			tempunusedid: String::from("$tempunused"),
-			
+
 			base: String::from("https://google.com/glorngle/si.js"),
 			sourcetag: String::from("glongle1"),
 			is_module: false,
@@ -127,7 +127,7 @@ function check(val) {
 			capture_errors: false,
 			do_sourcemaps: false,
 			scramitize: false,
-			strict_rewrites: true,
+			disable_computed_wrap: false,
 			destructure_rewrites: true,
 		};
 
