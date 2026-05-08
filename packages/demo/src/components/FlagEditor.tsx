@@ -17,7 +17,7 @@ const flagStore = createStore<ScramjetFlags>(
 // Flag descriptions for better UX
 const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 	syncxhr: "Enable synchronous XMLHttpRequest support",
-	strictRewrites: "enable extra security in js rewriter at a performance cost",
+	disableComputedWrap: "Skip deep js interception for better runtime speed",
 	cleanErrors: "prevent sites from noticing scramjet stack frames",
 	sourcemaps:
 		"prevent sites from noticing javascript transformations (at a performance cost)",

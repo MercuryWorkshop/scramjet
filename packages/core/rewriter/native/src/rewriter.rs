@@ -92,7 +92,7 @@ impl NativeRewriter {
 					capture_errors: cfg.capture_errors,
 					do_sourcemaps: cfg.do_sourcemaps,
 					scramitize: cfg.scramitize,
-					strict_rewrites: cfg.strict_rewrites,
+					disable_computed_wrap: cfg.disable_computed_wrap,
 					destructure_rewrites: cfg.destructure_rewrites,
 				},
 				&rewriter

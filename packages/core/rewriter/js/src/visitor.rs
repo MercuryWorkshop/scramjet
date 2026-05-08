@@ -70,6 +70,7 @@ where
 	}
 
 	fn handle_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
+		if self.flags.disable_computed_wrap { return };
 		match &it.expression {
 			Expression::NullLiteral(_)
 			| Expression::BigIntLiteral(_)

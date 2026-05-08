@@ -33,7 +33,7 @@ export const defaultConfig: ScramjetConfig = {
 	},
 	flags: {
 		syncxhr: false,
-		strictRewrites: true,
+		disableComputedWrap: false,
 		rewriterLogs: false,
 		captureErrors: false,
 		cleanErrors: false,

@@ -40,6 +40,6 @@ pub struct Flags {
 	pub capture_errors: bool,
 	pub scramitize: bool,
 	pub do_sourcemaps: bool,
-	pub strict_rewrites: bool,
+	pub disable_computed_wrap: bool,
 	pub destructure_rewrites: bool,
 }

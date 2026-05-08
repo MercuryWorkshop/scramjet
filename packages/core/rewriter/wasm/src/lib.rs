@@ -71,7 +71,7 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 		do_sourcemaps: get_bool(obj, "sourcemaps")?,
 		capture_errors: get_bool(obj, "captureErrors")?,
 		scramitize: get_bool(obj, "scramitize")?,
-		strict_rewrites: get_bool(obj, "strictRewrites")?,
+		disable_computed_wrap: get_bool(obj, "disableComputedWrap")?,
 		destructure_rewrites: get_bool(obj, "destructureRewrites")?,
 
 	})
