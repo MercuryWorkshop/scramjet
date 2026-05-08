@@ -11,6 +11,7 @@
 		"@mercuryworkshop/scramjet": "workspace:*"
 	},
 	"devDependencies": {
+		"@types/serviceworker": "^0.0.197",
 		"@mercuryworkshop/rpc": "workspace:*"
 	}
 }

@@ -6,8 +6,8 @@ export const AVAILABLE_TRANSPORTS: ReadonlyArray<{
 	value: AvailableTransports;
 	label: string;
 }> = [
-	{ value: "libcurl", label: "libcurl" },
-	{ value: "epoxy", label: "epoxy" },
+	{ value: "libcurl", label: "Libcurl" },
+	{ value: "epoxy", label: "Epoxy" },
 ];
 const DEFAULT_WISP_URL = import.meta.env.VITE_WISP_URL;
 const DEFAULT_TRANSPORT: AvailableTransports = "libcurl";

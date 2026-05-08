@@ -1,8 +1,8 @@
-declare let clients: Clients;
+/// <reference lib="WebWorker" />
+/// <reference types="@types/serviceworker" />
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type { Controllerbound, SWbound } from "./types";
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
-import { ScramjetHeaders } from "@mercuryworkshop/scramjet";
 
 function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
@@ -209,6 +209,14 @@ export async function route(event: FetchEvent): Promise<Response> {
 		);
 	}
 }
+
+addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(clients.claim());
+});
 
 // the only way to know if a service worker has suddenly died is if this code runs again
 // notify all clients to send over their messageports again

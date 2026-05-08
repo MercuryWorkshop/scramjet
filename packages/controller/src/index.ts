@@ -766,6 +766,18 @@ export class Frame {
 		element[CONTROLLERFRAME] = this;
 	}
 
+	back() {
+		this.element.contentWindow?.history.back();
+	}
+
+	forward() {
+		this.element.contentWindow?.history.forward();
+	}
+
+	reload() {
+		this.element.contentWindow?.location.reload();
+	}
+
 	go(url: string) {
 		const encoded = $scramjet.rewriteUrl(url, this.context, {
 			//@ts-expect-error
