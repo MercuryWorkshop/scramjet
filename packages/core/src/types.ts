@@ -19,7 +19,7 @@ export interface ScramjetVersionInfo {
  */
 export type ScramjetFlags = {
 	syncxhr: boolean;
-	strictRewrites: boolean;
+	disableComputedWrap: boolean;
 	rewriterLogs: boolean;
 	captureErrors: boolean;
 	cleanErrors: boolean;

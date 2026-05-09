@@ -6,7 +6,7 @@
 	"main": "./dist/bootstrap-server.js",
 	"types": "./dist/types/server.d.ts",
 	"dependencies": {
-		"server": "link:@mercuryworkshop/wisp-js/server",
+		"@mercuryworkshop/wisp-js": "catalog:",
 		"tar": "^7.5.1"
 	},
 	"devDependencies": {

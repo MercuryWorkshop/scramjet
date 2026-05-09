@@ -54,7 +54,7 @@ pub struct RewriterOptions {
 	sourcetag: String,
 	#[clap(long, default_value_t = false)]
 	is_module: bool,
-	
+
 	#[clap(long, default_value_t = false)]
 	capture_errors: bool,
 	#[clap(long, default_value_t = false)]
@@ -62,7 +62,7 @@ pub struct RewriterOptions {
 	#[clap(long, default_value_t = false)]
 	scramitize: bool,
 	#[clap(long, default_value_t = false)]
-	strict_rewrites: bool,
+	disable_computed_wrap: bool,
 	#[clap(long, default_value_t = false)]
 	destructure_rewrites: bool,
 }

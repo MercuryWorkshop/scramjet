@@ -33,13 +33,13 @@ export const Omnibox: Component = function (cx) {
 		>
 			<div class="browser-omnibox-shell">
 				<div class="omnibox-nav" aria-hidden="true">
-					<button type="button" class="nav-btn">
+					<button type="button" class="nav-btn" on:click={() => browserState.frame?.back()}>
 						<span class="material-symbols-outlined">arrow_back</span>
 					</button>
-					<button type="button" class="nav-btn">
+					<button type="button" class="nav-btn" on:click={() => browserState.frame?.forward()}>
 						<span class="material-symbols-outlined">arrow_forward</span>
 					</button>
-					<button type="button" class="nav-btn" on:click={navigate}>
+					<button type="button" class="nav-btn" on:click={() => browserState.frame?.reload()}>
 						<span class="material-symbols-outlined">refresh</span>
 					</button>
 				</div>

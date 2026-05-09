@@ -68,9 +68,9 @@ importers:
 
   packages/bootstrap:
     dependencies:
-      server:
-        specifier: link:@mercuryworkshop/wisp-js/server
-        version: link:@mercuryworkshop/wisp-js/server
+      '@mercuryworkshop/wisp-js':
+        specifier: 'catalog:'
+        version: 0.4.1
       tar:
         specifier: ^7.5.1
         version: 7.5.1
@@ -103,6 +103,9 @@ importers:
       '@mercuryworkshop/rpc':
         specifier: workspace:*
         version: link:../rpc
+      '@types/serviceworker':
+        specifier: ^0.0.197
+        version: 0.0.197
 
   packages/core:
     dependencies:
@@ -1167,6 +1170,9 @@ packages:
 
   '@types/serviceworker@0.0.160':
     resolution: {integrity: sha512-ZfHcjggZ7g+I8K1OndpSJCJmXAzTDGmnDzXhBioM2j+9H9ZeCEa1bDlDRI69Ike+3gPUgaUt6VxfMrBN2ItSRg==}
+
+  '@types/serviceworker@0.0.197':
+    resolution: {integrity: sha512-PaeOFYHcR2c7guBn9M4Y5H1++snluHYzZ6DzzRCUf6kue2FFfpTjF82aZq31DJ2c/Qyb3KGf5ROQH/fOU8NdxQ==}
 
   '@types/sockjs@0.3.36':
     resolution: {integrity: sha512-MK9V6NzAS1+Ud7JV9lJLFqW85VbC9dq3LmwZCuBe4wBDgKC0Kj/jd8Xl+nSviU+Qc3+m7umHHyHg//2KSa0a0Q==}
@@ -5098,6 +5104,8 @@ snapshots:
       '@types/send': 0.17.6
 
   '@types/serviceworker@0.0.160': {}
+
+  '@types/serviceworker@0.0.197': {}
 
   '@types/sockjs@0.3.36':
     dependencies:

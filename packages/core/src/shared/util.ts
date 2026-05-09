@@ -14,8 +14,9 @@ function bytesToBase64Fallback(bytes: Uint8Array): string {
 	return btoa(binString);
 }
 
-const bytesToBase64Native: ((this: Uint8Array) => string) | undefined =
-	(Uint8Array.prototype as any).toBase64;
+const bytesToBase64Native: ((this: Uint8Array) => string) | undefined = (
+	Uint8Array.prototype as any
+).toBase64;
 
 export const bytesToBase64: (bytes: Uint8Array) => string =
 	typeof bytesToBase64Native === "function"
