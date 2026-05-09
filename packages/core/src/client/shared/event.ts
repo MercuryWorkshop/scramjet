@@ -35,6 +35,7 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.source;
 			},
 			origin() {
+				if (!iswindow) return "";
 				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
 					return this.data.$scramjet$origin;
 
