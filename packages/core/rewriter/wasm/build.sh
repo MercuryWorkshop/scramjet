@@ -34,7 +34,7 @@ if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
 fi
 
 (
-	export RUSTFLAGS='-Zlocation-detail=none -Zfmt-debug=none'
+	export RUSTFLAGS='-Zlocation-detail=none -Zfmt-debug=none -C target-feature=-reference-types'
 	if [ "${OPTIMIZE_FOR_SIZE:-0}" = "1" ]; then
 		export RUSTFLAGS="${RUSTFLAGS} -C opt-level=z"
 	fi
