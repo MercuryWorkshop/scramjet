@@ -35,7 +35,7 @@ const WISP_PORT = process.env.WISP_PORT || 4142;
 if (process.env.VITE_WISP_URL) {
 	process.env.VITE_WISP_URL = normalizeWebsocketUrl(process.env.VITE_WISP_URL);
 } else {
-	process.env.VITE_WISP_URL = `ws://localhost:${WISP_PORT}/`;
+	process.env.VITE_WISP_URL = `wss://anura.pro/`;
 }
 
 const wispserver = http.createServer((req, res) => {
