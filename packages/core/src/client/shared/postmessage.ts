@@ -68,6 +68,17 @@ export default function (client: ScramjetClient, self: Self) {
 			},
 		});
 
+	client.Proxy("BroadcastChannel.prototype.postMessage", {
+		apply(ctx) {
+			ctx.args[0] = {
+				$scramjet$messagetype: "window",
+				// TODO: need to actually look up the broadcastchannel itself in box i think
+				$scramjet$origin: client.url.origin,
+				$scramjet$data: ctx.args[0],
+			};
+		},
+	});
+
 	const toproxy = ["MessagePort.prototype.postMessage"];
 
 	if (self.Worker) toproxy.push("Worker.prototype.postMessage");
