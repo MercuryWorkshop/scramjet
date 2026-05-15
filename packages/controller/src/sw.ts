@@ -211,11 +211,11 @@ export async function route(event: FetchEvent): Promise<Response> {
 }
 
 addEventListener("install", () => {
-  self.skipWaiting();
+	self.skipWaiting();
 });
 
 addEventListener("activate", (event: ExtendableEvent) => {
-  event.waitUntil(clients.claim());
+	event.waitUntil(clients.claim());
 });
 
 // the only way to know if a service worker has suddenly died is if this code runs again
