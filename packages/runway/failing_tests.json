@@ -130,6 +130,7 @@
 		"rewriter-css-unrewrite-import-url",
 		"rewriter-css-unrewrite-regression-import-layer-supports-media",
 		"rewriter-css-unrewrite-uppercase-url-function",
-		"rewriter-css-unrewrite-url"
+		"rewriter-css-unrewrite-url",
+		"broadcastchannel-cross-origin-isolated"
 	]
 }
