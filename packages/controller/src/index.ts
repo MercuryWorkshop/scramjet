@@ -15,6 +15,7 @@ import type {
 	ControllerToTransport,
 	SWbound,
 	WebSocketMessage,
+	FrameErrorHooks,
 } from "./types";
 
 export { HttpCachePlugin, type HttpCachePluginOptions } from "./cache";
@@ -237,13 +238,12 @@ export class Controller {
 			}, 5000);
 		},
 		request: async (data) => {
+			const path = new URL(data.rawUrl).pathname;
+			const frame = this.frames.find((f) => path.startsWith(f.prefix));
+			if (!frame) throw new Error("No frame found for request");
 			try {
 				// doesn't actually *load* every request, but hold up requests until the promise finishes
 				await this.loadSavedCookies();
-
-				const path = new URL(data.rawUrl).pathname;
-				const frame = this.frames.find((f) => path.startsWith(f.prefix));
-				if (!frame) throw new Error("No frame found for request");
 
 				if (path === frame.prefix + this.config.virtualWasmPath) {
 					if (!this.wasmPayload) {
@@ -305,7 +305,24 @@ export class Controller {
 						: [],
 				];
 			} catch (e) {
-				console.error("Error in controller request handler:", e);
+				const reqcontext: typeof frame.hooks.error.request.context = {
+					rawrequest: data,
+				};
+				const reqprops: typeof frame.hooks.error.request.props = {
+					setResponse: undefined,
+					suppressError: false,
+				};
+				await $scramjet.Tap.dispatch(
+					frame.hooks.error.request,
+					reqcontext,
+					reqprops
+				);
+				if (!reqprops.suppressError) {
+					console.error("Error in controller request handler:", e);
+				}
+				if (reqprops.setResponse) {
+					return [reqprops.setResponse, []];
+				}
 				throw e;
 			}
 		},
@@ -665,7 +682,8 @@ export class Frame {
 	fetchHandler: ScramjetGlobal.ScramjetFetchHandler;
 	hooks: {
 		fetch: ScramjetGlobal.FetchHooks;
-		frameInit: FrameInitHooks;
+		init: FrameInitHooks;
+		error: FrameErrorHooks;
 	};
 
 	get context(): ScramjetGlobal.ScramjetContext {
@@ -760,7 +778,8 @@ export class Frame {
 
 		this.hooks = {
 			fetch: this.fetchHandler.hooks.fetch,
-			frameInit: $scramjet.Tap.create<FrameInitHooks>(),
+			init: $scramjet.Tap.create<FrameInitHooks>(),
+			error: $scramjet.Tap.create<FrameErrorHooks>(),
 		};
 
 		element[CONTROLLERFRAME] = this;
