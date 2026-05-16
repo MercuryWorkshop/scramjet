@@ -35,6 +35,7 @@ export default function (client: ScramjetClient, self: Self) {
 				return this.source;
 			},
 			origin() {
+				if (!iswindow) return "";
 				if (typeof this.data === "object" && "$scramjet$origin" in this.data)
 					return this.data.$scramjet$origin;
 
@@ -167,7 +168,11 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	const targets = [self.self, self.MessagePort.prototype] as Array<any>;
+	const targets = [
+		self.self,
+		self.MessagePort.prototype,
+		self.BroadcastChannel.prototype,
+	] as Array<any>;
 	if (iswindow) targets.push(self.HTMLElement.prototype);
 	if (self.Worker) targets.push(self.Worker.prototype);
 
