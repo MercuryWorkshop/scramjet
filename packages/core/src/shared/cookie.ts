@@ -20,7 +20,6 @@ export class CookieJar {
 	private cookies: Record<string, Cookie> = {};
 	// Index by domain (without leading dot)
 	private byDomain: Map<string, Cookie[]> = new Map();
-	private writeCount = 0;
 
 	private defaultPath(url: URL): string {
 		const pathname = url.pathname;
@@ -60,15 +59,6 @@ export class CookieJar {
 		const prev = this.cookies[id];
 		if (prev) this.unindexCookie(prev);
 		delete this.cookies[id];
-	}
-
-	private sweepExpired() {
-		const now = _Date.now();
-		for (const [id, c] of Object.entries(this.cookies)) {
-			if (c.expires !== undefined && c.expires < now) {
-				this.removeById(id);
-			}
-		}
 	}
 
 	setCookies(cookieString: string, url: URL) {
@@ -118,12 +108,6 @@ export class CookieJar {
 			if (prev) this.unindexCookie(prev);
 			this.cookies[id] = cookie;
 			this.indexCookie(cookie);
-		}
-
-		this.writeCount += parsedCookies.length;
-		if (this.writeCount >= 100) {
-			this.sweepExpired();
-			this.writeCount = 0;
 		}
 	}
 
