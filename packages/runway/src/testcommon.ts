@@ -34,6 +34,13 @@ export type Test = {
 	 */
 	cleartextHosts?: string[];
 	scheme?: "http" | "https";
+	/**
+	 * If set, {@link runwayTestTargetUrl} includes {@link Test.port} in the
+	 * hostname-based URL (e.g. `https://localhost:12345/…` instead of
+	 * `https://localhost/…`). Useful for tests whose embedded resource URLs
+	 * also reference the explicit harness port.
+	 */
+	useExplicitTargetPort?: boolean;
 	path?: string;
 	timeoutMs?: number;
 	reloadHarness?: boolean;
@@ -91,10 +98,13 @@ export function runwayTestTargetUrl(test: Test): string {
 			hostname !== "localhost" && hostname !== "127.0.0.1" ? "https" : "http";
 	}
 	const path = test.path ?? "/";
-	if (test.hostname) {
-		return `${scheme}://${hostname}${path.startsWith("/") ? path : `/${path}`}`;
+	const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+	if (test.hostname && !test.useExplicitTargetPort) {
+		// Hostname-based tests default to the scheme's default port; the runway
+		// cleartext-https transport maps that to the actual harness port.
+		return `${scheme}://${hostname}${normalizedPath}`;
 	}
-	return `${scheme}://${hostname}:${test.port}${path.startsWith("/") ? path : `/${path}`}`;
+	return `${scheme}://${hostname}:${test.port}${normalizedPath}`;
 }
 
 let nextPort = 10000 + Math.floor(Math.random() * 40000);

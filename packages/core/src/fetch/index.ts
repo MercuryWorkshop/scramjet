@@ -6,6 +6,7 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 
 import { type URLMeta } from "@rewriters/url";
+import { type ScramjetRequestMode } from "./parse";
 import { ScramjetHeaders } from "@/shared/headers";
 import { HtmlRewriterHooks, ScramjetContext } from "@/shared";
 import { Tap, TapInstance } from "@/Tap";
@@ -15,7 +16,8 @@ import { _URL, _Map } from "@/shared/snapshot";
 export interface ScramjetFetchRequest {
 	rawUrl: URL;
 	rawReferrer: string | null;
-	destination: RequestDestination;
+	// use parsed.destination instead
+	rawDestination: RequestDestination;
 	mode: RequestMode;
 	referrer: string;
 	method: string;
@@ -35,12 +37,29 @@ export interface ScramjetFetchParsed {
 	clientUrl?: _URL;
 	referrerSourceUrl?: _URL | null;
 	hadExtraParams: boolean;
-	/** True when this request follows a redirect chain that passed through a cross-site origin.
-	 *  Used to enforce SameSite "cross-site redirect poisoning" semantics. */
 	crossSiteRedirect: boolean;
 
+	// track the worst case Sec-Fetch-Site classification through redirects
+	fetchSiteState?: "same-origin" | "same-site" | "cross-site";
+
+	// origin of the page that initialized the request
+	// specifically for tracking Sec-Fetch-Site, don't use for anything else, it will diverge from clientUrl in some cases
+	fetchInitiatorOrigin?: string;
+
+	// was the request made with credentials=include?
+	fetchCredentialsInclude?: boolean;
+
+	// tracks RequestInit.mode if set
+	fetchMode?: ScramjetRequestMode;
+
+	// was this request made by an iframe? (scramjet's definition of an iframe, not the browser's)
+	isIframe?: boolean;
+
+	// request.destination, but is overridden by $dest
+	destination: RequestDestination;
+
 	meta: URLMeta;
-	scriptType: "module" | "regular";
+	isModule: boolean;
 	referrerPolicy?: string;
 	trackedClient?: ScramjetFetchTrackedClient;
 }

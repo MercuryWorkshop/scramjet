@@ -6,7 +6,11 @@ import { fileURLToPath } from "node:url";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Test } from "../../testcommon.ts";
-import { includeFetchMetadataGeneratedFile } from "./selection.ts";
+import {
+	FETCH_METADATA_PAGE_FILES_LIST,
+	includeFetchMetadataGeneratedFile,
+	includeFetchMetadataPageFile,
+} from "./selection.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const vendorRoot = path.join(__dirname, "vendored");
@@ -158,6 +162,12 @@ const WPT_TESTHARNESS_JS = `
 	};
 
 	window.assert_equals = assertEqualsInternal;
+	window.assert_not_equals = (actual, expected, message) => {
+		if (actual === expected) {
+			const detail = "expected not to equal " + JSON.stringify(expected);
+			throw new Error(message ? message + " (" + detail + ")" : detail);
+		}
+	};
 	window.assert_array_equals = (actual, expected, message) => {
 		const actualJson = JSON.stringify(actual);
 		const expectedJson = JSON.stringify(expected);
@@ -182,6 +192,12 @@ const WPT_TESTHARNESS_JS = `
 	window.assert_implements_optional = () => {};
 	window.setup = () => {};
 	window.add_completion_callback = () => {};
+	// We deliberately don't try to fake transient user activation. Tests in the
+	// fetch-metadata suite that gate assertions on \`test_driver.bless(...)\`
+	// (anchor click navigation, form submission, popped windows, etc.) are
+	// excluded at the selection layer instead — see selection.ts. These stubs
+	// keep the harness from crashing if a vendored test happens to reach for
+	// them, but they don't grant activation.
 	window.test_driver = {
 		bless(_message, callback = () => {}) {
 			return Promise.resolve().then(() => callback());
@@ -307,19 +323,44 @@ function replaceTokens(
 		sameSiteHost: string;
 		crossHost: string;
 		searchParams?: URLSearchParams;
+		requestHeaders?: Record<string, string>;
 	}
 ) {
-	return source
-		.replaceAll("{{host}}", props.host)
-		.replaceAll("{{hosts[][www]}}", props.sameSiteHost)
-		.replaceAll("{{hosts[alt][]}}", props.crossHost)
-		.replaceAll("{{ports[http][0]}}", String(props.httpPort))
-		.replaceAll("{{ports[https][0]}}", String(props.httpsPort))
-		.replaceAll(
-			/\{\{GET\[([^\]]+)\]\}\}/g,
-			(_match, key: string) => props.searchParams?.get(key) ?? ""
-		)
-		.replaceAll("{{uuid()}}", randomUUID());
+	return (
+		source
+			.replaceAll("{{host}}", props.host)
+			.replaceAll("{{hosts[][www]}}", props.sameSiteHost)
+			.replaceAll("{{hosts[alt][]}}", props.crossHost)
+			.replaceAll("{{hosts[alt][www]}}", props.sameSiteHost)
+			.replaceAll("{{ports[http][0]}}", String(props.httpPort))
+			.replaceAll("{{ports[https][0]}}", String(props.httpsPort))
+			.replaceAll(
+				/\{\{GET\[([^\]]+)\]\}\}/g,
+				(_match, key: string) => props.searchParams?.get(key) ?? ""
+			)
+			// `{{headers[name]}}` echoes the value of an incoming request header.
+			// wptserve does this server-side; we mirror it here so tests like
+			// fetch/metadata/navigation.https.sub.html can assert on the page's
+			// own request headers.
+			.replaceAll(
+				/\{\{headers\[([^\]]+)\]\}\}/gi,
+				(_match, key: string) => props.requestHeaders?.[key.toLowerCase()] ?? ""
+			)
+			// Each `{{uuid()}}` should yield a distinct UUID per match, mirroring
+			// wptserve's behaviour. Use a function-replacement so the closure runs
+			// once per occurrence instead of substituting a single fixed value.
+			.replaceAll(/\{\{uuid\(\)\}\}/g, () => randomUUID())
+	);
+}
+
+function pickFirstHeader(
+	headers: Record<string, string[] | string | undefined>,
+	name: string
+): string {
+	const value = headers[name.toLowerCase()];
+	if (Array.isArray(value)) return value[0] ?? "";
+	if (typeof value === "string") return value;
+	return "";
 }
 
 function normalizeHeaders(request: IncomingMessage) {
@@ -363,6 +404,28 @@ async function loadGeneratedPages() {
 		.sort();
 }
 
+/**
+ * Top-level (non-generated) `fetch/metadata/*.https.sub.html` and `*.https.html`
+ * pages we vendor in addition to the generated suite — see selection.ts.
+ */
+async function loadPagePages() {
+	const pages: string[] = [];
+	for (const relPath of FETCH_METADATA_PAGE_FILES_LIST) {
+		if (!includeFetchMetadataPageFile(relPath)) continue;
+		// Skip non-html sidecar files (e.g. `.sub.headers`); they're served
+		// alongside but aren't independently runnable as test pages.
+		if (!relPath.endsWith(".html")) continue;
+		const absPath = path.join(vendorRoot, relPath);
+		try {
+			await fs.access(absPath);
+			pages.push(relPath);
+		} catch {
+			// File hasn't been vendored yet (e.g. fresh checkout); silently skip.
+		}
+	}
+	return pages.sort();
+}
+
 function vendoredPathForRequest(pathname: string) {
 	const relPath = pathname.replace(/^\/+/, "");
 	if (!relPath.startsWith("fetch/metadata/")) {
@@ -375,6 +438,34 @@ function vendoredPathForRequest(pathname: string) {
 	return resolved;
 }
 
+async function loadHeadersSidecar(
+	resolvedPath: string,
+	props: Parameters<typeof replaceTokens>[1]
+): Promise<Record<string, string>> {
+	const sidecarPath = `${resolvedPath}.sub.headers`;
+	let raw: string;
+	try {
+		raw = await fs.readFile(sidecarPath, "utf8");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+			return {};
+		}
+		throw error;
+	}
+	const out: Record<string, string> = {};
+	for (const line of replaceTokens(raw, props).split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("#")) continue;
+		const colon = trimmed.indexOf(":");
+		if (colon === -1) continue;
+		const key = trimmed.slice(0, colon).trim();
+		const value = trimmed.slice(colon + 1).trim();
+		if (!key) continue;
+		out[key] = value;
+	}
+	return out;
+}
+
 async function serveVendoredFile(
 	response: ServerResponse,
 	requestPath: string,
@@ -385,17 +476,33 @@ async function serveVendoredFile(
 		sameSiteHost: string;
 		crossHost: string;
 		searchParams: URLSearchParams;
+		requestHeaders?: Record<string, string>;
 	}
 ) {
 	const resolvedPath = vendoredPathForRequest(requestPath);
 	if (!resolvedPath) return false;
-	const source = await fs.readFile(resolvedPath, "utf8");
-	const body = replaceTokens(source, props).replaceAll("https://", "http://");
-	serve(response, body, { "Content-Type": mimeTypeForPath(resolvedPath) });
+	let source: string;
+	try {
+		source = await fs.readFile(resolvedPath, "utf8");
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+			return false;
+		}
+		throw error;
+	}
+	// Keep https:// URLs as-is — they're rerouted to the harness server by the
+	// runway cleartext-https transport. This makes the WPT tests actually exercise
+	// scheme distinctions (http vs https) for Sec-Fetch-Site.
+	const body = replaceTokens(source, props);
+	const sidecarHeaders = await loadHeadersSidecar(resolvedPath, props);
+	serve(response, body, {
+		"Content-Type": mimeTypeForPath(resolvedPath),
+		...sidecarHeaders,
+	});
 	return true;
 }
 
-const pages = await loadGeneratedPages();
+const pages = [...(await loadGeneratedPages()), ...(await loadPagePages())];
 
 let sharedServerPromise:
 	| Promise<{
@@ -422,12 +529,20 @@ async function ensureServer() {
 				response: ServerResponse
 			) => {
 				try {
-					const hostHeader = request.headers.host || "localhost";
+					const hostHeader =
+						request.headers.host || FETCH_METADATA_PRIMARY_HOST;
 					const requestHost = stripPort(hostHeader);
+					// Map the requesting host to the WPT-style same-site / cross-site
+					// peers so that template substitutions in served pages resolve to
+					// hosts that are actually wired into the cleartext transport snap.
 					const sameSiteHost =
-						requestHost === "localhost" ? "www.localhost" : "localhost";
+						requestHost === FETCH_METADATA_PRIMARY_HOST
+							? FETCH_METADATA_SAME_SITE_HOST
+							: FETCH_METADATA_PRIMARY_HOST;
 					const crossHost =
-						requestHost === "127.0.0.1" ? "localhost" : "127.0.0.1";
+						requestHost === FETCH_METADATA_CROSS_SITE_HOST
+							? FETCH_METADATA_PRIMARY_HOST
+							: FETCH_METADATA_CROSS_SITE_HOST;
 					const requestUrl = new URL(
 						request.url || "/",
 						`http://${hostHeader}`
@@ -492,7 +607,26 @@ async function ensureServer() {
 							});
 							return;
 						}
-						headersByKey.set(key, JSON.stringify(normalizeHeaders(request)));
+						const recorded = normalizeHeaders(request);
+						headersByKey.set(key, JSON.stringify(recorded));
+						if (process.env.RUNWAY_DEBUG_FETCH_METADATA === "1") {
+							console.log(
+								"[record-headers]",
+								requestUrl.pathname + requestUrl.search,
+								JSON.stringify(
+									Object.fromEntries(
+										Object.entries(recorded).filter(
+											([k]) =>
+												k.startsWith("sec-fetch") ||
+												k === "x-scramjet-debug" ||
+												k === "host" ||
+												k === "origin" ||
+												k === "referer"
+										)
+									)
+								)
+							);
+						}
 						const mime = requestUrl.searchParams.get("mime");
 						const body = requestUrl.searchParams.get("body") || "";
 						serve(response, body, mime ? { "Content-Type": mime } : {});
@@ -575,6 +709,17 @@ if (window.top !== window) window.top.postMessage(data, "*");
 						return;
 					}
 
+					// Flatten request headers (lowercased keys, first value wins)
+					// so served pages can substitute `{{headers[name]}}` —
+					// `fetch/metadata/navigation.https.sub.html` and friends use
+					// this to assert on their own request headers.
+					const requestHeadersFlat: Record<string, string> = {};
+					for (const [k, v] of Object.entries(request.headers)) {
+						requestHeadersFlat[k.toLowerCase()] = Array.isArray(v)
+							? (v[0] ?? "")
+							: (v ?? "");
+					}
+
 					if (
 						await serveVendoredFile(response, requestUrl.pathname, {
 							host: requestHost,
@@ -583,6 +728,7 @@ if (window.top !== window) window.top.postMessage(data, "*");
 							sameSiteHost,
 							crossHost,
 							searchParams: requestUrl.searchParams,
+							requestHeaders: requestHeadersFlat,
 						})
 					) {
 						return;
@@ -616,12 +762,36 @@ if (window.top !== window) window.top.postMessage(data, "*");
 	return sharedServerPromise;
 }
 
+// Use non-loopback fake hostnames so the WPT test setup matches its design
+// assumption that http:// destinations are non-trustworthy. The runway
+// cleartext transport rewrites all wire requests to 127.0.0.1:<port>.
+const FETCH_METADATA_PRIMARY_HOST = "wpt.test";
+const FETCH_METADATA_SAME_SITE_HOST = "www.wpt.test";
+const FETCH_METADATA_CROSS_SITE_HOST = "wpt-cross.test";
+
 function metadataPageTest(entryPath: string): Test {
 	const basePath = `/${entryPath}`;
+	// HTTPS variants of the WPT fetch-metadata tests run with a logical `https:`
+	// page URL so that Sec-Fetch-Site treats https↔http as a scheme change
+	// (cross-site). HTTP variants must use a non-loopback host so that
+	// destinations are non-trustworthy and Sec-Fetch-* is omitted.
+	const isHttpsVariant = /\.https\.(?:optional\.|tentative\.)?sub\.html$/.test(
+		entryPath
+	);
+	const scheme: "http" | "https" = isHttpsVariant ? "https" : "http";
 	const test: Test = {
 		name: testNameForPath(entryPath),
 		port: 0,
-		scheme: "http",
+		scheme,
+		hostname: FETCH_METADATA_PRIMARY_HOST,
+		cleartextHosts: [
+			FETCH_METADATA_SAME_SITE_HOST,
+			FETCH_METADATA_CROSS_SITE_HOST,
+		],
+		// Embedded URLs in WPT helper.sub.js include the explicit `{{ports[*][0]}}`
+		// substitution, so the loaded page URL must also include the harness
+		// port to keep same-origin classifications consistent.
+		useExplicitTargetPort: true,
 		path: basePath,
 		scramjetOnly: true,
 		reloadHarness: true,
@@ -631,15 +801,17 @@ function metadataPageTest(entryPath: string): Test {
 			test.port = serverInfo.port;
 			const token = randomUUID();
 			reportCallbacks.set(token, { pass, fail });
-			const url = new URL(basePath, "http://localhost");
+			const baseOrigin = `${scheme}://${FETCH_METADATA_PRIMARY_HOST}:${test.port}`;
+			const url = new URL(basePath, baseOrigin);
 			url.searchParams.set(
 				"runway_report",
-				`http://localhost:${test.port}/__runway_report?token=${token}`
+				`${baseOrigin}/__runway_report?token=${token}`
 			);
 			test.path = `${url.pathname}${url.search}`;
 		},
 		async stop() {
-			const currentUrl = new URL(test.path ?? basePath, "http://localhost");
+			const baseOrigin = `${scheme}://${FETCH_METADATA_PRIMARY_HOST}:${test.port || 1}`;
+			const currentUrl = new URL(test.path ?? basePath, baseOrigin);
 			const reportUrl = currentUrl.searchParams.get("runway_report");
 			if (reportUrl) {
 				const reportToken = new URL(reportUrl).searchParams.get("token");

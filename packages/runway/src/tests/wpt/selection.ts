@@ -22,13 +22,84 @@ export function includeReferrerGeneratedFile(relPath: string) {
 	);
 }
 
+/**
+ * Tests in this set assert behaviour that fundamentally requires real
+ * transient user activation (clicked anchor, form submit triggered from a
+ * gesture, popped window from `window.open`, etc.). The runway harness can
+ * only fake activation through CDP-level clicks which Chromium doesn't fully
+ * honour for cross-frame nav requests, so these subtest assertions never
+ * pass. The whole file is excluded rather than partially skipped, so the
+ * `runway-bless` plumbing can stay deleted.
+ */
+const FETCH_METADATA_USER_ACTIVATION_GENERATED = new Set<string>([
+	"fetch/metadata/generated/element-a.sub.html",
+	"fetch/metadata/generated/element-a.https.sub.html",
+	"fetch/metadata/generated/element-area.sub.html",
+	"fetch/metadata/generated/element-area.https.sub.html",
+	"fetch/metadata/generated/element-frame.sub.html",
+	"fetch/metadata/generated/element-frame.https.sub.html",
+	"fetch/metadata/generated/element-iframe.sub.html",
+	"fetch/metadata/generated/element-iframe.https.sub.html",
+	"fetch/metadata/generated/form-submission.sub.html",
+	"fetch/metadata/generated/form-submission.https.sub.html",
+	"fetch/metadata/generated/window-location.sub.html",
+	"fetch/metadata/generated/window-location.https.sub.html",
+]);
+
+/**
+ * Worklet-related fetch-metadata tests. Scramjet doesn't currently proxy
+ * AudioWorklet / PaintWorklet module loads, so these can never pass; we
+ * exclude them rather than vendor dead weight.
+ */
+const FETCH_METADATA_WORKLET_FILES = new Set<string>([
+	"fetch/metadata/generated/audioworklet.https.sub.html",
+	"fetch/metadata/audio-worklet.https.html",
+	"fetch/metadata/paint-worklet.https.html",
+]);
+
+/**
+ * Top-level (non-generated) `fetch/metadata/*.https.sub.html` and
+ * `*.https.html` tests we vendor alongside the generated suite. These cover
+ * scenarios the procedurally-generated tests don't (e.g. the page's own
+ * navigation request, preload, style, track, etc.). Files known to require
+ * real user activation (notably `window-open.https.sub.html`) and worklet
+ * tests (audio/paint worklet — scramjet doesn't proxy worklets) are excluded.
+ */
+const FETCH_METADATA_PAGE_FILES = new Set<string>([
+	"fetch/metadata/embed.https.sub.tentative.html",
+	"fetch/metadata/navigation.https.sub.html",
+	"fetch/metadata/object.https.sub.html",
+	"fetch/metadata/preload.https.sub.html",
+	"fetch/metadata/report.https.sub.html",
+	"fetch/metadata/report.https.sub.html.sub.headers",
+	"fetch/metadata/serviceworker-accessors.https.sub.html",
+	"fetch/metadata/sharedworker.https.sub.html",
+	"fetch/metadata/style.https.sub.html",
+	"fetch/metadata/text.https.html",
+	"fetch/metadata/track.https.sub.html",
+	"fetch/metadata/unload.https.sub.html",
+	"fetch/metadata/worker.https.sub.html",
+]);
+
 export function includeFetchMetadataGeneratedFile(relPath: string) {
 	const normalized = normalize(relPath);
+	if (FETCH_METADATA_USER_ACTIVATION_GENERATED.has(normalized)) return false;
+	if (FETCH_METADATA_WORKLET_FILES.has(normalized)) return false;
 	return (
 		normalized.startsWith("fetch/metadata/generated/") &&
 		normalized.includes(".sub.html")
 	);
 }
+
+export function includeFetchMetadataPageFile(relPath: string) {
+	const normalized = normalize(relPath);
+	if (FETCH_METADATA_WORKLET_FILES.has(normalized)) return false;
+	return FETCH_METADATA_PAGE_FILES.has(normalized);
+}
+
+export const FETCH_METADATA_PAGE_FILES_LIST = [
+	...FETCH_METADATA_PAGE_FILES,
+] as const;
 
 export const COOKIE_WPT_FILES = [
 	"cookies/attributes/expires.html",

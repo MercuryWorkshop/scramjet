@@ -9,11 +9,8 @@ export const htmlRules: {
 	fn: (value: string, context: ScramjetContext, meta: URLMeta) => string | null;
 }[] = [
 	{
-		fn: (value, context, meta) => {
-			return rewriteUrl(value, context, meta, {
-				navigateType: "location",
-			});
-		},
+		fn: (value, context, meta) =>
+			rewriteUrl(value, context, meta, { navigateType: "location" }),
 
 		// url rewrites
 		src: ["embed", "script", "img", "frame", "input", "track"],
@@ -29,6 +26,7 @@ export const htmlRules: {
 			const url = rewriteUrl(value, context, meta, {
 				topFrame: meta.topFrameName,
 				parentFrame: meta.parentFrameName,
+				isIframe: "1",
 			});
 
 			return url;

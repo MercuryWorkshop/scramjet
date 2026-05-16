@@ -283,7 +283,7 @@ export class Controller {
 						: undefined,
 					rawUrl: new URL(data.rawUrl),
 					rawReferrer: data.rawReferrer,
-					destination: data.destination,
+					rawDestination: data.destination,
 					method: data.method,
 					mode: data.mode,
 					referrer: data.referrer,

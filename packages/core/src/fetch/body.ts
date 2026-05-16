@@ -23,7 +23,7 @@ export async function rewriteBody(
 	parsed: ScramjetFetchParsed,
 	response: BareResponse
 ): Promise<BodyType> {
-	switch (request.destination) {
+	switch (parsed.destination) {
 		case "iframe":
 		case "document":
 			if (isHtmlMimeType(response.headers.get("content-type") ?? "")) {
@@ -51,7 +51,7 @@ export async function rewriteBody(
 			if (response.ok) {
 				const ct = response.headers.get("content-type");
 				// don't rewrite invalid module scripts when the server declares a non-JS type
-				if (parsed.scriptType === "module" && ct && !isJavascriptMimeType(ct)) {
+				if (parsed.isModule && ct && !isJavascriptMimeType(ct)) {
 					return response.body;
 				}
 
@@ -60,7 +60,7 @@ export async function rewriteBody(
 					response.url,
 					handler.context,
 					parsed.meta,
-					parsed.scriptType === "module"
+					parsed.isModule
 				);
 
 				if (
@@ -83,8 +83,7 @@ export async function rewriteBody(
 			return rewriteWorkers(
 				handler.context,
 				new Uint8Array(await response.arrayBuffer()),
-				// TODO: this takes a scriptType and rewritejs takes a bool..
-				parsed.scriptType,
+				parsed.isModule,
 				response.url,
 				parsed.meta
 			);

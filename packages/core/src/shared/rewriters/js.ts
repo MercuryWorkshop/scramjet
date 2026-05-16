@@ -25,7 +25,7 @@ function rewriteJsWasm(
 	source: string | null,
 	context: ScramjetContext,
 	meta: URLMeta,
-	module: boolean
+	isModule: boolean
 ): RewriterResult {
 	const [rewriter, ret] = getRewriter(context, meta);
 
@@ -49,7 +49,7 @@ function rewriteJsWasm(
 				input,
 				meta.base.href,
 				source || "(unknown)",
-				module
+				isModule
 			);
 		} else {
 			out = rewriter.rewrite_js_bytes(
@@ -62,7 +62,7 @@ function rewriteJsWasm(
 				input,
 				meta.base.href,
 				source || "(unknown)",
-				module
+				isModule
 			);
 		}
 		// } catch (err) {
@@ -98,9 +98,9 @@ export function rewriteJsInner(
 	url: string | null,
 	context: ScramjetContext,
 	meta: URLMeta,
-	module = false
+	isModule = false
 ) {
-	return rewriteJsWasm(js, url, context, meta, module);
+	return rewriteJsWasm(js, url, context, meta, isModule);
 }
 
 export function rewriteJs(
@@ -108,10 +108,10 @@ export function rewriteJs(
 	url: string | null,
 	context: ScramjetContext,
 	meta: URLMeta,
-	module = false
+	isModule = false
 ): string | Uint8Array {
 	try {
-		const res = rewriteJsInner(js, url, context, meta, module);
+		const res = rewriteJsInner(js, url, context, meta, isModule);
 		let newjs = res.js;
 
 		if (flagEnabled("sourcemaps", context, meta.base)) {

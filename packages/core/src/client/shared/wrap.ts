@@ -157,14 +157,18 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 	);
 
 	self.$scramitize = function (v) {
-		if (v === location) debugger;
-		if (iswindow) {
-			// if (v === self.parent) debugger;
-			if (v === self.top) debugger;
+		const t = typeof v;
+		if (t === "object" && v !== null) {
+			if (v === location) debugger;
+			if (iswindow) {
+				// if (v === self.parent) debugger;
+				if (v === self.top) debugger;
+			}
+		} else if (t === "string") {
+			if (v.includes("scramjet")) debugger;
+			if (v.includes("~/sj")) debugger;
+			if (v.includes(location.origin)) debugger;
 		}
-
-		if (typeof v === "string" && v.includes("scramjet")) debugger;
-		if (typeof v === "string" && v.includes(location.origin)) debugger;
 
 		return v;
 	};
