@@ -6,8 +6,10 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import {
 	COOKIE_WPT_FILES,
+	FETCH_METADATA_PAGE_FILES_LIST,
 	includeCookieFile,
 	includeFetchMetadataGeneratedFile,
+	includeFetchMetadataPageFile,
 	includeReferrerGeneratedFile,
 } from "../src/tests/wpt/selection.ts";
 
@@ -62,7 +64,7 @@ async function ensureUpstreamRoot() {
 		"set",
 		"--no-cone",
 		"cookies",
-		"fetch/metadata/generated",
+		"fetch/metadata",
 		"referrer-policy/gen",
 	]);
 
@@ -143,6 +145,23 @@ async function main() {
 			targetRoot: path.join(vendorRoot, "fetch/metadata/generated"),
 			include: includeFetchMetadataGeneratedFile,
 		});
+		// Top-level (non-generated) fetch/metadata pages — navigation, preload,
+		// style, etc. These cover scenarios the generated suite doesn't. We
+		// can't reuse copyExplicitFiles here because its targetRoot wipe would
+		// nuke the just-generated fetch/metadata/generated/ tree and the
+		// committed fetch/metadata/resources/ helpers. Instead we delete any
+		// previous copy of the explicit files and copy fresh, leaving siblings
+		// alone.
+		const fetchMetadataPageFiles: string[] = [];
+		for (const relPath of FETCH_METADATA_PAGE_FILES_LIST) {
+			if (!includeFetchMetadataPageFile(relPath)) continue;
+			const sourcePath = path.join(upstream.root, relPath);
+			const targetPath = path.join(vendorRoot, relPath);
+			await rm(targetPath, { force: true });
+			await mkdir(path.dirname(targetPath), { recursive: true });
+			await cp(sourcePath, targetPath);
+			fetchMetadataPageFiles.push(relPath);
+		}
 		const cookieFiles = await copyExplicitFiles({
 			upstreamRoot: upstream.root,
 			targetRoot: path.join(vendorRoot, "cookies"),
@@ -151,7 +170,7 @@ async function main() {
 		});
 
 		console.log(
-			`Generated ${referrerFiles.length} referrer-policy file(s), ${fetchMetadataFiles.length} fetch-metadata file(s), and ${cookieFiles.length} cookie file(s).`
+			`Generated ${referrerFiles.length} referrer-policy file(s), ${fetchMetadataFiles.length} fetch-metadata file(s), ${fetchMetadataPageFiles.length} fetch-metadata page file(s), and ${cookieFiles.length} cookie file(s).`
 		);
 	} finally {
 		await upstream.cleanup();

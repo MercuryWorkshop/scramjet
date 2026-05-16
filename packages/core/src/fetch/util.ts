@@ -1,12 +1,12 @@
 import { isHtmlMimeType, ScramjetHeaders } from "@/shared";
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
-import { ScramjetFetchRequest } from ".";
+import { ScramjetFetchParsed } from ".";
 
 export function normalizeContentType(
-	request: ScramjetFetchRequest,
+	parsed: ScramjetFetchParsed,
 	headers: ScramjetHeaders
 ) {
-	if (!isDocument(request)) return;
+	if (!isDocument(parsed)) return;
 
 	const ct = headers.get("content-type");
 	if (!ct) return;
@@ -19,8 +19,8 @@ export function isRedirect(response: BareResponse) {
 	return response.status >= 300 && response.status < 400;
 }
 
-export function isDocument(request: ScramjetFetchRequest) {
-	return request.destination === "document" || request.destination === "iframe";
+export function isDocument(parsed: ScramjetFetchParsed) {
+	return parsed.destination === "document" || parsed.destination === "iframe";
 }
 
 export function createReferrerString(

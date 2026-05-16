@@ -9,20 +9,20 @@ import {
 	ScramjetFetchParsed,
 	ScramjetFetchRequest,
 	ScramjetFetchResponse,
-	ScramjetFetchTrackedClient,
 } from ".";
-import {
-	rewriteUrl,
-	unrewriteBlob,
-	unrewriteUrl,
-	URLMeta,
-} from "@rewriters/url";
+import { rewriteUrl, unrewriteBlob, unrewriteUrl } from "@rewriters/url";
+import { QP, parseRequest } from "./parse";
 import { ScramjetHeaders } from "@/shared";
 import { isDocument, isRedirect, normalizeContentType } from "./util";
 import { rewriteBody } from "./body";
 import { Tap } from "@/Tap";
-import { rewriteRequestHeaders, rewriteResponseHeaders } from "./headers";
-import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
+import {
+	computeFetchSite,
+	rewriteRequestHeaders,
+	rewriteResponseHeaders,
+	worstFetchSite,
+} from "./headers";
+import { _URL } from "@/shared/snapshot";
 
 export async function doHandleFetch(
 	handler: ScramjetFetchHandler,
@@ -48,7 +48,7 @@ export async function doHandleFetch(
 		return interceptProps.response;
 	}
 
-	if (parsed.hadExtraParams && isDocument(request)) {
+	if (parsed.hadExtraParams && isDocument(parsed)) {
 		const location = rewriteUrl(parsed.url, handler.context, parsed.meta);
 		if (location !== request.rawUrl.href) {
 			const responseHeaders = new ScramjetHeaders();
@@ -70,7 +70,7 @@ export async function doHandleFetch(
 	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a ScramjetHeaders object
 	await handleCookies(handler, request, parsed, response.rawHeaders);
 
-	if (isDocument(request)) {
+	if (isDocument(parsed)) {
 		// for document.referer
 		parsed.trackedClient?.history.push({
 			url: parsed.url.href,
@@ -90,44 +90,62 @@ export async function doHandleFetch(
 	if (isRedirect(response)) {
 		const location = new _URL(responseHeaders.get("location"));
 		const referer = newheaders.get("Referer");
-		// when going through a redirect, we need to hold on to the original referer, because it can change origins during a redirect
-		// easiest way of accomplishing this is just tacking on an extra query parameter that's read below
-		location.searchParams.set("rfs", referer ?? "");
+
+		// Compute the page (initiator) URL once. The initiator never changes
+		// through a redirect chain, so prefer the propagated `sj$io` value if
+		// the chain has already started; otherwise fall back to rawClientUrl
+		// or rawReferrer (which point at the page for the *first* hop).
+		let initiatorOriginUrl: URL | undefined;
+		if (parsed.fetchInitiatorOrigin) {
+			try {
+				initiatorOriginUrl = new URL(parsed.fetchInitiatorOrigin);
+			} catch {
+				initiatorOriginUrl = undefined;
+			}
+		}
+		if (!initiatorOriginUrl) {
+			const rawClient =
+				request.rawClientUrl ||
+				(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
+			initiatorOriginUrl =
+				rawClient &&
+				rawClient.pathname.startsWith(handler.context.prefix.pathname)
+					? new URL(unrewriteUrl(rawClient, handler.context))
+					: undefined;
+		}
 
 		// Cross-site redirect poisoning (SameSite): if this hop was cross-site, or a
-		// previous hop already was, propagate the flag so the final destination enforces
-		// cross-site SameSite restrictions.
-		if (!parsed.crossSiteRedirect) {
-			// Compute originUrl the same way rewriteRequestHeaders does
-			const rawOUrl =
-				parsed.referrerSourceUrl !== undefined
-					? parsed.referrerSourceUrl
-					: request.rawClientUrl ||
-						(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
-			if (
-				rawOUrl &&
-				rawOUrl.pathname.startsWith(handler.context.prefix.pathname)
-			) {
-				const originUrl = new URL(unrewriteUrl(rawOUrl, handler.context));
-				if (
-					registrableDomainForRedirect(originUrl.hostname) !==
-					registrableDomainForRedirect(parsed.url.hostname)
-				) {
-					location.searchParams.set("sj$csr", "1");
-				}
+		// previous hop already was, propagate the flag so the final destination
+		// enforces cross-site SameSite restrictions.
+		const crossSiteRedirect =
+			parsed.crossSiteRedirect ||
+			(!!initiatorOriginUrl &&
+				registrableDomainForRedirect(initiatorOriginUrl.hostname) !==
+					registrableDomainForRedirect(parsed.url.hostname));
+
+		// Sec-Fetch-Site chain state: combine the worst classification seen so
+		// far with the relation between the initiator and *this* hop's URL.
+		// Once "cross-site" appears, it sticks for the rest of the chain.
+		let propagatedFetchSite: "same-site" | "cross-site" | undefined;
+		if (initiatorOriginUrl) {
+			const hopSite = computeFetchSite(initiatorOriginUrl, parsed.url);
+			const propagated = parsed.fetchSiteState
+				? worstFetchSite(parsed.fetchSiteState, hopSite)
+				: hopSite;
+			if (propagated !== "same-origin" && propagated !== "none") {
+				propagatedFetchSite = propagated;
 			}
-		} else {
-			location.searchParams.set("sj$csr", "1");
 		}
+
+		location.searchParams.set(QP.referrerSource, referer ?? "");
+		if (crossSiteRedirect) location.searchParams.set(QP.crossSiteRedirect, "1");
+		if (propagatedFetchSite)
+			location.searchParams.set(QP.fetchSite, propagatedFetchSite);
+		if (initiatorOriginUrl)
+			location.searchParams.set(QP.initiatorOrigin, initiatorOriginUrl.origin);
+		if (parsed.isModule) location.searchParams.set(QP.isModule, "module");
 
 		responseHeaders.set("location", location.href);
-
-		// ensure that ?type=module is not lost in a redirect
-		if (parsed.scriptType === "module") {
-			const url = new _URL(responseHeaders.get("location"));
-			url.searchParams.set("type", parsed.scriptType);
-			responseHeaders.set("location", url.href);
-		}
 	}
 
 	if (response.body && !isRedirect(response)) {
@@ -136,7 +154,7 @@ export async function doHandleFetch(
 		// After rewriting HTML, the body is a JS string which will be encoded as
 		// UTF-8 by the Response constructor. Normalize the Content-Type charset so
 		// the browser doesn't try to decode UTF-8 bytes with the original encoding.
-		normalizeContentType(request, responseHeaders);
+		normalizeContentType(parsed, responseHeaders);
 	}
 
 	const respcontext: typeof handler.hooks.fetch.response.context = {
@@ -213,114 +231,6 @@ export async function doNetworkFetch(
 	return prerespprops.response;
 }
 
-export function parseRequest(
-	request: ScramjetFetchRequest,
-	handler: ScramjetFetchHandler
-): ScramjetFetchParsed {
-	const strippedUrl = new _URL(request.rawUrl.href);
-	const extraParams: Record<string, string> = {};
-
-	let scriptType: "module" | "regular" = "regular";
-	let topFrameName: string | undefined;
-	let parentFrameName: string | undefined;
-	let referrerPolicy: string | undefined;
-	let referrerSourceUrl: _URL | null | undefined;
-	let crossSiteRedirect = false;
-	for (const [param, value] of [...request.rawUrl.searchParams.entries()]) {
-		switch (param) {
-			case "type":
-				if (value === "module") scriptType = value;
-				break;
-			case "dest":
-				break;
-			case "topFrame":
-				topFrameName = value;
-				break;
-			case "parentFrame":
-				parentFrameName = value;
-				break;
-			case "rfp":
-				referrerPolicy = value;
-				break;
-			case "rfs":
-				referrerSourceUrl = value ? new _URL(value) : null;
-				break;
-			case "sj$csr":
-				// Cross-site redirect flag: set when any hop in the redirect chain was cross-site
-				crossSiteRedirect = value === "1";
-				break;
-			default:
-				dbg.warn(
-					`${request.rawUrl.href} extraneous query parameter ${param}. Assuming <form> element`
-				);
-				extraParams[param] = value;
-				break;
-		}
-	}
-	strippedUrl.search = "";
-
-	const hadExtraParams = Object_keys(extraParams).length > 0;
-
-	if (!_URL.canParse(unrewriteUrl(strippedUrl, handler.context))) {
-		throw new Error(`unable to parse rewritten url: ${strippedUrl.href}`);
-	}
-	const url = new _URL(unrewriteUrl(strippedUrl, handler.context));
-
-	if (url.origin === new _URL(request.rawUrl).origin) {
-		// uh oh!
-		throw new Error(
-			"attempted to fetch from same origin - this means the site has obtained a reference to the real origin, aborting"
-		);
-	}
-
-	// now that we're past unrewriting it's safe to add back the params
-	for (const [param, value] of Object_entries(extraParams)) {
-		url.searchParams.set(param, value);
-	}
-
-	const clientId = request.clientId;
-
-	let trackedClient: ScramjetFetchTrackedClient | undefined;
-	// realistically, this will always be true
-	// but try not to blow up if it's not
-	if (clientId) {
-		trackedClient = handler.trackedClients.get(clientId);
-		if (!trackedClient) {
-			trackedClient = new ScramjetFetchTrackedClient(clientId);
-			handler.trackedClients.set(clientId, trackedClient);
-		}
-	}
-
-	// TODO: figure out what origin and base actually mean
-	const meta: URLMeta = {
-		origin: url,
-		base: url,
-		topFrameName,
-		parentFrameName,
-		referrerPolicy: referrerPolicy,
-	};
-
-	const parsed: ScramjetFetchParsed = {
-		meta,
-		url,
-		scriptType,
-		referrerPolicy,
-		referrerSourceUrl,
-		trackedClient,
-		hadExtraParams,
-		crossSiteRedirect,
-	};
-
-	if (request.rawClientUrl) {
-		// TODO: probably need to make a meta for it
-		parsed.clientUrl = new _URL(
-			unrewriteUrl(request.rawClientUrl, handler.context)
-		);
-	}
-
-	return parsed;
-}
-
 function isBlobOrDataUrl(url: _URL): boolean {
 	return url.protocol === "blob:" || url.protocol === "data:";
 }
@@ -358,7 +268,7 @@ async function handleBlobOrDataUrlFetch(
 	const headers = ScramjetHeaders.fromRawHeaders(response.rawHeaders);
 
 	// blob urls actually *can* set charsets, so we need to normalize them if it goes down the html path
-	normalizeContentType(request, headers);
+	normalizeContentType(parsed, headers);
 
 	if (handler.crossOriginIsolated) {
 		headers.set("Cross-Origin-Opener-Policy", "same-origin");
@@ -406,6 +316,6 @@ async function handleCookies(
 	}
 
 	await handler.sendSetCookie(cookies, {
-		destination: request.destination,
+		destination: parsed.destination,
 	});
 }

@@ -16,6 +16,14 @@ import { ScramjetClient } from "@client/index";
 import { isHtmlMimeType } from "@/shared/mime";
 import { ForeignContext } from "@/shared/rewriters/html";
 
+function bytesToBase64(bytes: Uint8Array) {
+	const binString = Array_from(bytes, (byte) =>
+		String.fromCodePoint(byte)
+	).join("");
+
+	return btoa(binString);
+}
+
 export function foreignContextForElement(
 	client: ScramjetClient,
 	element: Element
@@ -220,6 +228,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.setAttribute", {
 		apply(ctx) {
 			const [name, value] = ctx.args;
+			const tagName = ctx.this.tagName.toLowerCase();
 
 			const ruleList = htmlRules.find((rule) => {
 				const r = rule[name.toLowerCase()];
@@ -227,7 +236,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (r === "*") return true;
 				if (typeof r === "function") return false; // this can't happen but ts
 
-				return r.includes(ctx.this.tagName.toLowerCase());
+				return r.includes(tagName);
 			});
 
 			if (ruleList) {

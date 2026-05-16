@@ -1,5 +1,6 @@
 import { ScramjetContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
+import { QP } from "@/fetch/parse";
 
 import {
 	TextEncoder_encode,
@@ -9,6 +10,23 @@ import {
 	String,
 	URL_createObjectURL,
 } from "../snapshot";
+
+// user: manually triggered navigation
+// link: link clicked by the user. still user initiated, but doesn't wipe
+// location: location = ...
+export type NavigationType = "user" | "link" | "location";
+
+export type RewriteUrlOptions = {
+	referrerPolicy?: string;
+	isModule?: boolean;
+	navigateType?: NavigationType;
+	topFrame?: string;
+	parentFrame?: string;
+	isIframe?: string;
+	mode?: string;
+	credentials?: string;
+	destination?: RequestDestination;
+};
 
 export type URLMeta = {
 	origin: _URL;
@@ -95,18 +113,6 @@ function dataToBlob(url: string) {
 	return { blob, objectUrl };
 }
 
-// user: manually triggered navigation
-// link: link clicked by the user. still user initiated, but doesn't wipe
-// location: location = ...
-export type NavigationType = "user" | "link" | "location";
-export type RewriteUrlOptions = {
-	referrerPolicyOverride?: string;
-	moduleType?: string;
-	navigateType?: NavigationType;
-	topFrame?: string;
-	parentFrame?: string;
-};
-
 export function rewriteUrl(
 	url: string | URL,
 	context: ScramjetContext,
@@ -161,21 +167,23 @@ export function rewriteUrl(
 
 		const paramsInit = new _URLSearchParams();
 
-		if (options?.referrerPolicyOverride) {
-			paramsInit.append("rfp", options.referrerPolicyOverride);
-		} else if (meta.referrerPolicy) {
-			paramsInit.append("rfp", meta.referrerPolicy);
-		}
+		const referrerPolicy = options?.referrerPolicy ?? meta.referrerPolicy;
+		if (referrerPolicy) paramsInit.set(QP.referrerPolicy, referrerPolicy);
+		if (options?.isModule) paramsInit.set(QP.isModule, "module");
+		if (options?.topFrame) paramsInit.set(QP.topFrame, options.topFrame);
+		if (options?.parentFrame)
+			paramsInit.set(QP.parentFrame, options.parentFrame);
+		if (options?.isIframe) paramsInit.set(QP.isIframe, options.isIframe);
+		if (options?.mode) paramsInit.set(QP.mode, options.mode);
+		if (options?.credentials)
+			paramsInit.set(QP.credentials, options.credentials);
+		if (options?.destination)
+			paramsInit.set(QP.destination, options.destination);
 
-		if (options?.moduleType) {
-			paramsInit.append("type", options.moduleType);
-		}
-
-		if (options?.topFrame) {
-			paramsInit.append("topFrame", options.topFrame);
-		}
-		if (options?.parentFrame) {
-			paramsInit.append("parentFrame", options.parentFrame);
+		// specific tracking for sec-fetch-site
+		// don't send for the top level controller calling it in go()
+		if (meta.origin.origin !== context.prefix.origin) {
+			paramsInit.set(QP.initiatorOrigin, meta.origin.origin);
 		}
 
 		let paramstring = "";

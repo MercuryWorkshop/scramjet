@@ -69,6 +69,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 			const barews = client.bare.createWebSocket(url, ctx.args[1], [
 				["User-Agent", self.navigator.userAgent],
 				["Origin", client.url.origin],
+				["Cookie", client.context.cookieJar.getCookies(client.url, false)],
 			]);
 
 			const state: FakeWebSocketState = {

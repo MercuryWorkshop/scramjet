@@ -83,7 +83,11 @@ class RunwayCleartextHttpsTransport {
 		const url = new URL(remote.href);
 		const isHttps = url.protocol === "https:";
 		const isWss = url.protocol === "wss:";
-		if (!isHttps && !isWss) return { url: remote, logicalHostname: null };
+		const isHttp = url.protocol === "http:";
+		const isWs = url.protocol === "ws:";
+		if (!isHttps && !isWss && !isHttp && !isWs) {
+			return { url: remote, logicalHostname: null };
+		}
 
 		const snap =
 			typeof window !== "undefined" && window.__runwayCleartextSite != null
@@ -91,23 +95,34 @@ class RunwayCleartextHttpsTransport {
 				: null;
 		const host = url.hostname;
 		const defaultTlsPort = url.port === "" || url.port === "443";
+		const defaultHttpPort = url.port === "" || url.port === "80";
 		const snapHost = snap && this.#hostMatchesSnapRoots(host, snap);
 
 		const portMatchesServer =
 			snap &&
 			url.port !== "" &&
 			url.port !== "443" &&
+			url.port !== "80" &&
 			url.port === String(snap.httpPort);
 
-		if (snapHost && (defaultTlsPort || portMatchesServer)) {
+		const tlsPortLike = isHttps || isWss ? defaultTlsPort : defaultHttpPort;
+		if (snapHost && (tlsPortLike || portMatchesServer)) {
+			// Rewrite snap-mapped hosts (regardless of scheme) to the loopback
+			// harness port. This lets logical http://www.localhost:port/… and
+			// https://www.localhost:port/… both reach the harness without
+			// requiring DNS for the fake hostname.
 			const wire = new URL("http://127.0.0.1/");
-			wire.protocol = isWss ? "ws:" : "http:";
+			wire.protocol = isWss || isWs ? "ws:" : "http:";
 			wire.port = String(snap.httpPort);
 			wire.pathname = url.pathname;
 			wire.search = url.search;
 			wire.hash = url.hash;
 			return { url: wire, logicalHostname: host };
 		}
+
+		// Plain http/ws stay as-is unless the cleartext list / loopback fallback
+		// also applies. Below this point we only rewrite https/wss → http/ws.
+		if (!isHttps && !isWss) return { url: remote, logicalHostname: null };
 
 		const list =
 			typeof window !== "undefined"
