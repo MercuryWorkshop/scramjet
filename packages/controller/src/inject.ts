@@ -355,14 +355,14 @@ class ExecutionContextWrapper {
 		};
 		if (controllerFrame)
 			$scramjet.Tap.dispatch(
-				controllerFrame.hooks.frameInit.pre,
+				controllerFrame.hooks.init.pre,
 				frameInitContext,
 				{}
 			);
 		this.client.hook();
 		if (controllerFrame)
 			$scramjet.Tap.dispatch(
-				controllerFrame.hooks.frameInit.post,
+				controllerFrame.hooks.init.post,
 				frameInitContext,
 				{}
 			);
