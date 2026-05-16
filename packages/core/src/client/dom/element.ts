@@ -403,52 +403,59 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	const rewriteTextForElement = (element: Element, value: string) => {
+		if (
+			client.box.instanceof(element, "HTMLScriptElement") &&
+			/(application|text)\/javascript|module|undefined/.test(element.type)
+		) {
+			const newval: string = rewriteJs(
+				value,
+				"(anonymous script element)",
+				client.context,
+				client.meta
+			) as string;
+			client.natives.call(
+				"Element.prototype.setAttribute",
+				element,
+				"scramjet-attr-script-source-src",
+				bytesToBase64(TextEncoder_encode(newval))
+			);
+
+			return newval;
+		} else if (client.box.instanceof(element, "HTMLStyleElement")) {
+			return rewriteCss(value, client.context, client.meta);
+		} else {
+			return value;
+		}
+	};
+	const getTextForElement = (element: Element, text: string) => {
+		if (client.box.instanceof(element, "HTMLScriptElement")) {
+			const scriptSource = client.natives.call(
+				"Element.prototype.getAttribute",
+				element,
+				"scramjet-attr-script-source-src"
+			);
+		}
+		if (client.box.instanceof(element, "HTMLStyleElement")) {
+			return unrewriteCss(text, client.context);
+		}
+		return text;
+	};
+
 	client.Trap("Node.prototype.textContent", {
 		set(ctx, value: string) {
-			// TODO: box the instanceofs
-			if (
-				client.box.instanceof(ctx.this, "HTMLScriptElement") &&
-				/(application|text)\/javascript|module|undefined/.test(ctx.this.type)
-			) {
-				const newval: string = rewriteJs(
-					value,
-					"(anonymous script element)",
-					client.context,
-					client.meta
-				) as string;
-				client.natives.call(
-					"Element.prototype.setAttribute",
-					ctx.this,
-					"scramjet-attr-script-source-src",
-					bytesToBase64(TextEncoder_encode(newval))
-				);
-
-				return ctx.set(newval);
-			} else if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
-				return ctx.set(rewriteCss(value, client.context, client.meta));
-			} else {
-				return ctx.set(value);
-			}
+			return ctx.set(rewriteTextForElement(ctx.this, value));
 		},
 		get(ctx) {
-			if (client.box.instanceof(ctx.this, "HTMLScriptElement")) {
-				const scriptSource = client.natives.call(
-					"Element.prototype.getAttribute",
-					ctx.this,
-					"scramjet-attr-script-source-src"
-				);
-
-				if (scriptSource) {
-					return atob(scriptSource);
-				}
-
-				return ctx.get();
-			}
-			if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
-				return unrewriteCss(ctx.get() as string, client.context);
-			}
-
-			return ctx.get();
+			return getTextForElement(ctx.this, ctx.get());
+		},
+	});
+	client.Trap("HTMLElement.prototype.innerText", {
+		set(ctx, value: string) {
+			return ctx.set(rewriteTextForElement(ctx.this, value));
+		},
+		get(ctx) {
+			return getTextForElement(ctx.this, ctx.get());
 		},
 	});
 
