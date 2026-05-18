@@ -1,0 +1,165 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap");
+
+body {
+	font-family: "Roboto", Arial, Helvetica, sans-serif;
+	margin: 0;
+	background: #111;
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+.flex-center {
+	display: flex;
+	justify-content: center;
+}
+
+.header-center {
+	align-items: center;
+	flex-direction: column;
+	margin-top: 10%;
+}
+
+.left-margin {
+	margin: 0px 16px;
+}
+
+#sj-frame-wrapper {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	display: none;
+	flex-direction: column;
+}
+
+#sj-frame {
+	border: none;
+	flex: 1;
+	background-color: #111;
+}
+
+#sj-error {
+	color: #ff6666 !important;
+	white-space: pre-wrap;
+}
+
+#sj-error-code {
+	font-size: 12px;
+	color: #fff;
+	font-family: "Courier New", Courier, monospace;
+}
+
+.logo {
+	height: 25vh;
+}
+
+.logo-wrapper .text {
+	font-size: 75px;
+	color: #fff;
+}
+
+.logo-wrapper h1 {
+	color: white;
+}
+
+footer {
+	margin: 0 16px;
+	margin-top: auto;
+	display: flex;
+	flex-direction: column;
+	line-height: 30px;
+	margin-bottom: 20px;
+}
+
+footer > div {
+	display: flex;
+	justify-content: left;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 15px;
+}
+
+footer a,
+footer span {
+	margin: 0 15px;
+	text-decoration: none;
+	color: #fff;
+	font-size: 15px;
+}
+
+footer a {
+	cursor: pointer;
+}
+
+footer a:hover {
+	text-decoration: underline;
+}
+
+.desc p {
+	width: 560px;
+	color: rgba(253, 253, 253, 0.514);
+}
+
+#sj-address {
+	background: none;
+	font-family: inherit;
+	padding: 0px 17px;
+	height: 48px;
+	border: 1px solid rgb(255, 255, 255, 0.2);
+	color: var(--text-color);
+	border-radius: 3px;
+	outline: none;
+	width: 350px;
+	margin-top: 5px;
+	border-radius: 50px;
+	color: #fff;
+	transition: border-radius 0.1s;
+}
+
+#sj-address:focus {
+	border: 1px solid rgba(253, 253, 253, 0.514);
+	border-radius: 6px;
+}
+
+.credit {
+	border-radius: 10px;
+	padding: 10px;
+	display: block;
+	border: #fff 1px solid;
+	color: #fff;
+	display: flex;
+	flex-wrap: wrap;
+	margin-bottom: 15px;
+}
+
+.credit label {
+	margin-left: auto;
+	margin-right: 15px;
+}
+
+.credit a,
+.credit label {
+	color: white;
+	text-decoration: underline;
+	text-align: right;
+}
+
+.credit pre {
+	display: none;
+	width: 100%;
+}
+
+.credit label::after {
+	content: "show license";
+	cursor: pointer;
+}
+
+.credit input:checked + label::after {
+	content: "hide license";
+}
+
+.credit input:checked ~ pre {
+	display: block;
+}

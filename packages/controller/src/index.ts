@@ -307,6 +307,7 @@ export class Controller {
 			} catch (e) {
 				const reqcontext: typeof frame.hooks.error.request.context = {
 					rawrequest: data,
+					error: e,
 				};
 				const reqprops: typeof frame.hooks.error.request.props = {
 					setResponse: undefined,

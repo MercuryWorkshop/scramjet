@@ -55,7 +55,7 @@ addEventListener("fetch", (e) => {
 		res.writeHead(200, { "Content-Type": "application/javascript" });
 		res.end(`async function initBootstrap() {
 	const { init } = await import("data:text/javascript;base64,${Buffer.from(clientdata).toString("base64")}");
-	return init(${JSON.stringify({ config })});
+	return init(${JSON.stringify(config)});
 }`);
 
 		return true;
@@ -155,6 +155,7 @@ async function updateScramjet(controllerMeta: any) {
 	const scramjetVersion =
 		controllerMeta.dependencies["@mercuryworkshop/scramjet"];
 
+	console.log(`Fetching scramjet version: ${scramjetVersion}`);
 	const scramjetRes = await fetch(
 		`${REGISTRY_URL}${SCRAMJET_PACKAGE_NAME}/${scramjetVersion}`
 	);
