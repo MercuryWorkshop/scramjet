@@ -356,7 +356,7 @@ function traverseParsedHtml(
 				if (sel === "*" || sel.includes(node.name)) {
 					if (node.attribs[attr] !== undefined) {
 						const value = node.attribs[attr];
-						const v = rule.fn(value, context, meta);
+						const v = rule.fn(value, context, meta, node.attribs);
 
 						if (v === null) delete node.attribs[attr];
 						else {
@@ -385,14 +385,7 @@ function traverseParsedHtml(
 
 	if (
 		node.name === "script" &&
-		node.attribs.type === "module" &&
-		node.attribs.src
-	)
-		node.attribs.src = node.attribs.src + "?type=module";
-
-	if (
-		node.name === "script" &&
-		node.attribs.type === "importmap" &&
+		node.attribs.type?.toLowerCase() === "importmap" &&
 		node.children[0] !== undefined
 	) {
 		const json = node.children[0].data;
@@ -402,7 +395,7 @@ function traverseParsedHtml(
 				for (const key in map.imports) {
 					let url = map.imports[key];
 					if (typeof url === "string") {
-						url = rewriteUrl(url, context, meta);
+						url = rewriteUrl(url, context, meta, { isModule: true });
 						map.imports[key] = url;
 					}
 				}

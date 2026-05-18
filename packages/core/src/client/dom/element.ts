@@ -52,6 +52,32 @@ export function insideForeignContext(
 	return "html";
 }
 
+// TODO: this is pretty bad. really this whole file sucks
+function collectAttributeMap(
+	client: ScramjetClient,
+	element: Element,
+	overrideName: string,
+	overrideValue: unknown
+) {
+	const attrs: Record<string, string | undefined> = {};
+	const attrNames =
+		client.natives.call("Element.prototype.getAttributeNames", element) ?? [];
+
+	for (const attrName of attrNames) {
+		if (String(attrName).startsWith("scramjet-attr")) continue;
+		const value = client.natives.call(
+			"Element.prototype.getAttribute",
+			element,
+			attrName
+		);
+		attrs[String(attrName).toLowerCase()] =
+			typeof value === "string" ? value : undefined;
+	}
+
+	attrs[String(overrideName).toLowerCase()] = String(overrideValue);
+	return attrs;
+}
+
 export default function (client: ScramjetClient, self: typeof window) {
 	const attrObject = {
 		nonce: [self.HTMLElement],
@@ -240,7 +266,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 			});
 
 			if (ruleList) {
-				const ret = ruleList.fn(value, client.context, client.meta);
+				const ret = ruleList.fn(
+					value,
+					client.context,
+					client.meta,
+					collectAttributeMap(client, ctx.this, name, value)
+				);
 				if (ret == null) {
 					client.natives.call(
 						"Element.prototype.removeAttribute",
@@ -276,7 +307,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 			});
 
 			if (ruleList) {
-				ctx.args[2] = ruleList.fn(value, client.context, client.meta);
+				ctx.args[2] = ruleList.fn(
+					value,
+					client.context,
+					client.meta,
+					collectAttributeMap(client, ctx.this, name, value)
+				);
 				client.natives.call(
 					"Element.prototype.setAttribute",
 					ctx.this,

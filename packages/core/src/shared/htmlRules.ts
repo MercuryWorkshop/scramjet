@@ -6,20 +6,39 @@ import { _URL } from "./snapshot";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
-	fn: (value: string, context: ScramjetContext, meta: URLMeta) => string | null;
+	fn: (
+		value: string,
+		context: ScramjetContext,
+		meta: URLMeta,
+		attrs?: Record<string, string | undefined>
+	) => string | null;
 }[] = [
 	{
 		fn: (value, context, meta) =>
 			rewriteUrl(value, context, meta, { navigateType: "location" }),
 
 		// url rewrites
-		src: ["embed", "script", "img", "frame", "input", "track"],
-		href: ["a", "link", "area", "image"],
+		src: ["embed", "img", "frame", "input", "track"],
+		href: ["a", "area", "image"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
 		poster: ["video"],
 		"xlink:href": ["image"],
+	},
+	{
+		fn: (value, context, meta, attrs) => {
+			const isModule =
+				attrs?.type?.toLowerCase() === "module" ||
+				attrs?.rel?.toLowerCase() === "modulepreload";
+
+			return rewriteUrl(value, context, meta, {
+				isModule,
+			});
+		},
+
+		src: ["script"],
+		href: ["link"],
 	},
 	{
 		fn: (value, context, meta) => {
