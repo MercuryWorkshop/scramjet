@@ -21,6 +21,7 @@ export const Omnibox: Component = function (cx) {
 		if (!browserState.url.startsWith("http")) {
 			browserState.url = `https://${browserState.url}`;
 		}
+		demoSettingsStore.homeUrl = browserState.url;
 		browserState.frame?.go(browserState.url);
 	};
 	return (

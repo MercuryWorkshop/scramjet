@@ -124,6 +124,7 @@ export type FrameErrorHooks = {
 	request: {
 		context: {
 			rawrequest: TransferRequest;
+			error: unknown;
 		};
 		props: {
 			setResponse?: TransferResponse;

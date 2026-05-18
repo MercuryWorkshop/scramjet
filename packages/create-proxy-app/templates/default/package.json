@@ -1,0 +1,16 @@
+{
+	"name": "bootstraptest",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"packageManager": "pnpm@10.12.1",
+	"dependencies": {
+		"@mercuryworkshop/proxy-bootstrap": "file:../packages/scramjet/packages/bootstrap"
+	}
+}
