@@ -4,7 +4,7 @@ use js::{
 	RewriteResult, Rewriter,
 	cfg::{Config, Flags, UrlRewriter},
 };
-use js_sys::{Function, Object, Uint8Array};
+use js_sys::{Function, Object, Uint8Array, encode_uri_component};
 use oxc::allocator::StringBuilder;
 use wasm_bindgen::{JsCast, JsValue, prelude::wasm_bindgen};
 use web_sys::Url;
@@ -66,7 +66,11 @@ impl UrlRewriter for WasmUrlRewriter {
 			.ok_or_else(|| RewriterError::not_str("url rewriter output"))?;
 
 		if module {
-			rewritten.push_str("?type=module");
+			// TODO: keep this in sync with QP.isModule or find a way to make this use the real rewriteUrl function
+			let origin = Url::new(&flags.base).map_err(RewriterError::from)?.origin();
+			let encoded_origin: String = encode_uri_component(&origin).into();
+			rewritten.push_str("?%24module=module&%24io=");
+			rewritten.push_str(&encoded_origin);
 		}
 
 		builder.push_str(&rewritten);

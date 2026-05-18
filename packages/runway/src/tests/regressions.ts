@@ -1,4 +1,4 @@
-import { basicTest } from "../testcommon.ts";
+import { basicTest, serverTest } from "../testcommon.ts";
 // historical regressions
 
 export default [
@@ -67,5 +67,85 @@ export default [
 		js: `
 			()=>import("data:text/javascript,checkglobal(top)")
 		`,
+	}),
+
+	// scramjet/html
+	// module script metadata must stay in scramjet's reserved query params.
+	// Leaking it as an upstream type=module query can make module graphs load twice.
+	serverTest({
+		name: "regression-module-script-query-does-not-leak",
+		scramjetOnly: true,
+		async start(server) {
+			let depRequests = 0;
+			server.on("request", (req, res) => {
+				if (req.url === "/") {
+					res.writeHead(200, { "Content-Type": "text/html" });
+					res.end(`
+						<!doctype html>
+						<script type="importmap">
+							{
+								"imports": {
+									"#dep": "/dep.js?real=1"
+								}
+							}
+						</script>
+						<link rel="modulepreload" crossorigin href="/dep.js?real=1">
+						<script type="module" src="/mod.js?real=1"></script>
+					`);
+					return;
+				}
+
+				if (req.url?.startsWith("/mod.js")) {
+					const url = new URL(req.url, "http://test.invalid");
+					res.writeHead(200, { "Content-Type": "application/javascript" });
+					if (url.searchParams.get("real") !== "1") {
+						res.end(
+							`window.fail("original module script query was not preserved")`
+						);
+					} else if (url.searchParams.has("type")) {
+						res.end(
+							`window.fail("scramjet module marker leaked upstream", { search: ${JSON.stringify(url.search)} })`
+						);
+					} else {
+						res.end(`
+							import "#dep";
+							setTimeout(async () => {
+								const depRequests = await fetch("/dep-count").then((res) => res.text());
+								if (depRequests === "1") window.pass("module URLs canonicalized without leaking proxy metadata");
+								else window.fail("modulepreload and import produced duplicate upstream requests", { depRequests });
+							});
+						`);
+					}
+					return;
+				}
+
+				if (req.url?.startsWith("/dep.js")) {
+					depRequests++;
+					const url = new URL(req.url, "http://test.invalid");
+					res.writeHead(200, { "Content-Type": "application/javascript" });
+					if (url.searchParams.get("real") !== "1") {
+						res.end(
+							`window.fail("original module dependency query was not preserved")`
+						);
+					} else if (url.searchParams.has("type")) {
+						res.end(
+							`window.fail("scramjet module marker leaked upstream from dependency", { search: ${JSON.stringify(url.search)} })`
+						);
+					} else {
+						res.end(`export default 1;`);
+					}
+					return;
+				}
+
+				if (req.url === "/dep-count") {
+					res.writeHead(200, { "Content-Type": "text/plain" });
+					res.end(String(depRequests));
+					return;
+				}
+
+				res.writeHead(404);
+				res.end("not found");
+			});
+		},
 	}),
 ];
