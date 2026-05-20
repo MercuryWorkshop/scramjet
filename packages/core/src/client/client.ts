@@ -212,6 +212,8 @@ export class ScramjetClient {
 
 	history: TrackedHistoryState[];
 
+	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
+
 	hooks = {
 		rewriter: {
 			html: Tap.create<HtmlRewriterHooks>(),
@@ -889,7 +891,12 @@ return { apply, construct };
 	}
 
 	flagEnabled(flag: keyof ScramjetConfig["flags"]): boolean {
-		return flagEnabled(flag, this.context, this.url);
+		const cached = this.flagCache.get(flag);
+		if (cached !== undefined) return cached;
+
+		const result = flagEnabled(flag, this.context, this.url);
+		this.flagCache.set(flag, result);
+		return result;
 	}
 
 	get config(): ScramjetConfig {
