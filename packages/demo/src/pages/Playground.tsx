@@ -204,6 +204,7 @@ const PlaygroundView: Component<
 		rewrittenContentType: string;
 		rewriteStatus: string;
 		rewriteFile: string;
+		rewriteAsModule: boolean;
 	},
 	{}
 > = function (cx) {
@@ -222,12 +223,21 @@ const PlaygroundView: Component<
 	this.rewrittenContentType ??= "";
 	this.rewriteStatus ??= "Idle";
 	this.rewriteFile ??= "";
+	this.rewriteAsModule ??= false;
 
 	cx.mount = async () => {
 		await controller.wait();
 		this.frame = controller.createFrame();
 
 		use(this.selectedFile, this.selectedProjectId).listen(() => {
+			const file = this.selectedFile;
+			this.rewriteAsModule = file.endsWith(".mjs");
+			if (this.previewMode === "rewritten") {
+				runRewrite(this.frame);
+			}
+		});
+
+		use(this.rewriteAsModule).listen(() => {
 			if (this.previewMode === "rewritten") {
 				runRewrite(this.frame);
 			}
@@ -403,12 +413,15 @@ const PlaygroundView: Component<
 		return String(body);
 	};
 
-	const destinationFromPath = (path: string) => {
+	const destinationFromPath = (path: string): RequestDestination => {
 		if (path.endsWith(".js") || path.endsWith(".mjs")) return "script";
 		if (path.endsWith(".css")) return "style";
 		if (path.endsWith(".html")) return "document";
-		return "document";
+		return "empty";
 	};
+
+	const isScriptFile = (path: string) =>
+		path.endsWith(".js") || path.endsWith(".mjs");
 
 	const runRewrite = async (frame: Frame | undefined) => {
 		if (!frame) return;
@@ -454,19 +467,26 @@ const PlaygroundView: Component<
 				);
 
 			const targetUrl = `${this.origin}${filePath}`;
+			const rawDestination = destinationFromPath(filePath);
+			const isModule = isScriptFile(filePath) && this.rewriteAsModule;
 			const encoded = rewriteUrl(targetUrl, frame.context, {
 				//@ts-expect-error
 				origin: new URL(location.href),
 				//@ts-expect-error
 				base: new URL(location.href),
+				destination: rawDestination,
+				isModule,
 			});
 
 			const request = {
 				rawUrl: new URL(encoded, location.href),
 				rawClientUrl: new URL(location.href),
 				rawReferrer: "",
-				destination: destinationFromPath(filePath),
-				mode: "navigate",
+				rawDestination,
+				mode:
+					rawDestination === "document" || rawDestination === "iframe"
+						? "navigate"
+						: "cors",
 				referrer: "",
 				method: "GET",
 				body: null,
@@ -843,6 +863,22 @@ const PlaygroundView: Component<
 									p ? displayFilePath(p) : ""
 								)}
 							</span>
+							{use(this.selectedFile)
+								.map((path) => isScriptFile(path))
+								.andThen(
+									<label class="rewrite-module-toggle">
+										<input
+											type="checkbox"
+											checked={use(this.rewriteAsModule)}
+											on:change={(e: Event) => {
+												this.rewriteAsModule = (
+													e.target as HTMLInputElement
+												).checked;
+											}}
+										/>
+										Module
+									</label>
+								)}
 							<button
 								type="button"
 								class="rewrite-refresh"
@@ -1462,6 +1498,18 @@ PlaygroundView.style = css`
 			"JetBrains Mono", "SF Mono", "Fira Code", Consolas, "Liberation Mono",
 			monospace;
 		font-size: 0.92em;
+	}
+	.rewrite-module-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35em;
+		color: #9ca3af;
+		cursor: pointer;
+		user-select: none;
+	}
+	.rewrite-module-toggle input {
+		margin: 0;
+		cursor: pointer;
 	}
 	.rewrite-meta-status {
 		color: #8f8f8f;
