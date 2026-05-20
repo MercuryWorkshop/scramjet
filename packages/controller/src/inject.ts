@@ -332,9 +332,6 @@ class ExecutionContextWrapper {
 			sendSetCookie: async (cookies, options) => {
 				await this.transport.sendSetCookie(cookies, options);
 			},
-			shouldPassthroughWebsocket: () => {
-				return false;
-			},
 			shouldBlockMessageEvent: () => {
 				return false;
 			},

@@ -37,9 +37,6 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		new _WeakMap() as WeakMap<WebSocketStream, FakeWebSocketStreamState>;
 	client.Proxy("WebSocket", {
 		construct(ctx) {
-			if (client.init.shouldPassthroughWebsocket?.(ctx.args[0])) {
-				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
-			}
 			const fakeWebSocket = new EventTarget() as WebSocket;
 			Object_setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
 			fakeWebSocket.constructor = ctx.fn;

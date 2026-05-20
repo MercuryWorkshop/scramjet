@@ -730,9 +730,6 @@ export class Frame {
 						const client = new ScramjetClient(globalThis, {
 							context,
 							transport: null,
-							shouldPassthroughWebsocket: (url) => {
-								return false;
-							}
 						});
 
 						client.hook();
