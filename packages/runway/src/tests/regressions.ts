@@ -148,4 +148,53 @@ export default [
 			});
 		},
 	}),
+
+	// scramjet/core/rewriter
+	// non-computed keys of a destructured objects were wrapped with $scramjet$prop, causing invalid syntax
+	// fixed by https://github.com/HeyPuter/browser.js/commit/7d4be594f2c49a447252e0a520ff0e144bef28b2
+	basicTest({
+		name: "regression-09f823c-rewriter-destructure-invalid-syntax",
+		autoPass: false,
+		js: `
+			({
+				'0': a,
+				1: b,
+				2n: c,
+				false: d,
+			} = {
+				'0': 1,
+				1: 2,
+				2n: 3,
+				false: 4,
+			});
+
+			assertEqual(a, 1);
+			assertEqual(b, 2);
+			assertEqual(c, 3);
+			assertEqual(d, 4);
+
+			({ '0': location } = { '0': "javascript:checkglobal(top)" });
+			({ 0: location } = { 0: "javascript:checkglobal(top)" });
+			({ 0n: location } = { 0n: "javascript:checkglobal(top)" });
+			({ false: location } = { false: "javascript:checkglobal(top)" });
+
+			const {
+				'0': e,
+				1: f,
+				2n: h,
+				false: g,
+			} = {
+				'0': 1,
+				1: 2,
+				2n: 3,
+				false: 4,
+			};
+			assertEqual(e, 1);
+			assertEqual(f, 2);
+			assertEqual(h, 3);
+			assertEqual(g, 4);
+
+			pass();
+		`,
+	}),
 ];
