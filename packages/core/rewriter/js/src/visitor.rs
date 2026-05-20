@@ -876,7 +876,6 @@ where
 							}
 						));
 					}
-					return;
 				}
 			}
 			AssignmentTarget::ArrayAssignmentTarget(a) => {
