@@ -155,14 +155,18 @@ where
 								));
 							}
 						}
-						PropertyKey::PrivateIdentifier(_) => {
-							// doesn't matter
+						PropertyKey::StringLiteral(s) => {
+							if UNSAFE_GLOBALS.contains(&s.value.to_string().as_str()) {
+								self.jschanges.add(rewrite!(s.span(), RewriteProperty { ident: s.value }));
+							}
 						}
-						// (expression variant)
+
+						// this is really annoying, we have to list out all the things that *aren't* expressions, you can't just check if it is one
+						// otherwise { 0:location } rewrites to { scramjet$prop(0):location } which is obviously invalid syntax 
+						PropertyKey::NumericLiteral(_) | PropertyKey::RegExpLiteral(_) | PropertyKey::BigIntLiteral(_) | PropertyKey::PrivateIdentifier(_) => {}
+						
 						_ => {
 							// { ["location"]: x } = self;
-
-							// TODO: check literals
 							self.jschanges.add(rewrite!(p.name.span(), WrapProperty));
 						}
 					}
@@ -313,9 +317,10 @@ where
 								));
 							}
 						}
-						PropertyKey::PrivateIdentifier(_) => {
-							// doesn't matter
-						}
+
+						// see comment in recurse_object_assignment_target
+						PropertyKey::NumericLiteral(_) | PropertyKey::RegExpLiteral(_) | PropertyKey::BigIntLiteral(_) | PropertyKey::PrivateIdentifier(_) => {}
+
 						_ => {
 							// const { ["location"]: x } = self;
 							self.jschanges.add(rewrite!(prop.key.span(), WrapProperty));
