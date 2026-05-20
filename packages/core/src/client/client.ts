@@ -52,7 +52,6 @@ export type ScramjetClientInit = {
 		cookies: CookieSyncEntry[],
 		options?: CookieSyncOptions
 	) => Promise<void>;
-	shouldPassthroughWebsocket?: (url: string | URL) => boolean;
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
 	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;
 	initHeaders: RawHeaders;
