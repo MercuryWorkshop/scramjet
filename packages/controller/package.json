@@ -6,12 +6,15 @@
 	"license": "AGPL-3.0-only",
 	"main": "index.ts",
 	"types": "./dist/types/typesEntry.d.ts",
+	"peerDependencies": {
+		"@mercuryworkshop/scramjet": "*"
+	},
 	"dependencies": {
 		"@fastify/deepmerge": "^3.2.1",
-		"@mercuryworkshop/proxy-transports": "catalog:",
-		"@mercuryworkshop/scramjet": "workspace:*"
+		"@mercuryworkshop/proxy-transports": "catalog:"
 	},
 	"devDependencies": {
+		"@mercuryworkshop/scramjet": "workspace:*",
 		"@types/serviceworker": "^0.0.197",
 		"@mercuryworkshop/rpc": "workspace:*"
 	}
