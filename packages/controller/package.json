@@ -3,6 +3,7 @@
 	"version": "0.0.11",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
+	"license": "AGPL-3.0-only",
 	"main": "index.ts",
 	"types": "./dist/types/typesEntry.d.ts",
 	"dependencies": {

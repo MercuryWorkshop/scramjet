@@ -30,6 +30,6 @@
 	},
 	"keywords": [],
 	"author": "",
-	"license": "ISC",
+	"license": "AGPL-3.0-only",
 	"packageManager": "pnpm@10.12.1"
 }

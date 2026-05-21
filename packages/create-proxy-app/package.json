@@ -1,9 +1,28 @@
 {
-	"name": "@mercuryworkshop/create-proxy-app",
+	"name": "create-proxy-app",
 	"version": "0.0.1",
+	"description": "Scaffold a Scramjet or Ultraviolet proxy app",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
-	"dependencies": {
+	"license": "AGPL-3.0-only",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/MercuryWorkshop/scramjet.git",
+		"directory": "packages/create-proxy-app"
+	},
+	"bin": {
+		"create-proxy-app": "./dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "cd ../.. && rspack build -c packages/create-proxy-app/rspack.config.ts --mode production",
+		"prepack": "pnpm run build",
+		"prepublishOnly": "npx only-allow pnpm",
+		"pub": "pnpm publish --no-git-checks --access public"
+	},
+	"devDependencies": {
 		"@clack/core": "^0.3.4",
 		"@clack/prompts": "^0.7.0",
 		"ajv": "^8.13.0",

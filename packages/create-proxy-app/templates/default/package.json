@@ -8,9 +8,9 @@
 	},
 	"keywords": [],
 	"author": "",
-	"license": "ISC",
+	"license": "AGPL-3.0-only",
 	"packageManager": "pnpm@10.12.1",
 	"dependencies": {
-		"@mercuryworkshop/proxy-bootstrap": "file:../packages/scramjet/packages/bootstrap"
+		"@mercuryworkshop/proxy-bootstrap": "*"
 	}
 }
