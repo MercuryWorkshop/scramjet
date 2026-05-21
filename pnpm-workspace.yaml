@@ -5,6 +5,7 @@ packages:
   - packages/demo
   - packages/rpc
   - packages/create-proxy-app
+  - packages/utils
   - packages/runway
 
 catalog:

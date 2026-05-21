@@ -41,9 +41,13 @@
 // `rewriteBody` runs, without going through `rewriteBody` again. That can
 // come later.
 
-import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
-declare const $scramjet: typeof ScramjetGlobal;
+import {
+	Plugin,
+	type ScramjetFetchHandler,
+	type ScramjetFetchRequest,
+	type ScramjetHeaders,
+} from "@mercuryworkshop/scramjet";
 
 export const CACHE_NAME = "scramjet-http-cache-v2";
 
@@ -177,7 +181,7 @@ function responseIsStorable(
 /** Build a synthetic cache-key Request keyed by the *underlying* URL. */
 function buildCacheKeyRequest(
 	parsedUrl: string,
-	headers: ScramjetGlobal.ScramjetHeaders
+	headers: ScramjetHeaders
 ): Request {
 	const native = new Headers();
 	for (const [k, v] of headers.toRawHeaders()) {
@@ -285,7 +289,7 @@ export interface HttpCachePluginOptions {
 
 /**
  * RFC-9111-ish HTTP cache for ScramjetFetchHandler. Subclasses
- * `$scramjet.Plugin` so it composes with the same hook plumbing every other
+ * `Plugin` so it composes with the same hook plumbing every other
  * scramjet plugin uses; `install(target)` wires it onto a Frame (or any
  * object exposing a `fetchHandler`), and `bust()` drops the underlying
  * `caches` entry.
@@ -294,17 +298,14 @@ export interface HttpCachePluginOptions {
  * "did this request come from cache?" book-keeping is per-instance, not
  * per-Frame, so nothing leaks across installs.
  */
-export class HttpCachePlugin extends $scramjet.Plugin {
+export class HttpCachePlugin extends Plugin {
 	readonly cacheName: string;
 
 	private cachePromise: Promise<Cache> | null = null;
 	// Marks requests whose `earlyResponse` we sourced from the cache, so the
 	// preresponse hook below knows not to re-store them. WeakMap keys are
 	// the request objects so entries clean themselves up automatically.
-	private cameFromCache = new WeakMap<
-		ScramjetGlobal.ScramjetFetchRequest,
-		true
-	>();
+	private cameFromCache = new WeakMap<ScramjetFetchRequest, true>();
 
 	constructor(options: HttpCachePluginOptions = {}) {
 		super("scramjet-http-cache");
@@ -323,7 +324,7 @@ export class HttpCachePlugin extends $scramjet.Plugin {
 	 * Wire the cache up to a Frame (or anything exposing `fetchHandler`).
 	 * Safe to call multiple times across different Frames.
 	 */
-	install(target: { fetchHandler: ScramjetGlobal.ScramjetFetchHandler }): void {
+	install(target: { fetchHandler: ScramjetFetchHandler }): void {
 		const hooks = target.fetchHandler.hooks.fetch;
 
 		// ----- request: cache lookup --------------------------------------

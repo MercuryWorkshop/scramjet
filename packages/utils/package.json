@@ -1,0 +1,38 @@
+{
+	"name": "@mercuryworkshop/scramjet-utils",
+	"version": "0.0.1",
+	"description": "Utilities for Scramjet proxy integrations",
+	"type": "module",
+	"packageManager": "pnpm@10.12.1",
+	"license": "AGPL-3.0-only",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MercuryWorkshop/scramjet.git",
+		"directory": "packages/utils"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/scramjet-utils.mjs",
+			"default": "./dist/scramjet-utils.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "cd ../.. && rspack build --mode production --configName scramjet-utils-iife --configName scramjet-utils-esmodule",
+		"prepack": "pnpm run build",
+		"prepublishOnly": "npx only-allow pnpm",
+		"pub": "pnpm publish --no-git-checks --access public"
+	},
+	"peerDependencies": {
+		"@mercuryworkshop/scramjet": "*",
+		"@mercuryworkshop/scramjet-controller": "*"
+	},
+	"devDependencies": {
+		"@mercuryworkshop/scramjet": "workspace:*",
+		"@mercuryworkshop/scramjet-controller": "workspace:*",
+		"@types/serviceworker": "^0.0.197"
+	}
+}
