@@ -38,6 +38,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const scramjetdir = join(__dirname, "packages/core");
 const controllerdir = join(__dirname, "packages/controller");
 const bootstrapdir = join(__dirname, "packages/bootstrap");
+const createproxyappdir = join(__dirname, "packages/create-proxy-app");
 
 // Load WASM for rewriter
 const sjpackagemeta = JSON.parse(
@@ -359,6 +360,13 @@ const bootstrapConfig = createGenericConfig({
 	},
 	target: "node",
 	externals: [nodeExternals],
+	module: {
+		parser: {
+			javascript: {
+				importMeta: false,
+			},
+		},
+	},
 	plugins: [
 		new TypeScriptDeclarationsPlugin(
 			bootstrapdir,
@@ -366,6 +374,37 @@ const bootstrapConfig = createGenericConfig({
 			"tsconfig.types.json",
 			false
 		),
+	],
+});
+
+const createProxyAppConfig = createGenericConfig({
+	name: "create-proxy-app",
+	entry: {
+		index: join(createproxyappdir, "src/index.ts"),
+	},
+	output: {
+		path: join(createproxyappdir, "dist"),
+		filename: "[name].js",
+		libraryTarget: "module",
+		iife: false,
+	},
+	experiments: {
+		outputModule: true,
+	},
+	target: "node",
+	module: {
+		parser: {
+			javascript: {
+				importMeta: false,
+			},
+		},
+	},
+	plugins: [
+		new rspack.BannerPlugin({
+			banner: "#!/usr/bin/env node",
+			raw: true,
+			entryOnly: true,
+		}),
 	],
 });
 
@@ -446,5 +485,6 @@ export default [
 	bootstrapConfig,
 	bootstrapStaticConfig,
 	controllerConfig,
+	createProxyAppConfig,
 	typeGenConfig,
 ];
