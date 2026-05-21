@@ -1,15 +1,16 @@
 {
-	"name": "bootstraptest",
+	"name": "proxy-app-template",
 	"version": "1.0.0",
 	"description": "",
-	"main": "index.js",
+	"main": "server.js",
+	"type": "module",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"dev": "node server.js",
+		"start": "node server.js"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "AGPL-3.0-only",
-	"packageManager": "pnpm@10.12.1",
 	"dependencies": {
 		"@mercuryworkshop/proxy-bootstrap": "*"
 	}
