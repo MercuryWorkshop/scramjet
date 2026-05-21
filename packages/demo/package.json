@@ -3,6 +3,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
+	"license": "AGPL-3.0-only",
 	"scripts": {
 		"build": "vite build"
 	},

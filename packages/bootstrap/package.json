@@ -5,6 +5,18 @@
 	"packageManager": "pnpm@10.12.1",
 	"main": "./dist/bootstrap-server.js",
 	"types": "./dist/types/server.d.ts",
+	"license": "AGPL-3.0-only",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MercuryWorkshop/scramjet.git",
+		"directory": "packages/bootstrap"
+	},
+	"scripts": {
+		"build": "pnpm -C ../../../../ run build",
+		"prepack": "pnpm build",
+		"prepublishOnly": "npx only-allow pnpm",
+		"pub": "pnpm publish --no-git-checks --access public"
+	},
 	"dependencies": {
 		"@mercuryworkshop/wisp-js": "catalog:",
 		"tar": "^7.5.1"
@@ -14,5 +26,8 @@
 		"@mercuryworkshop/libcurl-transport": "catalog:",
 		"@mercuryworkshop/proxy-transports": "catalog:",
 		"@mercuryworkshop/scramjet-controller": "workspace:*"
-	}
+	},
+	"files": [
+		"dist"
+	]
 }
