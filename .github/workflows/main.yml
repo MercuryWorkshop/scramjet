@@ -34,6 +34,10 @@ jobs:
       scramjet_new_version: ${{ steps.check-scramjet.outputs.new_version }}
       controller_version_changed: ${{ steps.check-scramjet-controller.outputs.version_changed }}
       controller_new_version: ${{ steps.check-scramjet-controller.outputs.new_version }}
+      bootstrap_version_changed: ${{ steps.check-bootstrap.outputs.version_changed }}
+      bootstrap_new_version: ${{ steps.check-bootstrap.outputs.new_version }}
+      create_proxy_app_version_changed: ${{ steps.check-create-proxy-app.outputs.version_changed }}
+      create_proxy_app_new_version: ${{ steps.check-create-proxy-app.outputs.new_version }}
 
     steps:
       - name: Checkout Code
@@ -63,6 +67,42 @@ jobs:
           CURRENT_VERSION=$(jq -r .version packages/controller/package.json)
           echo "Current version: $CURRENT_VERSION"
           LATEST_VERSION=$(npm view @mercuryworkshop/scramjet-controller versions --json | jq -r '.[-1]' || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the version (proxy-bootstrap)
+        id: check-bootstrap
+        run: |
+          CURRENT_VERSION=$(jq -r .version packages/bootstrap/package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view @mercuryworkshop/proxy-bootstrap versions --json | jq -r '.[-1]' || echo "0.0.0")
+          echo "Latest NPM version: $LATEST_VERSION"
+
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
+          then
+            echo "Version changed"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version not changed"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the version (create-proxy-app)
+        id: check-create-proxy-app
+        run: |
+          CURRENT_VERSION=$(jq -r .version packages/create-proxy-app/package.json)
+          echo "Current version: $CURRENT_VERSION"
+          LATEST_VERSION=$(npm view create-proxy-app versions --json | jq -r '.[-1]' || echo "0.0.0")
           echo "Latest NPM version: $LATEST_VERSION"
 
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
@@ -110,6 +150,14 @@ jobs:
         run: pnpm pack
         working-directory: packages/controller
 
+      - name: Pack Proxy Bootstrap
+        run: pnpm pack
+        working-directory: packages/bootstrap
+
+      - name: Pack create-proxy-app
+        run: pnpm pack
+        working-directory: packages/create-proxy-app
+
       - name: Upload Artifact (scramjet/core)
         uses: actions/upload-artifact@v4
         with:
@@ -133,6 +181,18 @@ jobs:
         with:
           name: scramjet-controller-package
           path: packages/controller/mercuryworkshop-scramjet-controller-*.tgz
+
+      - name: Upload Artifact (proxy-bootstrap) (packaged)
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxy-bootstrap-package
+          path: packages/bootstrap/mercuryworkshop-proxy-bootstrap-*.tgz
+
+      - name: Upload Artifact (create-proxy-app) (packaged)
+        uses: actions/upload-artifact@v4
+        with:
+          name: create-proxy-app-package
+          path: packages/create-proxy-app/create-proxy-app-*.tgz
 
   package-validation:
     name: Validate Package Structure
@@ -306,7 +366,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [version-check, build, package-validation, tests, rewritertests]
     permissions: write-all
-    if: ${{ (github.ref == 'refs/heads/main') && (needs.version-check.outputs.scramjet_version_changed == 'true' || needs.version-check.outputs.controller_version_changed == 'true') }}
+    if: ${{ (github.ref == 'refs/heads/main') && (needs.version-check.outputs.scramjet_version_changed == 'true' || needs.version-check.outputs.controller_version_changed == 'true' || needs.version-check.outputs.bootstrap_version_changed == 'true' || needs.version-check.outputs.create_proxy_app_version_changed == 'true') }}
 
     steps:
       - name: Setup Node.js
@@ -327,6 +387,20 @@ jobs:
           name: scramjet-controller-package
           path: .
 
+      - name: Get artifacts (proxy-bootstrap)
+        if: needs.version-check.outputs.bootstrap_version_changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: proxy-bootstrap-package
+          path: .
+
+      - name: Get artifacts (create-proxy-app)
+        if: needs.version-check.outputs.create_proxy_app_version_changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: create-proxy-app-package
+          path: .
+
       - name: Update npm
         run: npm install -g npm@latest
 
@@ -337,6 +411,14 @@ jobs:
       - name: Publish Scramjet Controller
         if: needs.version-check.outputs.controller_version_changed == 'true'
         run: npm publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --no-git-checks
+
+      - name: Publish Proxy Bootstrap
+        if: needs.version-check.outputs.bootstrap_version_changed == 'true'
+        run: npm publish mercuryworkshop-proxy-bootstrap-${{ needs.version-check.outputs.bootstrap_new_version }}.tgz --access public --no-git-checks
+
+      - name: Publish create-proxy-app
+        if: needs.version-check.outputs.create_proxy_app_version_changed == 'true'
+        run: npm publish create-proxy-app-${{ needs.version-check.outputs.create_proxy_app_new_version }}.tgz --access public --no-git-checks
 
   frontend:
     name: Build Frontend
