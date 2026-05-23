@@ -150,12 +150,16 @@ const BrowserView: Component<
 > = function (cx) {
 	cx.mount = async () => {
 		await controller.wait();
-		browserState.frame = controller.createFrame(this.frameel);
+		browserState.frame = controller.createFrame(this.frameel, [
+			new UrlWatcherPlugin((url) => {
+				browserState.url = url;
+			}),
+			new CatchEscapedLinksPlugin(
+				(url) =>
+					new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
+			),
+		]);
 		cachePlugin.install(browserState.frame);
-		new CatchEscapedLinksPlugin(
-			(url) =>
-				new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
-		).install(browserState.frame);
 		const versionInfo = window.$scramjet.versionInfo ?? {};
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(

@@ -18,6 +18,7 @@ import {
 	type ScramjetContext,
 	type ScramjetInterface,
 	type TrackedHistoryState,
+	Plugin,
 } from "@mercuryworkshop/scramjet";
 import { CONTROLLERFRAME } from "./symbols";
 import type {
@@ -77,6 +78,19 @@ type PersistedCookieState = {
 	updatedAt: number;
 	cookies: string;
 };
+
+export class ManagedPlugin extends Plugin {
+	frame: Frame = null!;
+	dependencies: string[] = [];
+	constructor(name: string, dependencies: string[]) {
+		super(name);
+		this.dependencies = dependencies;
+	}
+
+	install(frame: Frame): void {
+		this.frame = frame;
+	}
+}
 
 const COOKIE_DB_NAME = "__scramjet_controller";
 const COOKIE_STORE_NAME = "state";
@@ -612,14 +626,17 @@ export class Controller {
 		}
 	}
 
-	createFrame(element?: HTMLIFrameElement): Frame {
+	createFrame(
+		element?: HTMLIFrameElement,
+		plugins: ManagedPlugin[] = []
+	): Frame {
 		if (!this.ready) {
 			throw new Error(
 				"Controller is not ready! Try awaiting controller.wait()"
 			);
 		}
 		element ??= document.createElement("iframe");
-		const frame = new Frame(this, element);
+		const frame = new Frame(this, element, plugins);
 		this.frames.push(frame);
 		return frame;
 	}
@@ -762,7 +779,8 @@ export class Frame {
 
 	constructor(
 		public controller: Controller,
-		public element: HTMLIFrameElement
+		public element: HTMLIFrameElement,
+		public plugins: ManagedPlugin[]
 	) {
 		this.id = makeId();
 		this.prefix = this.controller.prefix + this.id + "/";
@@ -796,6 +814,20 @@ export class Frame {
 		};
 
 		element[CONTROLLERFRAME] = this;
+
+		for (const plugin of plugins) {
+			for (const dependency of plugin.dependencies) {
+				const dependencyPlugin = this.plugins.find(
+					(p) => p.name === dependency
+				);
+				if (!dependencyPlugin) {
+					throw new Error(
+						`Dependency ${dependency} not found for plugin ${plugin.name}`
+					);
+				}
+			}
+			plugin.install(this);
+		}
 	}
 
 	back() {
