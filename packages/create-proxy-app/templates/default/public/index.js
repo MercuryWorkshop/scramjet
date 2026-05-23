@@ -18,11 +18,9 @@ async function init() {
 		(url) => new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
 	);
 
-	frame = controller.createFrame(frameElement, [
-		cachePlugin,
-		urlWatcher,
-		catchEscapedLinks,
-	]);
+	frame = controller.createFrame(frameElement, {
+		plugins: [cachePlugin, urlWatcher, catchEscapedLinks],
+	});
 
 	installPlugins(frame);
 }
