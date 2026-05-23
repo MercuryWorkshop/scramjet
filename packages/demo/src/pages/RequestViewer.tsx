@@ -10,8 +10,8 @@ import {
 	isJavascriptMimeType,
 	isXmlMimeType,
 	parseMimeType,
+	Plugin as ScramjetPlugin,
 } from "@mercuryworkshop/scramjet";
-const { Plugin: ScramjetPlugin } = window.$scramjet;
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
 import { demoSettingsStore } from "../store";
 import Monaco from "../components/Monaco";

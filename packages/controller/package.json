@@ -4,8 +4,15 @@
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
 	"license": "AGPL-3.0-only",
-	"main": "index.ts",
+	"main": "./dist/controller-external.mjs",
+	"module": "./dist/controller-external.mjs",
 	"types": "./dist/types/typesEntry.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/typesEntry.d.ts",
+			"default": "./dist/controller-external.mjs"
+		}
+	},
 	"peerDependencies": {
 		"@mercuryworkshop/scramjet": "*"
 	},

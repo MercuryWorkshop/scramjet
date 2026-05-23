@@ -8,9 +8,11 @@ import {
 	CatchEscapedLinksPlugin,
 	UrlWatcherPlugin,
 } from "@mercuryworkshop/scramjet-utils";
+import { versionInfo } from "@mercuryworkshop/scramjet";
 import { cachePlugin, controller } from "..";
 import { demoSettingsStore } from "../store";
 import homepage from "./homepage.html?raw";
+import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
 export const browserState = createState({
 	url: demoSettingsStore.homeUrl,
@@ -160,15 +162,14 @@ const BrowserView: Component<
 					new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
 			),
 		]);
-		const versionInfo = window.$scramjet.versionInfo ?? {};
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(
 			"{{SCRAMJET_VERSION}}",
-			String(versionInfo.version ?? "unknown")
+			String(versionInfo.version)
 		);
 		realHomepage = realHomepage.replaceAll(
 			"{{SCRAMJET_BUILD}}",
-			String(versionInfo.build ?? "unknown")
+			String(versionInfo.build)
 		);
 		realHomepage = realHomepage.replaceAll(
 			"{{SCRAMJET_DATE_PRETTY}}",

@@ -5,6 +5,8 @@
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
 	"types": "./dist/types/index.d.ts",
+	"main": "./dist/scramjet-external.mjs",
+	"module": "./dist/scramjet-external.mjs",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/MercuryWorkshop/scramjet"
@@ -29,13 +31,17 @@
 	"exports": {
 		".": {
 			"types": "./dist/types/index.d.ts",
-			"default": "./dist/scramjet.mjs"
+			"default": "./dist/scramjet-external.mjs"
 		},
 		"./path": {
 			"types": "./lib/index.d.ts",
 			"default": "./lib/index.cjs"
 		},
 		"./bundled": {
+			"types": "./dist/types/index.d.ts",
+			"default": "./dist/scramjet.mjs"
+		},
+		"./bundled-wasm": {
 			"types": "./dist/types/index.d.ts",
 			"default": "./dist/scramjet_bundled.mjs"
 		}
