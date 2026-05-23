@@ -260,6 +260,9 @@ importers:
       '@mercuryworkshop/scramjet-controller':
         specifier: workspace:*
         version: link:../controller
+      '@mercuryworkshop/scramjet-utils':
+        specifier: workspace:*
+        version: link:../utils
       dreamland:
         specifier: ^0.1.3
         version: 0.1.3

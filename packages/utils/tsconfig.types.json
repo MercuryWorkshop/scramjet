@@ -8,5 +8,10 @@
 		"noEmitOnError": false,
 		"noEmit": false
 	},
-	"include": ["src/index.ts", "src/version.ts", "src/global.d.ts"]
+	"include": [
+		"src/index.ts",
+		"src/version.ts",
+		"src/url-watcher.ts",
+		"src/global.d.ts"
+	]
 }

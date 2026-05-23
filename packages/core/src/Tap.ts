@@ -10,12 +10,17 @@ type Callback<T extends Description> = (
 	props: T["props"]
 ) => void | Promise<void>;
 
-type Sorter = (other: Plugin) => number;
+export type TapOrder = {
+	/** Run before these plugins. */
+	before?: readonly string[];
+	/** Run after these plugins. */
+	after?: readonly string[];
+};
 
 type CallbackInfo<T extends Description> = {
 	callback: Callback<T>;
 	plugin: Plugin;
-	sorter: Sorter;
+	order: TapOrder;
 };
 
 type InternalHookDescription = {
@@ -31,16 +36,77 @@ export type TapInstance<T extends Record<string, Description>> = {
 	[K in keyof T]: T[K] & InternalHookDescription;
 };
 
+function mergeTapOrder(plugin: Plugin, order?: TapOrder): TapOrder {
+	return {
+		before: order?.before ?? plugin.tapOrder.before,
+		after: order?.after ?? plugin.tapOrder.after,
+	};
+}
+
+function sortCallbacks<T extends Description>(
+	callbacks: CallbackInfo<T>[]
+): CallbackInfo<T>[] {
+	const afters: Record<string, string[]> = {};
+	for (const callback of callbacks) {
+		if (callback.order.before) {
+			for (const before of callback.order.before) {
+				afters[before] ??= [];
+				if (!afters[before].includes(callback.plugin.name)) {
+					afters[before].push(callback.plugin.name);
+				}
+			}
+		}
+		if (callback.order.after) {
+			for (const after of callback.order.after) {
+				afters[callback.plugin.name] ??= [];
+				if (!afters[callback.plugin.name].includes(after)) {
+					afters[callback.plugin.name].push(after);
+				}
+			}
+		}
+	}
+
+	const sorted: CallbackInfo<T>[] = [];
+	function recurse(callback: CallbackInfo<T>, visited: string[]) {
+		if (afters[callback.plugin.name]) {
+			for (const after of afters[callback.plugin.name]) {
+				if (visited.includes(after)) {
+					throw `Circular dependency detected: ${callback.plugin.name} -> ${after}. Using append order.`;
+				}
+				const afterCallback = callbacks.find((c) => c.plugin.name === after);
+				if (afterCallback) {
+					recurse(afterCallback, [...visited, callback.plugin.name]);
+				}
+			}
+		}
+		if (!sorted.includes(callback)) {
+			sorted.push(callback);
+		}
+	}
+
+	try {
+		for (const callback of callbacks) {
+			recurse(callback, []);
+		}
+		return sorted;
+	} catch (err) {
+		dbg.error(err);
+		return sorted;
+	}
+}
+
 export class Plugin {
-	constructor(public name: string) {}
+	constructor(
+		public name: string,
+		public readonly tapOrder: TapOrder = {}
+	) {}
 
 	tap<T extends Description>(
 		hook: T,
 		callback: Callback<T>,
-		sorter?: Sorter
+		order?: TapOrder
 	): void {
-		sorter ??= () => 0;
-		Tap.tap(hook, callback, this, sorter);
+		Tap.tap(hook, callback, this, mergeTapOrder(this, order));
 	}
 }
 
@@ -54,8 +120,7 @@ export class Tap {
 		let callbacks = internal.tap.callbacks[internal.key];
 		if (!callbacks || callbacks.length === 0) return;
 
-		callbacks = [...callbacks];
-		callbacks.sort((a, b) => a.sorter(b.plugin));
+		callbacks = sortCallbacks([...callbacks] as CallbackInfo<T>[]);
 
 		const results = callbacks.map((cb) => cb.callback(context, props));
 		return Promise_all(results);
@@ -65,7 +130,7 @@ export class Tap {
 		hook: T,
 		callback: Callback<T>,
 		plugin: Plugin,
-		sorter: Sorter
+		order: TapOrder = {}
 	) {
 		const internal = hook as unknown as InternalHookDescription;
 		const callbacks = internal.tap.callbacks;
@@ -73,7 +138,7 @@ export class Tap {
 		callbacks[internal.key]!.push({
 			callback,
 			plugin,
-			sorter,
+			order,
 		});
 	}
 
