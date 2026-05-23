@@ -209,6 +209,10 @@ type ControllerInit = {
 	scramjetConfig?: Partial<ScramjetConfig>;
 };
 
+type FrameOptions = {
+	plugins: ManagedPlugin[];
+};
+
 export class Controller {
 	id: string;
 	config: Config;
@@ -625,17 +629,14 @@ export class Controller {
 		}
 	}
 
-	createFrame(
-		element?: HTMLIFrameElement,
-		plugins: ManagedPlugin[] = []
-	): Frame {
+	createFrame(element?: HTMLIFrameElement, options: FrameOptions = {}): Frame {
 		if (!this.ready) {
 			throw new Error(
 				"Controller is not ready! Try awaiting controller.wait()"
 			);
 		}
 		element ??= document.createElement("iframe");
-		const frame = new Frame(this, element, plugins);
+		const frame = new Frame(this, element, options);
 		this.frames.push(frame);
 		return frame;
 	}
@@ -776,10 +777,11 @@ export class Frame {
 		};
 	}
 
+	public plugins: ManagedPlugin[] = [];
 	constructor(
 		public controller: Controller,
 		public element: HTMLIFrameElement,
-		public plugins: ManagedPlugin[]
+		public options: FrameOptions = {}
 	) {
 		this.id = makeId();
 		this.prefix = this.controller.prefix + this.id + "/";
@@ -814,7 +816,8 @@ export class Frame {
 
 		element[CONTROLLERFRAME] = this;
 
-		for (const plugin of plugins) {
+		this.plugins = options.plugins ?? [];
+		for (const plugin of this.plugins) {
 			for (const dependency of plugin.dependencies) {
 				const dependencyPlugin = this.plugins.find(
 					(p) => p.name === dependency
