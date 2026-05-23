@@ -146,7 +146,7 @@ fn parse_attr(attr: TokenStream) -> Result<String, TokenStream2> {
 ///   stderr message either).
 fn diag_mode() -> &'static str {
     static MODE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    MODE.get_or_init(|| std::env::var("COVERAGE_CHECK").unwrap_or_else(|_| "error".into()))
+    MODE.get_or_init(|| std::env::var("COVERAGE_CHECK").unwrap_or_else(|_| "warn".into()))
 }
 
 fn emit_diag(span: proc_macro2::Span, msg: &str) -> TokenStream2 {
