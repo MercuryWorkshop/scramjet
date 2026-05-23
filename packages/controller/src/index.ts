@@ -33,7 +33,6 @@ import type {
 } from "./types";
 import { assertRuntimeScramjetVersion } from "./version";
 
-export { HttpCachePlugin, type HttpCachePluginOptions } from "./cache";
 export { VERSION } from "./version";
 export { assertRuntimeScramjetVersion } from "./version";
 
@@ -828,6 +827,14 @@ export class Frame {
 			}
 			plugin.install(this);
 		}
+	}
+
+	getPlugin<T extends ManagedPlugin>(name: string): T {
+		const plugin = this.plugins.find((p) => p.name === name) as T;
+		if (!plugin) {
+			throw new Error(`Plugin ${name} not found`);
+		}
+		return plugin;
 	}
 
 	back() {

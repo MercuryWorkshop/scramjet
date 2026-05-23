@@ -12,6 +12,7 @@
 		"src/index.ts",
 		"src/version.ts",
 		"src/url-watcher.ts",
+		"src/http-cache-plugin.ts",
 		"src/catch-escaped-links.ts",
 		"src/always-last-bubble.ts",
 		"src/event-handler-plugin.ts",

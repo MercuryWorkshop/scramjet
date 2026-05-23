@@ -3,6 +3,11 @@ import { assertDependencyVersions } from "./version";
 
 export { versionInfo };
 export { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
+export {
+	HttpCachePlugin,
+	CACHE_NAME,
+	type HttpCachePluginOptions,
+} from "./http-cache-plugin";
 export { UrlWatcherPlugin, type UrlWatcherOptions } from "./url-watcher";
 export { CatchEscapedLinksPlugin } from "./catch-escaped-links";
 export {

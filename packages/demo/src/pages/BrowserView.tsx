@@ -151,6 +151,7 @@ const BrowserView: Component<
 	cx.mount = async () => {
 		await controller.wait();
 		browserState.frame = controller.createFrame(this.frameel, [
+			cachePlugin,
 			new UrlWatcherPlugin((url) => {
 				browserState.url = url;
 			}),
@@ -159,7 +160,6 @@ const BrowserView: Component<
 					new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
 			),
 		]);
-		cachePlugin.install(browserState.frame);
 		const versionInfo = window.$scramjet.versionInfo ?? {};
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(
@@ -178,10 +178,6 @@ const BrowserView: Component<
 			})
 		);
 		this.frameel.src = `data:text/html;base64,${btoa(realHomepage)}`;
-
-		new UrlWatcherPlugin((url) => {
-			browserState.url = url;
-		}).install(browserState.frame);
 
 		let goto = new URL(location.href).searchParams.get("goto");
 		if (goto) {
