@@ -332,6 +332,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "coverage-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "cow-utils"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -734,6 +743,7 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 name = "js"
 version = "0.1.0"
 dependencies = [
+ "coverage-macro",
  "oxc",
  "smallvec",
  "thiserror",
