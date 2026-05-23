@@ -5,6 +5,9 @@ export const SCRAMJET_CONTROLLER_PACKAGE_NAME =
 	"@mercuryworkshop/scramjet-controller";
 export const SCRAMJET_CONTROLLER_PINNED_MAJOR_VERSION = "0";
 
+export const SCRAMJET_UTILS_PACKAGE_NAME = "@mercuryworkshop/scramjet-utils";
+export const SCRAMJET_UTILS_PINNED_MAJOR_VERSION = "0";
+
 export const EPOXY_TRANSPORT_PACKAGE_NAME = "@mercuryworkshop/epoxy-transport";
 export const EPOXY_TRANSPORT_PINNED_MAJOR_VERSION = "3";
 
@@ -22,6 +25,7 @@ export type BootstrapOptions = {
 
 	scramjetBundlePath: string;
 	scramjetWasmPath: string;
+	scramjetUtilsBundlePath: string;
 
 	epoxyClientPath: string;
 	libcurlClientPath: string;
@@ -35,6 +39,7 @@ export type BootstrapOptions = {
 
 	scramjetVersionPin?: string;
 	scramjetControllerVersionPin?: string;
+	scramjetUtilsVersionPin?: string;
 	epoxyTransportVersionPin?: string;
 	libcurlTransportVersionPin?: string;
 	bareTransportVersionPin?: string;
@@ -55,4 +60,5 @@ export const defaultConfig: Partial<BootstrapOptions> = {
 	scramjetControllerSwPath: "/controller/controller.sw.js",
 	scramjetBundlePath: "/scram/scramjet.js",
 	scramjetWasmPath: "/scram/scramjet.wasm",
+	scramjetUtilsBundlePath: "/scram/scramjet-utils.js",
 };

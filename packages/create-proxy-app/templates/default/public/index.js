@@ -9,7 +9,21 @@ let controller;
 let frame;
 async function init() {
 	controller = await initBootstrap();
-	frame = controller.createFrame(frameElement);
+
+	const cachePlugin = new $scramjetUtils.HttpCachePlugin();
+	const urlWatcher = new $scramjetUtils.UrlWatcherPlugin((url) => {
+		address.value = url;
+	});
+	const catchEscapedLinks = new $scramjetUtils.CatchEscapedLinksPlugin(
+		(url) => new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
+	);
+
+	frame = controller.createFrame(frameElement, [
+		cachePlugin,
+		urlWatcher,
+		catchEscapedLinks,
+	]);
+
 	installPlugins(frame);
 }
 
@@ -31,15 +45,26 @@ function showErrorScreen(error, details) {
 	errorCode.textContent = details;
 }
 
+async function navigate(url) {
+	if (!frame || !controller) {
+		await init();
+	}
+	await frame.go(url);
+	frameWrapper.style.display = "flex";
+}
+
 form.addEventListener("submit", async (e) => {
 	e.preventDefault();
 	try {
-		if (!frame || !controller) {
-			await init();
-		}
-		await frame.go(address.value);
-		frameWrapper.style.display = "flex";
+		await navigate(address.value);
 	} catch (error) {
 		showErrorScreen(error.message, error.stack);
 	}
 });
+
+const goto = new URL(location.href).searchParams.get("goto");
+if (goto) {
+	history.replaceState(null, "", location.pathname);
+	address.value = goto;
+	navigate(goto).catch((error) => showErrorScreen(error.message, error.stack));
+}
