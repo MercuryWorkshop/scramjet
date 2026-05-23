@@ -1,11 +1,15 @@
 import { css, type Component } from "dreamland/core";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
-import type { ScramjetFetchRequest } from "@mercuryworkshop/scramjet";
+import {
+	BareResponse,
+	Plugin,
+	rewriteUrl,
+	ScramjetFetchHandler,
+	ScramjetHeaders,
+	type ScramjetFetchRequest,
+} from "@mercuryworkshop/scramjet";
 import { cachePlugin, controller } from "..";
 import Monaco from "../components/Monaco";
-
-const { ScramjetFetchHandler, ScramjetHeaders, BareResponse, rewriteUrl } =
-	window.$scramjet;
 
 const DEFAULT_ORIGIN = "https://fakeorigin.com";
 const DEFAULT_PREVIEW_URL = `${DEFAULT_ORIGIN}/`;
@@ -332,9 +336,6 @@ const PlaygroundView: Component<
 	const ensurePlugin = (frame: any) => {
 		if (!frame || this.pluginReady) return;
 		this.pluginReady = true;
-
-		const Plugin = (globalThis as any).$scramjet?.Plugin;
-		if (!Plugin) return;
 
 		const plugin = new Plugin("demo-playground");
 		plugin.tap(frame.hooks.fetch.request, (context: any, props: any) => {
