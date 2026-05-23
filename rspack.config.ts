@@ -118,10 +118,12 @@ function extractRuntimeExportNames(source: string): string[] {
 	if (names.size > 0) return [...names];
 
 	// Webpack IIFE bundles register entry exports via the *last*
-	// `__webpack_require__.d(__webpack_exports__, { ... })` call.
+	// `__webpack_require__.d(__webpack_exports__, { ... })` call. In
+	// production builds those identifiers get minified (e.g. `r.d(o, {...})`),
+	// so match any `<ident>.d(<ident>, { ... })` shape.
 	const defMatches = [
 		...source.matchAll(
-			/__webpack_require__\.d\(__webpack_exports__,\s*\{([\s\S]*?)\}\)/g
+			/\b[A-Za-z_$][\w$]*\.d\([A-Za-z_$][\w$]*,\s*\{([\s\S]*?)\}\)/g
 		),
 	];
 	if (defMatches.length > 0) {
