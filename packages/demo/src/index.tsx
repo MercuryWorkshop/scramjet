@@ -3,7 +3,8 @@ import App from "./App";
 import LibcurlClient from "@mercuryworkshop/libcurl-transport";
 import EpoxyClient from "@mercuryworkshop/epoxy-transport";
 import { defaultConfigDev } from "@mercuryworkshop/scramjet";
-const { Controller, HttpCachePlugin } = $scramjetController;
+const { Controller } = $scramjetController;
+import { HttpCachePlugin } from "@mercuryworkshop/scramjet-utils";
 import { demoSettingsStore } from "./store";
 
 let app = document.getElementById("app")!;

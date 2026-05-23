@@ -41,13 +41,13 @@
 // `rewriteBody` runs, without going through `rewriteBody` again. That can
 // come later.
 
-import { BareResponse } from "@mercuryworkshop/proxy-transports";
 import {
-	Plugin,
-	type ScramjetFetchHandler,
+	BareResponse,
 	type ScramjetFetchRequest,
 	type ScramjetHeaders,
 } from "@mercuryworkshop/scramjet";
+import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
+import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
 export const CACHE_NAME = "scramjet-http-cache-v2";
 
@@ -288,17 +288,13 @@ export interface HttpCachePluginOptions {
 }
 
 /**
- * RFC-9111-ish HTTP cache for ScramjetFetchHandler. Subclasses
- * `Plugin` so it composes with the same hook plumbing every other
- * scramjet plugin uses; `install(target)` wires it onto a Frame (or any
- * object exposing a `fetchHandler`), and `bust()` drops the underlying
- * `caches` entry.
+ * RFC-9111-ish HTTP cache for ScramjetFetchHandler.
  *
  * One instance can be installed onto multiple Frames -- the WeakMap of
  * "did this request come from cache?" book-keeping is per-instance, not
  * per-Frame, so nothing leaks across installs.
  */
-export class HttpCachePlugin extends Plugin {
+export class HttpCachePlugin extends ManagedPlugin {
 	readonly cacheName: string;
 
 	private cachePromise: Promise<Cache> | null = null;
@@ -308,7 +304,7 @@ export class HttpCachePlugin extends Plugin {
 	private cameFromCache = new WeakMap<ScramjetFetchRequest, true>();
 
 	constructor(options: HttpCachePluginOptions = {}) {
-		super("scramjet-http-cache");
+		super("scramjet-http-cache", []);
 		this.cacheName = options.cacheName ?? CACHE_NAME;
 	}
 
@@ -320,12 +316,10 @@ export class HttpCachePlugin extends Plugin {
 		return this.cachePromise;
 	}
 
-	/**
-	 * Wire the cache up to a Frame (or anything exposing `fetchHandler`).
-	 * Safe to call multiple times across different Frames.
-	 */
-	install(target: { fetchHandler: ScramjetFetchHandler }): void {
-		const hooks = target.fetchHandler.hooks.fetch;
+	install(frame: Frame): void {
+		super.install(frame);
+
+		const hooks = frame.fetchHandler.hooks.fetch;
 
 		// ----- request: cache lookup --------------------------------------
 		this.tap(hooks.request, async (ctx, props) => {
