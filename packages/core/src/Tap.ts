@@ -158,4 +158,9 @@ export class Tap {
 			},
 		});
 	}
+
+	static getTappers<T extends Description>(hook: T): Plugin[] {
+		const internal = hook as unknown as InternalHookDescription;
+		return internal.tap.callbacks[internal.key].map((c) => c.plugin);
+	}
 }

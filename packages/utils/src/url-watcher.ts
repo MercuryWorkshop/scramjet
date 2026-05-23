@@ -1,4 +1,4 @@
-import { Plugin } from "@mercuryworkshop/scramjet";
+import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
 export type UrlWatcherOptions = {};
@@ -8,12 +8,12 @@ export type UrlWatcherOptions = {};
  * Includes hash changes and history.pushState/replaceState.
  * For only true navigation events, use the Frame.hooks.init.post hook.
  */
-export class UrlWatcherPlugin extends Plugin {
+export class UrlWatcherPlugin extends ManagedPlugin {
 	constructor(
 		private onUrlChange: (url: string) => void,
-		options: UrlWatcherOptions = {}
+		private options: UrlWatcherOptions = {}
 	) {
-		super("url-watcher");
+		super("url-watcher", []);
 	}
 
 	install(frame: Frame): void {

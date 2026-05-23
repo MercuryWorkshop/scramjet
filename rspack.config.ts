@@ -48,6 +48,9 @@ function scramjetIifeExternal(
 	if (request === "@mercuryworkshop/scramjet") {
 		return callback(null, "root $scramjet");
 	}
+	if (request === "@mercuryworkshop/scramjet-controller") {
+		return callback(null, "root $scramjetController");
+	}
 	callback();
 }
 
@@ -443,9 +446,7 @@ const utilsModuleConfig = createGenericConfig({
 		outputModule: true,
 	},
 	target: "web",
-	externals: {
-		"@mercuryworkshop/scramjet": "module @mercuryworkshop/scramjet",
-	},
+	externals: [scramjetIifeExternal],
 	plugins: [
 		utilsVersionDefines,
 		new TypeScriptDeclarationsPlugin(
