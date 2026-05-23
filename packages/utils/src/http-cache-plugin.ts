@@ -21,8 +21,10 @@
 // PRIVATE cache (browser-local, single-user):
 //
 //   - Only GET / HEAD are cached.
-//   - Cacheable status codes per RFC 9110 §15.1: 200 203 204 206 300 301 308
-//     404 405 410 414 501. Other statuses pass through.
+//   - Cacheable status codes per RFC 9110 §15.1: 200 203 204 300 301 308
+//     404 405 410 414 501. Other statuses pass through. 206 is omitted
+//     because the Cache API spec (Service Workers §cache-put) rejects
+//     partial responses outright.
 //   - `Cache-Control: no-store` and `Vary: *` opt out.
 //   - Freshness:
 //       1. `Cache-Control: s-maxage` (private cache treats this same as
@@ -54,9 +56,14 @@ export const CACHE_NAME = "scramjet-http-cache-v2";
 /** Header recording when this entry entered the cache (ms since epoch). */
 const STORED_AT_HEADER = "x-sj-cached-at";
 
-/** Status codes RFC 9110 §15.1 marks as "cacheable by default". */
+/**
+ * Status codes RFC 9110 §15.1 marks as "cacheable by default", minus 206:
+ * the Cache API rejects partial responses (cache.put throws TypeError on
+ * any non-200/non-OK response with a Content-Range), so storing them is a
+ * non-starter regardless of what HTTP allows.
+ */
 const DEFAULT_CACHEABLE_STATUSES = new Set([
-	200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501,
+	200, 203, 204, 300, 301, 308, 404, 405, 410, 414, 501,
 ]);
 
 /**
