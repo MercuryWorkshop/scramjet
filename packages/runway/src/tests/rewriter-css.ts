@@ -2,7 +2,7 @@ import {
 	rewriteCss,
 	rewriteUrl,
 	unrewriteCss,
-} from "@mercuryworkshop/scramjet";
+} from "@mercuryworkshop/scramjet/bundled";
 import { directTest, type Test } from "../testcommon.ts";
 
 function createRewriteContext() {
