@@ -13,6 +13,7 @@ export async function init(cfg: BootstrapOptions) {
 export async function loadRest(sw: ServiceWorker, cfg: BootstrapOptions) {
 	await loadScript(cfg.scramjetBundlePath);
 	await loadScript(cfg.scramjetControllerApiPath);
+	await loadScript(cfg.scramjetUtilsBundlePath);
 
 	const resolvedWispPath = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${cfg.wispPath}`;
 
