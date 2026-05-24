@@ -60,6 +60,7 @@ export interface ScramjetFetchParsed {
 
 	meta: URLMeta;
 	isModule: boolean;
+	isFakeDataURL: boolean;
 	referrerPolicy?: string;
 	trackedClient?: ScramjetFetchTrackedClient;
 }

@@ -138,10 +138,9 @@ export function rewriteUrl(
 		const BUFFER = 1024;
 		// chrome will explode if you make a request to a service worker with a 2MB+ URL
 		// there's an okayish workaround which is just Pretending It's a Blob
-		// TODO: this leaks memory
 		if (url.length + context.prefix.href.length + BUFFER > URL_MAX_LENGTH) {
 			const { objectUrl } = dataToBlob(url);
-			return context.prefix.href + rewriteBlob(objectUrl, context, meta);
+			return context.prefix.href + rewriteBlob(objectUrl, context, meta) + "?"+QP.fakeDataURL+"=1";
 		}
 
 		return context.prefix.href + url;
