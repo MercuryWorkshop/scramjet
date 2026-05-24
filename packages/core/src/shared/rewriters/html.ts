@@ -24,7 +24,11 @@ import {
 	_URL,
 } from "@/shared/snapshot";
 import { flagEnabled } from "..";
-import { isModuleScriptType, isScriptType } from "@/shared/mime";
+import {
+	getScriptBlockTypeString,
+	isModuleScriptType,
+	isScriptType,
+} from "@/shared/mime";
 
 export type ForeignContext = "svg" | "math" | "html";
 
@@ -409,23 +413,31 @@ function traverseParsedHtml(
 	}
 	if (
 		node.name === "script" &&
-		isScriptType(node.attribs.type) &&
+		node.attribs &&
 		node.children[0] !== undefined
 	) {
-		let js = node.children[0].data;
-		const module = isModuleScriptType(node.attribs.type);
-		node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
-			TextEncoder_encode(js)
+		const scriptBlockType = getScriptBlockTypeString(
+			"type" in node.attribs ? node.attribs.type : undefined,
+			"language" in node.attribs ? node.attribs.language : undefined,
+			"type" in node.attribs,
+			"language" in node.attribs
 		);
-		const htmlcomment = /<!--[\s\S]*?-->/g;
-		js = js.replace(htmlcomment, "");
-		node.children[0].data = rewriteJs(
-			js,
-			"(inline script element)",
-			context,
-			meta,
-			module
-		);
+		if (isScriptType(scriptBlockType)) {
+			let js = node.children[0].data;
+			const module = isModuleScriptType(scriptBlockType);
+			node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
+				TextEncoder_encode(js)
+			);
+			const htmlcomment = /<!--[\s\S]*?-->/g;
+			js = js.replace(htmlcomment, "");
+			node.children[0].data = rewriteJs(
+				js,
+				"(inline script element)",
+				context,
+				meta,
+				module
+			);
+		}
 	}
 
 	if (node.name === "meta" && node.attribs["http-equiv"] !== undefined) {

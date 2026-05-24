@@ -14,6 +14,7 @@ import { unrewriteUrl } from "@rewriters/url";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import {
+	getScriptBlockTypeString,
 	isHtmlMimeType,
 	isModuleScriptType,
 	isScriptType,
@@ -46,6 +47,37 @@ export function insideForeignContext(
 	}
 
 	return "html";
+}
+
+function scriptBlockTypeForElement(
+	client: ScramjetClient,
+	element: Element
+): string {
+	const hasType = client.natives.call(
+		"Element.prototype.hasAttribute",
+		element,
+		"type"
+	) as boolean;
+	const hasLanguage = client.natives.call(
+		"Element.prototype.hasAttribute",
+		element,
+		"language"
+	) as boolean;
+	const type = hasType
+		? (client.natives.call(
+				"Element.prototype.getAttribute",
+				element,
+				"type"
+			) as string | null)
+		: null;
+	const language = hasLanguage
+		? (client.natives.call(
+				"Element.prototype.getAttribute",
+				element,
+				"language"
+			) as string | null)
+		: null;
+	return getScriptBlockTypeString(type, language, hasType, hasLanguage);
 }
 
 // TODO: this is pretty bad. really this whole file sucks
@@ -376,21 +408,22 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
 			let newval;
-			const scriptType = client.natives.call(
-				"Element.prototype.getAttribute",
+			const scriptBlockType = client.box.instanceof(
 				ctx.this,
-				"type"
-			) as string | null;
+				"HTMLScriptElement"
+			)
+				? scriptBlockTypeForElement(client, ctx.this)
+				: null;
 			if (
 				client.box.instanceof(ctx.this, "HTMLScriptElement") &&
-				isScriptType(scriptType)
+				isScriptType(scriptBlockType)
 			) {
 				newval = rewriteJs(
 					value,
 					"(anonymous script element)",
 					client.context,
 					client.meta,
-					isModuleScriptType(scriptType)
+					isModuleScriptType(scriptBlockType)
 				);
 				client.natives.call(
 					"Element.prototype.setAttribute",
@@ -442,26 +475,20 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	const rewriteTextForElement = (element: Element, value: string) => {
-		let scriptType: string | null = null;
-
-		if (client.box.instanceof(element, "HTMLScriptElement")) {
-			scriptType = client.natives.call(
-				"Element.prototype.getAttribute",
-				element,
-				"type"
-			) as string | null;
-		}
+		const scriptBlockType = client.box.instanceof(element, "HTMLScriptElement")
+			? scriptBlockTypeForElement(client, element)
+			: null;
 
 		if (
 			client.box.instanceof(element, "HTMLScriptElement") &&
-			isScriptType(scriptType)
+			isScriptType(scriptBlockType)
 		) {
 			const newval: string = rewriteJs(
 				value,
 				"(anonymous script element)",
 				client.context,
 				client.meta,
-				isModuleScriptType(scriptType)
+				isModuleScriptType(scriptBlockType)
 			) as string;
 			client.natives.call(
 				"Element.prototype.setAttribute",

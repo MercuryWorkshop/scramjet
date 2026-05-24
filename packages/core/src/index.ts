@@ -40,7 +40,7 @@ export const defaultConfig: ScramjetConfig = {
 		scramitize: false,
 		sourcemaps: true,
 		destructureRewrites: true,
-		allowInvalidJs: false,
+		allowInvalidJs: true,
 		debugTrampolines: false,
 		allowFailedIntercepts: false,
 		encapsulateWorkers: true,
@@ -59,6 +59,7 @@ export const defaultConfigDev: ScramjetConfig = {
 		cleanErrors: false,
 		debugTrampolines: true,
 		debugSourceURL: true,
+		allowInvalidJs: false,
 	},
 };
 
