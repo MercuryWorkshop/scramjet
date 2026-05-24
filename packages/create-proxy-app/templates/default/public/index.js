@@ -22,20 +22,6 @@ async function init() {
 	frame = controller.createFrame(frameElement, {
 		plugins: [cachePlugin, urlWatcher, catchEscapedLinks],
 	});
-
-	installPlugins(frame);
-}
-
-function installPlugins(frame) {
-	const errorPlugin = new $scramjet.Plugin("error-handler");
-	errorPlugin.tap(frame.hooks.error.request, (context, props) => {
-		props.suppressError = false;
-		console.error(context.error);
-		showErrorScreen(
-			`Scramjet couldn't load ${context.rawrequest.rawUrl}`,
-			context?.error?.message || context?.error?.toString() || "Unknown error"
-		);
-	});
 }
 
 function showErrorScreen(error, details) {
