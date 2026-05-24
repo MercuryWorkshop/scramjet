@@ -12,6 +12,7 @@
 	"author": "",
 	"license": "AGPL-3.0-only",
 	"dependencies": {
-		"@mercuryworkshop/proxy-bootstrap": "*"
+		"@mercuryworkshop/proxy-bootstrap": "^0.0.2",
+		"express": "^4.21.2"
 	}
 }
