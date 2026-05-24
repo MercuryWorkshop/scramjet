@@ -129,7 +129,7 @@ export class Tap {
 	static tap<T extends Description>(
 		hook: T,
 		callback: Callback<T>,
-		plugin: Plugin,
+		plugin: Plugin = new Plugin("anonymous"),
 		order: TapOrder = {}
 	) {
 		const internal = hook as unknown as InternalHookDescription;
