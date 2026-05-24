@@ -90,11 +90,11 @@ async function project() {
 					maxItems: 2,
 					options: [
 						{ value: "dedicated", label: "Dedicated Server" },
-						{
-							value: "static",
-							label:
-								"Static (can be deployed anywhere, but requires an external Wisp server)",
-						},
+						// {
+						// 	value: "static",
+						// 	label:
+						// 		"Static (can be deployed anywhere, but requires an external Wisp server)",
+						// },
 					],
 				}),
 		},

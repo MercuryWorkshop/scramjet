@@ -14,5 +14,10 @@
 	"dependencies": {
 		"@mercuryworkshop/proxy-bootstrap": "^0.0.2",
 		"express": "^4.21.2"
+	},
+	"devDependencies": {
+		"@mercuryworkshop/scramjet-utils": "*",
+		"@mercuryworkshop/scramjet-controller": "*",
+		"@mercuryworkshop/scramjet": "*"
 	}
 }

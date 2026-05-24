@@ -1,3 +1,6 @@
+/** @type {typeof import("@mercuryworkshop/scramjet-utils")} */
+/** @type {typeof import("@mercuryworkshop/scramjet")} */
+
 const form = document.getElementById("sj-form");
 const address = document.getElementById("sj-address");
 const frameWrapper = document.getElementById("sj-frame-wrapper");

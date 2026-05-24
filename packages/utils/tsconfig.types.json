@@ -17,6 +17,7 @@
 		"src/always-last-bubble.ts",
 		"src/event-handler-plugin.ts",
 		"src/link-handler-plugin.ts",
-		"src/global.d.ts"
+		"src/global.d.ts",
+		"src/typesEntry.ts"
 	]
 }

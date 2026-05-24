@@ -7,22 +7,21 @@ import { base64Encode } from "@/shared/util";
 export function rewriteWorkers(
 	context: ScramjetContext,
 	js: string | Uint8Array,
-	type: "module" | "regular",
+	isModule: boolean,
 	url: string,
 	meta: URLMeta
 ) {
-	const module = type === "module";
 	const script = (script: string) => {
-		if (module) {
+		if (isModule) {
 			return `import "${script}"\n`;
 		}
 		return `importScripts("${script}");\n`;
 	};
 	const b64 = (script: string) =>
 		`data:text/javascript;charset=utf-8;base64,${base64Encode(script)}`;
-	let str = context.interface.getWorkerInjectScripts(meta, type, script);
+	let str = context.interface.getWorkerInjectScripts(meta, isModule, script);
 
-	let rewritten = rewriteJs(js, url, context, meta, module);
+	let rewritten = rewriteJs(js, url, context, meta, isModule);
 	if (typeof rewritten !== "string") {
 		rewritten = TextDecoder_decode(rewritten);
 	}
@@ -30,7 +29,7 @@ export function rewriteWorkers(
 	if (flagEnabled("encapsulateWorkers", context, meta.origin)) {
 		// TODO: check if there's already a sourceURL/sourcemap before appending another?
 		rewritten += `//# sourceURL=${url}`;
-		str += script(b64(rewritten));
+		str += script(b64(rewritten as string));
 	} else {
 		str += rewritten;
 	}
