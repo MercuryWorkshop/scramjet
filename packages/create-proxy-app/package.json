@@ -1,6 +1,6 @@
 {
 	"name": "create-proxy-app",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Scaffold a Scramjet or Ultraviolet proxy app",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",

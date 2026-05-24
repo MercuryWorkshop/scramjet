@@ -1,6 +1,6 @@
 {
 	"name": "@mercuryworkshop/scramjet-utils",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "Utilities for Scramjet proxy integrations",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
@@ -10,9 +10,10 @@
 		"url": "https://github.com/MercuryWorkshop/scramjet.git",
 		"directory": "packages/utils"
 	},
+	"types": "./dist/types/typesEntry.d.ts",
 	"exports": {
 		".": {
-			"types": "./dist/types/index.d.ts",
+			"types": "./dist/types/typesEntry.d.ts",
 			"import": "./dist/scramjet-utils.mjs",
 			"default": "./dist/scramjet-utils.js"
 		}

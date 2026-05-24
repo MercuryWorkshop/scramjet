@@ -1,6 +1,6 @@
 {
 	"name": "@mercuryworkshop/scramjet",
-	"version": "2.0.67-alpha",
+	"version": "2.0.67-alpha.1",
 	"license": "AGPL-3.0-only",
 	"description": "An experimental web proxy that aims to be the successor to Ultraviolet",
 	"type": "module",
@@ -30,7 +30,7 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/types/index.d.ts",
+			"types": "./dist/types/typesEntry.d.ts",
 			"default": "./dist/scramjet-external.mjs"
 		},
 		"./path": {
