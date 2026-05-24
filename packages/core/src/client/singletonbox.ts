@@ -8,6 +8,7 @@ export class SingletonBox {
 	documents: Map<Document, ScramjetClient> = new Map();
 	locations: Map<Location, ScramjetClient> = new Map();
 	writeRewriters = new WeakMap<Document, IncrementalHtmlRewriter>();
+	unproxy = new Map<any, any>();
 
 	ctors: Record<string, Function[]> = {};
 

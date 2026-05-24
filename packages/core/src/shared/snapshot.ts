@@ -6,6 +6,7 @@ export const String_fromCodePoint = globalThis.String.fromCodePoint;
 export const String_fromCharCode = globalThis.String.fromCharCode;
 export const Number = globalThis.Number;
 export const Number_parseInt = globalThis.Number.parseInt;
+export const Number_isSafeInteger = globalThis.Number.isSafeInteger;
 
 export const Object_keys = globalThis.Object.keys;
 export const Object_values = globalThis.Object.values;

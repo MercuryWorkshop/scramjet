@@ -785,10 +785,12 @@ return { apply, construct };
 			};
 		}
 
+		const proxy = new Proxy(value, h);
+		this.box.unproxy.set(proxy, target);
 		h.getOwnPropertyDescriptor = getOwnPropertyDescriptorHandler;
 		// Preserve original property descriptor (enumerable, configurable, etc.)
 		Object_defineProperty(target, prop, {
-			value: new Proxy(value, h),
+			value: proxy,
 			writable: originalDescriptor?.writable ?? true,
 			enumerable: originalDescriptor?.enumerable ?? false,
 			configurable: originalDescriptor?.configurable ?? true,
