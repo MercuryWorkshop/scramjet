@@ -163,3 +163,9 @@ footer a:hover {
 .credit input:checked ~ pre {
 	display: block;
 }
+
+#sj-frame-url {
+	color: #fff;
+	margin: 0.25em;
+	font-family: monospace;
+}
