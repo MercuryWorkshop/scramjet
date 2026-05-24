@@ -442,11 +442,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	const rewriteTextForElement = (element: Element, value: string) => {
-		const scriptType = client.natives.call(
-			"Element.prototype.getAttribute",
-			element,
-			"type"
-		) as string | null;
+		let scriptType: string | null = null;
+
+		if (client.box.instanceof(element, "HTMLScriptElement")) {
+			scriptType = client.natives.call(
+				"Element.prototype.getAttribute",
+				element,
+				"type"
+			) as string | null;
+		}
+
 		if (
 			client.box.instanceof(element, "HTMLScriptElement") &&
 			isScriptType(scriptType)
