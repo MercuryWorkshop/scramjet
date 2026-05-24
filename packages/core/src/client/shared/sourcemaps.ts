@@ -1,3 +1,8 @@
+import {
+	Object_defineProperty,
+	Number_isSafeInteger,
+	Error,
+} from "@/shared/snapshot";
 import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
 import { ProxyCtx, ScramjetClient } from "@client/index";
 
@@ -86,7 +91,7 @@ function extractTag(fn: string): [string, number, number] | null {
 
 	const end = fn.indexOf("*/", start);
 	if (end === -1) {
-		console.log(fn, start, end);
+		dbg.error("unreachable", fn, start, end);
 		throw new Error("unreachable");
 	}
 
@@ -95,9 +100,9 @@ function extractTag(fn: string): [string, number, number] | null {
 	if (
 		tag.length !== 3 ||
 		tag[0] !== "scramtag" ||
-		!Number.isSafeInteger(+tag[1])
+		!Number_isSafeInteger(+tag[1])
 	) {
-		console.log(fn, start, end, tag);
+		dbg.error("invalid tag", fn, start, end, tag);
 		throw new Error("invalid tag");
 	}
 
@@ -119,7 +124,7 @@ function doUnrewrite(
 	const rewrites = client.box.sourcemaps[tag];
 
 	if (!rewrites) {
-		console.warn("failed to get rewrites for tag", tag);
+		dbg.warn("failed to get rewrites for tag", tag);
 
 		return ctx.return(stringified);
 	}
@@ -165,13 +170,13 @@ export const enabled = (client: ScramjetClient) =>
 
 export default function (client: ScramjetClient, self: Self) {
 	// every script will push a sourcemap
-	Object.defineProperty(self, client.config.globals.pushsourcemapfn, {
+	Object_defineProperty(self, client.config.globals.pushsourcemapfn, {
 		value: (buf: Array<number>, tag: string) => {
-			const before = performance.now();
+			// const before = performance.now();
 			registerRewrites(client, buf, tag);
-			if (client.flagEnabled("rewriterLogs")) {
-				dbg.time(client.meta, before, `scramtag parse for ${tag}`);
-			}
+			// if (client.flagEnabled("rewriterLogs")) {
+			// 	dbg.time(client.meta, before, `scramtag parse for ${tag}`);
+			// }
 		},
 		enumerable: false,
 		writable: false,
@@ -182,7 +187,15 @@ export default function (client: ScramjetClient, self: Self) {
 	// this can lead to double rewrites which is bad
 	client.Proxy("Function.prototype.toString", {
 		apply(ctx) {
-			const before = performance.now();
+			if (client.box.unproxy.has(ctx.this)) {
+				// toString is being called on a proxy of a native function
+				// `this` will then be the proxy, which has the wrong [[SourceText]]
+				// unproxy so it passes through
+				ctx.this = client.box.unproxy.get(ctx.this)!;
+				// since we know it's a native function, no need to unrewrite
+				return;
+			}
+			// const before = performance.now();
 			doUnrewrite(client, ctx);
 			// dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);
 		},
