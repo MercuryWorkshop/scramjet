@@ -486,14 +486,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 		return text;
 	};
 
-	client.Trap("Node.prototype.textContent", {
-		set(ctx, value: string) {
-			return ctx.set(rewriteTextForElement(ctx.this, value));
-		},
-		get(ctx) {
-			return getTextForElement(ctx.this, ctx.get());
-		},
-	});
+	client.Trap(
+		["Node.prototype.textContent", "HTMLScriptElement.prototype.textContent"],
+		{
+			set(ctx, value: string) {
+				return ctx.set(rewriteTextForElement(ctx.this, value));
+			},
+			get(ctx) {
+				return getTextForElement(ctx.this, ctx.get());
+			},
+		}
+	);
 	client.Trap("HTMLElement.prototype.innerText", {
 		set(ctx, value: string) {
 			return ctx.set(rewriteTextForElement(ctx.this, value));
