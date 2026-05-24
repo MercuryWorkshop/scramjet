@@ -467,7 +467,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				"Element.prototype.setAttribute",
 				element,
 				"scramjet-attr-script-source-src",
-				bytesToBase64(TextEncoder_encode(newval))
+				bytesToBase64(TextEncoder_encode(value))
 			);
 
 			return newval;
@@ -484,6 +484,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				element,
 				"scramjet-attr-script-source-src"
 			);
+			if (scriptSource) return atob(scriptSource);
+			return text;
 		}
 		if (client.box.instanceof(element, "HTMLStyleElement")) {
 			return unrewriteCss(text, client.context);
