@@ -48,6 +48,9 @@ async function navigate(url) {
 	if (!frame || !controller) {
 		await init();
 	}
+	if (!url.startsWith("http")) {
+		url = `https://${url}`;
+	}
 	await frame.go(url);
 	frameWrapper.style.display = "flex";
 }
