@@ -24,6 +24,7 @@ import {
 	_URL,
 } from "@/shared/snapshot";
 import { flagEnabled } from "..";
+import { isModuleScriptType, isScriptType } from "@/shared/mime";
 
 export type ForeignContext = "svg" | "math" | "html";
 
@@ -408,11 +409,11 @@ function traverseParsedHtml(
 	}
 	if (
 		node.name === "script" &&
-		/(application|text)\/javascript|module|undefined/.test(node.attribs.type) &&
+		isScriptType(node.attribs.type) &&
 		node.children[0] !== undefined
 	) {
 		let js = node.children[0].data;
-		const module = node.attribs.type === "module" ? true : false;
+		const module = isModuleScriptType(node.attribs.type);
 		node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
 			TextEncoder_encode(js)
 		);
