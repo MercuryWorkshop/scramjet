@@ -84,11 +84,13 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		expression: bool,
 		location_assigned: bool,
 		wrap: bool,
+		declare_local_location: bool,
 	},
 	/// `var location = ...` -> `var cfg.temploc = ..., cfg.tempunused = (cfg.cleanrestfn(restids[0]),cfg.trysetfn(location,"=",cfg.temploc)||location=cfg.temploc)`
 	CleanVariableDeclaration {
 		restids: Vec<Atom<'data>>,
 		location_assigned: bool,
+		declare_local_location: bool,
 	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
@@ -172,6 +174,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				expression,
 				location_assigned,
 				wrap,
+				declare_local_location,
 			} => {
 				if expression {
 					smallvec![
@@ -181,7 +184,8 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 								restids,
 								expression,
 								location_assigned,
-								wrap
+								wrap,
+								declare_local_location
 							}
 						),
 						change!(
@@ -200,7 +204,8 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 								restids,
 								expression,
 								location_assigned,
-								wrap
+								wrap,
+								declare_local_location
 							}
 						),
 						change!(
@@ -218,7 +223,8 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 							restids,
 							expression,
 							location_assigned,
-							wrap
+							wrap,
+							declare_local_location
 						}
 					)]
 				}
@@ -226,11 +232,13 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::CleanVariableDeclaration {
 				restids,
 				location_assigned,
+				declare_local_location,
 			} => smallvec![change!(
 				span!(end),
 				CleanVariableDeclaration {
 					restids,
-					location_assigned
+					location_assigned,
+					declare_local_location
 				}
 			)],
 			Self::WrapPostMessage => smallvec![change!(span!(start), WrapPostMessageLeft), change!(span!(end),

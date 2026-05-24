@@ -402,8 +402,15 @@ where
 	fn handle_for_of_in(&mut self, left: &ForStatementLeft<'data>, right: &Expression<'data>, body: &Statement<'data>) {
     	let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
+		let declare_local_location: bool;
 		if let ForStatementLeft::VariableDeclaration(v) = &left {
 			self.handle_var_declarator(&v, &mut restids, &mut location_assigned);
+			// var { location } = ... is special because it will rewrite both the member access to $sj_location
+			// and the actual name of the variable to $scramjet$temploc so we can set it back later
+			// but this means that the variable location never actually gets assigned
+			// so if it was actually meant to be a local, it won't exist in scope
+			// we flag this here so it will be appended tos the variable declarations in cleanup
+			declare_local_location = location_assigned;
 		} else {
 		    let target = left.as_assignment_target().unwrap();
 		    match target {
@@ -424,11 +431,12 @@ where
 					self.recurse_array_assignment_target(a, &mut restids, &mut location_assigned);
 				}
 				AssignmentTarget::PrivateFieldExpression(_) => {
-					// `for (location.#p of ...)` 
+					// `for (location.#p of ...)`
 					audit_skip!("private field can never contain anything unsafe");
 				}
 				_ => {}
 			}
+			declare_local_location = false;
 		}
 
 		if location_assigned || restids.len() > 0 {
@@ -441,6 +449,7 @@ where
 							location_assigned,
 							expression: false,
 							wrap: false,
+							declare_local_location,
 						}
 					));
 				}
@@ -456,6 +465,7 @@ where
 							location_assigned,
 							expression: false,
 							wrap: true,
+							declare_local_location,
 						}
 					));
 				}
@@ -644,6 +654,7 @@ where
 							expression: false,
 							location_assigned,
 							wrap: false,
+							declare_local_location: false,
 						}
 					));
 				}
@@ -710,6 +721,7 @@ where
 							expression: false,
 							location_assigned,
 							wrap: false,
+							declare_local_location: false,
 						}
 					));
 				}
@@ -747,6 +759,7 @@ where
 					expression: it.expression,
 					location_assigned,
 					wrap: false,
+					declare_local_location: false,
 				}
 			));
 		}
@@ -766,11 +779,13 @@ where
 				self.handle_var_declarator(d, &mut restids, &mut location_assigned);
 
 				if location_assigned || restids.len() > 0 {
+					let declare_local_location = location_assigned;
 					self.jschanges.add(rewrite!(
 						d.span,
 						CleanVariableDeclaration {
 							restids,
 							location_assigned,
+							declare_local_location,
 						}
 					));
 				}
@@ -872,6 +887,7 @@ where
 		self.handle_var_declarator(&it, &mut restids, &mut location_assigned);
 
 		if location_assigned || restids.len() > 0 {
+			let declare_local_location = location_assigned;
 			self.jschanges.add(rewrite!(
 				Span::new(it.span.end, it.span.end),
 				CleanFunction {
@@ -879,6 +895,7 @@ where
 					expression: false,
 					location_assigned,
 					wrap: false,
+					declare_local_location,
 				}
 			));
 		}
