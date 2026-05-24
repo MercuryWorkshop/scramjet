@@ -168,4 +168,8 @@ footer a:hover {
 	color: #fff;
 	margin: 0.25em;
 	font-family: monospace;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+	text-wrap: nowrap;
 }
