@@ -13,6 +13,11 @@
 			"default": "./dist/controller-external.mjs"
 		}
 	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MercuryWorkshop/scramjet.git",
+		"directory": "packages/controller"
+	},
 	"peerDependencies": {
 		"@mercuryworkshop/scramjet": "*"
 	},
