@@ -274,6 +274,8 @@ async function handleBlobOrDataUrlFetch(
 		headers.set("Cross-Origin-Opener-Policy", "same-origin");
 		headers.set("Cross-Origin-Embedder-Policy", "require-corp");
 	}
+	
+	if (parsed.isFakeDataURL) URL.revokeObjectURL(dataUrl)
 
 	return {
 		body,

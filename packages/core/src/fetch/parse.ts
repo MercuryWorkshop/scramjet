@@ -20,6 +20,7 @@ export const QP = {
 	initiatorOrigin: "$io",
 	fetchSite: "$fs",
 	crossSiteRedirect: "$csr",
+	fakeDataURL: "$fakedataurl",
 } as const;
 
 export type QueryParamKey = keyof typeof QP;
@@ -137,6 +138,7 @@ export function parseRequest(
 		fetchMode,
 		destination,
 		isIframe: params.isIframe === "1",
+		isFakeDataURL: params.fakeDataURL === "1",
 	};
 
 	if (request.rawClientUrl) {
