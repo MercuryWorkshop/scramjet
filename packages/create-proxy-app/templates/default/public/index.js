@@ -1,10 +1,8 @@
-/** @type {typeof import("@mercuryworkshop/scramjet-utils")} */
-/** @type {typeof import("@mercuryworkshop/scramjet")} */
-
 const form = document.getElementById("sj-form");
 const address = document.getElementById("sj-address");
 const frameWrapper = document.getElementById("sj-frame-wrapper");
 const frameElement = document.getElementById("sj-frame");
+const frameUrl = document.getElementById("sj-frame-url");
 const error = document.getElementById("sj-error");
 const errorCode = document.getElementById("sj-error-code");
 
@@ -15,7 +13,7 @@ async function init() {
 
 	const cachePlugin = new $scramjetUtils.HttpCachePlugin();
 	const urlWatcher = new $scramjetUtils.UrlWatcherPlugin((url) => {
-		address.value = url;
+		frameUrl.textContent = url;
 	});
 	const catchEscapedLinks = new $scramjetUtils.CatchEscapedLinksPlugin(
 		(url) => new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
