@@ -27,16 +27,7 @@ export function indirectEval(this: ScramjetClient, strict: boolean, js: any) {
 	// > If the argument of eval() is not a string, eval() returns the argument unchanged
 	if (typeof js !== "string") return js;
 
-	let indirection: typeof eval;
-	if (this.url.hostname === "accounts.google.com") {
-		console.log("USING STRICT EVAL - BOTGUARD");
-		indirection = new Function(`
-			"use strict";
-			return eval;
-		`) as typeof eval;
-	} else {
-		indirection = this.global.eval;
-	}
+	const indirection: typeof eval = this.global.eval;
 
 	return indirection(
 		rewriteJs(js, "(indirect eval proxy)", this.context, this.meta) as string
