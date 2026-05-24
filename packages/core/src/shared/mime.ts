@@ -169,6 +169,26 @@ export function isJavascriptMimeTypeEssenceMatch(s: string): boolean {
 }
 
 /**
+ * Whether a `<script type="...">` value denotes executable JavaScript
+ * (classic or module script), not a data block or import map.
+ * @see https://html.spec.whatwg.org/multipage/scripting.html#attr-script-type
+ */
+export function isScriptType(type: string | null | undefined): boolean {
+	if (type == null) return true;
+	const t = trimHttpWhitespace(type);
+	if (!t) return true;
+	if (asciiLower(t) === "module") return true;
+	return isJavascriptMimeTypeEssenceMatch(t);
+}
+
+/** Whether `type` denotes a JavaScript module script. */
+export function isModuleScriptType(type: string | null | undefined): boolean {
+	if (type == null) return false;
+	const t = trimHttpWhitespace(type);
+	return t !== "" && asciiLower(t) === "module";
+}
+
+/**
  * MIME types typically shown inline in a browsing context (navigation / iframe),
  * as opposed to triggering a download when Content-Disposition is absent.
  */

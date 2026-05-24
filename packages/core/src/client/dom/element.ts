@@ -13,16 +13,12 @@ import { rewriteJs } from "@rewriters/js";
 import { unrewriteUrl } from "@rewriters/url";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
-import { isHtmlMimeType } from "@/shared/mime";
+import {
+	isHtmlMimeType,
+	isModuleScriptType,
+	isScriptType,
+} from "@/shared/mime";
 import { ForeignContext } from "@/shared/rewriters/html";
-
-function bytesToBase64(bytes: Uint8Array) {
-	const binString = Array_from(bytes, (byte) =>
-		String.fromCodePoint(byte)
-	).join("");
-
-	return btoa(binString);
-}
 
 export function foreignContextForElement(
 	client: ScramjetClient,
@@ -380,15 +376,21 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Trap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
 			let newval;
+			const scriptType = client.natives.call(
+				"Element.prototype.getAttribute",
+				ctx.this,
+				"type"
+			) as string | null;
 			if (
 				client.box.instanceof(ctx.this, "HTMLScriptElement") &&
-				/(application|text)\/javascript|module|undefined/.test(ctx.this.type)
+				isScriptType(scriptType)
 			) {
 				newval = rewriteJs(
 					value,
 					"(anonymous script element)",
 					client.context,
-					client.meta
+					client.meta,
+					isModuleScriptType(scriptType)
 				);
 				client.natives.call(
 					"Element.prototype.setAttribute",
@@ -440,15 +442,21 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	const rewriteTextForElement = (element: Element, value: string) => {
+		const scriptType = client.natives.call(
+			"Element.prototype.getAttribute",
+			element,
+			"type"
+		) as string | null;
 		if (
 			client.box.instanceof(element, "HTMLScriptElement") &&
-			/(application|text)\/javascript|module|undefined/.test(element.type)
+			isScriptType(scriptType)
 		) {
 			const newval: string = rewriteJs(
 				value,
 				"(anonymous script element)",
 				client.context,
-				client.meta
+				client.meta,
+				isModuleScriptType(scriptType)
 			) as string;
 			client.natives.call(
 				"Element.prototype.setAttribute",
