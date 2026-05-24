@@ -32,14 +32,19 @@ jobs:
     outputs:
       scramjet_version_changed: ${{ steps.check-scramjet.outputs.version_changed }}
       scramjet_new_version: ${{ steps.check-scramjet.outputs.new_version }}
+      scramjet_tag_arg: ${{ steps.check-scramjet.outputs.tag_arg }}
       controller_version_changed: ${{ steps.check-scramjet-controller.outputs.version_changed }}
       controller_new_version: ${{ steps.check-scramjet-controller.outputs.new_version }}
+      controller_tag_arg: ${{ steps.check-scramjet-controller.outputs.tag_arg }}
       bootstrap_version_changed: ${{ steps.check-bootstrap.outputs.version_changed }}
       bootstrap_new_version: ${{ steps.check-bootstrap.outputs.new_version }}
+      bootstrap_tag_arg: ${{ steps.check-bootstrap.outputs.tag_arg }}
       create_proxy_app_version_changed: ${{ steps.check-create-proxy-app.outputs.version_changed }}
       create_proxy_app_new_version: ${{ steps.check-create-proxy-app.outputs.new_version }}
+      create_proxy_app_tag_arg: ${{ steps.check-create-proxy-app.outputs.tag_arg }}
       utils_version_changed: ${{ steps.check-scramjet-utils.outputs.version_changed }}
       utils_new_version: ${{ steps.check-scramjet-utils.outputs.new_version }}
+      utils_tag_arg: ${{ steps.check-scramjet-utils.outputs.tag_arg }}
 
     steps:
       - name: Checkout Code
@@ -58,6 +63,9 @@ jobs:
             echo "Version changed"
             echo "version_changed=true" >> "$GITHUB_OUTPUT"
             echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+            TAG_ARG=""
+            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
+            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
           else
             echo "Version not changed"
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -76,6 +84,9 @@ jobs:
             echo "Version changed"
             echo "version_changed=true" >> "$GITHUB_OUTPUT"
             echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+            TAG_ARG=""
+            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
+            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
           else
             echo "Version not changed"
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -94,6 +105,9 @@ jobs:
             echo "Version changed"
             echo "version_changed=true" >> "$GITHUB_OUTPUT"
             echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+            TAG_ARG=""
+            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
+            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
           else
             echo "Version not changed"
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -112,6 +126,9 @@ jobs:
             echo "Version changed"
             echo "version_changed=true" >> "$GITHUB_OUTPUT"
             echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+            TAG_ARG=""
+            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
+            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
           else
             echo "Version not changed"
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -130,6 +147,9 @@ jobs:
             echo "Version changed"
             echo "version_changed=true" >> "$GITHUB_OUTPUT"
             echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+            TAG_ARG=""
+            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
+            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
           else
             echo "Version not changed"
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -449,23 +469,23 @@ jobs:
 
       - name: Publish Scramjet
         if: needs.version-check.outputs.scramjet_version_changed == 'true'
-        run: npm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --no-git-checks
+        run: npm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --no-git-checks ${{ needs.version-check.outputs.scramjet_tag_arg }}
 
       - name: Publish Scramjet Controller
         if: needs.version-check.outputs.controller_version_changed == 'true'
-        run: npm publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --no-git-checks
+        run: npm publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --no-git-checks ${{ needs.version-check.outputs.controller_tag_arg }}
 
       - name: Publish Proxy Bootstrap
         if: needs.version-check.outputs.bootstrap_version_changed == 'true'
-        run: npm publish mercuryworkshop-proxy-bootstrap-${{ needs.version-check.outputs.bootstrap_new_version }}.tgz --access public --no-git-checks
+        run: npm publish mercuryworkshop-proxy-bootstrap-${{ needs.version-check.outputs.bootstrap_new_version }}.tgz --access public --no-git-checks ${{ needs.version-check.outputs.bootstrap_tag_arg }}
 
       - name: Publish create-proxy-app
         if: needs.version-check.outputs.create_proxy_app_version_changed == 'true'
-        run: npm publish create-proxy-app-${{ needs.version-check.outputs.create_proxy_app_new_version }}.tgz --access public --no-git-checks
+        run: npm publish create-proxy-app-${{ needs.version-check.outputs.create_proxy_app_new_version }}.tgz --access public --no-git-checks ${{ needs.version-check.outputs.create_proxy_app_tag_arg }}
 
       - name: Publish Scramjet Utils
         if: needs.version-check.outputs.utils_version_changed == 'true'
-        run: npm publish mercuryworkshop-scramjet-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --no-git-checks
+        run: npm publish mercuryworkshop-scramjet-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --no-git-checks ${{ needs.version-check.outputs.utils_tag_arg }}
 
   frontend:
     name: Build Frontend
