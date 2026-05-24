@@ -162,7 +162,7 @@ async function getDownloadedPackageVersion(
 
 async function updateScramjet(controllerMeta: any) {
 	const scramjetVersion =
-		controllerMeta.dependencies["@mercuryworkshop/scramjet"];
+		controllerMeta.devDependencies["@mercuryworkshop/scramjet"];
 
 	console.log(`Fetching scramjet version: ${scramjetVersion}`);
 	const scramjetRes = await fetch(
