@@ -218,6 +218,12 @@ jobs:
           name: create-proxy-app-package
           path: packages/create-proxy-app/create-proxy-app-*.tgz
 
+      - name: Upload Artifact (scramjet-utils)
+        uses: actions/upload-artifact@v4
+        with:
+          name: scramjet-utils
+          path: packages/utils/dist/*
+
       - name: Upload Artifact (scramjet-utils) (packaged)
         uses: actions/upload-artifact@v4
         with:
@@ -496,6 +502,12 @@ jobs:
         with:
           name: scramjet-controller
           path: packages/controller/dist
+
+      - name: Get artifacts (scramjet-utils)
+        uses: actions/download-artifact@v4
+        with:
+          name: scramjet-utils
+          path: packages/utils/dist
 
       - name: Build Frontend
         run: VITE_WISP_URL="wss://anura.pro/" pnpm build
