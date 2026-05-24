@@ -15,7 +15,7 @@ function assertVersionMatch(
 
 export function assertDependencyVersions() {
 	if (typeof $scramjet === "undefined") {
-		throw new Error(
+		console.error(
 			"@mercuryworkshop/scramjet is not loaded. Load scramjet before scramjet-utils."
 		);
 	}
@@ -27,7 +27,7 @@ export function assertDependencyVersions() {
 	);
 
 	if (typeof $scramjetController === "undefined") {
-		throw new Error(
+		console.error(
 			"@mercuryworkshop/scramjet-controller is not loaded. Load the controller before scramjet-utils."
 		);
 	}
