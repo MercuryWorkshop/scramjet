@@ -106,10 +106,12 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		expression: bool,
 		location_assigned: bool,
 		wrap: bool,
+		declare_local_location: bool,
 	},
 	CleanVariableDeclaration {
 		restids: Vec<Atom<'data>>,
 		location_assigned: bool,
+		declare_local_location: bool,
 	},
 }
 
@@ -188,6 +190,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				expression,
 				location_assigned,
 				wrap,
+				declare_local_location,
 			} => {
 				let mut steps = String::new();
 
@@ -204,6 +207,9 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					let steps: &'static str = Box::leak(steps.into_boxed_str());
 					LL::insert(transforms!["(", &steps])
 				} else {
+					if declare_local_location {
+						steps.push_str("var location;");
+					}
 					for id in restids {
 						steps.push_str(&format!("{}({});", &cfg.cleanrestfn, id.as_str()));
 					}
@@ -224,6 +230,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			Ty::CleanVariableDeclaration {
 				restids,
 				location_assigned,
+				declare_local_location,
 			} => {
 				let mut steps = String::new();
 				for id in restids {
@@ -236,7 +243,11 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					));
 				}
 				let steps: &'static str = Box::leak(steps.into_boxed_str());
-				LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0)"])
+				if declare_local_location {
+					LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0),location"])
+				} else {
+					LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0)"])
+				}
 			}
 			Ty::WrapPostMessageLeft => LL::insert(transforms![&cfg.wrappostmessagefn, "("]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
