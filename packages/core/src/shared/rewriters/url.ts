@@ -140,7 +140,13 @@ export function rewriteUrl(
 		// there's an okayish workaround which is just Pretending It's a Blob
 		if (url.length + context.prefix.href.length + BUFFER > URL_MAX_LENGTH) {
 			const { objectUrl } = dataToBlob(url);
-			return context.prefix.href + rewriteBlob(objectUrl, context, meta) + "?"+QP.fakeDataURL+"=1";
+			return (
+				context.prefix.href +
+				rewriteBlob(objectUrl, context, meta) +
+				"?" +
+				QP.fakeDataURL +
+				"=1"
+			);
 		}
 
 		return context.prefix.href + url;
