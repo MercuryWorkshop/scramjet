@@ -306,6 +306,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 						ctx.this,
 						name
 					);
+					ctx.fn.call(ctx.this, `scramjet-attr-${name}`, value);
 					ctx.return(undefined);
 
 					return;
