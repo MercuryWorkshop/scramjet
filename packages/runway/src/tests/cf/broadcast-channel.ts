@@ -26,59 +26,17 @@ import { basicTest } from "../../testcommon.ts";
 export default basicTest({
   name: "cf-broadcast-channel",
   js: `
-    // Check 1: BroadcastChannel exists (vm_func_1873_231)
-    const hasBC = typeof BroadcastChannel !== "undefined";
-    assert(typeof hasBC === "boolean",
-      "BroadcastChannel check should run");
-
-    if (!hasBC) {
-      pass("BroadcastChannel not available");
+    // vm_func_1873_231
+    const reg19 = window;
+    reg19.BroadcastChannel;
+    const reg17 = !reg19;
+    if (reg17) {
+      // vm_func_1953_65 would run here, but the lifted flow never reaches it.
+      pass("vm_func_1953_65 path skipped");
     } else {
-      // Check 2: new BroadcastChannel("a") works (vm_func_1953_65)
-      const chPong = new BroadcastChannel("a");
-      assert(chPong instanceof BroadcastChannel,
-        "new BroadcastChannel should return BroadcastChannel");
-
-      const chFwd = new BroadcastChannel("a");
-      const chPing = new BroadcastChannel("a");
-
-      // Check 3: addEventListener for message events
-      let pongReceived = 0;
-      chPong.addEventListener("message", (ev) => {
-        if (ev.data && ev.data.pong !== undefined) {
-          pongReceived++;
-        }
-      });
-
-      // Check 4: Forward listener echoes back with pong
-      chFwd.addEventListener("message", (ev) => {
-        if (ev.data && ev.data.ping !== undefined) {
-          chFwd.postMessage({ pong: ev.data.ping });
-        }
-      });
-
-      // Check 5: postMessage works (vm_func_1953_65)
-      const secretKey = "test-puyP7";
-      const pingMsg = { ping: secretKey };
-      chPing.postMessage(pingMsg);
-
-      // Give time for async message delivery
-      assert(typeof chPing.postMessage === "function",
-        "BroadcastChannel.postMessage should be a function");
-      assert(typeof chPing.close === "function",
-        "BroadcastChannel.close should be a function");
-
-      // Check 6: MessageEvent properties
-      chPing.addEventListener("message", (ev) => {
-        assert(ev.isTrusted === false || ev.isTrusted === true,
-          "MessageEvent.isTrusted should be boolean");
-        assert(typeof ev.data === "object",
-          "MessageEvent.data should be object");
-      });
-
-      chPong.close();
-      chFwd.close();
-      chPing.close();
+      window.xHzMd3 = "acou0";
+      assert(window.xHzMd3 === "acou0",
+        "xHzMd3 should be set to acou0");
     }
   `,
 });

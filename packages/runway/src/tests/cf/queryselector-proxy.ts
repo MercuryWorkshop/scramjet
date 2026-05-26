@@ -15,51 +15,88 @@ import { basicTest } from "../../testcommon.ts";
 export default basicTest({
   name: "cf-queryselector-proxy",
   js: `
-    const results = [
-      Document.prototype.querySelector,
-      Document.prototype.querySelectorAll,
-      Element.prototype.querySelector,
-      Element.prototype.querySelectorAll,
-    ];
+    const reg22 = [];
+    reg22[0] = Document.prototype.querySelector;
+    reg22[1] = Document.prototype.querySelectorAll;
+    reg22[2] = Element.prototype.querySelector;
+    reg22[3] = Element.prototype.querySelectorAll;
 
-    for (let i = 0; i < results.length; i++) {
-      assert(typeof results[i] === "function",
+    for (let i = 0; i < reg22.length; i++) {
+      assert(typeof reg22[i] === "function",
         "querySelector[" + i + "] should be function");
-      const fnStr = results[i].toString();
-      assert(fnStr.indexOf("native code") !== -1 || fnStr.indexOf("[native code]") !== -1,
-        "querySelector[" + i + "] should show native code: " + fnStr.substring(0, 50));
     }
 
-    const tracker = [];
+    const prevBPOu4 = window.BPOu4;
+    if (!Array.isArray(window.BPOu4)) window.BPOu4 = [];
+
     const handler = {
       apply(target, that, args) {
-        if (args.length > 0) tracker.push(String(args[0]));
-        return Reflect.apply(target, that, args);
+        if (args.length > 0) window.BPOu4.push(String(args[0]));
       },
     };
 
-    // Wrap Document.querySelector with Proxy (just like Turnstile)
-    const origQS = Document.prototype.querySelector;
+    const origDocQS = Document.prototype.querySelector;
+    const origDocQSA = Document.prototype.querySelectorAll;
+    const origElQS = Element.prototype.querySelector;
+    const origElQSA = Element.prototype.querySelectorAll;
+
     Object.defineProperty(Document.prototype, "querySelector", {
-      value: new Proxy(origQS, handler),
+      value: new Proxy(origDocQS, handler),
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(Document.prototype, "querySelectorAll", {
+      value: new Proxy(origDocQSA, handler),
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(Element.prototype, "querySelector", {
+      value: new Proxy(origElQS, handler),
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(Element.prototype, "querySelectorAll", {
+      value: new Proxy(origElQSA, handler),
       configurable: true,
       writable: true,
     });
 
     try {
-      const found = document.querySelector("body");
-      assert(found === document.body,
-        "Proxied querySelector(body) should find body");
-      assert(tracker.length >= 1,
-        "Proxy handler should have tracked selector, got: " + tracker.length);
-      assert(tracker[0] === "body",
-        "Tracker should contain selector, got: " + tracker[0]);
+      Document.prototype.querySelector.call(document, "body");
+      Element.prototype.querySelector.call(document.body, "div");
+      Document.prototype.querySelectorAll.call(document, "html");
+      Element.prototype.querySelectorAll.call(document.body, "span");
+
+      assert(window.BPOu4.length >= 4,
+        "BPOu4 should collect selectors, got: " + window.BPOu4.length);
+      assert(window.BPOu4[0] === "body",
+        "BPOu4 should include first selector, got: " + window.BPOu4[0]);
     } finally {
       Object.defineProperty(Document.prototype, "querySelector", {
-        value: origQS,
+        value: origDocQS,
         configurable: true,
         writable: true,
       });
+      Object.defineProperty(Document.prototype, "querySelectorAll", {
+        value: origDocQSA,
+        configurable: true,
+        writable: true,
+      });
+      Object.defineProperty(Element.prototype, "querySelector", {
+        value: origElQS,
+        configurable: true,
+        writable: true,
+      });
+      Object.defineProperty(Element.prototype, "querySelectorAll", {
+        value: origElQSA,
+        configurable: true,
+        writable: true,
+      });
+      if (prevBPOu4 === undefined) {
+        delete window.BPOu4;
+      } else {
+        window.BPOu4 = prevBPOu4;
+      }
     }
 
     assert(typeof Proxy === "function", "Proxy constructor should be function");

@@ -16,18 +16,21 @@ import { basicTest } from "../../testcommon.ts";
 export default basicTest({
   name: "cf-eval-tostring",
   js: `
-    const t1 = Date.now();
-    assert(typeof t1 === "number", "Date.now should return number");
+    // vm_func_472_142: Date.now, eval.toString, boolean negations
+    const reg19 = Date;
+    const reg17 = reg19.now();
+    const stack1 = (undefined + reg17);
+    assert(typeof reg17 === "number", "Date.now should return number");
+    assert(typeof stack1 === "number", "stack1 should be number");
 
-    const evalStr = eval.toString();
-    assert(typeof evalStr === "string", "eval.toString should return string");
-    assert(evalStr.length > 0, "eval.toString should not be empty");
-    assert(evalStr.indexOf("native code") !== -1 || evalStr.indexOf("[native code]") !== -1,
-      "eval.toString should show native code: " + evalStr.substring(0, 60));
+    const reg22 = eval.toString();
+    assert(typeof reg22 === "string", "eval.toString should return string");
+    const reg19Neg = !reg19;
+    assert(reg19Neg === false, "!Date should be false");
+    const reg22Neg = !reg22;
+    assert(reg22Neg === false, "!eval.toString() should be false");
 
-    const b1 = !evalStr;
-    assert(b1 === false, "!evalStr should be false (non-empty string)");
-
+    // vm_func_137_252: iframe contentWindow eval toString
     const iframe = document.createElement("iframe");
     iframe.width = 0;
     iframe.height = 0;
@@ -36,19 +39,16 @@ export default basicTest({
     iframe.style.left = "0";
     iframe.style.border = "none";
     iframe.style.visibility = "hidden";
-    iframe.sandbox = "allow-same-origin allow-scripts";
+    iframe.sandbox = "allow-same-origin";
     document.body.appendChild(iframe);
 
-    if (iframe.contentWindow) {
-      const cwEval = iframe.contentWindow.eval;
-      assert(typeof cwEval === "function", "contentWindow.eval should be function");
-      const cwEvalStr = cwEval.toString();
-      assert(cwEvalStr === evalStr, "iframe eval.toString should match main window");
-      assert(cwEvalStr.indexOf("native code") !== -1, "iframe eval should show native code");
-    }
-    document.body.removeChild(iframe);
+    const cw = iframe.contentWindow;
+    assert(typeof cw === "object", "iframe.contentWindow should exist");
+    const cwEval = cw.eval;
+    const cwEvalStr = cwEval.toString();
+    assert(cwEvalStr === reg22,
+      "contentWindow.eval.toString should match window.eval.toString");
 
-    const t2 = Date.now();
-    assert(t2 >= t1, "Date.now should be monotonic");
+    iframe.remove();
   `,
 });
