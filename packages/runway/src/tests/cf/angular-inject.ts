@@ -25,57 +25,50 @@ import { basicTest } from "../../testcommon.ts";
 export default basicTest({
   name: "cf-angular-inject",
   js: `
-    // Step 1-3: Create object with whenStable method (like Turnstile)
-    let callbackInvoked = false;
-    const testabilityObj = {
-      whenStable(callback) {
-        callbackInvoked = true;
-        assert(typeof callback === "function",
-          "whenStable should receive a function callback");
-        callback();
-      },
+    // vm_func_2210_8: reg_20 = {} (angular), reg_19 = {} (testability)
+    const reg20 = {};
+    const reg19 = {};
+
+    // vm_func_844_208: reg_17[arg_0]()
+    let invoked = false;
+    reg19.whenStable = function(callback) {
+      invoked = true;
+      assert(typeof callback === "function",
+        "whenStable should receive a function callback");
+      callback();
     };
 
-    // Step 4-6: Object.defineProperty with custom getter
-    let getterInvoked = false;
-    const targetObj = {};
-    Object.defineProperty(targetObj, "getTestability", {
+    // vm_func_881_236: getter sets window.apgEV8 = 1 and returns stack_7
+    const prevApg = window.apgEV8;
+    const prevAngular = window.angular;
+    Object.defineProperty(reg20, "getTestability", {
       get() {
-        getterInvoked = true;
-        return testabilityObj;
+        window.apgEV8 = 1;
+        return reg19;
       },
       configurable: true,
-      enumerable: true,
     });
 
-    assert(typeof targetObj.getTestability === "object",
-      "getTestability getter should return object");
-    assert(getterInvoked === true,
-      "getTestability getter should have been called");
-    assert(targetObj.getTestability === testabilityObj,
-      "getTestability should return the testability object");
+    window.angular = reg20;
+    assert(window.angular.getTestability === reg19,
+      "getTestability getter should return reg19");
+    assert(window.apgEV8 === 1,
+      "getter should set window.apgEV8 = 1");
 
-    // Step 7: Inject into window (Turnstile sets window.angular)
-    const oldAngular = window.angular;
-    window.angular = targetObj;
-
-    assert(window.angular === targetObj,
-      "window.angular should be writable");
-    assert(typeof window.angular.getTestability === "object",
-      "window.angular.getTestability should be the testability object");
-    assert(typeof window.angular.getTestability.whenStable === "function",
-      "whenStable should be callable");
-
-    // Verify whenStable callback chain works
     window.angular.getTestability.whenStable(function() {
-      callbackInvoked = true;
+      invoked = true;
     });
+    assert(invoked === true, "whenStable callback should be invoked");
 
-    // Restore
-    if (oldAngular !== undefined) {
-      window.angular = oldAngular;
-    } else {
+    if (prevAngular === undefined) {
       delete window.angular;
+    } else {
+      window.angular = prevAngular;
+    }
+    if (prevApg === undefined) {
+      delete window.apgEV8;
+    } else {
+      window.apgEV8 = prevApg;
     }
   `,
 });
