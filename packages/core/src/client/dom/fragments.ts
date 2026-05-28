@@ -1,6 +1,7 @@
 import { rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
 import { ForeignContext } from "@/shared/rewriters/html";
+import { String } from "@/shared/snapshot";
 
 // TODO: this function is untested / llm slop
 function foreignContextForRange(
@@ -18,7 +19,8 @@ function foreignContextForRange(
 export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Range.prototype.createContextualFragment", {
 		apply(ctx) {
-			ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+			const html = String(ctx.args[0]);
+			ctx.args[0] = rewriteHtml(html, client.context, client.meta, {
 				loadScripts: false,
 				inline: true,
 				source: client.url.href,

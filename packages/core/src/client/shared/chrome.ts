@@ -30,14 +30,6 @@ export default function (client: ScramjetClient, self: any) {
 		del("ServiceWorkerRegistration.prototype.sync");
 	}
 
-	// trustedtypes
-	del("TrustedHTML");
-	del("TrustedScript");
-	del("TrustedScriptURL");
-	del("TrustedTypePolicy");
-	del("TrustedTypePolicyFactory");
-	self.__defineGetter__("trustedTypes", () => undefined);
-
 	// whatever this is
 	del("Navigator.prototype.joinAdInterestGroup");
 
