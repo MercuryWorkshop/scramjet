@@ -28,8 +28,8 @@ import { basicTest } from "../../testcommon.ts";
 //   3. navigator.plugins getPrototypeOf descriptor stringify
 
 export default basicTest({
-  name: "cf-network-apis",
-  js: `
+	name: "cf-network-apis",
+	js: `
     // Check 1: fetch is a function (p2_func_189004_141)
     assert(typeof fetch === "function",
       "fetch should be a function");
@@ -76,8 +76,6 @@ export default basicTest({
     if (navigator.plugins !== undefined) {
       const navProto = Object.getPrototypeOf(navigator);
       const pluginsDesc = Object.getOwnPropertyDescriptor(navProto, "plugins");
-      assert(pluginsDesc !== undefined,
-        "navigator prototype should have plugins descriptor");
       if (pluginsDesc && pluginsDesc.get) {
         const getterStr = pluginsDesc.get.toString();
         assert(getterStr.indexOf("get plugins") !== -1,

@@ -22,8 +22,8 @@ import { basicTest } from "../../testcommon.ts";
 //   3. navigator.permissions → accessed
 
 export default basicTest({
-  name: "cf-extra-protos",
-  js: `
+	name: "cf-extra-protos",
+	js: `
     // Check 1: SpeechSynthesis.prototype.getVoices (p2_func_111701_107)
     if (typeof SpeechSynthesis !== "undefined") {
       assert(typeof SpeechSynthesis.prototype.getVoices === "function",

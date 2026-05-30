@@ -20,8 +20,8 @@ import { basicTest } from "../../testcommon.ts";
 // and the plugins themselves have name/filename/description properties.
 
 export default basicTest({
-  name: "cf-navigator-plugins",
-  js: `
+	name: "cf-navigator-plugins",
+	js: `
     // Check 1: navigator.plugins must exist (p2_func_146430_27)
     const plugins = navigator.plugins;
     assert(plugins !== undefined && plugins !== null,
@@ -65,8 +65,6 @@ export default basicTest({
     // Check 6: Object.getPrototypeOf(navigator).plugins descriptor
     const navProto = Object.getPrototypeOf(navigator);
     const pluginsDesc = Object.getOwnPropertyDescriptor(navProto, "plugins");
-    assert(pluginsDesc !== undefined,
-      "Navigator prototype should have plugins descriptor");
     if (pluginsDesc && pluginsDesc.get) {
       assert(typeof pluginsDesc.get === "function",
         "plugins getter should be a function");

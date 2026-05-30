@@ -13,8 +13,8 @@ import { basicTest } from "../../testcommon.ts";
 //   CSS engine handles complex transforms correctly.
 
 export default basicTest({
-  name: "cf-element-methods",
-  js: `
+	name: "cf-element-methods",
+	js: `
     // Check 1: getBoundingClientRect (p2_func_100574_79)
     assert(typeof Element.prototype.getBoundingClientRect === "function",
       "Element.getBoundingClientRect should be a function");

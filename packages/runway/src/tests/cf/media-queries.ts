@@ -19,8 +19,8 @@ import { basicTest } from "../../testcommon.ts";
 // p2_func_13315_227: same as 13318_141 but with different register init
 
 export default basicTest({
-  name: "cf-media-queries",
-  js: `
+	name: "cf-media-queries",
+	js: `
     // window.matchMedia must be a function
     assert(typeof window.matchMedia === "function",
       "window.matchMedia should be a function");

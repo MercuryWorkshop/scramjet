@@ -3,7 +3,7 @@ import { basicTest } from "../../testcommon.ts";
 // Adapted from VM functions (full call chain):
 //
 // p2_func_275120_109 (line 335-347): addEventListener("unhandledrejection")
-// p2_func_276662_93 (line 333-347): addEventListener("unhandledrejection") 
+// p2_func_276662_93 (line 333-347): addEventListener("unhandledrejection")
 //   + addEventListener("error", handler, true)
 // p2_func_276625_85 (line 542-559): same pattern
 //
@@ -27,8 +27,8 @@ import { basicTest } from "../../testcommon.ts";
 //   3. Set up onload/onerror handlers
 
 export default basicTest({
-  name: "cf-global-listeners",
-  js: `
+	name: "cf-global-listeners",
+	js: `
     // Check 1: window.addEventListener is a function (p2_func_276662_93)
     assert(typeof window.addEventListener === "function",
       "window.addEventListener should be a function");

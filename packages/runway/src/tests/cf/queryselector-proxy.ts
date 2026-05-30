@@ -2,10 +2,12 @@ import { basicTest } from "../../testcommon.ts";
 
 // Adapted from inner.vm_lifted.js:
 //
-// vm_func_2210_8 / vm_func_3276_239 (lines 66-117 / 191-252):
+// vm_func_2210_8 / vm_func_3276_239:
+// inner.vm_lifted.js:71-124,274-331
 //   Turnstile collects Document/Element.prototype.querySelector/querySelectorAll
-//   into an array, then wraps EACH with new Proxy(nativeFn, {apply: tracker}).
-//   The Proxy handler (vm_func_936_25) pushes String(args[0]) into BPOu4.
+//   into window.yqJUn1, then wraps each with new Proxy(nativeFn, {apply: tracker}).
+// vm_func_936_25, inner.vm_lifted.js:254-263:
+//   The Proxy apply trap pushes String(args[0]) into window.BPOu4.
 //
 // This verifies:
 //   a. querySelector/querySelectorAll are native functions on prototypes
@@ -13,8 +15,8 @@ import { basicTest } from "../../testcommon.ts";
 //   c. The Proxy handler's apply trap fires correctly
 
 export default basicTest({
-  name: "cf-queryselector-proxy",
-  js: `
+	name: "cf-queryselector-proxy",
+	js: `
     const reg22 = [];
     reg22[0] = Document.prototype.querySelector;
     reg22[1] = Document.prototype.querySelectorAll;
@@ -27,11 +29,16 @@ export default basicTest({
     }
 
     const prevBPOu4 = window.BPOu4;
-    if (!Array.isArray(window.BPOu4)) window.BPOu4 = [];
+    const prevGGBX7 = window.GGBX7;
+    const prevYqJUn1 = window.yqJUn1;
+    window.BPOu4 = [];
+    window.GGBX7 = "WdHvL7";
+    window.yqJUn1 = reg22;
 
     const handler = {
       apply(target, that, args) {
         if (args.length > 0) window.BPOu4.push(String(args[0]));
+        return Reflect.apply(target, that, args);
       },
     };
 
@@ -67,10 +74,14 @@ export default basicTest({
       Document.prototype.querySelectorAll.call(document, "html");
       Element.prototype.querySelectorAll.call(document.body, "span");
 
-      assert(window.BPOu4.length >= 4,
-        "BPOu4 should collect selectors, got: " + window.BPOu4.length);
-      assert(window.BPOu4[0] === "body",
-        "BPOu4 should include first selector, got: " + window.BPOu4[0]);
+      const expectedSelectors = ["body", "div", "html", "span"];
+      assert(JSON.stringify(window.BPOu4) === JSON.stringify(expectedSelectors),
+        "BPOu4 should collect exact selector strings, got: " + JSON.stringify(window.BPOu4));
+      assert(window.yqJUn1[0] === origDocQS && window.yqJUn1[1] === origDocQSA &&
+        window.yqJUn1[2] === origElQS && window.yqJUn1[3] === origElQSA,
+        "yqJUn1 should preserve the four original query selector functions");
+
+      assertConsistent("queryselector-proxy-selectors", window.BPOu4.slice());
     } finally {
       Object.defineProperty(Document.prototype, "querySelector", {
         value: origDocQS,
@@ -96,6 +107,16 @@ export default basicTest({
         delete window.BPOu4;
       } else {
         window.BPOu4 = prevBPOu4;
+      }
+      if (prevGGBX7 === undefined) {
+        delete window.GGBX7;
+      } else {
+        window.GGBX7 = prevGGBX7;
+      }
+      if (prevYqJUn1 === undefined) {
+        delete window.yqJUn1;
+      } else {
+        window.yqJUn1 = prevYqJUn1;
       }
     }
 

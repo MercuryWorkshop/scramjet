@@ -18,8 +18,8 @@ import { basicTest } from "../../testcommon.ts";
 //   navigator.onLine → typeof check → String conversion
 
 export default basicTest({
-  name: "cf-location-history",
-  js: `
+	name: "cf-location-history",
+	js: `
     // Check 1: document.location.href is readable (p2_func_20090_243)
     assert(typeof document.location.href === "string",
       "document.location.href should be a string");
@@ -39,8 +39,8 @@ export default basicTest({
       "history.replaceState should be a function");
 
     // Check 3: history.replaceState with same-origin URL (p2_func_20090_243)
-    // Turnstile navigates to "https://example.org/" and back
-    // We can only test same-origin; Turnstile runs from the challenge domain
+    // Browsers reject cross-origin replaceState URLs; this approximates the
+    // lifted state-change probe with a same-origin hash mutation.
     const originalHref = document.location.href;
     try {
       const testUrl = new URL(document.location.href);

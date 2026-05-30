@@ -27,8 +27,8 @@ import { basicTest } from "../../testcommon.ts";
 //   3. createElement("span")
 
 export default basicTest({
-  name: "cf-dom-creation",
-  js: `
+	name: "cf-dom-creation",
+	js: `
     // SVG elements with proper namespace (p2_func_159017_222)
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     assert(svg.namespaceURI === "http://www.w3.org/2000/svg",

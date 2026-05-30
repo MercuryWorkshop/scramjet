@@ -20,8 +20,8 @@ import { basicTest } from "../../testcommon.ts";
 //   5. eval(zjVu3("typeof global"))
 
 export default basicTest({
-  name: "cf-eval-computed",
-  js: `
+	name: "cf-eval-computed",
+	js: `
     // Check 1: eval("typeof pyimport") should be "undefined" (p2_func_68818_109)
     // Pyodide marker — confirms this isn't a Python WASM environment
     const typeofPyimport = eval("typeof pyimport");

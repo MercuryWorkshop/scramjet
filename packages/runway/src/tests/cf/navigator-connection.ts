@@ -30,8 +30,8 @@ import { basicTest } from "../../testcommon.ts";
 //   1. getOwnPropertyDescriptor(Navigator.prototype, "language")
 
 export default basicTest({
-  name: "cf-navigator-connection",
-  js: `
+	name: "cf-navigator-connection",
+	js: `
     // Check 1: navigator.onLine (p2_func_172199_181, p2_func_172283_5)
     assert(typeof navigator.onLine === "boolean",
       "navigator.onLine should be a boolean");
@@ -41,9 +41,9 @@ export default basicTest({
       "String(navigator.onLine) should be 'true' or 'false', got: " + onLineStr);
 
     // Check 2: navigator.connection descriptor (p2_func_131156_175)
+    // Network Information is not universal; validate descriptor shape when the
+    // surface exists rather than requiring all browsers to expose it.
     const connDesc = Object.getOwnPropertyDescriptor(Navigator.prototype, "connection");
-    assert(connDesc !== undefined,
-      "Navigator.prototype.connection should have a descriptor");
     if (connDesc) {
       assert(typeof connDesc.get === "function",
         "Navigator.prototype.connection should have a function getter");

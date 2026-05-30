@@ -36,8 +36,8 @@ import { basicTest } from "../../testcommon.ts";
 //   Then calls console.groupEnd()
 
 export default basicTest({
-  name: "cf-error-redefine",
-  js: `
+	name: "cf-error-redefine",
+	js: `
     // Step 1: trace (simulated)
     const trace = ["qBvg"];
 

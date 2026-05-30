@@ -31,8 +31,8 @@ import { basicTest } from "../../testcommon.ts";
 //   6. OIrLs2.postMessage("setTimeout(function(){self.postMessage({ymom7:'1'})},1500)")
 
 export default basicTest({
-  name: "cf-worker-blob",
-  js: `
+	name: "cf-worker-blob",
+	js: `
     // Step 1: Worker constructor must be a function
     assert(typeof Worker === "function",
       "Worker should be a function");

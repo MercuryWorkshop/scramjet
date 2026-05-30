@@ -32,8 +32,8 @@ import { basicTest } from "../../testcommon.ts";
 //   message.toLowerCase().indexOf("script error") → checks for "Script error."
 
 export default basicTest({
-  name: "cf-error-handling",
-  js: `
+	name: "cf-error-handling",
+	js: `
     // Check 1: Object.defineProperty on Error name/message/stack (p2_func_181177_17)
     const err = new Error("Turnstile test");
     try {
@@ -102,5 +102,5 @@ export default basicTest({
     assert(obj.custom === 42,
       "Object.defineProperty should work on plain objects");
   `,
-  scramjetOnly: false,
+	scramjetOnly: false,
 });

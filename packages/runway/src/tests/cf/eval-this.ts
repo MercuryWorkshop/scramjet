@@ -24,8 +24,8 @@ import { basicTest } from "../../testcommon.ts";
 //   4. if falsy → retry loop with sTuu5 / nJWjq3 marker
 
 export default basicTest({
-  name: "cf-eval-this",
-  js: `
+	name: "cf-eval-this",
+	js: `
     // Check 1: eval("this") in primary context returns the global object
     const result = eval("this");
     assert(result === window || result === globalThis,
