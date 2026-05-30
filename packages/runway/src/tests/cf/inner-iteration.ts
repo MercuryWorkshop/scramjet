@@ -9,14 +9,13 @@ import { basicTest } from "../../testcommon.ts";
 //   4. reg_22 = reg_25 + "."
 //   5. (repeat for reg_32[1])
 //
-// vm_func_3913_49 / vm_func_4008_73 / vm_func_1757_197 / vm_func_1873_231:
-//   1. window.xHzMd3 = "hdAcE0"
-//   2. window.oIvGL6.NLAs4("sharknado")
-//   3. If BroadcastChannel exists -> window.xHzMd3 = "acou0"
+// vm_func_3913_49 calls vm_func_4008_73[vm_func_1757_197](), which is covered
+// more directly in broadcast-channel.ts. This file keeps the reg_32/reg_27
+// iteration behavior separate from that side-effect chain.
 
 export default basicTest({
-  name: "cf-inner-iteration",
-  js: `
+	name: "cf-inner-iteration",
+	js: `
     const reg32 = ["alpha", "beta"];
     const reg27 = ["theta"];
 
@@ -30,19 +29,6 @@ export default basicTest({
     reg22 = reg25 + ".";
     assert(reg22 === "beta.", "reg22 should be beta.");
 
-    // vm_func_4008_73 + vm_func_1757_197 + vm_func_1873_231
-    const prevX = window.xHzMd3;
-    const prevO = window.oIvGL6;
-    window.xHzMd3 = "hdAcE0";
-    window.oIvGL6 = { NLAs4: () => {} };
-    window.oIvGL6.NLAs4("sharknado");
-    if (typeof BroadcastChannel !== "undefined") {
-      window.xHzMd3 = "acou0";
-    }
-    assert(window.xHzMd3 === "acou0" || typeof BroadcastChannel === "undefined",
-      "xHzMd3 should be set for BroadcastChannel path");
-
-    if (prevX === undefined) delete window.xHzMd3; else window.xHzMd3 = prevX;
-    if (prevO === undefined) delete window.oIvGL6; else window.oIvGL6 = prevO;
+    assertConsistent("inner-iteration-prefixes", ["alpha.", "beta."]);
   `,
 });

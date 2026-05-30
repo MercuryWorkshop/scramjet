@@ -33,8 +33,8 @@ import { basicTest } from "../../testcommon.ts";
 //   2. instanceof 4 (script element?)
 
 export default basicTest({
-  name: "cf-script-nonce",
-  js: `
+	name: "cf-script-nonce",
+	js: `
     // Check 1: document.querySelector("script[nonce]") (p2_func_18485_187)
     // Finds script elements with nonce attribute (CSP)
     const nonceScript = document.querySelector("script[nonce]");

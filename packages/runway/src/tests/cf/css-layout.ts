@@ -18,8 +18,8 @@ import { basicTest } from "../../testcommon.ts";
 // computed values, hence Turnstile uses this for fingerprinting.
 
 export default basicTest({
-  name: "cf-css-layout",
-  js: `
+	name: "cf-css-layout",
+	js: `
     // Check 1: Container with CSS as Turnstile creates (p2_func_19930)
     const container = document.createElement("div");
     container.style.cssText = "position:fixed;left:0;top:0;width:800px;height:900px;visibility:hidden;overflow:hidden";

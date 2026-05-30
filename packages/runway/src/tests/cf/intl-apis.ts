@@ -26,8 +26,8 @@ import { basicTest } from "../../testcommon.ts";
 //   2. Try DisplayNames again with eo-UA
 
 export default basicTest({
-  name: "cf-intl-apis",
-  js: `
+	name: "cf-intl-apis",
+	js: `
     // Check 1: Intl.DateTimeFormat with Turnstile's specific options (p2_func_176753_35)
     const dtf = new Intl.DateTimeFormat(navigator.language || "en", {
       month: "long",

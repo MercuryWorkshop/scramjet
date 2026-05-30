@@ -2,6 +2,7 @@ import { basicTest } from "../../testcommon.ts";
 
 // Adapted from VM functions (full call chain):
 //
+// payload2_lifted.js:20334-20577:
 // p2_func_86350_235: getOwnPropertyDescriptor(arg_0.SDGM5, "toString")
 //   → checks if Function has own "toString" property
 // p2_func_86644_143: getOwnPropertyDescriptor(arg_0.SDGM5, "arguments")
@@ -18,12 +19,12 @@ import { basicTest } from "../../testcommon.ts";
 //   → Turnstile redefines Error name/message/stack with custom getters
 //   → This checks if property descriptor manipulation is possible
 //
-// p2_func_86499_133: checks toString().name.indexOf("bind") on a native function
-//   → native functions should not have "bind" in their toString representation
+// p2_func_86499_133: checks arg_0.SDGM5.toString.name.indexOf("bind")
+//   → the toString method itself should not look bind-wrapped.
 
 export default basicTest({
-  name: "cf-function-proto-checks",
-  js: `
+	name: "cf-function-proto-checks",
+	js: `
     // Get a native function to test (like Turnstile's SDGM5)
     const fn = Array.prototype.push;
 
@@ -59,6 +60,21 @@ export default basicTest({
     const viaCall = Function.prototype.toString.call(fn);
     assert(viaCall.indexOf("native code") !== -1 || viaCall.indexOf("[native code]") !== -1,
       "toString via .call should show native code");
+
+    // Check 5b: p2_func_86499_133 reads SDGM5.toString.name.indexOf("bind").
+    const toStringName = fn.toString.name || "";
+    assert(toStringName.indexOf("bind") === -1,
+      "Function toString method name should not contain bind");
+
+    assertConsistent("function-proto-descriptor-shape", {
+      ownToString: toStringDesc === undefined ? "undefined" : typeof toStringDesc,
+      ownArguments: argsDesc === undefined ? "undefined" : typeof argsDesc,
+      lengthValue: lengthDesc.value,
+      lengthWritable: lengthDesc.writable,
+      toStringName,
+      nativeSourceIncludesNativeCode:
+        fnStr.indexOf("native code") !== -1 || fnStr.indexOf("[native code]") !== -1,
+    });
 
     // Check 6: Object.defineProperty on Error name/message/stack
     // Turnstile checks that these can be redefined (p2_func_181177_17)

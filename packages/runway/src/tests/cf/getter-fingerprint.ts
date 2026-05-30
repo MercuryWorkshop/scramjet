@@ -26,8 +26,8 @@ import { basicTest } from "../../testcommon.ts";
 //  4. branch based on toString length/truthiness
 
 export default basicTest({
-  name: "cf-getter-fingerprint",
-  js: `
+	name: "cf-getter-fingerprint",
+	js: `
     // --- p2_func_68127_87: navigator plugins getter fingerprint ---
 
     // Step 1: getPrototypeOf(navigator)

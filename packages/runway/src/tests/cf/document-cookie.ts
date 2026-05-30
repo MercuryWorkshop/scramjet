@@ -20,8 +20,8 @@ import { basicTest } from "../../testcommon.ts";
 //   12. document.title → read (further in the chain)
 
 export default basicTest({
-  name: "cf-document-cookie",
-  js: `
+	name: "cf-document-cookie",
+	js: `
     // Check 1: document.cookie is a string (p2_func_206429_27)
     assert(typeof document.cookie === "string",
       "document.cookie should be a string");

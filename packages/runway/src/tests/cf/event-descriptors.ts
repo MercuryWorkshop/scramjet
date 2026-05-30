@@ -13,8 +13,8 @@ import { basicTest } from "../../testcommon.ts";
 // Turnstile checks getOwnPropertyDescriptor on various Event prototypes.
 
 export default basicTest({
-  name: "cf-event-descriptors",
-  js: `
+	name: "cf-event-descriptors",
+	js: `
     const checks = [
       { proto: MouseEvent.prototype, prop: "screenY" },
       { proto: MouseEvent.prototype, prop: "screenX" },

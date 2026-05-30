@@ -2,7 +2,7 @@ import { basicTest } from "../../testcommon.ts";
 
 // Adapted from inner.vm_lifted.js:
 //
-// vm_func_2210_8 (lines 40-53): Angular testability injection
+// vm_func_2210_8, inner.vm_lifted.js:46-57: Angular testability injection
 //   1. reg_20 = {} → empty object
 //   2. reg_19 = {} → empty object with whenStable method
 //   3. reg_19.whenStable = vm_func_844_208 → callback function
@@ -11,10 +11,10 @@ import { basicTest } from "../../testcommon.ts";
 //   6. Object.defineProperty(reg_20, "getTestability", reg_24)
 //   7. window.angular = reg_20 → inject Angular property
 //
-// vm_func_881_236 (lines 328-334): getter for getTestability
+// vm_func_881_236, inner.vm_lifted.js:421-427: getter for getTestability
 //   1. window.apgEV8 = 1 → set flag
 //
-// vm_func_844_208 (lines 336-339): whenStable callback
+// vm_func_844_208, inner.vm_lifted.js:429-431: whenStable callback
 //   1. obj[callback]() → invoke callback
 //
 // This checks:
@@ -23,8 +23,8 @@ import { basicTest } from "../../testcommon.ts";
 //   3. Function references can be stored and invoked
 
 export default basicTest({
-  name: "cf-angular-inject",
-  js: `
+	name: "cf-angular-inject",
+	js: `
     // vm_func_2210_8: reg_20 = {} (angular), reg_19 = {} (testability)
     const reg20 = {};
     const reg19 = {};
@@ -49,6 +49,16 @@ export default basicTest({
       configurable: true,
     });
 
+    const descriptor = Object.getOwnPropertyDescriptor(reg20, "getTestability");
+    assert(!!descriptor && typeof descriptor.get === "function",
+      "getTestability should be installed as a getter descriptor");
+    assert(descriptor.set === undefined,
+      "getTestability descriptor should not define a setter");
+    assert(descriptor.enumerable === false,
+      "getTestability descriptor should use Object.defineProperty default enumerable=false");
+    assert(descriptor.configurable === true,
+      "getTestability descriptor should preserve the configured configurable flag");
+
     window.angular = reg20;
     assert(window.angular.getTestability === reg19,
       "getTestability getter should return reg19");
@@ -59,6 +69,14 @@ export default basicTest({
       invoked = true;
     });
     assert(invoked === true, "whenStable callback should be invoked");
+
+    assertConsistent("angular-gettestability-descriptor", {
+      hasGetter: typeof descriptor.get,
+      hasSetter: typeof descriptor.set,
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+      apgEV8: window.apgEV8,
+    });
 
     if (prevAngular === undefined) {
       delete window.angular;

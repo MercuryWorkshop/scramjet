@@ -43,11 +43,10 @@ import { basicTest } from "../../testcommon.ts";
 //   4. getter.toString() must include "get <propName>"
 
 export default basicTest({
-  name: "cf-element-descriptors",
-  js: `
+	name: "cf-element-descriptors",
+	js: `
     const checks = [
       // Pointer/Mouse/Keyboard/Message event descriptors
-      { proto: PointerEvent.prototype, prop: "pointerType" },
       { proto: MouseEvent.prototype, prop: "screenX" },
       { proto: MouseEvent.prototype, prop: "screenY" },
       { proto: MouseEvent.prototype, prop: "clientX" },
@@ -66,6 +65,10 @@ export default basicTest({
       { proto: Document.prototype, prop: "visibilityState" },
       { proto: Document.prototype, prop: "hidden" },
     ];
+
+    if (typeof PointerEvent !== "undefined") {
+      checks.unshift({ proto: PointerEvent.prototype, prop: "pointerType" });
+    }
 
     for (const { proto, prop } of checks) {
       const desc = Object.getOwnPropertyDescriptor(proto, prop);

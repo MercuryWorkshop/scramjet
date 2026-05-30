@@ -31,8 +31,8 @@ import { basicTest } from "../../testcommon.ts";
 //   1. window.performance.getEntriesByType("navigation")
 
 export default basicTest({
-  name: "cf-performance",
-  js: `
+	name: "cf-performance",
+	js: `
     // Check 1: Performance.prototype.now (line 15352 check)
     if (typeof Performance !== "undefined") {
       assert(typeof Performance.prototype.now === "function",

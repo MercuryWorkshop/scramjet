@@ -24,8 +24,8 @@ import { basicTest } from "../../testcommon.ts";
 //   5. Continue chain
 
 export default basicTest({
-  name: "cf-screen-descriptors",
-  js: `
+	name: "cf-screen-descriptors",
+	js: `
     const screenProps = [
       "pixelDepth",
       "width",

@@ -30,8 +30,8 @@ import { basicTest } from "../../testcommon.ts";
 //   1. iframe.contentWindow.eval("this")
 
 export default basicTest({
-  name: "cf-trusted-types-iframe",
-  js: `
+	name: "cf-trusted-types-iframe",
+	js: `
     // Check 1: window.trustedTypes existence (p2_func_19138_69)
     const hasTrustedTypes = typeof window.trustedTypes !== "undefined";
 

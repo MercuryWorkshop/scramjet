@@ -22,8 +22,8 @@ import { basicTest } from "../../testcommon.ts";
 //   - else E(qd, qq)
 
 export default basicTest({
-  name: "cf-prop-collector",
-  js: `
+	name: "cf-prop-collector",
+	js: `
     function dV(W, T) {
       const S = {
         TzgUD: (D, Z) => D == Z,

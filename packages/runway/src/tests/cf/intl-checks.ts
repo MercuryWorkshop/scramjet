@@ -17,13 +17,12 @@ import { basicTest } from "../../testcommon.ts";
 //   Same NumberFormat call after ListFormat in chain
 
 export default basicTest({
-  name: "cf-intl-checks",
-  js: `
-    // Check 1: ALL Intl constructors must exist (p2_func_175872_112)
-    // Turnstile enumerates these constructor names to check Intl API surface
-    const intlConstructors = [
-      "Collator",
-      "DateTimeFormat",
+	name: "cf-intl-checks",
+	js: `
+		// p2_func_175872_112 enumerates these constructor names against Intl.
+		const intlConstructors = [
+			"Collator",
+			"DateTimeFormat",
       "DisplayNames",
       "ListFormat",
       "NumberFormat",
@@ -31,65 +30,47 @@ export default basicTest({
       "RelativeTimeFormat",
     ];
 
-    const results = Object.create(null);
-    for (const ctor of intlConstructors) {
-      const exists = ctor in Intl;
-      results[ctor] = exists;
-      // Turnstile only checks that they're enumerable on Intl
-      // (most should exist in modern browsers)
-    }
+		const results = Object.create(null);
+		for (const ctor of intlConstructors) {
+			results[ctor] = ctor in Intl;
+		}
+		assertConsistent("intl-constructor-presence", results);
 
-    // NumberFormat must always work
-    assert(typeof Intl.NumberFormat === "function",
-      "Intl.NumberFormat should be a function");
+		// p2_func_177434_145 / p2_func_177470_139 format a large number with
+		// compact long NumberFormat options.
+		assert(typeof Intl.NumberFormat === "function",
+			"Intl.NumberFormat should be a function");
+		const lang = navigator.language || "en";
+		const nf = new Intl.NumberFormat(lang, {
+			notation: "compact",
+			compactDisplay: "long",
+		});
+		const formatted = nf.format(21000000000000000);
+		assertConsistent("intl-compact-large-number-format", String(formatted));
 
-    // Check 2: Large number formatting (p2_func_177434_145, p2_func_177470_139)
-    const lang = navigator.language || "en";
-    const nf = new Intl.NumberFormat(lang);
-    // Turnstile formats 21,000,000,000,000,000 (21 quadrillion)
-    const formatted = nf.format(21000000000000000);
-    assert(typeof formatted === "string",
-      "Intl.NumberFormat.format(21000000000000000) should return a string");
-    // In US English: "21,000,000,000,000,000"
-    assert(formatted.length >= 20,
-      "Formatted 21 quadrillion should be at least 20 chars, got: " + formatted);
+		const intlOutputs = {};
+		if (typeof Intl.DateTimeFormat === "function") {
+			intlOutputs.dateTime = new Intl.DateTimeFormat(lang, {
+				month: "long",
+				timeZoneName: "long",
+			}).format(630883200000);
+		}
+		if (typeof Intl.DisplayNames === "function") {
+			intlOutputs.displayName = new Intl.DisplayNames(lang, {
+				type: "language",
+			}).of("eo-UA");
+		}
+		if (typeof Intl.ListFormat === "function") {
+			intlOutputs.list = new Intl.ListFormat(lang, {
+				style: "long",
+				type: "disjunction",
+			}).format("Bippity-boppityaMumbo-jumboahocuspocus".split("a"));
+		}
+		assertConsistent("intl-format-outputs", intlOutputs);
 
-    // Also test with compact notation
-    const nfCompact = new Intl.NumberFormat(lang, { notation: "compact" });
-    const compactFormatted = nfCompact.format(21000000000000000);
-    assert(typeof compactFormatted === "string",
-      "Compact format should return a string, got: " + compactFormatted);
-
-    // Check 3: Object.create(null) works (p2_func_175872_112)
-    const nullProto = Object.create(null);
-    assert(Object.getPrototypeOf(nullProto) === null,
-      "Object.create(null) should create null-prototype object");
-
-    // Check 4: Additional Intl checks Turnstile does
-    const dtf = new Intl.DateTimeFormat(lang, {
-      month: "long",
-      timeZoneName: "long",
-    });
-    const dateStr = dtf.format(new Date(630883200000));
-    assert(typeof dateStr === "string",
-      "DateTimeFormat should format date, got: " + dateStr);
-
-    if (typeof Intl.DisplayNames !== "undefined") {
-      try {
-        const dn = new Intl.DisplayNames(lang, { type: "language" });
-        assert(typeof dn.of("en") === "string",
-          "DisplayNames.of should return a string");
-      } catch (_) {}
-    }
-
-    if (typeof Intl.ListFormat !== "undefined") {
-      const lf = new Intl.ListFormat(lang, {
-        style: "long",
-        type: "disjunction",
-      });
-      const result = lf.format(["a", "b", "c"]);
-      assert(typeof result === "string",
-        "ListFormat.format should return a string, got: " + result);
-    }
-  `,
+		// The constructor-presence collector is initialized with Object.create(null).
+		const nullProto = Object.create(null);
+		assert(Object.getPrototypeOf(nullProto) === null,
+			"Object.create(null) should create null-prototype object");
+	`,
 });

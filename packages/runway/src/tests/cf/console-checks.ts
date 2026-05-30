@@ -33,8 +33,8 @@ import { basicTest } from "../../testcommon.ts";
 // p2_func_178521_51: console.debug with hijacked Error stack
 
 export default basicTest({
-  name: "cf-console-checks",
-  js: `
+	name: "cf-console-checks",
+	js: `
     // Check all console methods exist
     const methods = ["log", "info", "warn", "error", "debug", "dir", "dirxml", "table", "trace", "groupEnd", "groupCollapsed"];
     for (const method of methods) {
@@ -121,8 +121,8 @@ export default basicTest({
       }
 
       pass("All console methods called without throwing");
-    } catch (e) {
-      pass("console format test threw: " + e.message);
-    }
-  `,
+		} catch (e) {
+			throw e;
+		}
+	`,
 });

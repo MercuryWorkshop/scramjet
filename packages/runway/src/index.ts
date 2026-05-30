@@ -70,7 +70,6 @@ function createConsistencyTracker(requireBoth: boolean) {
 			values: Partial<Record<HarnessKind, any>>;
 			promise: Promise<void>;
 			resolve: () => void;
-			reject: (error: Error) => void;
 			settled: boolean;
 		}
 	>();
@@ -80,16 +79,13 @@ function createConsistencyTracker(requireBoth: boolean) {
 		let entry = entries.get(label);
 		if (!entry) {
 			let resolve!: () => void;
-			let reject!: (error: Error) => void;
-			const promise = new Promise<void>((res, rej) => {
+			const promise = new Promise<void>((res) => {
 				resolve = res;
-				reject = rej;
 			});
 			entry = {
 				values: {},
 				promise,
 				resolve,
-				reject,
 				settled: false,
 			};
 			entries.set(label, entry);
@@ -118,7 +114,7 @@ function createConsistencyTracker(requireBoth: boolean) {
 					bare: bareValue,
 					reason: "Values differ",
 				});
-				entry.reject(new Error(`assertConsistent mismatch for "${safeLabel}"`));
+				entry.resolve();
 			} else {
 				entry.settled = true;
 				entry.resolve();
@@ -960,6 +956,9 @@ async function main() {
 					[
 						`  ${test.name} ... ❌ failed (${duration}ms)`,
 						finalResult.message ? `     ${finalResult.message}` : null,
+						(finalResult as any).details
+							? `     details: ${JSON.stringify((finalResult as any).details, null, 2)}`
+							: null,
 					]
 						.filter(Boolean)
 						.join("\n")

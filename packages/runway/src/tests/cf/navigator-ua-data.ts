@@ -15,8 +15,8 @@ import { basicTest } from "../../testcommon.ts";
 //   4. getter.toString() must include "get <propName>"
 
 export default basicTest({
-  name: "cf-navigator-ua-data",
-  js: `
+	name: "cf-navigator-ua-data",
+	js: `
     // Check 1: maxTouchPoints descriptor (p2_func_134208_23)
     const mtpDesc = Object.getOwnPropertyDescriptor(Navigator.prototype, "maxTouchPoints");
     assert(mtpDesc !== undefined,

@@ -20,8 +20,8 @@ import { basicTest } from "../../testcommon.ts";
 // Lines 298, 678, 16250: attachShadow existence probes
 
 export default basicTest({
-  name: "cf-shadow-dom",
-  js: `
+	name: "cf-shadow-dom",
+	js: `
     // Check 1: Element.attachShadow is a function (probes at lines 298, 678, 16250)
     assert(typeof Element.prototype.attachShadow === "function",
       "Element.prototype.attachShadow should be a function");

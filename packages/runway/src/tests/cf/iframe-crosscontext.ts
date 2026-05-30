@@ -26,8 +26,8 @@ import { basicTest } from "../../testcommon.ts";
 //   Timing delta calculation: Data.now() reading
 
 export default basicTest({
-  name: "cf-iframe-crosscontext",
-  js: `
+	name: "cf-iframe-crosscontext",
+	js: `
     const iframe = document.createElement("iframe");
     iframe.style.display = "none";
     iframe.tabIndex = -1;

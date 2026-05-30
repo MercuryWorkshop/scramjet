@@ -38,8 +38,8 @@ import { basicTest } from "../../testcommon.ts";
 // Notification checks (common anti-bot pattern)
 
 export default basicTest({
-  name: "cf-navigator-api-probes",
-  js: `
+	name: "cf-navigator-api-probes",
+	js: `
     // Check 1: navigator.permissions (p2_func_14382_227)
     if (navigator.permissions) {
       assert(typeof navigator.permissions.query === "function",

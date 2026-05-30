@@ -6,7 +6,7 @@ import { basicTest } from "../../testcommon.ts";
 // p2_func_137755_209: getOwnPropertyDescriptor(Navigator.prototype, "vendor")
 //   → if desc exists → p2_func_137813_?? (check getter, forward to webdriver)
 //   → else → FAIL
-// p2_func_138252_15: getOwnPropertyDescriptor(Navigator.prototype, "webdriver")  
+// p2_func_138252_15: getOwnPropertyDescriptor(Navigator.prototype, "webdriver")
 //   → chains to userAgent
 // p2_func_136741_97: getOwnPropertyDescriptor(Navigator.prototype, "userAgent")
 //   → chains to hardwareConcurrency
@@ -41,8 +41,8 @@ import { basicTest } from "../../testcommon.ts";
 //   7. Continue to next property in chain
 
 export default basicTest({
-  name: "cf-navigator-descriptors",
-  js: `
+	name: "cf-navigator-descriptors",
+	js: `
     const navigatorProps = [
       "vendor",
       "webdriver",
