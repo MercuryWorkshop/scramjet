@@ -52,9 +52,10 @@ export default function (client: ScramjetClient, self: Self) {
 				// 	self.document,
 				// 	callerClient === client
 				// );
+				const inherit = callerClient.url.href === "about:srcdoc" || callerClient.url.href === "about:blank";
 				ctx.args[0] = {
 					$scramjet$messagetype: "window",
-					$scramjet$origin: callerClient.url.origin,
+					$scramjet$origin: inherit ? callerClient.global.parent[SCRAMJETCLIENT].url.origin : callerClient.url.origin,
 					$scramjet$data: ctx.args[0],
 				};
 				// console.error("?", ctx.args);
