@@ -382,14 +382,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.removeAttribute", {
 		apply(ctx) {
 			const name = String(ctx.args[0]);
-			if (name.startsWith("scramjet-attr"))
-				return ctx.return(undefined);
+			if (name.startsWith("scramjet-attr")) return ctx.return(undefined);
 			if (
-				client.natives.call(
-					"Element.prototype.hasAttribute",
-					ctx.this,
-					name
-				)
+				client.natives.call("Element.prototype.hasAttribute", ctx.this, name)
 			) {
 				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
 			}
@@ -399,14 +394,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.toggleAttribute", {
 		apply(ctx) {
 			const name = String(ctx.args[0]);
-			if (name.startsWith("scramjet-attr"))
-				return ctx.return(false);
+			if (name.startsWith("scramjet-attr")) return ctx.return(false);
 			if (
-				client.natives.call(
-					"Element.prototype.hasAttribute",
-					ctx.this,
-					name
-				)
+				client.natives.call("Element.prototype.hasAttribute", ctx.this, name)
 			) {
 				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
 			}
@@ -577,7 +567,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			ctx.args[0] = rewriteHtml(html, client.context, client.meta, {
 				loadScripts: false,
 				inline: true,
-				source: client.url.href, 
+				source: client.url.href,
 				apisource: "set Element.prototype.setHTMLUnsafe",
 				foreignContext: foreignContextForElement(client, ctx.this),
 			});

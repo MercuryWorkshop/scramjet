@@ -1,7 +1,10 @@
 import { IncrementalHtmlRewriter } from "@/shared";
 import { ScramjetClient } from "./client";
 import { SourceMaps } from "./shared/sourcemaps";
-import { Object_getOwnPropertyNames, Object_getOwnPropertyDescriptor } from "@/shared/snapshot";
+import {
+	Object_getOwnPropertyNames,
+	Object_getOwnPropertyDescriptor,
+} from "@/shared/snapshot";
 
 export class SingletonBox {
 	clients: ScramjetClient[] = [];
