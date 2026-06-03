@@ -17,8 +17,7 @@ export default function (client: ScramjetClient, _self: Self) {
 					}
 				}
 
-				if (url || url === "")
-					ctx.args[2] = client.rewriteUrl(url);
+				if (url || url === "") ctx.args[2] = client.rewriteUrl(url);
 				ctx.call();
 				Tap.dispatch(
 					client.hooks.lifecycle.navigate,
