@@ -81,11 +81,11 @@ export async function rewriteBody(
 		case "sharedworker":
 		case "worker":
 			return rewriteWorkers(
-				handler.context,
 				new Uint8Array(await response.arrayBuffer()),
-				parsed.isModule,
 				response.url,
-				parsed.meta
+				handler.context,
+				parsed.meta,
+				parsed.isModule
 			);
 		default:
 			return response.body;

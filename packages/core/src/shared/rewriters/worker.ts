@@ -5,11 +5,11 @@ import { TextDecoder_decode } from "@/shared/snapshot";
 import { base64Encode } from "@/shared/util";
 
 export function rewriteWorkers(
-	context: ScramjetContext,
 	js: string | Uint8Array,
-	isModule: boolean,
 	url: string,
-	meta: URLMeta
+	context: ScramjetContext,
+	meta: URLMeta,
+	isModule: boolean
 ) {
 	const script = (script: string) => {
 		if (isModule) {
