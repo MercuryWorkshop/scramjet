@@ -18,7 +18,10 @@ export default function (client: ScramjetClient, _self: Self) {
 	const filterEntries = (entries: PerformanceEntry[]) => {
 		return entries.filter((entry) => {
 			for (const file of client.config.maskedfiles) {
-				if (String(entry.name).endsWith(file)) {
+				const name = String(
+					client.descriptors.get("PerformanceEntry.prototype.name", entry)
+				);
+				if (name.endsWith(file)) {
 					return false;
 				}
 			}
