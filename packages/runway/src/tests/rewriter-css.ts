@@ -254,6 +254,32 @@ export default [
 		},
 	}),
 	directTest({
+		name: "rewriter-css-quoted-data-url-close-paren-rewritten",
+		fn: ({ assertEqual }) => {
+			const { context, meta } = createRewriteContext();
+			const data = "data:image/svg+xml,<svg><text>hello)</text></svg>";
+			const enc = rewriteUrl(data, context, meta);
+			const input = `i{background:url("${data}")}`;
+			assertEqual(
+				rewriteCss(input, context, meta),
+				`i{background:url("${enc}")}`
+			);
+		},
+	}),
+	directTest({
+		name: "rewriter-css-multiple-quoted-url-same-rule-not-overmatched",
+		fn: ({ assertEqual }) => {
+			const { context, meta } = createRewriteContext();
+			const first = "https://example.com/asset)one.png";
+			const second = "/asset-two.png";
+			const input = `a{background:url("${first}"), url("${second}")}`;
+			assertEqual(
+				rewriteCss(input, context, meta),
+				`a{background:url("${rewriteUrl(first, context, meta)}"), url("${rewriteUrl(second, context, meta)}")}`
+			);
+		},
+	}),
+	directTest({
 		name: "rewriter-css-about-url-left-unproxied",
 		fn: ({ assertEqual }) => {
 			const { context, meta } = createRewriteContext();
@@ -299,6 +325,22 @@ export default [
 		fn: ({ assertEqual }) => {
 			const { context, meta } = createRewriteContext();
 			const input = "e{background:url()}";
+			assertEqual(rewriteCss(input, context, meta), input);
+		},
+	}),
+	directTest({
+		name: "rewriter-css-empty-url-var-fallback-unchanged",
+		fn: ({ assertEqual }) => {
+			const { context, meta } = createRewriteContext();
+			const input = ".f{image:var(--custom-image, url())}";
+			assertEqual(rewriteCss(input, context, meta), input);
+		},
+	}),
+	directTest({
+		name: "rewriter-css-empty-quoted-url-calls-unchanged",
+		fn: ({ assertEqual }) => {
+			const { context, meta } = createRewriteContext();
+			const input = "e{background:url(\"\"); mask:url('')}";
 			assertEqual(rewriteCss(input, context, meta), input);
 		},
 	}),
