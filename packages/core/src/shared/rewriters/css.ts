@@ -21,18 +21,28 @@ function handleCss(
 	meta?: URLMeta
 ) {
 	// regex from vk6 (https://github.com/ading2210)
-	const urlRegex = /(?i:url)\(['"]?(.+?)['"]?\)/gm;
+	const urlRegex =
+		/(?i:url)\((?:\s*"((?:\\.|[^"])+)"\s*|\s*'((?:\\.|[^'])+)'\s*|((?!\s*['"])(?!\s*\))(?:\\.|[^)])+?))\)/gm;
 	const Atruleregex =
 		/@import\s+((?i:url)\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gm;
 	css = String(css);
-	css = css.replace(urlRegex, (match, url: string) => {
-		const encodedUrl =
-			type === "rewrite"
-				? rewriteUrl(url.trim(), context, meta!)
-				: unrewriteUrl(url.trim(), context);
+	css = css.replace(
+		urlRegex,
+		(
+			match,
+			doubleQuotedUrl: string | undefined,
+			singleQuotedUrl: string | undefined,
+			unquotedUrl: string | undefined
+		) => {
+			const url = doubleQuotedUrl ?? singleQuotedUrl ?? unquotedUrl;
+			const encodedUrl =
+				type === "rewrite"
+					? rewriteUrl(url.trim(), context, meta!)
+					: unrewriteUrl(url.trim(), context);
 
-		return match.replace(url, encodedUrl);
-	});
+			return match.replace(url, encodedUrl);
+		}
+	);
 	css = css.replace(Atruleregex, (match, importStatement: string) => {
 		return match.replace(
 			importStatement,
