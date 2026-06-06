@@ -197,4 +197,60 @@ export default [
 			pass();
 		`,
 	}),
+
+	// scramjet/core
+	// History.prototype.pushState / replaceState used the proxy's closure `client`
+	// instead of the client owning `ctx.this`, so a displaced call resolved the
+	// relative URL against the wrong frame.
+	// lead to youtube.com search breaking in chrome
+	// fixed by https://github.com/HeyPuter/browser.js/commit/1b988b4b53fac31c6627fd011d13028b9daff78c
+	serverTest({
+		name: "regression-1b988b4-displaced-history-pushstate",
+		scramjetOnly: true,
+		async start(server) {
+			server.on("request", (req, res) => {
+				if (req.url === "/") {
+					res.writeHead(200, { "Content-Type": "text/html" });
+					res.end(`
+						<!doctype html>
+						<script>
+							runTest(async () => {
+								const iframe = document.createElement('iframe');
+								iframe.src = '/sub/page.html';
+								document.body.appendChild(iframe);
+								await new Promise((r) => iframe.addEventListener('load', r, { once: true }));
+
+								// displaced call: parent's pushState proxy with iframe.history as \`this\`.
+								// the relative URL must resolve against the iframe's URL (/sub/page.html),
+								// not the parent's URL (/).
+								history.pushState.call(iframe.contentWindow.history, {}, '', 'pushed');
+								assertEqual(
+									iframe.contentWindow.location.pathname,
+									'/sub/pushed',
+									"displaced pushState must resolve url against the target history's owning client"
+								);
+
+								history.replaceState.call(iframe.contentWindow.history, {}, '', 'replaced');
+								assertEqual(
+									iframe.contentWindow.location.pathname,
+									'/sub/replaced',
+									"displaced replaceState must resolve url against the target history's owning client"
+								);
+
+								pass();
+							}, false);
+						</script>
+					`);
+					return;
+				}
+				if (req.url === "/sub/page.html") {
+					res.writeHead(200, { "Content-Type": "text/html" });
+					res.end("<!doctype html><p>iframe page</p>");
+					return;
+				}
+				res.writeHead(404);
+				res.end("not found");
+			});
+		},
+	}),
 ];
