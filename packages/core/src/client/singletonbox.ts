@@ -10,6 +10,7 @@ export class SingletonBox {
 	clients: ScramjetClient[] = [];
 	globals: Map<Self, ScramjetClient> = new Map();
 	documents: Map<Document, ScramjetClient> = new Map();
+	histories: Map<History, ScramjetClient> = new Map();
 	locations: Map<Location, ScramjetClient> = new Map();
 	writeRewriters = new WeakMap<Document, IncrementalHtmlRewriter>();
 	unproxy = new Map<any, any>();
@@ -25,6 +26,7 @@ export class SingletonBox {
 		this.globals.set(global, client);
 		this.documents.set(global.document, client);
 		this.locations.set(global.location, client);
+		this.histories.set(global.history, client);
 
 		Object_getOwnPropertyNames(global).forEach((prop) => {
 			const desc = Object_getOwnPropertyDescriptor(global, prop);
