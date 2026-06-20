@@ -416,6 +416,7 @@ jobs:
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
           artifacts: "mercuryworkshop-scramjet-controller-*.tgz"
+          makeLatest: false
 
   publish:
     name: Publish Scramjet to NPM
