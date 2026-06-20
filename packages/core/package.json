@@ -25,7 +25,7 @@
 		"lint:workflows": "actionlint .github/workflows/*.yml",
 		"lint:all": "npm run lint && npm run lint:workflows",
 		"test": "npm run test:package",
-		"test:package": "ava tests/ci/packageValidation.js",
+		"test:package": "ava tests/ci/packageValidation.js"
 	},
 	"exports": {
 		".": {
