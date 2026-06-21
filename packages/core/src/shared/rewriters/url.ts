@@ -172,7 +172,7 @@ export function rewriteUrl(
 
 		const paramsInit = new _URLSearchParams();
 
-		const referrerPolicy = options?.referrerPolicy ?? meta.referrerPolicy;
+		const referrerPolicy = !options?.isModule && (options?.referrerPolicy ?? meta.referrerPolicy);
 		if (referrerPolicy) paramsInit.set(QP.referrerPolicy, referrerPolicy);
 		if (options?.isModule) paramsInit.set(QP.isModule, "module");
 		if (options?.topFrame) paramsInit.set(QP.topFrame, options.topFrame);
