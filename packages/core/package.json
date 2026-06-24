@@ -32,10 +32,6 @@
 			"types": "./dist/types/typesEntry.d.ts",
 			"default": "./dist/scramjet-external.mjs"
 		},
-		"./path": {
-			"types": "./lib/index.d.ts",
-			"default": "./lib/index.cjs"
-		},
 		"./bundled": {
 			"types": "./dist/types/index.d.ts",
 			"default": "./dist/scramjet.mjs"
@@ -43,6 +39,10 @@
 		"./bundled-wasm": {
 			"types": "./dist/types/index.d.ts",
 			"default": "./dist/scramjet_bundled.mjs"
+		},
+		"./path": {
+			"types": "./lib/index.d.ts",
+			"default": "./lib/index.cjs"
 		}
 	},
 	"files": [
