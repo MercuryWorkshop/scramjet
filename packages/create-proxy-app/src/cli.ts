@@ -190,7 +190,7 @@ async function project() {
 					"commit",
 					"-m",
 					"Inital Commit from Create Proxy App",
-					'--author="create-proxy-app[bot] <example@example.com>"',
+					'--author="create-proxy-app[bot] <cpa@mercurywork.shop>"',
 				],
 				{ cwd: inital.path }
 			);

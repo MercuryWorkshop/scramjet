@@ -9,27 +9,30 @@
 	"packageManager": "pnpm@10.12.1",
 	"scripts": {
 		"dev": "node --no-warnings=ExperimentalWarning devserver.ts",
+		"dev:debug": "DEBUG=1 node --no-warnings=ExperimentalWarning devserver.ts",
+		"test:package": "ava tests/ci/packageValidation.js",
 		"preinstall": "npx only-allow pnpm"
 	},
-	"pnpm": {
-		"overrides": {
-			"htmlparser2": "12.0.0"
-		},
-		"patchedDependencies": {
-			"htmlparser2@12.0.0": "patches/htmlparser2@12.0.0.patch"
-		}
+	"ava": {
+		"files": [
+			"tests/ci/**/*.js"
+		],
+		"verbose": true
 	},
 	"devDependencies": {
-		"@mercuryworkshop/wisp-js": "catalog:",
-		"@rsdoctor/rspack-plugin": "^1.4.0",
 		"@rspack/cli": "^1.5.8",
 		"@rspack/core": "^1.5.8",
+		"@fastify/deepmerge": "^3.2.1",
+		"@rsdoctor/rspack-plugin": "^1.4.0",
+		"ts-checker-rspack-plugin": "^1.1.6",
+		"tsc-alias": "^1.8.16",
+		"@mercuryworkshop/wisp-js": "catalog:",
 		"chafa-wasm": "^0.3.1",
 		"chalk": "^5.6.2",
 		"eslint": "^10.2.0",
-		"ts-checker-rspack-plugin": "^1.1.6",
-		"tsc-alias": "^1.8.16",
-		"vite": "^7.3.0"
+		"vite": "^7.3.0",
+		"ava": "^6.4.1",
+		"glob": "^13.0.6"
 	},
 	"dependencies": {
 		"prettier": "^3.6.2"

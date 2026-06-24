@@ -253,9 +253,15 @@ function deepmerge(target, source) {
 function isObject(item) {
 	return item && typeof item === "object" && !Array.isArray(item);
 }
-
-const createGenericConfig = (options) => {
-	const def: RspackOptions = {
+const rsDoctorPlugin = process.env.DEBUG ? new RsdoctorRspackPlugin({
+						supports: {
+							parseBundle: true,
+							banner: true,
+						},
+					})
+				: null
+const createGenericConfig = (options: Partial<RspackOptions>) => {
+	const def = {
 		devtool: "source-map",
 		mode: "development",
 		resolve: {
@@ -270,6 +276,9 @@ const createGenericConfig = (options) => {
 				},
 			},
 		},
+		plugin: [
+			rsDoctorPlugin
+		],
 		optimization: {
 			minimizer: [
 				new rspack.SwcJsMinimizerRspackPlugin({
@@ -283,8 +292,15 @@ const createGenericConfig = (options) => {
 	return defineConfig(deepmerge(def, options));
 };
 
+type ScramjetBuildConfig = {
+	entry: RspackOptions["entry"];
+	output: RspackOptions["output"]
+	rewriterWasm: string;
+	extraConfig?: Partial<RspackOptions>;
+	name: string;
+}
 // Common configuration options for scramjet builds
-const createScramjetConfig = (options) => {
+const createScramjetConfig = (options: ScramjetBuildConfig) => {
 	const { entry, output, rewriterWasm, extraConfig = {}, name } = options;
 
 	return createGenericConfig({
@@ -331,14 +347,6 @@ const createScramjetConfig = (options) => {
 			new rspack.DefinePlugin({
 				BUILDDATE: JSON.stringify(new Date().toISOString()),
 			}),
-			process.env.DEBUG
-				? new RsdoctorRspackPlugin({
-						supports: {
-							parseBundle: true,
-							banner: true,
-						},
-					})
-				: null,
 		],
 		target: "webworker",
 		ignoreWarnings: [
