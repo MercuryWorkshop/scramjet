@@ -1,18 +1,18 @@
+import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 import { chromium } from "playwright";
 import type { Page, Browser, BrowserContext } from "playwright";
+import v8toIstanbul from "v8-to-istanbul";
+import istanbulCoverage from "istanbul-lib-coverage";
 import {
 	runwayCleartextHttpsHostList,
 	runwayCleartextSiteForHarness,
 	runwayTestTargetUrl,
 	type Test,
 } from "./testcommon.ts";
-import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { isDeepStrictEqual } from "node:util";
 import { setupRunwayPageBindings } from "./cdp-page.ts";
-import v8toIstanbul from "v8-to-istanbul";
-import istanbulCoverage from "istanbul-lib-coverage";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -948,20 +948,16 @@ async function main() {
 			});
 
 			if (finalResult.status === "pass") {
-				console.log(`  ${test.name} ... ✅ passed (${duration}ms)`);
+				console.log(`Test: ${test.name} ... ✅ passed (${duration}ms)`);
 			} else if (finalResult.status === "fail") {
 				console.log(
 					[
-						ghaGroup(`Test: ${test.name}`),
-						`  ${test.name} ... ❌ failed (${duration}ms)`,
+						ghaGroup(`Test: ${test.name} ... ❌ failed (${duration}ms)`),
 						finalResult.message ? `     ${finalResult.message}` : null,
 						(finalResult as any).details
 							? `     details: ${JSON.stringify((finalResult as any).details, null, 2)}`
 							: null,
-						ghaError(
-							`Test "${test.name}" failed: ${finalResult.message || "Unknown error"}`
-						),
-						ghaEndGroup()
+						ghaEndGroup(),
 					]
 						.filter(Boolean)
 						.join("\n")
@@ -972,13 +968,12 @@ async function main() {
 			} else {
 				console.log(
 					[
-						ghaGroup(`Test: ${test.name}`),
-						`  ${test.name} ... 💥 error (${duration}ms)`,
+						ghaGroup(`Test: ${test.name} ... 💥 error (${duration}ms)`),
 						finalResult.message ? `     ${finalResult.message}` : null,
+						ghaEndGroup(),
 						ghaError(
 							`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
-						),
-						ghaEndGroup()
+						)
 					]
 						.filter(Boolean)
 						.join("\n")
