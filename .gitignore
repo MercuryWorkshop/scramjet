@@ -1,9 +1,7 @@
-meta.json
 node_modules
+dist
 packages/core/rewriter/target
 packages/core/rewriter/wasm/out
 packages/core/rewriter/*.js
-packages/core/blob-report
-dist
-
+packages/core/README.md
 packages/runway/coverage
