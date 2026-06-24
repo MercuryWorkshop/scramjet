@@ -37,10 +37,9 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 // Project directories
 const scramjetdir = join(__dirname, "packages/core");
 const controllerdir = join(__dirname, "packages/controller");
+const utilsdir = join(__dirname, "packages/utils");
 const bootstrapdir = join(__dirname, "packages/bootstrap");
 const createproxyappdir = join(__dirname, "packages/create-proxy-app");
-const utilsdir = join(__dirname, "packages/utils");
-
 /**
  * Generates a thin "external" stub that re-exports the entries of a globally
  * assigned bundle (e.g. `self.$scramjet`). Consumers that import the package
@@ -674,11 +673,11 @@ export default [
 	iifeBundledConfig,
 	moduleConfig,
 	moduleBundledConfig,
-	bootstrapConfig,
-	bootstrapStaticConfig,
+	typeGenConfig,
 	controllerConfig,
-	createProxyAppConfig,
 	utilsIifeConfig,
 	utilsModuleConfig,
-	typeGenConfig,
+	bootstrapConfig,
+	bootstrapStaticConfig,
+	createProxyAppConfig,
 ];
