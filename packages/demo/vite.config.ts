@@ -14,6 +14,9 @@ export default {
 					dest: "controller",
 				},
 			],
+			watch: {
+				reloadPageOnChange: true,
+			}
 		}),
 	],
 };

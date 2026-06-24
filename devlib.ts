@@ -1,10 +1,10 @@
+import { stdout } from "node:process";
+import { promisify } from "node:util";
 import chalk from "chalk";
 import Chafa from "chafa-wasm";
-import { promisify } from "node:util";
 const chafa = await Chafa();
 const imageToAnsi = promisify(chafa.imageToAnsi);
-import { stdout } from "node:process";
-import rspack from "@rspack/core";
+import { rspack, type RspackOptions } from "@rspack/core";
 import type { ViteDevServer } from "vite";
 
 export function black() {
@@ -112,7 +112,7 @@ export function logSuccess() {
 	lastSuccessCollapsed = true;
 }
 
-export function runRspack(rspackConfig: any) {
+export function runRspack(rspackConfig: RspackOptions | RspackOptions[]) {
 	const compiler = rspack(rspackConfig);
 	compiler.watch({}, (err, stats) => {
 		if (err) {
@@ -156,9 +156,7 @@ export function warnOnUrlEscape(server: ViteDevServer) {
 		next();
 	};
 
-	(
-		server.middlewares as { stack: { route: string; handle: typeof handle }[] }
-	).stack.unshift({
+	server.middlewares.stack.unshift({
 		route: "",
 		handle,
 	});
