@@ -13,12 +13,12 @@ import { existsSync } from "node:fs";
  * All JS files listed must have corresponding source maps.
  * These aren't globs.
  */
-const EXPECTED_DIST_FILES = [
-	"dist/scramjet.js",
-	"dist/scramjet.mjs",
-	"dist/scramjet_bundled.js",
-	"dist/scramjet_bundled.mjs",
-	"dist/scramjet.wasm",
+const EXPECTED_CORE_DIST_FILES = [
+	"packages/core/dist/scramjet.js",
+	"packages/core/dist/scramjet.mjs",
+	"packages/core/dist/scramjet_bundled.js",
+	"packages/core/dist/scramjet_bundled.mjs",
+	"packages/core/dist/scramjet.wasm",
 ];
 
 /**
@@ -26,9 +26,9 @@ const EXPECTED_DIST_FILES = [
  * These aren't going to be all, because the modules update quite often, but the entry points and basic structure will be validatedl
  */
 const EXPECTED_TYPE_FILES = [
-	"dist/types/**/*.d.ts",
-	"dist/types/index.d.ts",
-	"lib/index.d.ts",
+	"packages/core/dist/types/**/*.d.ts",
+	"packages/core/dist/types/index.d.ts",
+	"packages/core/lib/index.d.ts",
 ];
 
 /**
@@ -38,7 +38,7 @@ const EXPECTED_TYPE_FILES = [
 test("Package contains all required distribution files", async (t) => {
 	const missingFiles = [];
 
-	for (const filePath of EXPECTED_DIST_FILES) {
+	for (const filePath of EXPECTED_CORE_DIST_FILES) {
 		if (!existsSync(filePath)) {
 			missingFiles.push(filePath);
 		}
@@ -56,7 +56,7 @@ test("Package contains all required distribution files", async (t) => {
  * @param {import("ava").ExecutionContext} t - AVA unit test context.
  */
 test("All required JS bundles have corresponding source maps", async (t) => {
-	const jsFiles = EXPECTED_DIST_FILES.filter((file) => file.endsWith(".js"));
+	const jsFiles = EXPECTED_CORE_DIST_FILES.filter((file) => file.endsWith(".js"));
 	const missingMaps = [];
 
 	for (const jsFile of jsFiles) {
@@ -100,8 +100,8 @@ test("Package contains required type definitions", async (t) => {
  * @param {import("ava").ExecutionContext} t - AVA unit test context.
  */
 test("Package structure is valid for distribution", async (t) => {
-	const distFiles = await glob("dist/**/*");
-	const libFiles = await glob("lib/**/*");
+	const distFiles = await glob("packages/core/dist/**/*");
+	const libFiles = await glob("packages/core/lib/**/*");
 
 	t.true(distFiles.length > 0, "Distribution directory should contain files");
 	t.true(libFiles.length > 0, "Library directory should contain files");

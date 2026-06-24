@@ -283,7 +283,6 @@ jobs:
 
       - name: Run package validation tests
         run: pnpm test:package
-        working-directory: packages/core
 
   tests:
     name: Run Scramjet Tests

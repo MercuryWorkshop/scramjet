@@ -7,16 +7,20 @@
 	"main": "./dist/controller-external.mjs",
 	"module": "./dist/controller-external.mjs",
 	"types": "./dist/types/typesEntry.d.ts",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MercuryWorkshop/scramjet.git",
+		"directory": "packages/controller"
+	},
+	"scripts": {
+		"build": "cd ../.. && rspack build --mode production --config-name scramjet-esmodule --config-name scramjet-controller",
+		"prepack": "pnpm build"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/types/typesEntry.d.ts",
 			"default": "./dist/controller-external.mjs"
 		}
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/MercuryWorkshop/scramjet.git",
-		"directory": "packages/controller"
 	},
 	"peerDependencies": {
 		"@mercuryworkshop/scramjet": "*"
