@@ -14,7 +14,7 @@ export default function (client: ScramjetClient, _self: Self) {
 					const parsedUrl = new _URL(url);
 					if (parsedUrl.origin !== relevantclient.url.origin) {
 						// TODO: we want to emulate the proper security error here. right now this will leak the origin in the error message
-						return;
+						return ctx.return(undefined);
 					}
 				}
 
