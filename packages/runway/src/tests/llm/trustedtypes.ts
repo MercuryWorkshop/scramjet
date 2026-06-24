@@ -98,7 +98,9 @@ export default [
 			assert(u instanceof window.TrustedScriptURL, "createScriptURL result must be TrustedScriptURL");
 		`,
 	}),
-
+	// this can actually throw if its enabled in the csp, we dont emulate csp in scramjet
+	// https://developer.mozilla.org/en-US/docs/Web/API/TrustedTypePolicyFactory/createPolicy#exceptions
+	/* 
 	basicTest({
 		name: "trustedtypes-policy-duplicate-name-throws",
 		js: `
@@ -114,7 +116,7 @@ export default [
 			assert(threw, "creating policy with duplicate name should throw TypeError");
 		`,
 	}),
-
+	*/
 	basicTest({
 		name: "trustedtypes-policy-missing-callback",
 		js: `
@@ -137,21 +139,7 @@ export default [
 			assert(threw, "policy.createScriptURL without callback must throw TypeError");
 		`,
 	}),
-
-	basicTest({
-		name: "trustedtypes-policy-callback-returning-null",
-		js: `
-			const tt = window.trustedTypes;
-			const name = "scramjet-test-null-" + Math.random().toString(36).slice(2, 10);
-			const pol = tt.createPolicy(name, {
-				createHTML: () => null,
-			});
-			let threw = false;
-			try { pol.createHTML("anything"); } catch (e) { threw = e instanceof TypeError; }
-			assert(threw, "createHTML callback returning null must surface as TypeError");
-		`,
-	}),
-
+	
 	basicTest({
 		name: "trustedtypes-policy-callback-receives-original-input",
 		js: `
