@@ -43,12 +43,13 @@ Some of the popular websites that Scramjet supports include:
 
 - Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
 - Install the dependencies with `pnpm i`
+- Change directories with `cd packages/core`
 - Build the rewriter with `pnpm rewriter:build`
 - Build Scramjet with `pnpm build`
 
 ### Running Scramjet Locally
 
-You can run the Scramjet dev server with the command
+You can run the Scramjet dev server when running this command at the root
 
 ```sh
 pnpm dev
