@@ -18,11 +18,14 @@ Scramjet allows you to sandbox arbitrary web content, bypass CORS restrictions o
 
 Some of the popular websites that Scramjet supports include:
 
-- [Google](https://google.com) (partial)
+- [Google](https://google.com)
 - [Youtube](https://youtube.com)
-- [Spotify](https://spotify.com) (partial)
-- [Discord](https://discord.com)
+- [Instagram](https://instagram.com)
+- [ChatGPT](https://chatgpt.com)
 - [Reddit](https://reddit.com)
+- [Twitter](https://twitter.com)
+- [Discord](https://discord.com)
+- [Spotify](https://spotify.com)
 - [GeForce NOW](https://play.geforcenow.com/)
 - [now.gg](https://now.gg)
 
