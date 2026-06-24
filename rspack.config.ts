@@ -7,7 +7,15 @@ import { exec, execSync } from "node:child_process";
 const execAsync = promisify(exec);
 import { promisify } from "node:util";
 import { defineConfig } from "@rspack/cli";
-import { rspack, type RspackOptions } from "@rspack/core";
+import {
+	rspack,
+	type ExternalsType,
+	type ExternalItemFunctionData,
+	type ExternalItemValue,
+	type Mode,
+	type RspackOptions,
+	type WebpackCompiler,
+} from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
 if (!process.env.CI) {
@@ -20,9 +28,16 @@ if (!process.env.CI) {
 	} catch {}
 }
 
-function nodeExternals({ context, request }, callback) {
-	if (!/^(\.|\/)/.test(request)) {
-		return callback(null, request);
+function nodeExternals(
+	{ context, request }: ExternalItemFunctionData,
+	callback: (
+		err?: Error,
+		result?: ExternalItemValue,
+		type?: ExternalsType
+	) => void
+) {
+	if (!/^(\.|\/)/.test(request || "")) {
+		return callback(undefined, request);
 	}
 
 	callback();
@@ -104,7 +119,7 @@ class ExternalStubPlugin {
 		this.outputDir = opts.outputDir;
 	}
 
-	apply(compiler: any) {
+	apply(compiler: WebpackCompiler) {
 		compiler.hooks.afterEmit.tap("ExternalStubPlugin", () => {
 			const bundlePath = join(this.outputDir, this.bundleFilename);
 			const stubPath = join(this.outputDir, this.stubFilename);
@@ -154,7 +169,7 @@ class TypeScriptDeclarationsPlugin {
 		this.useAlias = useAlias;
 	}
 
-	apply(compiler) {
+	apply(compiler: WebpackCompiler) {
 		compiler.hooks.afterEmit.tap("TypeScriptDeclarationsPlugin", () => {
 			(async () => {
 				try {
@@ -234,15 +249,21 @@ export const tsloader = {
 	},
 	type: "javascript/auto",
 };
-
-function deepmerge(target, source) {
+//TODO: replace this
+function deepmerge<T extends any>(target: T, source: Partial<T>): T {
+	// this whole function is a hack, ignore all of the type errors
+	//@ts-ignore this whole function is a hack 
 	const output = { ...target };
 	if (isObject(target) && isObject(source)) {
 		Object.keys(source).forEach((key) => {
+			//@ts-ignore this whole function is a hack 
 			if (isObject(source[key])) {
+				//@ts-ignore this whole function is a hack 
 				if (!(key in target)) Object.assign(output, { [key]: source[key] });
+				//@ts-ignore this whole function is a hack 
 				else output[key] = deepmerge(target[key], source[key]);
 			} else {
+				//@ts-ignore this whole function is a hack 
 				Object.assign(output, { [key]: source[key] });
 			}
 		});
@@ -250,7 +271,7 @@ function deepmerge(target, source) {
 	return output;
 }
 
-function isObject(item) {
+function isObject(item: any): item is Record<string, unknown> {
 	return item && typeof item === "object" && !Array.isArray(item);
 }
 const rsDoctorPlugin = process.env.DEBUG ? new RsdoctorRspackPlugin({
@@ -263,7 +284,7 @@ const rsDoctorPlugin = process.env.DEBUG ? new RsdoctorRspackPlugin({
 const createGenericConfig = (options: Partial<RspackOptions>) => {
 	const def = {
 		devtool: "source-map",
-		mode: "development",
+		mode: "development" as Mode,
 		resolve: {
 			extensions: [".ts", ".js"],
 		},
@@ -283,13 +304,13 @@ const createGenericConfig = (options: Partial<RspackOptions>) => {
 			minimizer: [
 				new rspack.SwcJsMinimizerRspackPlugin({
 					minimizerOptions: {
-						module: options.output.libraryTarget === "module",
+						module: options.output?.libraryTarget === "module",
 					},
 				}),
 			],
 		},
 	};
-	return defineConfig(deepmerge(def, options));
+	return defineConfig(deepmerge<RspackOptions>(def as unknown as RspackOptions, options));
 };
 
 type ScramjetBuildConfig = {
@@ -423,11 +444,13 @@ const moduleConfig = createScramjetConfig({
 	},
 	// do not embed the wasm in this build
 	rewriterWasm: "undefined",
-	performance: {
-		hints: false,
-	},
-	experiments: {
-		outputModule: true,
+	extraConfig: {
+		performance: {
+			hints: false,
+		},
+		experiments: {
+			outputModule: true,
+		},
 	},
 });
 moduleConfig.plugins!.push(
@@ -452,12 +475,14 @@ const moduleBundledConfig = createScramjetConfig({
 		iife: false,
 	},
 	rewriterWasm: JSON.stringify(wasmB64),
-	performance: {
-		hints: false,
-	},
-	experiments: {
-		outputModule: true,
-	},
+	extraConfig: {
+		performance: {
+			hints: false,
+		},
+		experiments: {
+			outputModule: true,
+		},
+	}
 });
 
 // Type generation configuration

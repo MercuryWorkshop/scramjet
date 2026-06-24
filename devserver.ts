@@ -1,12 +1,12 @@
-import { createServer } from "vite";
+import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
+import path from "node:path";
 import { stdout } from "node:process";
-import chalk from "chalk";
 import { execSync } from "node:child_process";
 import http from "node:http";
-import path from "node:path";
-import { createReadStream } from "node:fs";
-import rspackConfig from "./rspack.config.ts";
+import chalk from "chalk";
+import { createServer } from "vite";
+//@ts-expect-error no typedefs
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 import {
 	black,
@@ -17,6 +17,7 @@ import {
 	runRspack,
 	warnOnUrlEscape,
 } from "./devlib.ts";
+import rspackConfig from "./rspack.config.ts";
 
 const image = await fs.readFile("./assets/scramjet-mini-noalpha.png");
 
