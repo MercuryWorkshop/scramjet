@@ -526,7 +526,7 @@ jobs:
           name: scramjet-controller
           path: packages/controller/dist
 
-      - name: Get artifacts (scramjet-utils)
+      - name: Get artifacts (scramjet/utils)
         uses: actions/download-artifact@v4
         with:
           name: scramjet-utils
