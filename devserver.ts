@@ -9,13 +9,11 @@ import { createServer } from "vite";
 //@ts-expect-error no typedefs
 import { server as wisp } from "@mercuryworkshop/wisp-js/server";
 import {
-	black,
 	normalizeWebsocketUrl,
-	logSuccess,
-	printBanner,
-	resetSuccessLog,
-	runRspack,
 	warnOnUrlEscape,
+	runRspack,
+	black,
+	printBanner
 } from "./devlib.ts";
 import rspackConfig from "./rspack.config.ts";
 
@@ -86,6 +84,6 @@ const lines = [
 	black()(chalk.dim(`[${branch}] ${commit} scramjet/${version}`)),
 ];
 
-printBanner(image, lines);
-
 runRspack(rspackConfig);
+
+printBanner(image, lines);
