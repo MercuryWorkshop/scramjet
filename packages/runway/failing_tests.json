@@ -12,7 +12,6 @@
 		"escapes-reflect-set-location-javascript",
 		"escapes-script-append-string",
 		"escapes-script-appendchild-textnode",
-		"escapes-script-innertext",
 		"escapes-script-insertadjacenttext",
 		"escapes-script-prepend-string",
 		"escapes-script-replacechildren-string",
