@@ -533,7 +533,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			},
 		}
 	);
-	client.Trap("HTMLElement.prototype.innerText", {
+	client.Trap(["HTMLElement.prototype.innerText", "HTMLScriptElement.prototype.innerText"], {
 		set(ctx, value: string) {
 			const text = String(value);
 			return ctx.set(rewriteTextForElement(ctx.this, text));
