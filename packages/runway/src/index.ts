@@ -792,8 +792,6 @@ async function main() {
 		let needsReload = true;
 
 		for (const test of workerTests) {
-			ghaGroup(`Test: ${test.name}`);
-
 			const runBareForTest = runBareTests && !test.scramjetOnly;
 			const consistencyTracker = createConsistencyTracker(runBareForTest);
 			consistencyHandler = consistencyTracker.handle;
@@ -954,17 +952,19 @@ async function main() {
 			} else if (finalResult.status === "fail") {
 				console.log(
 					[
+						ghaGroup(`Test: ${test.name}`),
 						`  ${test.name} ... ❌ failed (${duration}ms)`,
 						finalResult.message ? `     ${finalResult.message}` : null,
 						(finalResult as any).details
 							? `     details: ${JSON.stringify((finalResult as any).details, null, 2)}`
 							: null,
+						ghaError(
+							`Test "${test.name}" failed: ${finalResult.message || "Unknown error"}`
+						),
+						ghaEndGroup()
 					]
 						.filter(Boolean)
 						.join("\n")
-				);
-				ghaError(
-					`Test "${test.name}" failed: ${finalResult.message || "Unknown error"}`
 				);
 				if (!test.directFn) {
 					needsReload = !fastMode; // Reload after failure unless fast mode is reusing harnesses
@@ -972,20 +972,21 @@ async function main() {
 			} else {
 				console.log(
 					[
+						ghaGroup(`Test: ${test.name}`),
 						`  ${test.name} ... 💥 error (${duration}ms)`,
 						finalResult.message ? `     ${finalResult.message}` : null,
+						ghaError(
+							`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
+						),
+						ghaEndGroup()
 					]
 						.filter(Boolean)
 						.join("\n")
-				);
-				ghaError(
-					`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
 				);
 				if (!test.directFn) {
 					needsReload = !fastMode; // Reload after error unless fast mode is reusing harnesses
 				}
 			}
-			ghaEndGroup();
 		}
 
 		if (testPages) {
