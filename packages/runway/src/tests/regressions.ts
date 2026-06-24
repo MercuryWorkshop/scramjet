@@ -213,39 +213,44 @@ export default [
 					res.writeHead(200, { "Content-Type": "text/html" });
 					res.end(`
 						<!doctype html>
-						<script>
-							runTest(async () => {
-								const iframe = document.createElement('iframe');
-								iframe.src = '/sub/page.html';
-								document.body.appendChild(iframe);
-								await new Promise((r) => iframe.addEventListener('load', r, { once: true }));
+						<html>
+						<head></head>
+						<body>
+							<script>
+								runTest(async () => {
+									const iframe = document.createElement('iframe');
+									iframe.src = '/sub/page.html';
+									document.body.appendChild(iframe);
+									await new Promise((r) => iframe.addEventListener('load', r, { once: true }));
 
-								// displaced call: parent's pushState proxy with iframe.history as \`this\`.
-								// the relative URL must resolve against the iframe's URL (/sub/page.html),
-								// not the parent's URL (/).
-								history.pushState.call(iframe.contentWindow.history, {}, '', 'pushed');
-								assertEqual(
-									iframe.contentWindow.location.pathname,
-									'/sub/pushed',
-									"displaced pushState must resolve url against the target history's owning client"
-								);
+									// displaced call: parent's pushState proxy with iframe.history as \`this\`.
+									// the relative URL must resolve against the iframe's URL (/sub/page.html),
+									// not the parent's URL (/).
+									history.pushState.call(iframe.contentWindow.history, {}, '', 'pushed');
+									assertEqual(
+										iframe.contentWindow.location.pathname,
+										'/sub/pushed',
+										"displaced pushState must resolve url against the target history's owning client"
+									);
 
-								history.replaceState.call(iframe.contentWindow.history, {}, '', 'replaced');
-								assertEqual(
-									iframe.contentWindow.location.pathname,
-									'/sub/replaced',
-									"displaced replaceState must resolve url against the target history's owning client"
-								);
+									history.replaceState.call(iframe.contentWindow.history, {}, '', 'replaced');
+									assertEqual(
+										iframe.contentWindow.location.pathname,
+										'/sub/replaced',
+										"displaced replaceState must resolve url against the target history's owning client"
+									);
 
-								pass();
-							}, false);
-						</script>
+									pass();
+								}, false);
+							</script>
+						</body>
+						</html>
 					`);
 					return;
 				}
 				if (req.url === "/sub/page.html") {
 					res.writeHead(200, { "Content-Type": "text/html" });
-					res.end("<!doctype html><p>iframe page</p>");
+					res.end("<!doctype html><html><head></head><body><p>iframe page</p></body></html>");
 					return;
 				}
 				res.writeHead(404);
