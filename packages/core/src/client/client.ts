@@ -45,6 +45,27 @@ import {
 	_Map,
 } from "@/shared/snapshot";
 
+// https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
+type IfEquals<T, U, Y = unknown, N = never> =
+	(<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2 ? Y : N;
+// thank you psm (https://github.com/psmpm) <3
+type Traverse<
+	O extends Record<any, any>,
+	P extends string,
+> = P extends `${infer K}.${infer R}` ? Traverse<O[K], R> : O[P];
+type GlobalTraverse<P extends string> = Traverse<
+	GlobalThis & Record<string, any>,
+	P
+>;
+type ProxyApplyThis<T extends string> =
+	unknown extends ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>
+		? T extends `${infer ClassName}.prototype.${string}`
+			? GlobalTraverse<ClassName> extends { prototype: infer Proto }
+				? Proto
+				: unknown
+			: unknown
+		: ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>;
+
 export type ScramjetClientInit = {
 	context: ScramjetContext;
 	transport: ProxyTransport;
@@ -57,44 +78,15 @@ export type ScramjetClientInit = {
 	initHeaders: RawHeaders;
 	history: TrackedHistoryState[];
 };
-
 type NativeStore = {
 	store: Record<string, any>;
-	call: (target: string, that: any, ...args) => any;
-	construct: (target: string, ...args) => any;
+	construct: <T extends string>(target: T, ...args: ConstructorParameters<GlobalTraverse<T>>) => InstanceType<GlobalTraverse<T>>;
+	call: <T extends string>(target: T, that: ProxyApplyThis<T>, ...args: Parameters<GlobalTraverse<T>>) => ReturnType<GlobalTraverse<T>>;
 };
 type DescriptorStore = {
 	store: Record<string, PropertyDescriptor>;
-	get: (target: string, that: any) => any;
-	set: (target: string, that: any, value: any) => void;
-};
-// thank you psm (https://github.com/psmpm) <3
-type Traverse<
-	O extends Record<any, any>,
-	P extends string,
-> = P extends `${infer K}.${infer R}` ? Traverse<O[K], R> : O[P];
-type GlobalTraverse<P extends string> = Traverse<
-	GlobalThis & Record<string, any>,
-	P
->;
-// https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
-type IfEquals<T, U, Y = unknown, N = never> =
-	(<G>() => G extends T ? 1 : 2) extends <G>() => G extends U ? 1 : 2 ? Y : N;
-
-type ProxyApplyThis<T extends string> =
-	unknown extends ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>
-		? T extends `${infer ClassName}.prototype.${string}`
-			? GlobalTraverse<ClassName> extends { prototype: infer Proto }
-				? Proto
-				: unknown
-			: unknown
-		: ThisParameterType<Extract<GlobalTraverse<T>, AnyFunction>>;
-
-export type ScramjetModule = {
-	enabled: (client: ScramjetClient) => boolean | undefined;
-	disabled: (client: ScramjetClient, self: GlobalThis) => void | undefined;
-	order: number | undefined;
-	default: (client: ScramjetClient, self: GlobalThis) => void;
+	get: <T extends string>(target: T, that: any) => GlobalTraverse<T>;
+	set: <T extends string>(target: T, that: any, value: GlobalTraverse<T>) => void;
 };
 
 export type ProxyCtx<
@@ -142,6 +134,13 @@ export type Trap<T extends string> = {
 	configurable?: boolean;
 	get?: (ctx: TrapCtx<T>) => GlobalTraverse<T>;
 	set?: (ctx: TrapCtx<T>, v: GlobalTraverse<T>) => void;
+};
+
+export type ScramjetModule = {
+	enabled: (client: ScramjetClient) => boolean | undefined;
+	disabled: (client: ScramjetClient, self: GlobalThis) => void | undefined;
+	order: number | undefined;
+	default: (client: ScramjetClient, self: GlobalThis) => void;
 };
 
 function findBox(global: Window, seen: Window[]): SingletonBox | null {
@@ -199,7 +198,7 @@ export class ScramjetClient {
 				proxiedCallback: AnyFunction;
 			},
 		]
-	> = new Map();
+	> = new _Map();
 
 	meta: URLMeta;
 
@@ -283,13 +282,13 @@ export class ScramjetClient {
 					},
 				}
 			),
-			construct(target: string, ...args) {
+			construct(target, ...args) {
 				const original = this.store[target];
 				if (!original) return null;
 
 				return new original(...args);
 			},
-			call(target: string, that: any, ...args) {
+			call(target, that, ...args) {
 				const original = this.store[target];
 				if (!original) return null;
 
@@ -323,17 +322,17 @@ export class ScramjetClient {
 					},
 				}
 			),
-			get(target: string, that: any) {
+			get(target, that) {
 				const original = this.store[target];
 				if (!original) return null;
 
-				return original.get.call(that);
+				return original.get!.call(that);
 			},
-			set(target: string, that: any, value: any) {
+			set(target, that, value) {
 				const original = this.store[target];
 				if (!original) return null;
 
-				original.set.call(that, value);
+				original.set!.call(that, value);
 			},
 		};
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
