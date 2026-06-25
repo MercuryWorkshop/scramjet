@@ -1,6 +1,3 @@
-import { ScramjetClient } from "@client/index";
-import { SCRAMJETCLIENT } from "@/symbols";
-
 /**
  * Version information for the current Scramjet build.
  * Contains both the semantic version string and the git commit hash for build identification.
@@ -48,9 +45,9 @@ export interface ScramjetConfig {
 		templocid: string;
 		tempunusedid: string;
 	};
-	maskedfiles: string[];
 	flags: ScramjetFlags;
 	siteFlags: Record<string, Partial<ScramjetFlags>>;
+	maskedfiles: string[];
 }
 
 /**
@@ -63,24 +60,6 @@ export interface ScramjetInitConfig
 		encode: (url: string) => string;
 		decode: (url: string) => string;
 	};
-}
-declare global {
-	interface Window {
-		WASM: string;
-		REAL_WASM: Uint8Array;
-
-		/**
-		 * The scramjet client belonging to a window.
-		 */
-		[SCRAMJETCLIENT]: ScramjetClient;
-	}
-
-	interface HTMLDocument {
-		/**
-		 * Should be the same as window.
-		 */
-		[SCRAMJETCLIENT]: ScramjetClient;
-	}
 }
 
 //eslint-disable-next-line

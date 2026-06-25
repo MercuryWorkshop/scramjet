@@ -2,19 +2,19 @@
 // as such it exports everything in scramjet
 // the entry point for scramjet.all.js (what most sites wil use) is entry.ts
 
-import { setWasm } from "@rewriters/wasm";
 import "./global.d";
-import { ScramjetConfig } from "./types";
-export * from "./client";
-export * from "./shared";
-export * from "./symbols";
-export * from "./types";
-export * from "./fetch";
-export * from "./Tap";
-export { BareResponse } from "@mercuryworkshop/proxy-transports";
 import { atob } from "@/shared/snapshot";
+import { setWasm } from "@rewriters/wasm";
+import { ScramjetVersionInfo, ScramjetConfig } from "./types";
 
-declare const REWRITERWASM: string | undefined;
+declare const VERSION: string;
+declare const COMMITHASH: string;
+declare const BUILDDATE: string;
+export const versionInfo: ScramjetVersionInfo = {
+	version: VERSION,
+	build: COMMITHASH,
+	date: BUILDDATE,
+};
 
 export const defaultConfig: ScramjetConfig = {
 	globals: {
@@ -63,7 +63,16 @@ export const defaultConfigDev: ScramjetConfig = {
 	},
 };
 
+declare const REWRITERWASM: string | undefined;
 // bundled build will have the wasm binary inlined as a base64 string
 if (REWRITERWASM) {
 	setWasm(Uint8Array.from(atob(REWRITERWASM), (c) => c.charCodeAt(0)));
 }
+
+export * from "./symbols";
+export * from "./types";
+export * from "./Tap";
+export * from "./shared";
+export * from "./fetch";
+export { BareResponse } from "@mercuryworkshop/proxy-transports";
+export * from "./client";
