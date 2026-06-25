@@ -684,6 +684,14 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
+	client.Proxy("HTMLAnchorElement.prototype.toString", {
+		apply(ctx) {
+			const href = ctx.call();
+			if (!href) return href;
+			return ctx.return(unrewriteUrl(href, client.context));
+		}
+	});
+
 	client.Trap(
 		[
 			"HTMLIFrameElement.prototype.contentWindow",
