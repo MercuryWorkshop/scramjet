@@ -4,8 +4,6 @@ import { String, _URL } from "@/shared/snapshot";
 import { createReferrerString } from "@/fetch/util";
 
 export default function (client: ScramjetClient, _self: Self) {
-	const tostring = String;
-
 	function resetDocumentWriter(document: Document) {
 		client.box.writeRewriters.delete(document);
 	}
@@ -25,17 +23,11 @@ export default function (client: ScramjetClient, _self: Self) {
 		return writer;
 	}
 
-	client.Proxy(
-		["Document.prototype.querySelector", "Document.prototype.querySelectorAll"],
-		{
-			apply(ctx) {
-				ctx.args[0] = String(ctx.args[0]).replace(
-					/((?:^|\s)\b\w+\[(?:src|href|data-href))[\^]?(=['"]?(?:https?[:])?\/\/)/,
-					"$1*$2"
-				);
-			},
-		}
-	);
+	client.Proxy("Document.prototype.open", {
+		apply(ctx) {
+			resetDocumentWriter(ctx.this);
+		},
+	});
 
 	client.Proxy("Document.prototype.write", {
 		apply(ctx) {
@@ -46,26 +38,6 @@ export default function (client: ScramjetClient, _self: Self) {
 					ctx.this,
 					writer.write(ctx.args.join(""))
 				)
-			);
-		},
-	});
-
-	client.Proxy("Document.prototype.open", {
-		apply(ctx) {
-			resetDocumentWriter(ctx.this);
-		},
-	});
-
-	client.Trap("Document.prototype.referrer", {
-		get() {
-			if (!client.history) return "";
-			if (client.history.length < 2) return "";
-			const lastState = client.history[client.history.length - 2];
-			const referrerURL = new _URL(lastState.url);
-			return createReferrerString(
-				referrerURL,
-				client.url,
-				lastState.refererPolicy
 			);
 		},
 	});
@@ -112,4 +84,58 @@ export default function (client: ScramjetClient, _self: Self) {
 			});
 		},
 	});
+	
+	client.Trap("Document.prototype.domain", {
+		get() {
+			return client.url.hostname;
+		},
+		set() {
+			return false;
+		},
+	});
+	
+	client.Trap("Document.prototype.documentURI", {
+		get() {
+			return client.url.href;
+		},
+		set() {
+			return false;
+		},
+	});
+
+	client.Trap("Document.prototype.URL", {
+		get() {
+			return client.url.href;
+		},
+		set() {
+			return false;
+		},
+	});
+
+	client.Trap("Document.prototype.referrer", {
+		get() {
+			if (!client.history) return "";
+			if (client.history.length < 2) return "";
+			const lastState = client.history[client.history.length - 2];
+			const referrerURL = new _URL(lastState.url);
+			return createReferrerString(
+				referrerURL,
+				client.url,
+				lastState.refererPolicy
+			);
+		},
+	});
+
+	client.Proxy(
+		["Document.prototype.querySelector", "Document.prototype.querySelectorAll"],
+		{
+			apply(ctx) {
+				ctx.args[0] = String(ctx.args[0]).replace(
+					/((?:^|\s)\b\w+\[(?:src|href|data-href))[\^]?(=['"]?(?:https?[:])?\/\/)/,
+					"$1*$2"
+				);
+			},
+		}
+	);
+
 }

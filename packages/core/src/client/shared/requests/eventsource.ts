@@ -1,9 +1,11 @@
 import { ScramjetClient } from "@client/index";
+import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
 	client.Proxy("EventSource", {
 		construct(ctx) {
-			ctx.args[0] = client.rewriteUrl(ctx.args[0]);
+			const url = String(ctx.args[0]);
+			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
