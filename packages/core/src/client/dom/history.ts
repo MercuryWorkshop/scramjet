@@ -8,7 +8,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		{
 			apply(ctx) {
 				const relevantclient = client.box.histories.get(ctx.this);
-				const url = String(ctx.args[2]);
+				const url = ctx.args[2] ? String(ctx.args[2]) : undefined;
 
 				if (_URL.canParse(url)) {
 					const parsedUrl = new _URL(url);
