@@ -73,10 +73,11 @@ export default function (client: ScramjetClient) {
 
 	client.Trap(["Attr.prototype.value", "Attr.prototype.nodeValue"], {
 		get(ctx) {
+			const name = client.descriptors.get("Attr.prototype.name", ctx.this);
 			const ownerElement = client.descriptors.get("Node.prototype.ownerElement", ctx.this);
 
 			if (ownerElement) {
-				return client.natives.call("Element.prototype.getAttribute", ownerElement);
+				return client.natives.call("Element.prototype.getAttribute", ownerElement, name);
 			}
 
 			return ctx.get();
