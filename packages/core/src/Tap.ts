@@ -90,7 +90,7 @@ function sortCallbacks<T extends Description>(
 		}
 		return sorted;
 	} catch (err) {
-		dbg.error(err);
+		dbg.error("an error occurred:", err);
 		return sorted;
 	}
 }
@@ -115,10 +115,10 @@ export class Tap {
 		hook: T,
 		context: T["context"],
 		props: T["props"]
-	): Promise<void[]> {
+	): Promise<void[]> | null {
 		const internal = hook as unknown as InternalHookDescription;
 		let callbacks = internal.tap.callbacks[internal.key];
-		if (!callbacks || callbacks.length === 0) return;
+		if (!callbacks || callbacks.length === 0) return null;
 
 		callbacks = sortCallbacks([...callbacks] as CallbackInfo<T>[]);
 

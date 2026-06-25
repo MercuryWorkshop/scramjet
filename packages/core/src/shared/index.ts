@@ -56,12 +56,6 @@ export type ScramjetContext = {
 	};
 };
 
-export const versionInfo: ScramjetVersionInfo = {
-	version: VERSION,
-	build: COMMITHASH,
-	date: BUILDDATE,
-};
-
 export type HtmlRewriterHooks = {
 	pre: {
 		context: {
