@@ -184,11 +184,8 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 	// we have to use an IIFE to avoid duplicating side-effects in the getter
 	Object_defineProperty(self, client.config.globals.trysetfn, {
 		value: function (lhs: any, op: string, rhs: any) {
-			// TODO: not cross frame safe
-			if (lhs instanceof self.Location) {
-				// @ts-ignore
-				client.locationProxy.href = rhs;
-
+			if (client.box.locations.has(lhs)) {
+				lhs.href = rhs;
 				return true;
 			}
 
