@@ -1,7 +1,7 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import fs from "fs-extra";
 import { downloadTemplate } from "giget";
-import path from "path";
-import { fileURLToPath } from "url";
 
 interface options {
 	projectName: string;

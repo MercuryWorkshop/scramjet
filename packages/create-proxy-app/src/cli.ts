@@ -1,6 +1,6 @@
-import * as prompt from "@clack/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
+import * as prompt from "@clack/prompts";
 import { execa } from "execa";
 import { scaffold } from "./scaffold";
 
@@ -42,10 +42,7 @@ async function project() {
 		"Skip any questions a bootstrap with default options"
 	);
 	program.parse(process.argv);
-	const providedName = program.args[0];
-	if (providedName) {
-		cliResults.dir = providedName;
-	}
+	program.args[0] ? cliResults.dir = program.args[0] : void 0;
 	cliResults.flags = program.opts();
 	if (cliResults.flags.default) {
 		const defaultOptSpinner = prompt.spinner();
@@ -54,27 +51,19 @@ async function project() {
 			chalk.yellow("Scaffolding using ALL default options")
 		);
 		await scaffold({
-			projectName: providedName ?? "proxy-app",
-			scaffoldType: "tsx/jsx",
-			tsScaffold: true,
+			projectName: cliResults.dir,
+			scaffoldType: "dedicated",
 		});
 		defaultOptSpinner.stop(chalk.green.bold("Scaffold complete!"));
 		return prompt.note(
-			`cd ${providedName ?? "proxy-app"} \nnpm run dev`,
+			`cd ${cliResults.dir} \nnpm run dev`,
 			chalk.bold.magenta("Done creating. Now run:")
 		);
 	}
-	if (process.env.TERM_PROGRAM?.toLowerCase().includes("mintty")) {
-		console.log(
-			chalk.yellow(
-				"WARNING: It looks like you are using MinTTY which is not interactive. This is most likely because you are using Git Bash. \nIf you are using Git Bash, please use it from another terminal like Windows Terminal. "
-			)
-		);
-		throw new Error("Terminal session is Non-Interactive");
-	}
-	const inital = await prompt.group(
+	
+	const initial = await prompt.group(
 		{
-			...(!providedName && {
+			...(!cliResults.dir && {
 				path: () =>
 					prompt.text({
 						message: chalk.green(
@@ -111,7 +100,7 @@ async function project() {
 			...(!cliResults.flags.git && {
 				init: () =>
 					prompt.confirm({
-						message: chalk.green("Do you want a Git repository initalized?"),
+						message: chalk.green("Do you want a Git repository initialized?"),
 						initialValue: false,
 					}),
 			}),
@@ -173,36 +162,36 @@ async function project() {
 	scaffoldSpinner.start();
 	scaffoldSpinner.message(chalk.yellow("Scaffolding..."));
 	await scaffold({
-		projectName: inital.path ?? cliResults.dir,
-		scaffoldType: inital.type,
+		projectName: initial.path ?? cliResults.dir,
+		scaffoldType: initial.type,
 	});
 	scaffoldSpinner.stop(chalk.bold.green("Scaffold complete!"));
 	if (initGit.init === true || cliResults.flags.git === true) {
 		const gitSpinner = prompt.spinner();
 		gitSpinner.start();
-		gitSpinner.message(chalk.yellow("Initalizing a Git repo"));
+		gitSpinner.message(chalk.yellow("Initializing a Git repo"));
 		try {
-			await execa("git", ["init"], { cwd: inital.path });
-			await execa("git", ["add", "-A"], { cwd: inital.path });
+			await execa("git", ["init"], { cwd: initial.path });
+			await execa("git", ["add", "-A"], { cwd: initial.path });
 			await execa(
 				"git",
 				[
 					"commit",
 					"-m",
-					"Inital Commit from Create Proxy App",
+					"Initial Commit from Create Proxy App",
 					'--author="create-proxy-app[bot] <cpa@mercurywork.shop>"',
 				],
-				{ cwd: inital.path }
+				{ cwd: initial.path }
 			);
 		} catch (err: any) {}
-		gitSpinner.stop(chalk.bold.green("Git repo successfully intitalized!"));
+		gitSpinner.stop(chalk.bold.green("Git repo successfully initialized!"));
 	}
 	if (installDeps.install === true || cliResults.flags.install === true) {
 		const pmSpinner = prompt.spinner();
 		pmSpinner.start();
 		pmSpinner.message(chalk.yellow("Installing dependencies..."));
 		try {
-			await execa(packageManager, ["install"], { cwd: inital.path });
+			await execa(packageManager, ["install"], { cwd: initial.path });
 		} catch (err: any) {
 			console.log(
 				chalk.yellow.bold(
@@ -210,37 +199,37 @@ async function project() {
 				)
 			);
 			packageManager = "npm";
-			await execa("npm", ["install"], { cwd: inital.path });
+			await execa("npm", ["install"], { cwd: initial.path });
 		}
 		pmSpinner.stop(chalk.bold.green("Dependencies installed!"));
 	}
 	switch (installDeps.install || cliResults.flags.install) {
 		case true:
 			prompt.note(
-				`cd ${inital.path ?? providedName} \n${packageManager} run dev`,
+				`cd ${initial.path ?? providedName} \n${packageManager} run dev`,
 				chalk.bold.magenta("Done creating. Now run:")
 			);
 			break;
 		case false:
 			prompt.note(
 				`cd ${
-					inital.path ?? providedName
+					initial.path ?? providedName
 				} \n${packageManager} install \n${packageManager} run dev`,
 				chalk.bold.magenta("Done creating. Now run:")
 			);
 			break;
 	}
-	if (inital.type === "basic") {
+	if (initial.type === "basic") {
 		const spinner = prompt.spinner();
 		spinner.start();
 		spinner.message(chalk.yellow("Scaffolding project..."));
 		await scaffold({
-			projectName: inital.path ?? providedName,
-			scaffoldType: inital.type,
+			projectName: initial.path ?? providedName,
+			scaffoldType: initial.type,
 		});
 		spinner.stop(chalk.bold.green("Scaffold complete!"));
 		prompt.note(
-			`cd ${inital.path} \nAnd get to work!`,
+			`cd ${initial.path} \nAnd get to work!`,
 			chalk.bold.magenta("Done. Now Do:")
 		);
 	}
