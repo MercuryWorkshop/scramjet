@@ -1,10 +1,11 @@
-import { bootstrap } from "@mercuryworkshop/proxy-bootstrap";
 import http from "node:http";
 import express from "express";
+import { bootstrap } from "@mercuryworkshop/proxy-bootstrap";
 
 const { routeRequest, routeUpgrade } = await bootstrap();
 
 const app = express();
+
 app.use((req, res, next) => {
 	if (routeRequest(req, res)) return;
 	next();

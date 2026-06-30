@@ -23,6 +23,9 @@
 		"pub": "pnpm publish --no-git-checks --access public"
 	},
 	"devDependencies": {
+		"@types/node": "^26.0.1"
+	},
+	"dependencies": {
 		"@clack/core": "^0.3.4",
 		"@clack/prompts": "^0.7.0",
 		"ajv": "^8.13.0",
