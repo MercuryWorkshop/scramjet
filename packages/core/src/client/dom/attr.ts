@@ -11,7 +11,7 @@ import {
 export default function (client: ScramjetClient) {
 	client.Trap("Element.prototype.attributes", {
 		get(ctx) {
-			const map = ctx.get();
+			const map = ctx.get() as NamedNodeMap;
 			const proxy = new Proxy(map, {
 				get(target, prop, _receiver) {
 					const value = Reflect_get(target, prop);
@@ -73,21 +73,19 @@ export default function (client: ScramjetClient) {
 
 	client.Trap(["Attr.prototype.value", "Attr.prototype.nodeValue"], {
 		get(ctx) {
-			const name = client.descriptors.get("Attr.prototype.name", ctx.this);
-			const ownerElement = client.descriptors.get("Node.prototype.ownerElement", ctx.this);
-
-			if (ownerElement) {
-				return client.natives.call("Element.prototype.getAttribute", ownerElement, name);
+			// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+			if (ctx.this?.ownerElement) {
+				// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+				return ctx.this.ownerElement.getAttribute(ctx.this.name);
 			}
 
 			return ctx.get();
 		},
 		set(ctx, value) {
-			const name = client.descriptors.get("Attr.prototype.name", ctx.this);
-			const ownerElement = client.descriptors.get("Node.prototype.ownerElement", ctx.this);
-			
-			if (ownerElement) {
-				return client.natives.call("Element.prototype.setAttribute", ownerElement, name, value);
+			// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+			if (ctx.this?.ownerElement) {
+				// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+				return ctx.this.ownerElement.setAttribute(ctx.this.name, value);
 			}
 
 			return ctx.set(value);
