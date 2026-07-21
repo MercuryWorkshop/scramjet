@@ -973,7 +973,7 @@ async function main() {
 						ghaEndGroup(),
 						ghaError(
 							`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
-						)
+						),
 					]
 						.filter(Boolean)
 						.join("\n")

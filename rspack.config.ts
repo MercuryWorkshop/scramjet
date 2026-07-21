@@ -252,18 +252,18 @@ export const tsloader = {
 //TODO: replace this
 function deepmerge<T extends any>(target: T, source: Partial<T>): T {
 	// this whole function is a hack, ignore all of the type errors
-	//@ts-ignore this whole function is a hack 
+	//@ts-ignore this whole function is a hack
 	const output = { ...target };
 	if (isObject(target) && isObject(source)) {
 		Object.keys(source).forEach((key) => {
-			//@ts-ignore this whole function is a hack 
+			//@ts-ignore this whole function is a hack
 			if (isObject(source[key])) {
-				//@ts-ignore this whole function is a hack 
+				//@ts-ignore this whole function is a hack
 				if (!(key in target)) Object.assign(output, { [key]: source[key] });
-				//@ts-ignore this whole function is a hack 
+				//@ts-ignore this whole function is a hack
 				else output[key] = deepmerge(target[key], source[key]);
 			} else {
-				//@ts-ignore this whole function is a hack 
+				//@ts-ignore this whole function is a hack
 				Object.assign(output, { [key]: source[key] });
 			}
 		});
@@ -274,13 +274,14 @@ function deepmerge<T extends any>(target: T, source: Partial<T>): T {
 function isObject(item: any): item is Record<string, unknown> {
 	return item && typeof item === "object" && !Array.isArray(item);
 }
-const rsDoctorPlugin = process.env.DEBUG ? new RsdoctorRspackPlugin({
-						supports: {
-							parseBundle: true,
-							banner: true,
-						},
-					})
-				: null
+const rsDoctorPlugin = process.env.DEBUG
+	? new RsdoctorRspackPlugin({
+			supports: {
+				parseBundle: true,
+				banner: true,
+			},
+		})
+	: null;
 const createGenericConfig = (options: Partial<RspackOptions>) => {
 	const def = {
 		devtool: "source-map",
@@ -297,9 +298,7 @@ const createGenericConfig = (options: Partial<RspackOptions>) => {
 				},
 			},
 		},
-		plugin: [
-			rsDoctorPlugin
-		],
+		plugin: [rsDoctorPlugin],
 		optimization: {
 			minimizer: [
 				new rspack.SwcJsMinimizerRspackPlugin({
@@ -310,16 +309,18 @@ const createGenericConfig = (options: Partial<RspackOptions>) => {
 			],
 		},
 	};
-	return defineConfig(deepmerge<RspackOptions>(def as unknown as RspackOptions, options));
+	return defineConfig(
+		deepmerge<RspackOptions>(def as unknown as RspackOptions, options)
+	);
 };
 
 type ScramjetBuildConfig = {
 	entry: RspackOptions["entry"];
-	output: RspackOptions["output"]
+	output: RspackOptions["output"];
 	rewriterWasm: string;
 	extraConfig?: Partial<RspackOptions>;
 	name: string;
-}
+};
 // Common configuration options for scramjet builds
 const createScramjetConfig = (options: ScramjetBuildConfig) => {
 	const { entry, output, rewriterWasm, extraConfig = {}, name } = options;
@@ -482,7 +483,7 @@ const moduleBundledConfig = createScramjetConfig({
 		experiments: {
 			outputModule: true,
 		},
-	}
+	},
 });
 
 // Type generation configuration

@@ -56,7 +56,9 @@ test("Package contains all required distribution files", async (t) => {
  * @param {import("ava").ExecutionContext} t - AVA unit test context.
  */
 test("All required JS bundles have corresponding source maps", async (t) => {
-	const jsFiles = EXPECTED_CORE_DIST_FILES.filter((file) => file.endsWith(".js"));
+	const jsFiles = EXPECTED_CORE_DIST_FILES.filter((file) =>
+		file.endsWith(".js")
+	);
 	const missingMaps = [];
 
 	for (const jsFile of jsFiles) {

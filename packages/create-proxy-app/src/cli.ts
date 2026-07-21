@@ -42,7 +42,7 @@ async function project() {
 		"Skip any questions a bootstrap with default options"
 	);
 	program.parse(process.argv);
-	program.args[0] ? cliResults.dir = program.args[0] : void 0;
+	program.args[0] ? (cliResults.dir = program.args[0]) : void 0;
 	cliResults.flags = program.opts();
 	if (cliResults.flags.default) {
 		const defaultOptSpinner = prompt.spinner();
@@ -60,7 +60,7 @@ async function project() {
 			chalk.bold.magenta("Done creating. Now run:")
 		);
 	}
-	
+
 	const initial = await prompt.group(
 		{
 			...(!cliResults.dir && {

@@ -16,7 +16,7 @@ export default {
 			],
 			watch: {
 				reloadPageOnChange: true,
-			}
+			},
 		}),
 	],
 };
