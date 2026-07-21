@@ -342,7 +342,8 @@ jobs:
           shared-key: "rewriter"
 
       - name: Run Tests
-        run: cd packages/core/rewriter/native && cargo test
+        run: cargo test
+        working-directory: packages/core/rewriter/native
 
   upload:
     name: Upload release
