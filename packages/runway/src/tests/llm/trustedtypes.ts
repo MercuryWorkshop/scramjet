@@ -139,7 +139,7 @@ export default [
 			assert(threw, "policy.createScriptURL without callback must throw TypeError");
 		`,
 	}),
-	
+
 	basicTest({
 		name: "trustedtypes-policy-callback-receives-original-input",
 		js: `

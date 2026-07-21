@@ -84,7 +84,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			});
 		},
 	});
-	
+
 	client.Trap("Document.prototype.domain", {
 		get() {
 			return client.url.hostname;
@@ -93,7 +93,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			return false;
 		},
 	});
-	
+
 	client.Trap("Document.prototype.documentURI", {
 		get() {
 			return client.url.href;
@@ -137,5 +137,4 @@ export default function (client: ScramjetClient, _self: Self) {
 			},
 		}
 	);
-
 }

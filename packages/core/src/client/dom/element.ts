@@ -533,15 +533,21 @@ export default function (client: ScramjetClient, self: typeof window) {
 			},
 		}
 	);
-	client.Trap(["HTMLElement.prototype.innerText", "HTMLScriptElement.prototype.innerText"], {
-		set(ctx, value: string) {
-			const text = String(value);
-			return ctx.set(rewriteTextForElement(ctx.this, text));
-		},
-		get(ctx) {
-			return getTextForElement(ctx.this, ctx.get());
-		},
-	});
+	client.Trap(
+		[
+			"HTMLElement.prototype.innerText",
+			"HTMLScriptElement.prototype.innerText",
+		],
+		{
+			set(ctx, value: string) {
+				const text = String(value);
+				return ctx.set(rewriteTextForElement(ctx.this, text));
+			},
+			get(ctx) {
+				return getTextForElement(ctx.this, ctx.get());
+			},
+		}
+	);
 
 	client.Trap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
@@ -689,7 +695,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			const href = ctx.call();
 			if (!href) return href;
 			return ctx.return(unrewriteUrl(href, client.context));
-		}
+		},
 	});
 
 	client.Trap(
