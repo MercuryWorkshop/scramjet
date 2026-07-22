@@ -1,0 +1,80 @@
+name: Docker Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag to publish (for example: v1.2.3)"
+        required: true
+        type: string
+      image_name:
+        description: "Optional image name suffix (ghcr.io/<owner>/<value>)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build and publish image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare image repository
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+          INPUT_IMAGE_NAME: ${{ github.event.inputs.image_name }}
+        run: |
+          set -euo pipefail
+          OWNER="$(echo "${REPOSITORY%/*}" | tr '[:upper:]' '[:lower:]')"
+          REPO="$(echo "${REPOSITORY#*/}" | tr '[:upper:]' '[:lower:]')"
+
+          if [ -n "${INPUT_IMAGE_NAME:-}" ]; then
+            IMAGE_SUFFIX="$(echo "$INPUT_IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+            IMAGE="ghcr.io/${OWNER}/${IMAGE_SUFFIX}"
+          else
+            IMAGE="ghcr.io/${OWNER}/${REPO}"
+          fi
+
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.image }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=${{ github.event.inputs.release_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
