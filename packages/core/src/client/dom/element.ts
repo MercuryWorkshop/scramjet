@@ -183,6 +183,14 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	}
 
+	client.Trap("HTMLImageElement.prototype.currentSrc", {
+		get(ctx) {
+			const currentSrc = ctx.get() as string;
+			if (!currentSrc) return currentSrc;
+			return unrewriteUrl(currentSrc, client.context);
+		},
+	});
+
 	// note that href is not here
 	const urlprops = [
 		"protocol",
