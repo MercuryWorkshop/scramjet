@@ -183,6 +183,26 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	}
 
+	const imageCurrentSrcDescriptor = client.natives.call(
+		"Object.getOwnPropertyDescriptor",
+		null,
+		self.HTMLImageElement.prototype,
+		"currentSrc"
+	);
+	Object_defineProperty(self.HTMLImageElement.prototype, "currentSrc", {
+		get() {
+			const original = client.natives.call(
+				"Element.prototype.getAttribute",
+				this,
+				"scramjet-attr-src"
+			);
+			if (original !== null) return original;
+			const currentSrc = imageCurrentSrcDescriptor.get.call(this);
+			if (!currentSrc) return currentSrc;
+			return unrewriteUrl(currentSrc, client.context);
+		},
+	});
+
 	// note that href is not here
 	const urlprops = [
 		"protocol",
