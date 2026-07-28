@@ -152,7 +152,8 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			} else {
 				transforms![")"]
 			}),
-			Ty::WrapPropertyLeft => LL::insert(transforms![&cfg.wrappropertyfn, "(("]),
+			// same hazard as WrapPostMessageLeft above
+			Ty::WrapPropertyLeft => LL::insert(transforms![" ", &cfg.wrappropertyfn, "(("]),
 			Ty::WrapPropertyRight => LL::insert(transforms!["))"]),
 			Ty::RewriteProperty { ident } => LL::replace(transforms![&cfg.wrappropertybase, ident]),
 			Ty::RebindProperty { ident, tempvar } => {
@@ -249,7 +250,11 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					LL::insert(transforms![",", &cfg.tempunusedid, "=(", &steps, "0)"])
 				}
 			}
-			Ty::WrapPostMessageLeft => LL::insert(transforms![&cfg.wrappostmessagefn, "("]),
+			// The insert point is the start of an arbitrary expression, which in minified code can
+			// sit directly after a keyword (`typeof(x).postMessage`). Without a separator the
+			// wrapper name glues to it and the result lexes as a single identifier
+			// (`typeof$wrapPostMessage`). Same reason `$scramitize` below is emitted with a space.
+			Ty::WrapPostMessageLeft => LL::insert(transforms![" ", &cfg.wrappostmessagefn, "("]),
 			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
 			Ty::ScramitizeFn => LL::insert(transforms![" $scramitize("]),
 			Ty::EvalRewriteFn => LL::insert(transforms![&cfg.rewritefn, "("]),
