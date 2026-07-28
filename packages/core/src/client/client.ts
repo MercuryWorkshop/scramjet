@@ -44,6 +44,7 @@ import {
 	Object_defineProperties,
 	_Map,
 } from "@/shared/snapshot";
+import { createIndirectEval } from "./shared/eval";
 
 // https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
 type IfEquals<T, U, Y = unknown, N = never> =
@@ -193,6 +194,7 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 
 export class ScramjetClient {
 	locationProxy: any;
+	indirectEval: any;
 	serviceWorker: ServiceWorkerContainer;
 	bare: BareCompatibleClient;
 
@@ -270,6 +272,7 @@ export class ScramjetClient {
 			global.document[SCRAMJETCLIENT] = this;
 		}
 
+		this.indirectEval = createIndirectEval(this);
 		this.wrapfn = createWrapFn(this, global);
 		this.natives = {
 			store: new Proxy(
