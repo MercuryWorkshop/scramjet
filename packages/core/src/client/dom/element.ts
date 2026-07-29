@@ -328,9 +328,56 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	// i actually need to do something with this
 	client.Proxy("Element.prototype.setAttributeNode", {
-		apply(_ctx) {},
+		apply(ctx) {
+			const attr = ctx.args[0];
+			const name = attr.name;
+			const value = attr.value;
+			const tagName = ctx.this.tagName.toLowerCase();
+
+			const ruleList = htmlRules.find((rule) => {
+				const r = rule[name.toLowerCase()];
+				if (!r) return false;
+				if (r === "*") return true;
+				if (typeof r === "function") return false;
+
+				return r.includes(tagName);
+			});
+
+			if (ruleList) {
+				const ret = ruleList.fn(
+					value,
+					client.context,
+					client.meta,
+					collectAttributeMap(client, ctx.this, name, value)
+				);
+
+				if (ret == null) {
+					client.natives.call(
+						"Element.prototype.removeAttribute",
+						ctx.this,
+						name
+					);
+					client.natives.call(
+						"Element.prototype.setAttribute",
+						ctx.this,
+						`scramjet-attr-${name}`,
+						value
+					);
+					ctx.return(null);
+
+					return;
+				}
+
+				attr.value = ret;
+				client.natives.call(
+					"Element.prototype.setAttribute",
+					ctx.this,
+					`scramjet-attr-${name}`,
+					value
+				);
+			}
+		},
 	});
 
 	client.Proxy("Element.prototype.setAttributeNS", {
