@@ -250,7 +250,9 @@ export default [
 				}
 				if (req.url === "/sub/page.html") {
 					res.writeHead(200, { "Content-Type": "text/html" });
-					res.end("<!doctype html><html><head></head><body><p>iframe page</p></body></html>");
+					res.end(
+						"<!doctype html><html><head></head><body><p>iframe page</p></body></html>"
+					);
 					return;
 				}
 				res.writeHead(404);

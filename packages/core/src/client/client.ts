@@ -80,13 +80,24 @@ export type ScramjetClientInit = {
 };
 type NativeStore = {
 	store: Record<string, any>;
-	construct: <T extends string>(target: T, ...args: ConstructorParameters<GlobalTraverse<T>>) => InstanceType<GlobalTraverse<T>>;
-	call: <T extends string>(target: T, that: ProxyApplyThis<T>, ...args: Parameters<GlobalTraverse<T>>) => ReturnType<GlobalTraverse<T>>;
+	construct: <T extends string>(
+		target: T,
+		...args: ConstructorParameters<GlobalTraverse<T>>
+	) => InstanceType<GlobalTraverse<T>>;
+	call: <T extends string>(
+		target: T,
+		that: ProxyApplyThis<T>,
+		...args: Parameters<GlobalTraverse<T>>
+	) => ReturnType<GlobalTraverse<T>>;
 };
 type DescriptorStore = {
 	store: Record<string, PropertyDescriptor>;
 	get: <T extends string>(target: T, that: any) => GlobalTraverse<T>;
-	set: <T extends string>(target: T, that: any, value: GlobalTraverse<T>) => void;
+	set: <T extends string>(
+		target: T,
+		that: any,
+		value: GlobalTraverse<T>
+	) => void;
 };
 
 export type ProxyCtx<
