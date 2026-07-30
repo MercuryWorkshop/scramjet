@@ -4,6 +4,13 @@
 export const String = globalThis.String;
 export const String_fromCodePoint = globalThis.String.fromCodePoint;
 export const String_fromCharCode = globalThis.String.fromCharCode;
+
+// Prototype methods need the same treatment as the statics above: a page is free to replace
+// `String.prototype.startsWith`, and the URL rewriter calls it on strings that come from the page.
+const Function_prototype_call = globalThis.Function.prototype.call;
+export const String_startsWith = Function_prototype_call.bind(
+	globalThis.String.prototype.startsWith
+) as (str: string, searchString: string, position?: number) => boolean;
 export const Number = globalThis.Number;
 export const Number_parseInt = globalThis.Number.parseInt;
 export const Number_isSafeInteger = globalThis.Number.isSafeInteger;
