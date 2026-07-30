@@ -2,7 +2,6 @@ import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 // import { argdbg } from "@client/shared/err";
-import { indirectEval } from "@client/shared/eval";
 import { Object_defineProperty } from "@/shared/snapshot";
 
 export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
@@ -40,13 +39,10 @@ export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
 		wrappedTop = current;
 	}
 
-	return function (identifier: any, strict: boolean) {
+	return function (identifier: any) {
 		if (identifier === self.location) return client.locationProxy;
 		if (identifier === self.eval) {
-			// TODO: make this per-client, don't regen every time
-			const bound = indirectEval.bind(client, strict);
-			client.box.unproxy.set(bound, self.eval);
-			return bound;
+			return client.indirectEval;
 		}
 		if (iswindow) {
 			if (identifier === self.parent) {
@@ -122,7 +118,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		client.config.globals.wrappropertybase + "parent",
 		{
 			get: function () {
-				return client.wrapfn(this.parent, false);
+				return client.wrapfn(this.parent);
 			},
 			set(value: any) {
 				// i guess??
@@ -137,7 +133,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		client.config.globals.wrappropertybase + "top",
 		{
 			get: function () {
-				return client.wrapfn(this.top, false);
+				return client.wrapfn(this.top);
 			},
 			set(value: any) {
 				this.top = value;
@@ -151,7 +147,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		client.config.globals.wrappropertybase + "eval",
 		{
 			get: function () {
-				return client.wrapfn(this.eval, true);
+				return client.wrapfn(this.eval);
 			},
 			set(value: any) {
 				this.eval = value;
