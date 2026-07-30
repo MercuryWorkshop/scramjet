@@ -8,6 +8,7 @@ import {
 	_URLSearchParams,
 	atob,
 	String,
+	String_startsWith,
 	URL_createObjectURL,
 } from "../snapshot";
 
@@ -81,7 +82,7 @@ function dataToBlob(url: string) {
 	let type = mediaType || "text/plain";
 	if (!mediaType) {
 		const hasCharset = params.some((part) =>
-			part.toLowerCase().startsWith("charset=")
+			String_startsWith(part.toLowerCase(), "charset=")
 		);
 		if (!hasCharset) {
 			params.push("charset=US-ASCII");
@@ -121,7 +122,7 @@ export function rewriteUrl(
 ) {
 	url = String(url);
 
-	if (url.startsWith("javascript:")) {
+	if (String_startsWith(url, "javascript:")) {
 		return (
 			"javascript:" +
 			rewriteJs(
@@ -131,9 +132,9 @@ export function rewriteUrl(
 				meta
 			)
 		);
-	} else if (url.startsWith("blob:")) {
+	} else if (String_startsWith(url, "blob:")) {
 		return context.prefix.href + url;
-	} else if (url.startsWith("data:")) {
+	} else if (String_startsWith(url, "data:")) {
 		const URL_MAX_LENGTH = 1024 * 1024 * 2;
 		const BUFFER = 1024;
 		// chrome will explode if you make a request to a service worker with a 2MB+ URL
@@ -150,12 +151,15 @@ export function rewriteUrl(
 		}
 
 		return context.prefix.href + url;
-	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
+	} else if (
+		String_startsWith(url, "mailto:") ||
+		String_startsWith(url, "about:")
+	) {
 		return url;
 	} else {
 		let base = meta.base.href;
 
-		if (base.startsWith("about:"))
+		if (String_startsWith(base, "about:"))
 			base = unrewriteUrl(self.location.href, context); // jank!!!!! weird jank!!!
 		const realUrl = tryCanParseURL(url, base);
 		if (!realUrl) return url;
@@ -206,26 +210,32 @@ export function rewriteUrl(
 
 export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 	url = String(url);
-	if (url.startsWith("javascript:")) {
+	if (String_startsWith(url, "javascript:")) {
 		//TODO
 		return url;
-	} else if (url.startsWith("blob:")) {
+	} else if (String_startsWith(url, "blob:")) {
 		// realistically this shouldn't happen
 		return url;
-	} else if (url.startsWith(context.prefix.href + "blob:")) {
+	} else if (String_startsWith(url, context.prefix.href + "blob:")) {
 		return url.substring(context.prefix.href.length);
-	} else if (url.startsWith(context.prefix.href + "data:")) {
+	} else if (String_startsWith(url, context.prefix.href + "data:")) {
 		return url.substring(context.prefix.href.length);
-	} else if (url.startsWith("mailto:") || url.startsWith("about:")) {
+	} else if (
+		String_startsWith(url, "mailto:") ||
+		String_startsWith(url, "about:")
+	) {
 		return url;
-	} else if (url.startsWith("http:") || url.startsWith("https:")) {
+	} else if (
+		String_startsWith(url, "http:") ||
+		String_startsWith(url, "https:")
+	) {
 		const realUrl = tryCanParseURL(url);
 		if (!realUrl) return url;
 		if (realUrl.protocol != "http:" && realUrl.protocol != "https:") {
 			// custom protocol
 			return url;
 		}
-		if (!realUrl.href.startsWith(context.prefix.href)) {
+		if (!String_startsWith(realUrl.href, context.prefix.href)) {
 			dbg.error("unrewriteurl: unexpected url", url);
 			return url;
 		}

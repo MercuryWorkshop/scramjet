@@ -158,15 +158,23 @@ addEventListener("message", (e) => {
 });
 
 export function shouldRoute(event: FetchEvent): boolean {
-	const url = new URL(event.request.url);
-	const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix));
-	return tab !== undefined;
+	try {
+		const url = new URL(event.request.url);
+		const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix));
+		return tab !== undefined;
+	} catch (e) {
+		console.error("Error in shouldRoute:", e);
+		return false;
+	}
 }
 
 export async function route(event: FetchEvent): Promise<Response> {
 	try {
 		const url = new URL(event.request.url);
 		const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix))!;
+		if (tab === undefined) {
+			throw new Error("No tab found for request: " + event.request.url);
+		}
 		const client = await clients.get(event.clientId);
 
 		const rawheaders: RawHeaders = [...event.request.headers];
