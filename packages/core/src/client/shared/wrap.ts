@@ -118,7 +118,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		client.config.globals.wrappropertybase + "parent",
 		{
 			get: function () {
-				return client.wrapfn(this.parent, false);
+				return client.wrapfn(this.parent);
 			},
 			set(value: any) {
 				// i guess??
@@ -133,7 +133,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		client.config.globals.wrappropertybase + "top",
 		{
 			get: function () {
-				return client.wrapfn(this.top, false);
+				return client.wrapfn(this.top);
 			},
 			set(value: any) {
 				this.top = value;
@@ -147,7 +147,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		client.config.globals.wrappropertybase + "eval",
 		{
 			get: function () {
-				return client.wrapfn(this.eval, true);
+				return client.wrapfn(this.eval);
 			},
 			set(value: any) {
 				this.eval = value;
