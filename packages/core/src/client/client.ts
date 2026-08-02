@@ -44,6 +44,7 @@ import {
 	Object_defineProperties,
 	_Map,
 } from "@/shared/snapshot";
+import { createIndirectEval } from "./shared/eval";
 
 // https://github.com/Microsoft/TypeScript/issues/27024#issuecomment-421529650
 type IfEquals<T, U, Y = unknown, N = never> =
@@ -80,13 +81,24 @@ export type ScramjetClientInit = {
 };
 type NativeStore = {
 	store: Record<string, any>;
-	construct: <T extends string>(target: T, ...args: ConstructorParameters<GlobalTraverse<T>>) => InstanceType<GlobalTraverse<T>>;
-	call: <T extends string>(target: T, that: ProxyApplyThis<T>, ...args: Parameters<GlobalTraverse<T>>) => ReturnType<GlobalTraverse<T>>;
+	construct: <T extends string>(
+		target: T,
+		...args: ConstructorParameters<GlobalTraverse<T>>
+	) => InstanceType<GlobalTraverse<T>>;
+	call: <T extends string>(
+		target: T,
+		that: ProxyApplyThis<T>,
+		...args: Parameters<GlobalTraverse<T>>
+	) => ReturnType<GlobalTraverse<T>>;
 };
 type DescriptorStore = {
 	store: Record<string, PropertyDescriptor>;
 	get: <T extends string>(target: T, that: any) => GlobalTraverse<T>;
-	set: <T extends string>(target: T, that: any, value: GlobalTraverse<T>) => void;
+	set: <T extends string>(
+		target: T,
+		that: any,
+		value: GlobalTraverse<T>
+	) => void;
 };
 
 export type ProxyCtx<
@@ -182,6 +194,7 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
 
 export class ScramjetClient {
 	locationProxy: any;
+	indirectEval: any;
 	serviceWorker: ServiceWorkerContainer;
 	bare: BareCompatibleClient;
 
@@ -259,6 +272,7 @@ export class ScramjetClient {
 			global.document[SCRAMJETCLIENT] = this;
 		}
 
+		this.indirectEval = createIndirectEval(this);
 		this.wrapfn = createWrapFn(this, global);
 		this.natives = {
 			store: new Proxy(
