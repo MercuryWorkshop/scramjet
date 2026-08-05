@@ -9,7 +9,17 @@ export const AVAILABLE_TRANSPORTS: ReadonlyArray<{
 	{ value: "libcurl", label: "Libcurl" },
 	{ value: "epoxy", label: "Epoxy" },
 ];
-const DEFAULT_WISP_URL = import.meta.env.VITE_WISP_URL;
+// Default the Wisp endpoint to the SAME ORIGIN that served the page, so the app
+// works on whatever hostname it's deployed to (onrender, a custom domain,
+// localhost, …) without hardcoding any single host. This is what lets a custom
+// domain fully bypass a block on the original host: the WebSocket follows the
+// page's domain instead of dialing a fixed backend. An explicit build-time
+// VITE_WISP_URL still overrides it if the backend lives on a different origin.
+const DEFAULT_WISP_URL =
+	import.meta.env.VITE_WISP_URL ||
+	(typeof location !== "undefined"
+		? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/wisp/`
+		: "wss://localhost/wisp/");
 const DEFAULT_TRANSPORT: AvailableTransports = "libcurl";
 const DEFAULT_HOME_URL = "https://google.com";
 const DEFAULT_MAX_REQUESTS = 200;

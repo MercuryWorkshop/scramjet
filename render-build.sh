@@ -61,13 +61,13 @@ echo "==> Building scramjet core, controller and utils bundles"
 pnpm exec rspack build --mode production
 
 echo "==> Building the static demo"
-# The Wisp endpoint is same-origin. On Render, RENDER_EXTERNAL_HOSTNAME is set
-# during the build; fall back to VITE_WISP_URL if you host elsewhere.
-if [ -n "${RENDER_EXTERNAL_HOSTNAME:-}" ]; then
-	export VITE_WISP_URL="wss://${RENDER_EXTERNAL_HOSTNAME}/wisp/"
-fi
-: "${VITE_WISP_URL:?VITE_WISP_URL must be set (e.g. wss://your-app.onrender.com/wisp/)}"
-echo "    VITE_WISP_URL=${VITE_WISP_URL}"
+# Leave VITE_WISP_URL unset so the client derives the Wisp endpoint from the
+# SAME ORIGIN that serves the page. This means the same build works on the
+# onrender host, a custom domain, or localhost with no rebuild — and a custom
+# domain fully bypasses a block on the original host, because the WebSocket
+# targets the page's own domain rather than a hardcoded backend.
+# Set VITE_WISP_URL only if the Wisp backend lives on a different origin.
+if [ -n "${VITE_WISP_URL:-}" ]; then echo "    VITE_WISP_URL=${VITE_WISP_URL}"; fi
 pnpm --filter @mercuryworkshop/scramjet-demo build
 
 echo "==> Build complete. Static output: packages/demo/dist"
