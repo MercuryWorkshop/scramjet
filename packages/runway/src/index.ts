@@ -264,6 +264,9 @@ async function createTestPage(
 	let resultPromise: Promise<TestResult>;
 	let okCount = 0;
 	let expectedRunwayToken: string | undefined;
+	// Whether a test currently owns this page. Uncaught errors are only charged
+	// to a test while it's armed; see the `pageerror` handler below.
+	let armed = false;
 
 	const resetPromise = () => {
 		resultPromise = new Promise<TestResult>((resolve) => {
@@ -272,6 +275,13 @@ async function createTestPage(
 		okCount = 0;
 	};
 	resetPromise();
+
+	const settle = (result: TestResult) => {
+		if (timeoutId) clearTimeout(timeoutId);
+		armed = false;
+		resolveResult(result);
+		resetPromise();
+	};
 
 	const onBindingCalled = (event: { name: string; payload: string }) => {
 		const { name, payload } = event;
@@ -291,21 +301,17 @@ async function createTestPage(
 		}
 
 		if (name === "__testPass") {
-			if (timeoutId) clearTimeout(timeoutId);
-			resolveResult({
+			settle({
 				status: "pass",
 				message: data.message,
 				details: data.details,
 			});
-			resetPromise();
 		} else if (name === "__testFail") {
-			if (timeoutId) clearTimeout(timeoutId);
-			resolveResult({
+			settle({
 				status: "fail",
 				message: data.message,
 				details: data.details,
 			});
-			resetPromise();
 		} else if (name === "__testConsistent") {
 			if (options.onConsistent) {
 				options.onConsistent(options.name, data.label, data.value);
@@ -322,13 +328,15 @@ async function createTestPage(
 
 	if (options.installBindings !== false) {
 		page.on("pageerror", (error) => {
-			if (timeoutId) clearTimeout(timeoutId);
-			resolveResult({
+			// `pageerror` carries no frame attribution, so an error can only be
+			// blamed on a test that currently owns the page. Anything raised
+			// between tests belongs to a document we've already torn down.
+			if (!armed) return;
+			settle({
 				status: "fail",
 				message: `Uncaught error: ${error.message}`,
 				details: error.stack,
 			});
-			resetPromise();
 		});
 	}
 
@@ -337,12 +345,12 @@ async function createTestPage(
 		context,
 		waitForResult: (timeout: number, runwayToken?: string) => {
 			expectedRunwayToken = runwayToken;
+			armed = true;
 			timeoutId = setTimeout(() => {
-				resolveResult({
+				settle({
 					status: "fail",
 					message: `Test timed out after ${timeout}ms`,
 				});
-				resetPromise();
 			}, timeout);
 			return resultPromise;
 		},
@@ -352,6 +360,7 @@ async function createTestPage(
 				timeoutId = null;
 			}
 			expectedRunwayToken = undefined;
+			armed = false;
 			resetPromise();
 		},
 		getOkCount: () => okCount,
@@ -360,23 +369,67 @@ async function createTestPage(
 				return () => {};
 			}
 			const onPageError = (error: Error) => {
-				if (timeoutId) clearTimeout(timeoutId);
-				resolveResult({
+				if (!armed) return;
+				settle({
 					status: "fail",
 					message: `Uncaught error: ${error.message}`,
 					details: error.stack,
 				});
-				resetPromise();
 			};
 			otherPage.on("pageerror", onPageError);
 			return () => otherPage.off("pageerror", onPageError);
 		},
 		cleanup: async () => {
 			if (timeoutId) clearTimeout(timeoutId);
+			armed = false;
 			bindingHandle.dispose();
 			await context.close().catch(() => {});
 		},
 	};
+}
+
+/**
+ * Blank the harness test iframe, destroying whatever document the previous
+ * test left behind.
+ *
+ * Tearing a document down can raise late, asynchronous errors that have
+ * nothing to do with the next test — a real site with an in-flight view
+ * transition rejects it with "Transition was skipped" on unload, for
+ * instance. Playwright reports those through `pageerror`, which carries no
+ * frame attribution, so whichever test happened to be armed at that moment
+ * got blamed. Unloading here means the teardown lands while the page is
+ * unarmed and the errors are dropped.
+ */
+async function resetTestFrame(page: Page) {
+	if (page.isClosed()) return;
+	await page
+		.evaluate(
+			() =>
+				new Promise<void>((resolve) => {
+					const iframe = document.getElementById(
+						"testframe"
+					) as HTMLIFrameElement | null;
+					// No previous document to tear down.
+					if (!iframe || iframe.getAttribute("src") === "about:blank") {
+						resolve();
+						return;
+					}
+					let settled = false;
+					const finish = () => {
+						if (settled) return;
+						settled = true;
+						// Yield a task so that an unhandled rejection queued by the
+						// outgoing document is reported before we hand the page to
+						// the next test.
+						setTimeout(resolve, 0);
+					};
+					iframe.addEventListener("load", finish, { once: true });
+					// Never let a frame that won't fire `load` stall the run.
+					setTimeout(finish, 2000);
+					iframe.src = "about:blank";
+				})
+		)
+		.catch(() => {});
 }
 
 async function syncRunwayCleartextHarness(page: Page, test: Test) {
@@ -405,6 +458,9 @@ async function runTestOnHarness(
 	serverResult: Promise<TestResult> | null,
 	timeout: number = 30000
 ): Promise<TestResult> {
+	// Must happen before this test arms the page, so that anything the previous
+	// document emits on the way out isn't charged to this test.
+	await resetTestFrame(page);
 	await syncRunwayCleartextHarness(page, test);
 
 	const warmProxiedUrl = async (url: string) => {
