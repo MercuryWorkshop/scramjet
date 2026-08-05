@@ -1,4 +1,4 @@
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { unrewriteLinkHeader } from "./xmlhttprequest";
 import { String } from "@/shared/snapshot";
 
@@ -18,7 +18,7 @@ function rewriteUrlOptionsForFetch(init: RequestInit | undefined) {
 	};
 }
 
-export default function (client: ScramjetClient) {
+export default function (client: AkClient) {
 	client.Proxy("fetch", {
 		apply(ctx) {
 			if (client.box.instanceof(ctx.args[0], "Request")) return;

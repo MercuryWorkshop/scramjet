@@ -47,7 +47,7 @@ const FETCH_METADATA_USER_ACTIVATION_GENERATED = new Set<string>([
 ]);
 
 /**
- * Worklet-related fetch-metadata tests. Scramjet doesn't currently proxy
+ * Worklet-related fetch-metadata tests. Ak doesn't currently proxy
  * AudioWorklet / PaintWorklet module loads, so these can never pass; we
  * exclude them rather than vendor dead weight.
  */
@@ -131,7 +131,7 @@ export const COOKIE_WPT_FILES = [
 	"cookies/prefix/__secure.header.https.html",
 	// Size tests
 	"cookies/size/name-and-value.html",
-	// SameSite test pages (all .https.html — run over HTTP since Scramjet treats all as HTTPS)
+	// SameSite test pages (all .https.html — run over HTTP since Ak treats all as HTTPS)
 	"cookies/samesite/fetch.https.html",
 	"cookies/samesite/iframe.https.html",
 	"cookies/samesite/iframe.document.https.html",

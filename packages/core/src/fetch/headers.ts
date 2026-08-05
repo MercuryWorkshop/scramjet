@@ -1,14 +1,14 @@
 import {
 	rewriteUrl,
-	ScramjetContext,
-	ScramjetHeaders,
+	AkContext,
+	AkHeaders,
 	unrewriteUrl,
 	URLMeta,
 } from "@/shared";
 import {
-	ScramjetFetchHandler,
-	ScramjetFetchParsed,
-	ScramjetFetchRequest,
+	AkFetchHandler,
+	AkFetchParsed,
+	AkFetchRequest,
 } from ".";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import { _URL, _Set } from "@/shared/snapshot";
@@ -50,7 +50,7 @@ const URL_HEADERS = new _Set([
 
 function rewriteLinkHeader(
 	link: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta
 ) {
 	return link.replace(/<([^>]+)>/gi, (_match, p1) => {
@@ -59,12 +59,12 @@ function rewriteLinkHeader(
 }
 
 export async function rewriteResponseHeaders(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
+	handler: AkFetchHandler,
+	request: AkFetchRequest,
+	parsed: AkFetchParsed,
 	rawHeaders: RawHeaders
-): Promise<ScramjetHeaders> {
-	const headers = ScramjetHeaders.fromRawHeaders(rawHeaders);
+): Promise<AkHeaders> {
+	const headers = AkHeaders.fromRawHeaders(rawHeaders);
 
 	for (const cspHeader of SEC_HEADERS) {
 		headers.delete(cspHeader);
@@ -117,10 +117,10 @@ export async function rewriteResponseHeaders(
 }
 
 export function rewriteRequestHeaders(
-	request: ScramjetFetchRequest,
-	handler: ScramjetFetchHandler,
-	parsed: ScramjetFetchParsed
-): ScramjetHeaders {
+	request: AkFetchRequest,
+	handler: AkFetchHandler,
+	parsed: AkFetchParsed
+): AkHeaders {
 	const headers = request.initialHeaders.clone();
 
 	// avoid leaking the scramjet referer
@@ -181,10 +181,10 @@ export function rewriteRequestHeaders(
  * to plain http:// non-loopback destinations.
  */
 function applyFetchMetadataHeaders(
-	headers: ScramjetHeaders,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
-	handler: ScramjetFetchHandler
+	headers: AkHeaders,
+	request: AkFetchRequest,
+	parsed: AkFetchParsed,
+	handler: AkFetchHandler
 ) {
 	// Strip browser-attached Sec-Fetch-* (computed from the proxy URL space).
 	headers.delete("sec-fetch-site");
@@ -282,8 +282,8 @@ function applyFetchMetadataHeaders(
  *   `sj$cred` says otherwise.
  */
 function requestIncludesCredentials(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed
+	request: AkFetchRequest,
+	parsed: AkFetchParsed
 ): boolean {
 	if (parsed.fetchCredentialsInclude) return true;
 	const dest = parsed.destination;
@@ -325,8 +325,8 @@ function requestIncludesCredentials(
  *      proxy-URL computation).
  */
 function computeFetchMode(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed
+	request: AkFetchRequest,
+	parsed: AkFetchParsed
 ): string {
 	if (parsed.fetchMode) return parsed.fetchMode;
 	const dest = parsed.destination;
@@ -360,9 +360,9 @@ function computeFetchMode(
  * initiator regardless of Referer policy.
  */
 function resolveFetchInitiatorUrl(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
-	handler: ScramjetFetchHandler
+	request: AkFetchRequest,
+	parsed: AkFetchParsed,
+	handler: AkFetchHandler
 ): URL | undefined {
 	// On any hop after the first, the propagated initiator origin is the
 	// authoritative source. rawReferrer may have been replaced with the
@@ -472,8 +472,8 @@ export function worstFetchSite(
  * "cross-site" – cross-site subresource or non-safe-method navigation (block Strict+Lax)
  */
 function computeSameSiteContext(
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
+	request: AkFetchRequest,
+	parsed: AkFetchParsed,
 	rawOriginUrl: URL | undefined
 ): "strict" | "lax" | "cross-site" {
 	// If a redirect chain previously passed through a cross-site origin, the

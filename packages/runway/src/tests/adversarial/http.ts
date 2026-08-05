@@ -238,7 +238,7 @@ export default [
 			assertEqual(r.status, 200, "final status");
 			assertEqual(r.redirected, true, "redirected flag");
 			assertEqual(r.url, location.origin + "/echo", "final URL");
-			assert(!r.url.includes("/~/sj/"), "no proxy URL in the final URL");
+			assert(!r.url.includes("/a/"), "no proxy URL in the final URL");
 			assertEqual((await r.json()).path, "/echo", "landed on the target");
 		`
 	),
@@ -467,7 +467,7 @@ export default [
 			assertEqual(Response.error().type, "error", "Response.error");
 			const rd = Response.redirect("/somewhere", 302);
 			assertEqual(rd.status, 302, "Response.redirect status");
-			assert(!rd.headers.get("location").includes("/~/sj/"),
+			assert(!rd.headers.get("location").includes("/a/"),
 				"Response.redirect location: " + rd.headers.get("location"));
 		`,
 	}),

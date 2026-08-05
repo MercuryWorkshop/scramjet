@@ -7,11 +7,21 @@ export default {
 			targets: [
 				{
 					src: "node_modules/@mercuryworkshop/scramjet/dist/*",
-					dest: "scramjet",
+					dest: "assets",
+					rename: (fileName, fileExtension) =>
+						`${fileExtension ? `${fileName}.${fileExtension}` : fileName}`.replace(
+							/scramjet/g,
+							"app"
+						),
 				},
 				{
 					src: "node_modules/@mercuryworkshop/scramjet-controller/dist/*",
-					dest: "controller",
+					dest: "assets",
+					rename: (fileName, fileExtension) =>
+						`${fileExtension ? `${fileName}.${fileExtension}` : fileName}`.replace(
+							/controller/g,
+							"core"
+						),
 				},
 			],
 			watch: {

@@ -165,15 +165,15 @@ const BrowserView: Component<
 		});
 		let realHomepage = homepage;
 		realHomepage = realHomepage.replaceAll(
-			"{{SCRAMJET_VERSION}}",
+			"{{APP_VERSION}}",
 			String(versionInfo.version)
 		);
 		realHomepage = realHomepage.replaceAll(
-			"{{SCRAMJET_BUILD}}",
+			"{{APP_BUILD}}",
 			String(versionInfo.build)
 		);
 		realHomepage = realHomepage.replaceAll(
-			"{{SCRAMJET_DATE_PRETTY}}",
+			"{{APP_DATE_PRETTY}}",
 			new Date(versionInfo.date).toLocaleString(undefined, {
 				dateStyle: "short",
 				timeStyle: "short",

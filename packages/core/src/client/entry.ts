@@ -1,9 +1,9 @@
 // entrypoint for scramjet.client.js
 
-import { ScramjetContext, ScramjetInterface } from "@/shared/index";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
-import { ScramjetConfig } from "@/types";
+import { AkContext, AkInterface } from "@/shared/index";
+import { AKCLIENT } from "@/symbols";
+import { AkClient } from "@client/index";
+import { AkConfig } from "@/types";
 
 export const iswindow = "window" in globalThis && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in globalThis;

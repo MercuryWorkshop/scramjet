@@ -129,7 +129,7 @@ export default [
 			assertEqual(doc.querySelector("#l").getAttribute("href"), "/sd", "attribute inside srcdoc");
 			assertEqual(doc.querySelector("#l").href, location.origin + "/sd", "resolved href inside srcdoc");
 			assert(f.getAttribute("srcdoc").includes("/sd"), "srcdoc attribute round trip");
-			assert(!f.getAttribute("srcdoc").includes("/~/sj/"), "srcdoc must not expose the proxy URL");
+			assert(!f.getAttribute("srcdoc").includes("/a/"), "srcdoc must not expose the proxy URL");
 		`,
 	}),
 	basicTest({
@@ -144,7 +144,7 @@ export default [
 			assertEqual(doc.querySelector("#l").getAttribute("href"), "/ab", "written attribute");
 			assertEqual(doc.querySelector("#l").href, location.origin + "/ab", "resolved href in the written frame");
 			assertEqual(doc.querySelector("#i").src, location.origin + "/ab.png", "written img src");
-			assert(!doc.baseURI.includes("/~/sj/"), "baseURI must not expose the proxy URL: " + doc.baseURI);
+			assert(!doc.baseURI.includes("/a/"), "baseURI must not expose the proxy URL: " + doc.baseURI);
 			assertEqual(doc.body.innerHTML, '<a id="l" href="/ab">x</a><img id="i" src="/ab.png">',
 				"serialization round trip in the written frame");
 		`,

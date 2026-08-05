@@ -55,10 +55,10 @@ export const defaultConfig: Partial<BootstrapOptions> = {
 	bareClientPath: "/clients/bare-client.js",
 	bootstrapInitPath: "/bootstrap-init.js",
 
-	scramjetControllerApiPath: "/controller/controller.api.js",
-	scramjetControllerInjectPath: "/controller/controller.inject.js",
-	scramjetControllerSwPath: "/controller/controller.sw.js",
-	scramjetBundlePath: "/scram/scramjet.js",
-	scramjetWasmPath: "/scram/scramjet.wasm",
-	scramjetUtilsBundlePath: "/scram/scramjet-utils.js",
+	scramjetControllerApiPath: "/assets/core.api.js",
+	scramjetControllerInjectPath: "/assets/core.inject.js",
+	scramjetControllerSwPath: "/assets/core.sw.js",
+	scramjetBundlePath: "/assets/app.js",
+	scramjetWasmPath: "/assets/app.wasm",
+	scramjetUtilsBundlePath: "/assets/app-utils.js",
 };

@@ -1,26 +1,26 @@
 import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
 import { unrewriteUrl, URLMeta } from "@rewriters/url";
 import {
-	ScramjetFetchHandler,
-	ScramjetFetchParsed,
-	ScramjetFetchRequest,
-	ScramjetFetchTrackedClient,
+	AkFetchHandler,
+	AkFetchParsed,
+	AkFetchRequest,
+	AkFetchTrackedClient,
 } from ".";
 
 export const QP = {
-	referrerPolicy: "$rfp",
-	referrerSource: "$rfs",
-	isModule: "$module",
-	topFrame: "$tf",
-	parentFrame: "$pf",
-	isIframe: "$iframe",
-	mode: "$mode",
-	credentials: "$cred",
-	destination: "$dest",
-	initiatorOrigin: "$io",
-	fetchSite: "$fs",
-	crossSiteRedirect: "$csr",
-	fakeDataURL: "$fakedataurl",
+	referrerPolicy: "_rp",
+	referrerSource: "_rs",
+	isModule: "_m",
+	topFrame: "_tf",
+	parentFrame: "_pf",
+	isIframe: "_if",
+	mode: "_md",
+	credentials: "_cr",
+	destination: "_ds",
+	initiatorOrigin: "_io",
+	fetchSite: "_fs",
+	crossSiteRedirect: "_csr",
+	fakeDataURL: "_fd",
 } as const;
 
 export type QueryParamKey = keyof typeof QP;
@@ -56,9 +56,9 @@ export function parseQueryParams(searchParams: URLSearchParams): {
 }
 
 export function parseRequest(
-	request: ScramjetFetchRequest,
-	handler: ScramjetFetchHandler
-): ScramjetFetchParsed {
+	request: AkFetchRequest,
+	handler: AkFetchHandler
+): AkFetchParsed {
 	const strippedUrl = new _URL(request.rawUrl.href);
 	const { params, extras } = parseQueryParams(request.rawUrl.searchParams);
 	strippedUrl.search = "";
@@ -82,11 +82,11 @@ export function parseRequest(
 	}
 
 	const clientId = request.clientId;
-	let trackedClient: ScramjetFetchTrackedClient | undefined;
+	let trackedClient: AkFetchTrackedClient | undefined;
 	if (clientId) {
 		trackedClient = handler.trackedClients.get(clientId);
 		if (!trackedClient) {
-			trackedClient = new ScramjetFetchTrackedClient(clientId);
+			trackedClient = new AkFetchTrackedClient(clientId);
 			handler.trackedClients.set(clientId, trackedClient);
 		}
 	}
@@ -122,7 +122,7 @@ export function parseRequest(
 		referrerPolicy: params.referrerPolicy,
 	};
 
-	const parsed: ScramjetFetchParsed = {
+	const parsed: AkFetchParsed = {
 		meta,
 		url,
 		isModule: params.isModule === "module",

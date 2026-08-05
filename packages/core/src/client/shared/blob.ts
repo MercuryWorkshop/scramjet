@@ -1,8 +1,8 @@
 import { rewriteBlob, unrewriteBlob } from "@rewriters/url";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient) {
+export default function (client: AkClient) {
 	// hide the origin from object urls from the page
 	client.Proxy("URL.createObjectURL", {
 		apply(ctx) {

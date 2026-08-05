@@ -88,7 +88,7 @@ export default [
 		name: "eval-indirect-identity-all-views",
 		js: `
 			// every one of these resolves through a different rewrite path
-			// (wrapfn, the $scramjet__eval accessor, wrappropertyfn, and a
+			// (wrapfn, the $ak__eval accessor, wrappropertyfn, and a
 			// rewrite performed inside eval itself) and they must converge.
 			const views = new Set([
 				eval,
@@ -279,7 +279,7 @@ export default [
 	basicTest({
 		// KNOWN FAILURE: the injected rewritefn call is placed at
 		// `callee.span.end + 1`, so any whitespace between `eval` and `(`
-		// leaves it outside the argument list: `eval $scramjet$rewrite(("x"))`.
+		// leaves it outside the argument list: `eval $ak$rewrite(("x"))`.
 		name: "eval-callee-whitespace",
 		js: `
 			assertEqual(eval ("1+1"), 2, "space between callee and argument list");
@@ -290,7 +290,7 @@ export default [
 	}),
 	basicTest({
 		// KNOWN FAILURE: same offset arithmetic, except here the rewritefn
-		// lands *inside* the comment: `eval/$scramjet$rewrite(*c*/("x"))`.
+		// lands *inside* the comment: `eval/$ak$rewrite(*c*/("x"))`.
 		name: "eval-callee-comment",
 		js: `
 			assertEqual(eval/* hi */("1+1"), 2, "comment between callee and argument list");
@@ -388,7 +388,7 @@ export default [
 		`,
 	}),
 	basicTest({
-		// KNOWN FAILURE: Reflect.get bypasses the $scramjet__eval accessor and
+		// KNOWN FAILURE: Reflect.get bypasses the $ak__eval accessor and
 		// hands out the realm's real eval, whose output is never rewritten.
 		name: "eval-reflect-get-leak",
 		js: `
@@ -723,7 +723,7 @@ export default [
 	//
 	// `eval` is one of the rewriter's UNSAFE_GLOBALS, so *every* `.eval`
 	// property access in the program is redirected through the
-	// $scramjet__eval accessor on Object.prototype - including accesses on
+	// $ak__eval accessor on Object.prototype - including accesses on
 	// objects that have nothing to do with the global eval.
 	// ------------------------------------------------------------------
 	basicTest({
@@ -747,7 +747,7 @@ export default [
 	}),
 	basicTest({
 		// KNOWN FAILURE: `delete o.eval` is rewritten to
-		// `delete o.$scramjet__eval`, which deletes nothing and reports success.
+		// `delete o.$ak__eval`, which deletes nothing and reports success.
 		name: "eval-delete-property",
 		js: `
 			const o = { eval: 1 };
@@ -757,7 +757,7 @@ export default [
 	}),
 	basicTest({
 		// KNOWN FAILURE: a direct call is rewritten to
-		// `eval($scramjet$rewrite(...))` without checking whether `eval` still
+		// `eval($ak$rewrite(...))` without checking whether `eval` still
 		// refers to the global, so a shadowing binding receives rewritten
 		// source instead of what the program passed.
 		name: "eval-shadowed-binding",

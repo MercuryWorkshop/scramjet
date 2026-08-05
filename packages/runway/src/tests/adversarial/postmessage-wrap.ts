@@ -1,7 +1,7 @@
 import { basicTest } from "../../testcommon.ts";
 
 // The rewriter rewrites *every* `.postMessage` member expression to
-// `$scramjet$wrappostmessage(obj).postMessage`, and that helper returns a
+// `$ak$wrappostmessage(obj).postMessage`, and that helper returns a
 // throwaway object:
 //
 //   if (!obj || typeof obj.postMessage !== "function") return obj;

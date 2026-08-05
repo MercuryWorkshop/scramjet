@@ -15,13 +15,13 @@ import type {
 } from "./types";
 import {
 	CookieJar,
-	SCRAMJETCLIENT,
-	ScramjetClient,
+	AKCLIENT,
+	AkClient,
 	setWasm,
 	Tap,
 	type CookieSyncOptions,
-	type ScramjetConfig,
-	type ScramjetContext,
+	type AkConfig,
+	type AkContext,
 	type TrackedHistoryState,
 } from "@mercuryworkshop/scramjet";
 
@@ -167,12 +167,12 @@ const sw = navigator.serviceWorker.controller;
 
 type Init = {
 	config: Config;
-	sjconfig: ScramjetConfig;
+	sjconfig: AkConfig;
 	prefix: URL;
 	cookies: string;
 	yieldGetInjectScripts: (
 		config: Config,
-		sjconfig: ScramjetConfig,
+		sjconfig: AkConfig,
 		prefix: URL,
 		cookieJar: CookieJar,
 		codecEncode: (input: string) => string,
@@ -185,8 +185,8 @@ type Init = {
 };
 
 export function load(init: Init) {
-	if (SCRAMJETCLIENT in globalThis) {
-		((globalThis as any)[SCRAMJETCLIENT] as ScramjetClient).syncDocumentInit({
+	if (AKCLIENT in globalThis) {
+		((globalThis as any)[AKCLIENT] as AkClient).syncDocumentInit({
 			initHeaders: init.initHeaders,
 			history: init.history,
 			cookies: init.cookies,
@@ -211,7 +211,7 @@ function createFrameId() {
 }
 
 class ExecutionContextWrapper {
-	client!: ScramjetClient;
+	client!: AkClient;
 	cookieJar: CookieJar;
 	transport: RemoteTransport;
 	private handleServiceWorkerCookieMessage: (event: MessageEvent) => void;
@@ -285,10 +285,10 @@ class ExecutionContextWrapper {
 			this.handleServiceWorkerCookieMessage
 		);
 
-		this.injectScramjet();
+		this.injectAk();
 	}
 
-	injectScramjet() {
+	injectAk() {
 		const frame = this.global.frameElement as HTMLIFrameElement | null;
 		if (frame && !frame.name) {
 			window.name = frame.name = createFrameId();
@@ -299,7 +299,7 @@ class ExecutionContextWrapper {
 			isTopLevel = false;
 			let currentwin = this.global.window;
 			while (currentwin.parent !== currentwin) {
-				const currentclient = currentwin[SCRAMJETCLIENT];
+				const currentclient = currentwin[AKCLIENT];
 				if (!currentclient) {
 					currentwin = currentwin.parent.window;
 					continue;
@@ -315,7 +315,7 @@ class ExecutionContextWrapper {
 				currentwin = currentwin.parent.window;
 			}
 		}
-		const context: ScramjetContext = {
+		const context: AkContext = {
 			config: this.init.sjconfig,
 			prefix: this.init.prefix,
 			cookieJar: this.cookieJar,
@@ -332,7 +332,7 @@ class ExecutionContextWrapper {
 				codecDecode: this.init.codecDecode,
 			},
 		};
-		this.client = new ScramjetClient(this.global, {
+		this.client = new AkClient(this.global, {
 			context,
 			transport: this.transport,
 			sendSetCookie: async (cookies, options) => {

@@ -5,14 +5,14 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 import {
 	BodyType,
-	ScramjetFetchHandler,
-	ScramjetFetchParsed,
-	ScramjetFetchRequest,
-	ScramjetFetchResponse,
+	AkFetchHandler,
+	AkFetchParsed,
+	AkFetchRequest,
+	AkFetchResponse,
 } from ".";
 import { rewriteUrl, unrewriteBlob, unrewriteUrl } from "@rewriters/url";
 import { QP, parseRequest } from "./parse";
-import { ScramjetHeaders } from "@/shared";
+import { AkHeaders } from "@/shared";
 import { isDocument, isRedirect, normalizeContentType } from "./util";
 import { rewriteBody } from "./body";
 import { Tap } from "@/Tap";
@@ -25,9 +25,9 @@ import {
 import { _URL } from "@/shared/snapshot";
 
 export async function doHandleFetch(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest
-): Promise<ScramjetFetchResponse> {
+	handler: AkFetchHandler,
+	request: AkFetchRequest
+): Promise<AkFetchResponse> {
 	const parsed = parseRequest(request, handler);
 
 	if (isBlobOrDataUrl(parsed.url)) {
@@ -51,7 +51,7 @@ export async function doHandleFetch(
 	if (parsed.hadExtraParams && isDocument(parsed)) {
 		const location = rewriteUrl(parsed.url, handler.context, parsed.meta);
 		if (location !== request.rawUrl.href) {
-			const responseHeaders = new ScramjetHeaders();
+			const responseHeaders = new AkHeaders();
 			responseHeaders.set("location", location);
 			return {
 				body: "",
@@ -67,14 +67,14 @@ export async function doHandleFetch(
 	let responseBody: BodyType;
 	const response = await doNetworkFetch(handler, request, parsed, newheaders);
 
-	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a ScramjetHeaders object
+	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a AkHeaders object
 	await handleCookies(handler, request, parsed, response.rawHeaders);
 
 	if (isDocument(parsed)) {
 		// for document.referer
 		parsed.trackedClient?.history.push({
 			url: parsed.url.href,
-			refererPolicy: ScramjetHeaders.fromRawHeaders(response.rawHeaders).get(
+			refererPolicy: AkHeaders.fromRawHeaders(response.rawHeaders).get(
 				"referrer-policy"
 			),
 		});
@@ -176,10 +176,10 @@ export async function doHandleFetch(
 }
 
 export async function doNetworkFetch(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
-	newheaders: ScramjetHeaders
+	handler: AkFetchHandler,
+	request: AkFetchRequest,
+	parsed: AkFetchParsed,
+	newheaders: AkHeaders
 ): Promise<BareResponse> {
 	const init = {
 		body: request.body,
@@ -236,10 +236,10 @@ function isBlobOrDataUrl(url: _URL): boolean {
 }
 
 async function handleBlobOrDataUrlFetch(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed
-): Promise<ScramjetFetchResponse> {
+	handler: AkFetchHandler,
+	request: AkFetchRequest,
+	parsed: AkFetchParsed
+): Promise<AkFetchResponse> {
 	let dataUrl = request.rawUrl.pathname.substring(
 		handler.context.prefix.pathname.length
 	);
@@ -265,7 +265,7 @@ async function handleBlobOrDataUrlFetch(
 			response as BareResponse
 		);
 	}
-	const headers = ScramjetHeaders.fromRawHeaders(response.rawHeaders);
+	const headers = AkHeaders.fromRawHeaders(response.rawHeaders);
 
 	// blob urls actually *can* set charsets, so we need to normalize them if it goes down the html path
 	normalizeContentType(parsed, headers);
@@ -296,9 +296,9 @@ export function registrableDomainForRedirect(hostname: string): string {
 }
 
 async function handleCookies(
-	handler: ScramjetFetchHandler,
-	request: ScramjetFetchRequest,
-	parsed: ScramjetFetchParsed,
+	handler: AkFetchHandler,
+	request: AkFetchRequest,
+	parsed: AkFetchParsed,
 	rawHeaders: RawHeaders
 ) {
 	const cookies = [];

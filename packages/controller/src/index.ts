@@ -8,15 +8,15 @@ import {
 	CookieJar,
 	defaultConfig as scramjetDefaultConfig,
 	rewriteUrl,
-	ScramjetFetchHandler,
-	ScramjetHeaders,
+	AkFetchHandler,
+	AkHeaders,
 	setWasm,
 	Tap,
 	type CookieSyncOptions,
 	type FetchHooks,
-	type ScramjetConfig,
-	type ScramjetContext,
-	type ScramjetInterface,
+	type AkConfig,
+	type AkContext,
+	type AkInterface,
 	type TrackedHistoryState,
 	Plugin,
 } from "@mercuryworkshop/scramjet";
@@ -31,14 +31,14 @@ import type {
 	WebSocketMessage,
 	FrameErrorHooks,
 } from "./types";
-import { assertRuntimeScramjetVersion } from "./version";
+import { assertRuntimeAkVersion } from "./version";
 
 export { VERSION } from "./version";
-export { assertRuntimeScramjetVersion } from "./version";
+export { assertRuntimeAkVersion } from "./version";
 
 export type Config = {
 	prefix: string;
-	scramjetPath: string;
+	corePath: string;
 	injectPath: string;
 	wasmPath: string;
 	virtualWasmPath: string;
@@ -46,31 +46,41 @@ export type Config = {
 };
 
 export const config: Config = {
-	prefix: "/~/sj/",
-	scramjetPath: "/scramjet/scramjet.js",
-	injectPath: "/controller/controller.inject.js",
-	wasmPath: "/scramjet/scramjet.wasm",
-	virtualWasmPath: "scramjet.wasm.js",
+	prefix: "/a/",
+	corePath: "/assets/app.js",
+	injectPath: "/assets/core.inject.js",
+	wasmPath: "/assets/app.wasm",
+	virtualWasmPath: "app.wasm.js",
 	codec: {
 		encode: (url: string) => {
 			if (!url) return url;
-
-			return encodeURIComponent(url);
+			const bytes = new TextEncoder().encode(url);
+			let bin = "";
+			for (let i = 0; i < bytes.length; i++)
+				bin += String.fromCharCode(bytes[i]);
+			return btoa(bin)
+				.replace(/\+/g, "-")
+				.replace(/\//g, "_")
+				.replace(/=+$/, "");
 		},
 		decode: (url: string) => {
 			if (!url) return url;
-
-			return decodeURIComponent(url);
+			let b64 = url.replace(/-/g, "+").replace(/_/g, "/");
+			while (b64.length % 4) b64 += "=";
+			const bin = atob(b64);
+			const bytes = new Uint8Array(bin.length);
+			for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+			return new TextDecoder().decode(bytes);
 		},
 	},
 };
 
-const scramjetConfig: Partial<ScramjetConfig> = {
+const runtimeConfig: Partial<AkConfig> = {
 	flags: {
 		...scramjetDefaultConfig.flags,
 		allowFailedIntercepts: true,
 	},
-	maskedfiles: ["inject.js", "scramjet.wasm.js"],
+	maskedfiles: ["inject.js", "app.wasm.js"],
 };
 
 type PersistedCookieState = {
@@ -91,10 +101,10 @@ export class ManagedPlugin extends Plugin {
 	}
 }
 
-const COOKIE_DB_NAME = "__scramjet_controller";
+const COOKIE_DB_NAME = "__ak_core";
 const COOKIE_STORE_NAME = "state";
 const COOKIE_STATE_KEY = "cookies";
-const BROADCASTCHANNEL_NAME = "__scramjet_controller_channel";
+const BROADCASTCHANNEL_NAME = "__ak_core_channel";
 
 let cookieDbPromise: Promise<IDBDatabase> | null = null;
 
@@ -206,7 +216,7 @@ type ControllerInit = {
 	serviceworker: ServiceWorker;
 	transport: ProxyTransport;
 	config?: Partial<Config>;
-	scramjetConfig?: Partial<ScramjetConfig>;
+	runtimeConfig?: Partial<AkConfig>;
 };
 
 type FrameOptions = {
@@ -216,7 +226,7 @@ type FrameOptions = {
 export class Controller {
 	id: string;
 	config: Config;
-	scramjetConfig: ScramjetConfig;
+	runtimeConfig: AkConfig;
 	prefix: string;
 	cookieJar = new CookieJar();
 	frames: Frame[] = [];
@@ -253,7 +263,7 @@ export class Controller {
 		void this.loadSavedCookies();
 	};
 
-	private async loadScramjetWasm() {
+	private async loadAkWasm() {
 		if (this.wasmAlreadyFetched) {
 			return;
 		}
@@ -305,7 +315,7 @@ export class Controller {
 					];
 				}
 
-				const sjheaders = ScramjetHeaders.fromRawHeaders(data.initialHeaders);
+				const sjheaders = AkHeaders.fromRawHeaders(data.initialHeaders);
 
 				const fetchresponse = await frame.fetchHandler.handleFetch({
 					initialHeaders: sjheaders,
@@ -449,14 +459,14 @@ export class Controller {
 	};
 
 	constructor(public init: ControllerInit) {
-		assertRuntimeScramjetVersion();
+		assertRuntimeAkVersion();
 		this.id = makeId();
 		this.config = deepMerge(config, init.config || {}) as Config;
-		this.scramjetConfig = deepMerge(scramjetConfig, scramjetDefaultConfig);
-		this.scramjetConfig = deepMerge(
-			this.scramjetConfig,
-			init.scramjetConfig || {}
-		) as ScramjetConfig;
+		this.runtimeConfig = deepMerge(runtimeConfig, scramjetDefaultConfig);
+		this.runtimeConfig = deepMerge(
+			this.runtimeConfig,
+			init.runtimeConfig || {}
+		) as AkConfig;
 		this.prefix = this.config.prefix + this.id + "/";
 		this.serviceWorkerController = init.serviceworker;
 
@@ -464,7 +474,7 @@ export class Controller {
 			new Promise<void>((resolve) => {
 				this.readyResolve = resolve;
 			}),
-			this.loadScramjetWasm(),
+			this.loadAkWasm(),
 			this.loadSavedCookies(true),
 		]).then(() => undefined);
 
@@ -660,13 +670,13 @@ function base64Encode(text: string) {
 
 function yieldGetInjectScripts(
 	config: Config,
-	sjconfig: ScramjetConfig,
+	sjconfig: AkConfig,
 	prefix: URL,
 	cookieJar: CookieJar,
 	codecEncode: (input: string) => string,
 	codecDecode: (input: string) => string
 ) {
-	const getInjectScripts: ScramjetInterface["getInjectScripts"] = (
+	const getInjectScripts: AkInterface["getInjectScripts"] = (
 		meta,
 		handler,
 		htmlcontext,
@@ -684,14 +694,14 @@ function yieldGetInjectScripts(
 			);
 		}
 		return [
-			script(config.scramjetPath),
+			script(config.corePath),
 			script(prefix.href + config.virtualWasmPath),
 			script(config.injectPath),
 			script(
 				"data:text/javascript;charset=utf-8;base64," +
 					base64Encode(`
-					document.querySelectorAll("script[scramjet-injected]").forEach(script => script.remove());
-					$scramjetController.load({
+					document.querySelectorAll("script[data-inj]").forEach(script => script.remove());
+					$akController.load({
 						config: ${JSON.stringify(config)},
 						sjconfig: ${JSON.stringify(sjconfig)},
 						prefix: new URL("${prefix.href}"),
@@ -712,22 +722,22 @@ function yieldGetInjectScripts(
 export class Frame {
 	id: string;
 	prefix: string;
-	fetchHandler: ScramjetFetchHandler;
+	fetchHandler: AkFetchHandler;
 	hooks: {
 		fetch: FetchHooks;
 		init: FrameInitHooks;
 		error: FrameErrorHooks;
 	};
 
-	get context(): ScramjetContext {
+	get context(): AkContext {
 		return {
-			config: this.controller.scramjetConfig,
+			config: this.controller.runtimeConfig,
 			prefix: new URL(this.prefix, location.href),
 			cookieJar: this.controller.cookieJar,
 			interface: {
 				getInjectScripts: yieldGetInjectScripts(
 					this.controller.config,
-					this.controller.scramjetConfig,
+					this.controller.runtimeConfig,
 					new URL(this.prefix, location.href),
 					this.controller.cookieJar,
 					this.controller.config.codec.encode,
@@ -736,18 +746,18 @@ export class Frame {
 				getWorkerInjectScripts: (meta, type, script) => {
 					let str = "";
 
-					str += script(this.controller.config.scramjetPath);
+					str += script(this.controller.config.corePath);
 					str += script(this.prefix + this.controller.config.virtualWasmPath);
 					str += script(
 						"data:text/javascript;charset=utf-8;base64," +
 							base64Encode(`
 					(()=>{
-						const { ScramjetClient, CookieJar, setWasm } = $scramjet;
+						const { AkClient, CookieJar, setWasm } = $ak;
 
 						setWasm(Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0)));
 						delete self.WASM;
 
-						const sjconfig = ${JSON.stringify(this.controller.scramjetConfig)};
+						const sjconfig = ${JSON.stringify(this.controller.runtimeConfig)};
 						const prefix = new URL("${this.prefix}", location.href);
 
 						const context = {
@@ -759,7 +769,7 @@ export class Frame {
 							},
 						};
 
-						const client = new ScramjetClient(globalThis, {
+						const client = new AkClient(globalThis, {
 							context,
 							transport: null,
 						});
@@ -786,7 +796,7 @@ export class Frame {
 		this.id = makeId();
 		this.prefix = this.controller.prefix + this.id + "/";
 
-		this.fetchHandler = new ScramjetFetchHandler({
+		this.fetchHandler = new AkFetchHandler({
 			crossOriginIsolated: self.crossOriginIsolated,
 			context: this.context,
 			transport: controller.transport,

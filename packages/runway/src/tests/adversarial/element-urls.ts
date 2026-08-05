@@ -16,7 +16,7 @@ export default [
 			assertEqual(img.outerHTML, '<img src="/pic.png">', "outerHTML");
 			img.setAttribute("src", "/other.png");
 			assertEqual(img.src, location.origin + "/other.png", "setAttribute then read the property");
-			assert(!img.src.includes("/~/sj/"), "no proxy URL in img.src");
+			assert(!img.src.includes("/a/"), "no proxy URL in img.src");
 			img.src = "https://example.com/abs.png";
 			assertEqual(img.src, "https://example.com/abs.png", "absolute cross-origin src");
 			assertEqual(img.getAttribute("src"), "https://example.com/abs.png", "absolute src attribute");
@@ -83,7 +83,7 @@ export default [
 			img.srcset = "/a.png 1x, /b.png 2x";
 			assertEqual(img.srcset, "/a.png 1x, /b.png 2x", "srcset round trip");
 			assertEqual(img.getAttribute("srcset"), "/a.png 1x, /b.png 2x", "srcset attribute");
-			assert(!img.srcset.includes("/~/sj/"), "no proxy URL in srcset");
+			assert(!img.srcset.includes("/a/"), "no proxy URL in srcset");
 		`,
 	}),
 	basicTest({
@@ -122,7 +122,7 @@ export default [
 			assertEqual(r.url, location.origin + "/script.js", "Response.url");
 			assertEqual(r.status, 200, "status");
 			assertEqual(r.redirected, false, "redirected");
-			assert(!r.url.includes("/~/sj/"), "no proxy URL in Response.url");
+			assert(!r.url.includes("/a/"), "no proxy URL in Response.url");
 		`,
 	}),
 	basicTest({
@@ -168,7 +168,7 @@ export default [
 	basicTest({
 		// KNOWN FAILURE: these reflected URL properties are not proxied at all,
 		// so they resolve the page's relative URL against the *proxy* document
-		// URL. video.poster hands back the whole /~/sj/… URL; the rest come back
+		// URL. video.poster hands back the whole /a/… URL; the rest come back
 		// on the proxy origin. formAction in particular decides where a real
 		// form submits.
 		name: "elurls-unproxied-properties",
@@ -219,7 +219,7 @@ export default [
 			img.src = "/pic.png";
 			document.body.appendChild(img);
 			await done;
-			assert(!img.currentSrc.includes("/~/sj/"),
+			assert(!img.currentSrc.includes("/a/"),
 				"currentSrc must not expose the proxy URL: " + img.currentSrc);
 			assert(img.currentSrc === "" || img.currentSrc === location.origin + "/pic.png",
 				"currentSrc: " + img.currentSrc);

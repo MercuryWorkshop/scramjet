@@ -1,10 +1,10 @@
-import { isHtmlMimeType, ScramjetHeaders } from "@/shared";
+import { isHtmlMimeType, AkHeaders } from "@/shared";
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
-import { ScramjetFetchParsed } from ".";
+import { AkFetchParsed } from ".";
 
 export function normalizeContentType(
-	parsed: ScramjetFetchParsed,
-	headers: ScramjetHeaders
+	parsed: AkFetchParsed,
+	headers: AkHeaders
 ) {
 	if (!isDocument(parsed)) return;
 
@@ -19,7 +19,7 @@ export function isRedirect(response: BareResponse) {
 	return response.status >= 300 && response.status < 400;
 }
 
-export function isDocument(parsed: ScramjetFetchParsed) {
+export function isDocument(parsed: AkFetchParsed) {
 	return parsed.destination === "document" || parsed.destination === "iframe";
 }
 

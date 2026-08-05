@@ -4,7 +4,7 @@ import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
-import { ScramjetContext } from "@/shared";
+import { AkContext } from "@/shared";
 import { htmlRules } from "@/shared/htmlRules";
 import { parseDeclarativeRefresh } from "@/shared/refresh";
 import { bytesToBase64 } from "@/shared/util";
@@ -72,7 +72,7 @@ export class IncrementalHtmlRewriter {
 	private ended = false;
 
 	constructor(
-		private readonly context: ScramjetContext,
+		private readonly context: AkContext,
 		private readonly meta: URLMeta,
 		private readonly htmlcontext: HtmlContext
 	) {
@@ -154,7 +154,7 @@ export class IncrementalHtmlRewriter {
 
 function rewriteHtmlInner(
 	html: string | ChildNode,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	htmlcontext: HtmlContext
 ) {
@@ -238,7 +238,7 @@ function rewriteHtmlInner(
 
 	if (htmlcontext.loadScripts) {
 		const script = (src: string) =>
-			new Element("script", { src, "scramjet-injected": "true" });
+			new Element("script", { src, "data-inj": "true" });
 		const injectScripts = context.interface.getInjectScripts(
 			meta,
 			handler,
@@ -284,7 +284,7 @@ function rewriteHtmlInner(
 
 export function rewriteHtml(
 	html: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	htmlcontext: HtmlContext
 ) {
@@ -314,14 +314,14 @@ export function unrewriteHtml(html: string, foreignContext?: ForeignContext) {
 	function traverse(node: ChildNode) {
 		if ("attribs" in node) {
 			for (const key in node.attribs) {
-				if (key == "scramjet-attr-script-source-src") {
+				if (key == "data-ak-script-source-src") {
 					if (node.children[0] && "data" in node.children[0])
 						node.children[0].data = atob(node.attribs[key]);
 					continue;
 				}
 
-				if (key.startsWith("scramjet-attr-")) {
-					node.attribs[key.slice("scramjet-attr-".length)] = node.attribs[key];
+				if (key.startsWith("data-ak-")) {
+					node.attribs[key.slice("data-ak-".length)] = node.attribs[key];
 					delete node.attribs[key];
 				}
 			}
@@ -345,7 +345,7 @@ export function unrewriteHtml(html: string, foreignContext?: ForeignContext) {
 
 function traverseParsedHtml(
 	node: any,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta
 ) {
 	if (node.name === "base" && node.attribs.href !== undefined) {
@@ -367,14 +367,14 @@ function traverseParsedHtml(
 						else {
 							node.attribs[attr] = v;
 						}
-						node.attribs[`scramjet-attr-${attr}`] = value;
+						node.attribs[`data-ak-${attr}`] = value;
 					}
 				}
 			}
 		}
 		for (const [attr, value] of Object_entries(node.attribs)) {
 			if (eventAttributes.includes(attr)) {
-				node.attribs[`scramjet-attr-${attr}`] = value;
+				node.attribs[`data-ak-${attr}`] = value;
 				node.attribs[attr] = rewriteJs(
 					value as string,
 					`(inline ${attr} on element)`,
@@ -425,7 +425,7 @@ function traverseParsedHtml(
 		if (isScriptType(scriptBlockType)) {
 			let js = node.children[0].data;
 			const module = isModuleScriptType(scriptBlockType);
-			node.attribs["scramjet-attr-script-source-src"] = bytesToBase64(
+			node.attribs["data-ak-script-source-src"] = bytesToBase64(
 				TextEncoder_encode(js)
 			);
 			const htmlcomment = /<!--[\s\S]*?-->/g;
@@ -473,7 +473,7 @@ function traverseParsedHtml(
 
 export function rewriteSrcset(
 	srcset: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta
 ) {
 	const sources = srcset.split(/ .*,/).map((src) => src.trim());

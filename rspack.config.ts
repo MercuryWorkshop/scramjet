@@ -94,7 +94,7 @@ function renderExternalStub(names: string[], globalName: string): string {
 
 /**
  * Generates a thin "external" stub that re-exports the entries of a globally
- * assigned bundle (e.g. `self.$scramjet`). Consumers that import the package
+ * assigned bundle (e.g. `self.$ak`). Consumers that import the package
  * by its bare name pay zero source size — the stub is just a destructure of
  * the global.
  *
@@ -284,7 +284,7 @@ const rsDoctorPlugin = process.env.DEBUG
 	: null;
 const createGenericConfig = (options: Partial<RspackOptions>) => {
 	const def = {
-		devtool: "source-map",
+		devtool: false,
 		mode: "development" as Mode,
 		resolve: {
 			extensions: [".ts", ".js"],
@@ -385,7 +385,7 @@ const createScramjetConfig = (options: ScramjetBuildConfig) => {
 const sjpackagemeta = JSON.parse(
 	await readFile(join(scramjetdir, "package.json"), "utf-8")
 );
-// IIFE build that does NOT bundle the wasm, exposes global $scramjet
+// IIFE build that does NOT bundle the wasm, exposes global $ak
 const iifeConfig = createScramjetConfig({
 	name: "scramjet-iife",
 	entry: {
@@ -397,7 +397,7 @@ const iifeConfig = createScramjetConfig({
 		iife: true,
 		library: {
 			type: "assign",
-			name: "self.$scramjet",
+			name: "self.$ak",
 		},
 	},
 	rewriterWasm: "undefined",
@@ -408,7 +408,7 @@ const iifeConfig = createScramjetConfig({
 	},
 });
 
-// IIFE build that BUNDLES the wasm and exposes global $scramjet
+// IIFE build that BUNDLES the wasm and exposes global $ak
 const iifeBundledConfig = createScramjetConfig({
 	name: "scramjet-iife-bundled",
 	entry: {
@@ -420,7 +420,7 @@ const iifeBundledConfig = createScramjetConfig({
 		iife: true,
 		library: {
 			type: "assign",
-			name: "self.$scramjet",
+			name: "self.$ak",
 		},
 	},
 	rewriterWasm: JSON.stringify(wasmB64),
@@ -458,7 +458,7 @@ moduleConfig.plugins!.push(
 	new ExternalStubPlugin({
 		bundleFilename: "scramjet.mjs",
 		stubFilename: "scramjet-external.mjs",
-		globalName: "$scramjet",
+		globalName: "$ak",
 		outputDir: join(scramjetdir, "dist"),
 	})
 );
@@ -540,7 +540,7 @@ const controllerConfig = createGenericConfig({
 		iife: true,
 		library: {
 			type: "var",
-			name: "$scramjetController",
+			name: "$akController",
 		},
 	},
 	target: "web",
@@ -549,7 +549,7 @@ const controllerConfig = createGenericConfig({
 		new ExternalStubPlugin({
 			bundleFilename: "controller.api.js",
 			stubFilename: "controller-external.mjs",
-			globalName: "$scramjetController",
+			globalName: "$akController",
 			outputDir: join(controllerdir, "dist"),
 		}),
 		new TypeScriptDeclarationsPlugin(
@@ -578,7 +578,7 @@ const utilsIifeConfig = createGenericConfig({
 		iife: true,
 		library: {
 			type: "assign",
-			name: "self.$scramjetUtils",
+			name: "self.$akUtils",
 		},
 	},
 	target: "web",
@@ -621,7 +621,7 @@ const utilsModuleConfig = createGenericConfig({
 });
 
 const bootstrapConfig = createGenericConfig({
-	name: "scramjet-bootstrap",
+	name: "ak-store",
 	entry: {
 		server: join(bootstrapdir, "src/server.ts"),
 		client: join(bootstrapdir, "src/client.ts"),
@@ -655,7 +655,7 @@ const bootstrapConfig = createGenericConfig({
 });
 
 const bootstrapStaticConfig = createGenericConfig({
-	name: "scramjet-bootstrap-static",
+	name: "ak-store-static",
 	entry: {
 		static: join(bootstrapdir, "src/static.ts"),
 	},

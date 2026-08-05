@@ -1,9 +1,9 @@
 import { IncrementalHtmlRewriter, rewriteHtml } from "@rewriters/html";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { String, _URL } from "@/shared/snapshot";
 import { createReferrerString } from "@/fetch/util";
 
-export default function (client: ScramjetClient, _self: Self) {
+export default function (client: AkClient, _self: Self) {
 	function resetDocumentWriter(document: Document) {
 		client.box.writeRewriters.delete(document);
 	}

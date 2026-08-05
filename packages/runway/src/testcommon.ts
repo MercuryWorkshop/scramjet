@@ -44,7 +44,7 @@ export type Test = {
 	path?: string;
 	timeoutMs?: number;
 	reloadHarness?: boolean;
-	topLevelScramjet?: boolean;
+	topLevelAk?: boolean;
 	warmProxiedNavigation?: boolean;
 	start: (ctx: {
 		pass: (message?: string, details?: any) => Promise<void>;

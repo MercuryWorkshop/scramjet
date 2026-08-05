@@ -8,14 +8,14 @@ declare global {
 		/**
 		 * The scramjet client belonging to a window.
 		 */
-		[import("./symbols").SCRAMJETCLIENT]: import("./client").ScramjetClient;
+		[import("./symbols").AKCLIENT]: import("./client").AkClient;
 	}
 
 	interface Document {
 		/**
 		 * Should be the same as window.
 		 */
-		[import("./symbols").SCRAMJETCLIENT]: import("./client").ScramjetClient;
+		[import("./symbols").AKCLIENT]: import("./client").AkClient;
 	}
 }
 

@@ -1,11 +1,11 @@
 import { rewriteHtml } from "@rewriters/html";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { ForeignContext } from "@/shared/rewriters/html";
 import { String } from "@/shared/snapshot";
 
 // TODO: this function is untested / llm slop
 function foreignContextForRange(
-	client: ScramjetClient,
+	client: AkClient,
 	range: Range
 ): ForeignContext {
 	const node = range.startContainer;
@@ -16,7 +16,7 @@ function foreignContextForRange(
 	return "html";
 }
 
-export default function (client: ScramjetClient, _self: Self) {
+export default function (client: AkClient, _self: Self) {
 	client.Proxy("Range.prototype.createContextualFragment", {
 		apply(ctx) {
 			const html = String(ctx.args[0]);

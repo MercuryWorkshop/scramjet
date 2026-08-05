@@ -13,7 +13,7 @@ export default [
 			const d = document.createElement("div");
 			d.setAttribute("style", "background-image: url(/bg.png)");
 			assertEqual(d.getAttribute("style"), "background-image: url(/bg.png)", "style attribute round trip");
-			assert(!d.outerHTML.includes("/~/sj/"), "outerHTML: " + d.outerHTML);
+			assert(!d.outerHTML.includes("/a/"), "outerHTML: " + d.outerHTML);
 		`,
 	}),
 	basicTest({
@@ -22,7 +22,7 @@ export default [
 			const d = document.createElement("div");
 			d.innerHTML = '<div style="background-image: url(/bg.png)"></div>';
 			assertEqual(d.innerHTML, '<div style="background-image: url(/bg.png)"></div>', "innerHTML round trip");
-			assert(!d.innerHTML.includes("/~/sj/"), "no proxy URL in innerHTML");
+			assert(!d.innerHTML.includes("/a/"), "no proxy URL in innerHTML");
 		`,
 	}),
 	basicTest({
@@ -31,13 +31,13 @@ export default [
 			const st = document.createElement("style");
 			st.textContent = ".a { background-image: url(/x.png); }";
 			document.head.appendChild(st);
-			assert(!st.sheet.cssRules[0].cssText.includes("/~/sj/"),
+			assert(!st.sheet.cssRules[0].cssText.includes("/a/"),
 				"cssRules[0].cssText leaks the proxy URL: " + st.sheet.cssRules[0].cssText);
 			st.sheet.insertRule(".b { background-image: url(/y.png); }", 1);
 			assertEqual(st.sheet.cssRules.length, 2, "insertRule");
-			assert(!st.sheet.cssRules[1].cssText.includes("/~/sj/"),
+			assert(!st.sheet.cssRules[1].cssText.includes("/a/"),
 				"inserted rule cssText leaks: " + st.sheet.cssRules[1].cssText);
-			assert(!st.textContent.includes("/~/sj/"), "textContent leaks the proxy URL: " + st.textContent);
+			assert(!st.textContent.includes("/a/"), "textContent leaks the proxy URL: " + st.textContent);
 		`,
 	}),
 	basicTest({
@@ -68,11 +68,11 @@ export default [
 		js: `
 			const d = document.createElement("div");
 			d.style.backgroundImage = "url(/bg.png)";
-			assert(!d.outerHTML.includes("/~/sj/"), "outerHTML must not expose the proxy URL: " + d.outerHTML);
+			assert(!d.outerHTML.includes("/a/"), "outerHTML must not expose the proxy URL: " + d.outerHTML);
 			assertEqual(d.getAttribute("style"), 'background-image: url("/bg.png");', "style attribute");
 			const c = document.createElement("div");
 			c.style.cssText = "background-image: url(/bg.png)";
-			assert(!c.outerHTML.includes("/~/sj/"), "cssText write: " + c.outerHTML);
+			assert(!c.outerHTML.includes("/a/"), "cssText write: " + c.outerHTML);
 		`,
 	}),
 	basicTest({
@@ -85,7 +85,7 @@ export default [
 			d.style.backgroundImage = "url(/bg.png)";
 			document.body.appendChild(d);
 			const c = getComputedStyle(d).backgroundImage;
-			assert(!c.includes("/~/sj/"), "computed style leaks the proxy URL: " + c);
+			assert(!c.includes("/a/"), "computed style leaks the proxy URL: " + c);
 			assertEqual(c, 'url("' + location.origin + '/bg.png")', "computed style resolves to the real URL");
 		`,
 	}),

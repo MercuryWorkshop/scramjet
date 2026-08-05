@@ -1,8 +1,8 @@
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { Reflect_apply, Reflect_get, Reflect_set } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient) {
+export default function (client: AkClient) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;

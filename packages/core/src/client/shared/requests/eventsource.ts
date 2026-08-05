@@ -1,7 +1,7 @@
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient) {
+export default function (client: AkClient) {
 	client.Proxy("EventSource", {
 		construct(ctx) {
 			const url = String(ctx.args[0]);

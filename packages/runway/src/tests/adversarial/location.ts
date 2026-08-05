@@ -37,7 +37,7 @@ export default [
 				location.origin + location.pathname + location.search + location.hash,
 				"href is the concatenation of its parts"
 			);
-			assert(!location.href.includes("/~/sj/"), "href must not expose the proxy URL");
+			assert(!location.href.includes("/a/"), "href must not expose the proxy URL");
 			assert(!location.href.includes(":4500"), "href must not expose the harness origin");
 		`,
 	}),
@@ -172,7 +172,7 @@ export default [
 			});
 			assertEqual(ev.oldURL, before, "hashchange oldURL");
 			assertEqual(ev.newURL, location.href, "hashchange newURL");
-			assert(!ev.newURL.includes("/~/sj/"), "hashchange URLs must not expose the proxy URL");
+			assert(!ev.newURL.includes("/a/"), "hashchange URLs must not expose the proxy URL");
 			location.hash = "";
 		`,
 	}),

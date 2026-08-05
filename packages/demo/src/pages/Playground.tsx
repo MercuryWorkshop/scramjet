@@ -4,9 +4,9 @@ import {
 	BareResponse,
 	Plugin,
 	rewriteUrl,
-	ScramjetFetchHandler,
-	ScramjetHeaders,
-	type ScramjetFetchRequest,
+	AkFetchHandler,
+	AkHeaders,
+	type AkFetchRequest,
 } from "@mercuryworkshop/scramjet";
 import { cachePlugin, controller } from "..";
 import Monaco from "../components/Monaco";
@@ -25,7 +25,7 @@ type PlaygroundProject = {
 	files: Record<string, string>;
 };
 
-const PLAYGROUND_STORAGE_KEY = "scramjet-demo-playground-projects-v1";
+const PLAYGROUND_STORAGE_KEY = "ak-playground-projects-v1";
 
 const DEFAULT_FILES: PlaygroundFile[] = [
 	{
@@ -35,12 +35,12 @@ const DEFAULT_FILES: PlaygroundFile[] = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Scramjet Playground</title>
+    <title>Playground</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <main>
-      <h1>Scramjet Playground</h1>
+      <h1>Playground</h1>
       <p>Edit files on the left, then reload the preview.</p>
       <button id="btn">Click me</button>
       <pre id="out"></pre>
@@ -81,7 +81,7 @@ button {
 const button = document.getElementById("btn");
 if (button && out) {
   button.addEventListener("click", () => {
-    out.textContent = "Hello from fakeorigin assets served via Scramjet request hook.";
+    out.textContent = "Hello from fakeorigin assets served via the request hook.";
   });
 }
 `,
@@ -441,7 +441,7 @@ const PlaygroundView: Component<
 		this.rewriteStatus = "Rewriting...";
 
 		try {
-			const handler = new ScramjetFetchHandler({
+			const handler = new AkFetchHandler({
 				crossOriginIsolated: self.crossOriginIsolated,
 				context: frame.context,
 				transport: frame.controller.transport,
@@ -492,12 +492,12 @@ const PlaygroundView: Component<
 				method: "GET",
 				body: null,
 				cache: "default",
-				initialHeaders: new ScramjetHeaders(),
+				initialHeaders: new AkHeaders(),
 				clientId: frame.id,
 			};
 
 			const rewritten = await handler.handleFetch(
-				request as ScramjetFetchRequest
+				request as AkFetchRequest
 			);
 			handler.client.fetch = originalFetch;
 

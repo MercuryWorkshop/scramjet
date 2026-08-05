@@ -35,7 +35,7 @@ export default [
 			const m = await c.match("/script.js");
 			assert(m, "a fetched response can be cached");
 			assertEqual(m.url, location.origin + "/script.js", "the cached Response.url is the site's");
-			assert(!m.url.includes("/~/sj/"), "no proxy URL in the cached response");
+			assert(!m.url.includes("/a/"), "no proxy URL in the cached response");
 			assert((await m.text()).length > 0, "the cached body is readable");
 			await caches.delete("adversarial-cache2");
 		`,

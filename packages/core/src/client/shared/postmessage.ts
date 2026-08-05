@@ -1,10 +1,10 @@
 import { iswindow } from "@client/entry";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
+import { AKCLIENT } from "@/symbols";
+import { AkClient } from "@client/index";
 import { Object_defineProperty } from "@/shared/snapshot";
 import { POLLUTANT } from "./realm";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: AkClient, self: Self) {
 	if (iswindow)
 		client.Proxy("window.postMessage", {
 			apply(ctx) {
@@ -38,7 +38,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 				// invoking stolen function will give us the caller's globalThis, remember scramjet has already proxied it!!!
 				const callerGlobalThisProxied: Self = Function("return globalThis")();
-				const callerClient = callerGlobalThisProxied[SCRAMJETCLIENT];
+				const callerClient = callerGlobalThisProxied[AKCLIENT];
 
 				// this WOULD be enough but the source argument of MessageEvent has to return the caller's window
 				// and if we just call it normally it would be coming from here, which WILL NOT BE THE CALLER'S because the accessor is from the parent
@@ -56,11 +56,11 @@ export default function (client: ScramjetClient, self: Self) {
 					callerClient.url.href === "about:srcdoc" ||
 					callerClient.url.href === "about:blank";
 				ctx.args[0] = {
-					$scramjet$messagetype: "window",
-					$scramjet$origin: inherit
-						? callerClient.global.parent[SCRAMJETCLIENT].url.origin
+					$ak$messagetype: "window",
+					$ak$origin: inherit
+						? callerClient.global.parent[AKCLIENT].url.origin
 						: callerClient.url.origin,
-					$scramjet$data: ctx.args[0],
+					$ak$data: ctx.args[0],
 				};
 				// console.error("?", ctx.args);
 				// eval("debugger");
@@ -76,10 +76,10 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("BroadcastChannel.prototype.postMessage", {
 		apply(ctx) {
 			ctx.args[0] = {
-				$scramjet$messagetype: "window",
+				$ak$messagetype: "window",
 				// TODO: need to actually look up the broadcastchannel itself in box i think
-				$scramjet$origin: client.url.origin,
-				$scramjet$data: ctx.args[0],
+				$ak$origin: client.url.origin,
+				$ak$data: ctx.args[0],
 			};
 		},
 	});
@@ -94,8 +94,8 @@ export default function (client: ScramjetClient, self: Self) {
 			// origin/source doesn't need to be preserved - it's null in the message event
 
 			ctx.args[0] = {
-				$scramjet$messagetype: "worker",
-				$scramjet$data: ctx.args[0],
+				$ak$messagetype: "worker",
+				$ak$data: ctx.args[0],
 			};
 		},
 	});

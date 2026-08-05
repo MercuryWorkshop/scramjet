@@ -6,14 +6,14 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 
 import { type URLMeta } from "@rewriters/url";
-import { type ScramjetRequestMode } from "./parse";
-import { ScramjetHeaders } from "@/shared/headers";
-import { HtmlRewriterHooks, ScramjetContext } from "@/shared";
+import { type AkRequestMode } from "./parse";
+import { AkHeaders } from "@/shared/headers";
+import { HtmlRewriterHooks, AkContext } from "@/shared";
 import { Tap, TapInstance } from "@/Tap";
 import { doHandleFetch } from "./fetch";
 import { _URL, _Map } from "@/shared/snapshot";
 
-export interface ScramjetFetchRequest {
+export interface AkFetchRequest {
 	rawUrl: URL;
 	rawReferrer: string | null;
 	// use parsed.destination instead
@@ -24,7 +24,7 @@ export interface ScramjetFetchRequest {
 	body: BodyType | null;
 	cache: RequestCache;
 
-	initialHeaders: ScramjetHeaders;
+	initialHeaders: AkHeaders;
 
 	rawClientUrl?: URL;
 
@@ -32,7 +32,7 @@ export interface ScramjetFetchRequest {
 	clientId: string;
 }
 
-export interface ScramjetFetchParsed {
+export interface AkFetchParsed {
 	url: _URL;
 	clientUrl?: _URL;
 	referrerSourceUrl?: _URL | null;
@@ -50,7 +50,7 @@ export interface ScramjetFetchParsed {
 	fetchCredentialsInclude?: boolean;
 
 	// tracks RequestInit.mode if set
-	fetchMode?: ScramjetRequestMode;
+	fetchMode?: AkRequestMode;
 
 	// was this request made by an iframe? (scramjet's definition of an iframe, not the browser's)
 	isIframe?: boolean;
@@ -62,12 +62,12 @@ export interface ScramjetFetchParsed {
 	isModule: boolean;
 	isFakeDataURL: boolean;
 	referrerPolicy?: string;
-	trackedClient?: ScramjetFetchTrackedClient;
+	trackedClient?: AkFetchTrackedClient;
 }
 
-export interface ScramjetFetchResponse {
+export interface AkFetchResponse {
 	body: BodyType;
-	headers: ScramjetHeaders;
+	headers: AkHeaders;
 	status: number;
 	statusText: string;
 }
@@ -84,7 +84,7 @@ export type CookieSyncOptions = {
 
 export type FetchHandlerInit = {
 	transport: ProxyTransport;
-	context: ScramjetContext;
+	context: AkContext;
 	crossOriginIsolated?: boolean;
 
 	sendSetCookie: (
@@ -99,18 +99,18 @@ export type TrackedHistoryState = {
 	url: string;
 	refererPolicy?: string;
 };
-export class ScramjetFetchTrackedClient {
+export class AkFetchTrackedClient {
 	history: TrackedHistoryState[] = [];
 	constructor(public clientId: string) {}
 }
 
 // eslint-disable-next-line scramjet-core/no-globals
-export class ScramjetFetchHandler extends EventTarget {
+export class AkFetchHandler extends EventTarget {
 	public client: BareCompatibleClient;
 	public crossOriginIsolated: boolean = false;
-	public context: ScramjetContext;
+	public context: AkContext;
 
-	public trackedClients = new _Map<string, ScramjetFetchTrackedClient>();
+	public trackedClients = new _Map<string, AkFetchTrackedClient>();
 
 	public hooks: {
 		rewriter: {
@@ -146,25 +146,25 @@ export class ScramjetFetchHandler extends EventTarget {
 	}
 
 	async handleFetch(
-		request: ScramjetFetchRequest
-	): Promise<ScramjetFetchResponse> {
+		request: AkFetchRequest
+	): Promise<AkFetchResponse> {
 		return doHandleFetch(this, request);
 	}
 }
 export type FetchHooks = {
 	intercept: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: AkFetchRequest;
+			parsed: AkFetchParsed;
 		};
 		props: {
-			response?: ScramjetFetchResponse;
+			response?: AkFetchResponse;
 		};
 	};
 	request: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: AkFetchRequest;
+			parsed: AkFetchParsed;
 			client: BareCompatibleClient;
 		};
 		props: {
@@ -175,8 +175,8 @@ export type FetchHooks = {
 	};
 	preresponse: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: AkFetchRequest;
+			parsed: AkFetchParsed;
 		};
 		props: {
 			response: BareResponse;
@@ -184,11 +184,11 @@ export type FetchHooks = {
 	};
 	response: {
 		context: {
-			request: ScramjetFetchRequest;
-			parsed: ScramjetFetchParsed;
+			request: AkFetchRequest;
+			parsed: AkFetchParsed;
 		};
 		props: {
-			response: ScramjetFetchResponse;
+			response: AkFetchResponse;
 		};
 	};
 };

@@ -1,4 +1,4 @@
-// HTTP cache plugin for ScramjetFetchHandler.
+// HTTP cache plugin for AkFetchHandler.
 //
 // Service-worker `fetch` ignores the browser's HTTP cache, so without this
 // every navigation re-runs the full network fetch even for unchanged
@@ -45,16 +45,16 @@
 
 import {
 	BareResponse,
-	type ScramjetFetchRequest,
-	type ScramjetHeaders,
+	type AkFetchRequest,
+	type AkHeaders,
 } from "@mercuryworkshop/scramjet";
 import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
-export const CACHE_NAME = "scramjet-http-cache-v2";
+export const CACHE_NAME = "ak-http-cache-v2";
 
 /** Header recording when this entry entered the cache (ms since epoch). */
-const STORED_AT_HEADER = "x-sj-cached-at";
+const STORED_AT_HEADER = "x-ak-ts";
 
 /**
  * Status codes RFC 9110 §15.1 marks as "cacheable by default", minus 206:
@@ -188,7 +188,7 @@ function responseIsStorable(
 /** Build a synthetic cache-key Request keyed by the *underlying* URL. */
 function buildCacheKeyRequest(
 	parsedUrl: string,
-	headers: ScramjetHeaders
+	headers: AkHeaders
 ): Request {
 	const native = new Headers();
 	for (const [k, v] of headers.toRawHeaders()) {
@@ -197,7 +197,7 @@ function buildCacheKeyRequest(
 		} catch {}
 	}
 	const cacheKeyUrl =
-		"https://sj-cache.invalid/" + encodeURIComponent(parsedUrl);
+		"https://ak-cache.invalid/" + encodeURIComponent(parsedUrl);
 	return new Request(cacheKeyUrl, { method: "GET", headers: native });
 }
 
@@ -295,7 +295,7 @@ export interface HttpCachePluginOptions {
 }
 
 /**
- * RFC-9111-ish HTTP cache for ScramjetFetchHandler.
+ * RFC-9111-ish HTTP cache for AkFetchHandler.
  *
  * One instance can be installed onto multiple Frames -- the WeakMap of
  * "did this request come from cache?" book-keeping is per-instance, not
@@ -308,10 +308,10 @@ export class HttpCachePlugin extends ManagedPlugin {
 	// Marks requests whose `earlyResponse` we sourced from the cache, so the
 	// preresponse hook below knows not to re-store them. WeakMap keys are
 	// the request objects so entries clean themselves up automatically.
-	private cameFromCache = new WeakMap<ScramjetFetchRequest, true>();
+	private cameFromCache = new WeakMap<AkFetchRequest, true>();
 
 	constructor(options: HttpCachePluginOptions = {}) {
-		super("scramjet-http-cache", []);
+		super("ak-http-cache", []);
 		this.cacheName = options.cacheName ?? CACHE_NAME;
 	}
 
@@ -452,7 +452,7 @@ export class HttpCachePlugin extends ManagedPlugin {
 			} catch (err) {
 				// Cache.put can fail on opaque or oddly-headered responses;
 				// don't let a cache write failure break the actual fetch.
-				console.warn("[scramjet-http-cache] cache.put failed:", err);
+				console.warn("[ak-http-cache] cache.put failed:", err);
 			}
 		});
 	}
@@ -468,7 +468,7 @@ export class HttpCachePlugin extends ManagedPlugin {
 			this.cachePromise = null;
 			return await caches.delete(this.cacheName);
 		} catch (err) {
-			console.error("[scramjet-http-cache] bust failed:", err);
+			console.error("[ak-http-cache] bust failed:", err);
 			return false;
 		}
 	}

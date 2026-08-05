@@ -743,7 +743,7 @@ function wptPageTest(entryPath: string): Test {
 		path: basePath,
 		scramjetOnly: true,
 		reloadHarness: true,
-		topLevelScramjet: false,
+		topLevelAk: false,
 		warmProxiedNavigation: true,
 		timeoutMs: 15000,
 		async start({ pass, fail }) {

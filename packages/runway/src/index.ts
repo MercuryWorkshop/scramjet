@@ -464,7 +464,7 @@ async function runTestOnHarness(
 	}
 
 	const runwayToken = crypto.randomUUID();
-	const testUrl = test.topLevelScramjet
+	const testUrl = test.topLevelAk
 		? runwayTestTargetUrl(test)
 		: appendRunwayToken(
 				runwayTestTargetUrl(test),
@@ -473,13 +473,13 @@ async function runTestOnHarness(
 			);
 	const harnessResultPromise = waitForResult(
 		timeout,
-		test.topLevelScramjet ? undefined : runwayToken
+		test.topLevelAk ? undefined : runwayToken
 	);
 	let result: TestResult;
 	let topLevelPage: Page | null = null;
 	let stopWatchingTopLevelPage: (() => void) | null = null;
 	let topLevelNavigationPromise: Promise<void> | null = null;
-	if (test.topLevelScramjet) {
+	if (test.topLevelAk) {
 		const proxiedUrl = await page.evaluate((url) => {
 			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
 				return (window as any).__runwayGetProxiedUrl(url);
@@ -697,7 +697,7 @@ async function main() {
 		);
 		await startHarness();
 		scramjetUrl = `http://localhost:${HARNESS_PORT}`;
-		console.log(`📡 Scramjet harness running at ${scramjetUrl}`);
+		console.log(`📡 Ak harness running at ${scramjetUrl}`);
 		if (needsBareHarness) {
 			const { startBareHarness, BARE_PORT } = await import(
 				"./harness/bare/index.ts"
@@ -766,7 +766,7 @@ async function main() {
 		const workerNeedsBare =
 			runBareTests &&
 			workerTests.some((test) => !test.directFn && !test.scramjetOnly);
-		const createPages = async (installScramjetBindings: boolean) => {
+		const createPages = async (installAkBindings: boolean) => {
 			if (!browser) {
 				throw new Error("Browser is unavailable for harness-based tests");
 			}
@@ -776,7 +776,7 @@ async function main() {
 					onConsistent: (source, label, value) =>
 						consistencyHandler(source, label, value),
 					collectCoverage: coverageEnabled,
-					installBindings: installScramjetBindings,
+					installBindings: installAkBindings,
 				}),
 				bare: workerNeedsBare
 					? await createTestPage(browser, {
@@ -809,13 +809,13 @@ async function main() {
 					result = { status: "pass" };
 				} else {
 					// Reload pages if needed (first run or after failure)
-					const desiredScramjetBindings = fastMode
+					const desiredAkBindings = fastMode
 						? true
-						: !test.topLevelScramjet;
+						: !test.topLevelAk;
 					if (
 						!testPages ||
 						needsReload ||
-						desiredScramjetBindings !== scramjetBindingsInstalled
+						desiredAkBindings !== scramjetBindingsInstalled
 					) {
 						if (testPages) {
 							if (!testPages.scramjet.page.isClosed()) {
@@ -826,12 +826,12 @@ async function main() {
 								testPages.bare?.cleanup(),
 							]);
 						}
-						scramjetBindingsInstalled = desiredScramjetBindings;
+						scramjetBindingsInstalled = desiredAkBindings;
 						testPages = await createPages(scramjetBindingsInstalled);
 						await ensureHarnessReady(
 							testPages.scramjet.page,
 							scramjetUrl,
-							"Scramjet"
+							"Ak"
 						);
 						if (testPages.bare) {
 							await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
@@ -1081,7 +1081,7 @@ async function main() {
 		const formatSummary = (item: typeof summary.lines) =>
 			`${item.pct.toFixed(1)}% (${item.covered}/${item.total})`;
 		console.log(
-			`\n📊 Scramjet TS coverage written to coverage/scramjet-coverage.json (${Object.keys(filteredCoverage).length} files)`
+			`\n📊 Ak TS coverage written to coverage/scramjet-coverage.json (${Object.keys(filteredCoverage).length} files)`
 		);
 		console.log(
 			`📈 Coverage summary: lines ${formatSummary(summary.lines)}, statements ${formatSummary(summary.statements)}, functions ${formatSummary(summary.functions)}, branches ${formatSummary(summary.branches)}`

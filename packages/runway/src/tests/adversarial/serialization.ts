@@ -15,7 +15,7 @@ export default [
 			assertEqual(doc.querySelector("a").getAttribute("href"), "/x", "parsed attribute");
 			assertEqual(doc.body.innerHTML, '<a href="/x">y</a><img src="/i.png">', "innerHTML round trip");
 			assertEqual(doc.querySelector("a").href, location.origin + "/x", "resolved property");
-			assert(!doc.body.innerHTML.includes("scramjet-attr"), "no internal attribute in innerHTML");
+			assert(!doc.body.innerHTML.includes("data-ak"), "no internal attribute in innerHTML");
 		`,
 	}),
 	basicTest({
@@ -25,7 +25,7 @@ export default [
 			tpl.innerHTML = '<img src="/t.png"><a href="/l">y</a>';
 			const img = tpl.content.querySelector("img");
 			assertEqual(img.getAttribute("src"), "/t.png", "template attribute");
-			assert(!img.src.includes("/~/sj/"), "template img.src must not expose the proxy URL: " + img.src);
+			assert(!img.src.includes("/a/"), "template img.src must not expose the proxy URL: " + img.src);
 			assertEqual(tpl.innerHTML, '<img src="/t.png"><a href="/l">y</a>', "template innerHTML round trip");
 			const clone = document.importNode(tpl.content, true);
 			assertEqual(clone.querySelector("img").getAttribute("src"), "/t.png", "importNode keeps the attribute");
@@ -41,7 +41,7 @@ export default [
 			d.innerHTML = '<a href="/x"><img src="/i.png"></a>';
 			assertEqual(d.outerHTML, '<div><a href="/x"><img src="/i.png"></a></div>', "outerHTML");
 			assertEqual(d.innerHTML, '<a href="/x"><img src="/i.png"></a>', "innerHTML");
-			assert(!d.outerHTML.includes("scramjet-attr"), "no internal attribute");
+			assert(!d.outerHTML.includes("data-ak"), "no internal attribute");
 			const wrapper = document.createElement("section");
 			wrapper.appendChild(d);
 			assertEqual(wrapper.innerHTML, '<div><a href="/x"><img src="/i.png"></a></div>', "nested serialization");
@@ -86,14 +86,14 @@ export default [
 	basicTest({
 		// KNOWN FAILURE: serializeToString bypasses the un-rewriting that
 		// innerHTML/outerHTML do, exposing both the proxy URL and the internal
-		// scramjet-attr-* bookkeeping attribute.
+		// data-ak-* bookkeeping attribute.
 		name: "serialization-xmlserializer-live",
 		js: `
 			const a = document.createElement("a");
 			a.href = "/x";
 			const s = new XMLSerializer().serializeToString(a);
-			assert(!s.includes("/~/sj/"), "serializeToString must not expose the proxy URL: " + s);
-			assert(!s.includes("scramjet-attr"), "nor the internal attribute: " + s);
+			assert(!s.includes("/a/"), "serializeToString must not expose the proxy URL: " + s);
+			assert(!s.includes("data-ak"), "nor the internal attribute: " + s);
 		`,
 	}),
 	basicTest({
@@ -104,13 +104,13 @@ export default [
 		js: `
 			const doc = new DOMParser().parseFromString('<html><body><a href="/x">y</a></body></html>', "text/html");
 			const s = new XMLSerializer().serializeToString(doc.querySelector("a"));
-			assert(!s.includes("/~/sj/"), "parsed markup: " + s);
-			assert(!s.includes("scramjet-attr"), "parsed markup internal attribute: " + s);
+			assert(!s.includes("/a/"), "parsed markup: " + s);
+			assert(!s.includes("data-ak"), "parsed markup internal attribute: " + s);
 			const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
 			image.setAttribute("href", "/s.png");
 			const svg = new XMLSerializer().serializeToString(image);
-			assert(!svg.includes("/~/sj/"), "svg: " + svg);
-			assert(!svg.includes("scramjet-attr"), "svg internal attribute: " + svg);
+			assert(!svg.includes("/a/"), "svg: " + svg);
+			assert(!svg.includes("data-ak"), "svg internal attribute: " + svg);
 		`,
 	}),
 ];

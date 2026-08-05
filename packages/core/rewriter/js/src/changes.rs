@@ -54,11 +54,11 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	/// insert `$wrapPostMessage(`
 	WrapPostMessageLeft,
 
-	/// insert `$scramerr(ident);`
+	/// insert `$akerr(ident);`
 	ScramErrFn {
 		ident: Atom<'data>,
 	},
-	/// insert `$scramitize(`
+	/// insert `$aktize(`
 	ScramitizeFn,
 	/// insert `eval(${cfg.rewritefn}(`
 	EvalRewriteFn,
@@ -66,14 +66,14 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 	ShorthandObj {
 		ident: Atom<'data>,
 	},
-	/// insert scramtag
+	/// insert aktag
 	SourceTag,
 
 	/// replace span with `${cfg.importfn}`
 	ImportFn,
 	/// replace span with `${cfg.metafn}("${cfg.base}")`
 	MetaFn,
-	/// replace span with `((t)=>$scramjet$tryset(${name},"${op}",t)||(${name}${op}t))(`
+	/// replace span with `((t)=>$ak$tryset(${name},"${op}",t)||(${name}${op}t))(`
 	AssignmentLeft {
 		name: Atom<'data>,
 		op: AssignmentOperator,
@@ -250,14 +250,14 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				}
 			}
 			Ty::WrapPostMessageLeft => LL::insert(transforms![&cfg.wrappostmessagefn, "("]),
-			Ty::ScramErrFn { ident } => LL::insert(transforms!["$scramerr(", ident, ");"]),
-			Ty::ScramitizeFn => LL::insert(transforms![" $scramitize("]),
+			Ty::ScramErrFn { ident } => LL::insert(transforms!["$akerr(", ident, ");"]),
+			Ty::ScramitizeFn => LL::insert(transforms![" $aktize("]),
 			Ty::EvalRewriteFn => LL::insert(transforms![&cfg.rewritefn, "("]),
 			Ty::ShorthandObj { ident } => {
 				LL::insert(transforms![":", &cfg.wrapfn, "(", ident, ")"])
 			}
 			Ty::SourceTag => LL::insert(transforms![
-				"/*scramtag ",
+				"/*aktag ",
 				self.span.start.wrapping_add_signed(offset),
 				" ",
 				&flags.sourcetag,
@@ -265,7 +265,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 			]),
 			Ty::ImportFn => LL::replace(transforms![&cfg.importfn, "(\"", &flags.base, "\","]),
 			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(import.meta,\"", &flags.base, "\")"]),
-			Ty::SetRealmFn => LL::replace(transforms!["$scramjet$setrealmfn", "({})."]),
+			Ty::SetRealmFn => LL::replace(transforms!["$ak$setrealmfn", "({})."]),
 			Ty::AssignmentLeft { name, op } => LL::replace(transforms![
 				"((t)=>",
 				&cfg.trysetfn,

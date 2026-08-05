@@ -118,7 +118,7 @@ export default [
 		"modules-import-meta-url",
 		`
 			const m = await import("/mod.js");
-			assert(!m.metaUrl.includes("/~/sj/"), "import.meta.url must not expose the proxy URL: " + m.metaUrl);
+			assert(!m.metaUrl.includes("/a/"), "import.meta.url must not expose the proxy URL: " + m.metaUrl);
 			assertEqual(m.metaUrl, location.origin + "/mod.js", "import.meta.url");
 			const s = await import("/modsibling.js");
 			assertEqual(s.sibling, location.origin + "/mod.js", "a sibling URL built from import.meta.url");

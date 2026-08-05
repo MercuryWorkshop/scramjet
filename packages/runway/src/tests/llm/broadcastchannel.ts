@@ -1,7 +1,7 @@
 import { basicTest, multiFrameTest } from "../../testcommon.ts";
 
 // Tests for the BroadcastChannel.postMessage proxy that wraps data in a
-// {$scramjet$messagetype, $scramjet$origin, $scramjet$data} envelope.
+// {$ak$messagetype, $ak$origin, $ak$data} envelope.
 // The matching unwrap happens in the message-event proxy, so a receiving
 // listener should see only the inner data and the envelope keys should
 // never be visible to page code.
@@ -46,16 +46,16 @@ export default [
 	basicTest({
 		name: "broadcastchannel-envelope-not-leaked",
 		js: `
-			// The proxy wraps data in an envelope with $scramjet$ keys.
+			// The proxy wraps data in an envelope with $ak$ keys.
 			// Page code must never see those keys on event.data.
 			const channel = "scramjet-bc-envelope-" + Date.now() + "-" + Math.random();
 			const a = new BroadcastChannel(channel);
 			const b = new BroadcastChannel(channel);
 			b.addEventListener("message", (event) => {
 				assertEqual(typeof event.data, "object", "data should be an object");
-				assert(!("$scramjet$data" in event.data), "$scramjet$data should not leak");
-				assert(!("$scramjet$origin" in event.data), "$scramjet$origin should not leak");
-				assert(!("$scramjet$messagetype" in event.data), "$scramjet$messagetype should not leak");
+				assert(!("$ak$data" in event.data), "$ak$data should not leak");
+				assert(!("$ak$origin" in event.data), "$ak$origin should not leak");
+				assert(!("$ak$messagetype" in event.data), "$ak$messagetype should not leak");
 				assertEqual(event.data.payload, "real", "inner payload should be untouched");
 				a.close();
 				b.close();
@@ -93,7 +93,7 @@ export default [
 			b.addEventListener("message", (event) => {
 				assertEqual(typeof event.origin, "string", "event.origin should be a string");
 				assert(event.origin.length > 0, "event.origin should not be empty");
-				assert(!event.origin.includes("$scramjet$"), "event.origin should not be the envelope");
+				assert(!event.origin.includes("$ak$"), "event.origin should not be the envelope");
 				a.close();
 				b.close();
 				pass();
@@ -244,7 +244,7 @@ export default [
 				assertEqual(event.data[0], 1, "array[0]");
 				assertEqual(event.data[1], "x", "array[1]");
 				assertEqual(event.data[2], null, "array[2]");
-				assert(!("$scramjet$data" in event.data), "$scramjet$data should not appear on the array");
+				assert(!("$ak$data" in event.data), "$ak$data should not appear on the array");
 				a.close();
 				b.close();
 				pass();
@@ -262,8 +262,8 @@ export default [
 			const b = new BroadcastChannel(channel);
 			b.addEventListener("message", (event) => {
 				assertEqual(event.data.outer.inner.value, "deep", "nested value should round-trip");
-				assert(!("$scramjet$data" in event.data), "envelope must not leak at top level");
-				assert(!("$scramjet$data" in event.data.outer), "envelope must not appear nested");
+				assert(!("$ak$data" in event.data), "envelope must not leak at top level");
+				assert(!("$ak$data" in event.data.outer), "envelope must not appear nested");
 				a.close();
 				b.close();
 				pass();
@@ -367,7 +367,7 @@ export default [
 				bc.addEventListener("message", (event) => {
 					assertEqual(event.data, "from-child", "parent should receive unwrapped child message");
 					assert(
-						typeof event.data !== "object" || !("$scramjet$data" in event.data),
+						typeof event.data !== "object" || !("$ak$data" in event.data),
 						"envelope must not leak across frames"
 					);
 					bc.close();

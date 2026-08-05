@@ -69,7 +69,7 @@ function $prop(prop) {
 
 const $gwrap = $wrap;
 
-function $scramitize(val) { return val }
+function $aktize(val) { return val }
 
 function assert(val) {
 	if (!val) fail();

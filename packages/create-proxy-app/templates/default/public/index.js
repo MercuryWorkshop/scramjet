@@ -11,11 +11,11 @@ let frame;
 async function init() {
 	controller = await initBootstrap();
 
-	const cachePlugin = new $scramjetUtils.HttpCachePlugin();
-	const urlWatcher = new $scramjetUtils.UrlWatcherPlugin((url) => {
+	const cachePlugin = new $akUtils.HttpCachePlugin();
+	const urlWatcher = new $akUtils.UrlWatcherPlugin((url) => {
 		frameUrl.textContent = url;
 	});
-	const catchEscapedLinks = new $scramjetUtils.CatchEscapedLinksPlugin(
+	const catchEscapedLinks = new $akUtils.CatchEscapedLinksPlugin(
 		(url) => new URL(`/?goto=${encodeURIComponent(url.href)}`, location.origin)
 	);
 

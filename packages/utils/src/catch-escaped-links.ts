@@ -1,4 +1,4 @@
-import { ScramjetHeaders } from "@mercuryworkshop/scramjet";
+import { AkHeaders } from "@mercuryworkshop/scramjet";
 import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
@@ -23,12 +23,12 @@ export class CatchEscapedLinksPlugin extends ManagedPlugin {
 					body: "",
 					status: 302,
 					statusText: "Found",
-					headers: ScramjetHeaders.fromRawHeaders([
+					headers: AkHeaders.fromRawHeaders([
 						["Location", String(location)],
 					]),
 				};
 			},
-			{ after: ["scramjet-http-cache"] }
+			{ after: ["ak-http-cache"] }
 		);
 	}
 }

@@ -3,8 +3,8 @@ import {
 	Number_isSafeInteger,
 	Error,
 } from "@/shared/snapshot";
-import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
-import { ProxyCtx, ScramjetClient } from "@client/index";
+import { AKCLIENT, AKCLIENTNAME } from "@/symbols";
+import { ProxyCtx, AkClient } from "@client/index";
 
 enum RewriteType {
 	Insert = 0,
@@ -37,7 +37,7 @@ function getEnd(rewrite: Rewrite): number {
 }
 
 function registerRewrites(
-	client: ScramjetClient,
+	client: AkClient,
 	buf: Array<number>,
 	tag: string
 ) {
@@ -78,15 +78,15 @@ function registerRewrites(
 	client.box.sourcemaps[tag] = rewrites;
 }
 
-const SCRAMTAG = "/*scramtag ";
+const SCRAMTAG = "/*aktag ";
 
 function extractTag(fn: string): [string, number, number] | null {
-	// every function rewritten will have a scramtag comment
+	// every function rewritten will have a aktag comment
 	// it will look like this:
-	// function name()[possible whitespace]/*scramtag [index] [tag]*/[possible whitespace]{ ... }
+	// function name()[possible whitespace]/*aktag [index] [tag]*/[possible whitespace]{ ... }
 
 	const start = fn.indexOf(SCRAMTAG);
-	// no scramtag, probably native function or stolen from scramjet
+	// no aktag, probably native function or stolen from scramjet
 	if (start === -1) return null;
 
 	const end = fn.indexOf("*/", start);
@@ -99,7 +99,7 @@ function extractTag(fn: string): [string, number, number] | null {
 
 	if (
 		tag.length !== 3 ||
-		tag[0] !== "scramtag" ||
+		tag[0] !== "aktag" ||
 		!Number_isSafeInteger(+tag[1])
 	) {
 		dbg.error("invalid tag", fn, start, end, tag);
@@ -110,7 +110,7 @@ function extractTag(fn: string): [string, number, number] | null {
 }
 
 function doUnrewrite(
-	client: ScramjetClient,
+	client: AkClient,
 	ctx: ProxyCtx<"Function.prototype.toString", "apply">
 ) {
 	const stringified: string = ctx.fn.call(ctx.this);
@@ -165,17 +165,17 @@ function doUnrewrite(
 	return ctx.return(newString);
 }
 
-export const enabled = (client: ScramjetClient) =>
+export const enabled = (client: AkClient) =>
 	client.flagEnabled("sourcemaps");
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: AkClient, self: Self) {
 	// every script will push a sourcemap
 	Object_defineProperty(self, client.config.globals.pushsourcemapfn, {
 		value: (buf: Array<number>, tag: string) => {
 			// const before = performance.now();
 			registerRewrites(client, buf, tag);
 			// if (client.flagEnabled("rewriterLogs")) {
-			// 	dbg.time(client.meta, before, `scramtag parse for ${tag}`);
+			// 	dbg.time(client.meta, before, `aktag parse for ${tag}`);
 			// }
 		},
 		enumerable: false,
@@ -197,7 +197,7 @@ export default function (client: ScramjetClient, self: Self) {
 			}
 			// const before = performance.now();
 			doUnrewrite(client, ctx);
-			// dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);
+			// dbg.time(client.meta, before, `aktag unrewrite for ${ctx.fn.name}`);
 		},
 	});
 }

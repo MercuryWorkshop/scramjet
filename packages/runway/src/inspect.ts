@@ -212,7 +212,7 @@ async function main() {
 			}
 		);
 
-		if (firstTest.topLevelScramjet) {
+		if (firstTest.topLevelAk) {
 			const proxiedUrl = await page.evaluate((url) => {
 				if (typeof (window as any).__runwayGetProxiedUrl === "function") {
 					return (window as any).__runwayGetProxiedUrl(url);
@@ -236,7 +236,7 @@ async function main() {
 				}
 			}, proxiedUrl);
 
-			console.log(`🌐 Opening top-level Scramjet page: ${proxiedUrl}`);
+			console.log(`🌐 Opening top-level Ak page: ${proxiedUrl}`);
 			await page.goto(proxiedUrl, { waitUntil: "commit" });
 		} else {
 			await page.evaluate((url) => {

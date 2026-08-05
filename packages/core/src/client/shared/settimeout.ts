@@ -1,8 +1,8 @@
 import { rewriteJs } from "@rewriters/js";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: AkClient, self: Self) {
 	client.Proxy(["setTimeout", "setInterval"], {
 		apply(ctx) {
 			if (typeof ctx.args[0] !== "function") {

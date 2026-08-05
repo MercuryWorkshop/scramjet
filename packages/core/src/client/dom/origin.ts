@@ -1,6 +1,6 @@
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 
-export default function (client: ScramjetClient, _self: Self) {
+export default function (client: AkClient, _self: Self) {
 	client.Trap("origin", {
 		get() {
 			// TODO: this isn't right!!

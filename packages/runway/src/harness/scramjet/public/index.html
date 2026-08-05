@@ -1,14 +1,14 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Scramjet Test Harness</title>
+		<title>Ak Test Harness</title>
 		<script src="/scramjet/scramjet.js"></script>
 		<script src="/controller/controller.api.js"></script>
 		<script src="/libcurl/index.js"></script>
 		<script src="/runway-cleartext-https-transport.js"></script>
 	</head>
 	<body>
-		<h1>Scramjet Test Harness</h1>
+		<h1>Ak Test Harness</h1>
 		<div id="status">Initializing...</div>
 		<button id="reload-btn" style="display: none; margin: 8px 0">
 			🔄 Reload Test
@@ -22,7 +22,7 @@
 			const statusEl = document.getElementById("status");
 			const testframe = document.getElementById("testframe");
 			const reloadBtn = document.getElementById("reload-btn");
-			const { Controller } = $scramjetController;
+			const { Controller } = $akController;
 			const LibcurlClient = window.LibcurlTransport.LibcurlClient;
 
 			let controller;
@@ -75,13 +75,19 @@
 				controller = new Controller({
 					serviceworker: sw,
 					transport,
+					config: {
+						corePath: "/scramjet/scramjet.js",
+						injectPath: "/controller/controller.inject.js",
+						wasmPath: "/scramjet/scramjet.wasm",
+						virtualWasmPath: "scramjet.wasm.js",
+					},
 				});
 				window.__runwayController = controller;
 
 				await controller.ready;
 
 				scramjetFrame = controller.createFrame(testframe);
-				window.__runwayScramjetFrame = scramjetFrame;
+				window.__runwayAkFrame = scramjetFrame;
 
 				statusEl.textContent = "Ready - waiting for test...";
 
@@ -96,7 +102,7 @@
 				};
 
 				window.__runwayGetProxiedUrl = (url) => {
-					return $scramjet.rewriteUrl(url, scramjetFrame.context, {
+					return $ak.rewriteUrl(url, scramjetFrame.context, {
 						origin: new URL(location.href),
 						base: new URL(location.href),
 					});

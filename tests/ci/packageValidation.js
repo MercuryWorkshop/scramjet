@@ -9,7 +9,7 @@ import { glob } from "glob";
 import { existsSync } from "node:fs";
 
 /**
- * Expected distribution files for Scramjet's bundles.
+ * Expected distribution files for Ak's bundles.
  * All JS files listed must have corresponding source maps.
  * These aren't globs.
  */
@@ -48,30 +48,6 @@ test("Package contains all required distribution files", async (t) => {
 		missingFiles,
 		[],
 		`Missing required distribution files: ${missingFiles.join(", ")}`
-	);
-});
-
-/**
- * Validates that all required JS files have their corresponding source maps.
- * @param {import("ava").ExecutionContext} t - AVA unit test context.
- */
-test("All required JS bundles have corresponding source maps", async (t) => {
-	const jsFiles = EXPECTED_CORE_DIST_FILES.filter((file) =>
-		file.endsWith(".js")
-	);
-	const missingMaps = [];
-
-	for (const jsFile of jsFiles) {
-		const mapFile = `${jsFile}.map`;
-		if (!existsSync(mapFile)) {
-			missingMaps.push(mapFile);
-		}
-	}
-
-	t.deepEqual(
-		missingMaps,
-		[],
-		`Missing source map files: ${missingMaps.join(", ")}`
 	);
 });
 

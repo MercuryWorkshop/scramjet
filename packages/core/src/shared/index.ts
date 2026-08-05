@@ -1,4 +1,4 @@
-import { ScramjetConfig, ScramjetFlags, ScramjetVersionInfo } from "@/types";
+import { AkConfig, AkFlags, AkVersionInfo } from "@/types";
 import DomHandler, { Element } from "domhandler";
 import { URLMeta } from "@rewriters/url";
 import { CookieJar } from "./cookie";
@@ -13,8 +13,8 @@ export * from "./mime";
 export * from "./rewriters";
 
 export function flagEnabled(
-	flag: keyof ScramjetFlags,
-	context: ScramjetContext,
+	flag: keyof AkFlags,
+	context: AkContext,
 	url: URL
 ): boolean {
 	const value = context.config.flags[flag];
@@ -27,7 +27,7 @@ export function flagEnabled(
 
 	return value;
 }
-export type ScramjetInterface = {
+export type AkInterface = {
 	codecEncode: (input: string) => string;
 	codecDecode: (input: string) => string;
 
@@ -44,10 +44,10 @@ export type ScramjetInterface = {
 	): string;
 };
 
-export type ScramjetContext = {
-	config: ScramjetConfig;
+export type AkContext = {
+	config: AkConfig;
 	prefix: URL;
-	interface: ScramjetInterface;
+	interface: AkInterface;
 	cookieJar: CookieJar;
 	hooks?: {
 		rewriter: {

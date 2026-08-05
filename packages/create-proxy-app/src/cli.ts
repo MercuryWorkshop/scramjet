@@ -29,7 +29,7 @@ async function project() {
 	const program = new Command();
 	program.name("Create Proxy");
 	program.description(
-		"A CLI to easily get started with creating a Scramjet or Ultraviolet Proxy"
+		"A CLI to easily get started with creating a Ak or Ultraviolet Proxy"
 	);
 	program.argument(
 		"[dir]",

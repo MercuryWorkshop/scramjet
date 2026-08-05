@@ -1,4 +1,4 @@
-import { ScramjetContext } from "@/shared";
+import { AkContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 import { QP } from "@/fetch/parse";
 
@@ -47,7 +47,7 @@ function tryCanParseURL(url: string, origin?: string | URL): _URL | null {
 
 export function rewriteBlob(
 	url: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta
 ) {
 	const blob = new _URL(url.substring("blob:".length));
@@ -57,7 +57,7 @@ export function rewriteBlob(
 
 export function unrewriteBlob(
 	url: string,
-	context: ScramjetContext,
+	context: AkContext,
 	_meta: URLMeta
 ) {
 	const blob = new _URL(url.substring("blob:".length));
@@ -116,7 +116,7 @@ function dataToBlob(url: string) {
 
 export function rewriteUrl(
 	url: string | URL,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	options?: RewriteUrlOptions
 ) {
@@ -208,7 +208,7 @@ export function rewriteUrl(
 	}
 }
 
-export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
+export function unrewriteUrl(url: string | URL, context: AkContext) {
 	url = String(url);
 	if (String_startsWith(url, "javascript:")) {
 		//TODO

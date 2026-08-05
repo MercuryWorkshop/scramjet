@@ -16,14 +16,14 @@ use crate::{
 
 // slightly modified https://github.com/ungap/random-uuid/blob/main/index.js
 #[wasm_bindgen(inline_js = r#"
-export function scramtag() {
+export function aktag() {
     return (""+1e10).replace(/[018]/g,
       c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
     );
 }
 "#)]
 extern "C" {
-	pub fn scramtag() -> std::string::String;
+	pub fn aktag() -> std::string::String;
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -31,7 +31,7 @@ const REWRITER_OUTPUT: &'static str = r#"
 export type JsRewriterOutput = {
 	js: Uint8Array,
 	map: Uint8Array,
-	scramtag: string,
+	aktag: string,
 	errors: string[],
 };
 "#;
@@ -69,7 +69,7 @@ impl UrlRewriter for WasmUrlRewriter {
 			// TODO: keep this in sync with QP.isModule or find a way to make this use the real rewriteUrl function
 			let origin = Url::new(&flags.base).map_err(RewriterError::from)?.origin();
 			let encoded_origin: String = encode_uri_component(&origin).into();
-			rewritten.push_str("?%24module=module&%24io=");
+			rewritten.push_str("?_m=module&_io=");
 			rewritten.push_str(&encoded_origin);
 		}
 
@@ -89,7 +89,7 @@ pub fn get_url_rewriter(func: Object) -> Result<WasmUrlRewriter> {
 	Ok(WasmUrlRewriter(
 		func
 			.dyn_into()
-			.map_err(|_| RewriterError::not_fn("scramjet.codec.encode"))?,
+			.map_err(|_| RewriterError::not_fn("codec.encode"))?,
 	))
 }
 
@@ -101,7 +101,7 @@ pub fn create_js_output(out: RewriteResult, url: String, src: String) -> Result<
 		"map",
 		&Uint8Array::from(out.sourcemap.as_slice()).into(),
 	)?;
-	set_obj(&obj, "scramtag", &out.flags.sourcetag.into())?;
+	set_obj(&obj, "aktag", &out.flags.sourcetag.into())?;
 
 	#[cfg(feature = "debug")]
 	{

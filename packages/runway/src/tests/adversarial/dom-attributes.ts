@@ -16,7 +16,7 @@ export default [
 			assertEqual(img.outerHTML, '<img src="/a.png" class="c">', "outerHTML");
 			assertEqual(img.getAttribute("src"), "/a.png", "getAttribute");
 			assert(img.hasAttribute("src"), "hasAttribute");
-			assert(!img.hasAttribute("scramjet-attr-src"), "no internal attribute is reachable by name");
+			assert(!img.hasAttribute("data-ak-src"), "no internal attribute is reachable by name");
 			img.removeAttribute("src");
 			assertEqual(img.getAttribute("src"), null, "removeAttribute");
 			assertDeepEqual(img.getAttributeNames(), ["class"], "names after removal");
@@ -106,7 +106,7 @@ export default [
 	basicTest({
 		// KNOWN FAILURE: getAttributeNames(), outerHTML and hasAttribute all
 		// filter the internal bookkeeping attribute, but the `attributes`
-		// NamedNodeMap does not - iterating it exposes scramjet-attr-src.
+		// NamedNodeMap does not - iterating it exposes data-ak-src.
 		// Attribute mirroring (web components, `[...el.attributes]` copy loops)
 		// carries it straight into the page's own markup.
 		name: "domattr-attributes-namednodemap",

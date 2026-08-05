@@ -1,7 +1,7 @@
 import { rewriteCss } from "@rewriters/css";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 
-export default function (client: ScramjetClient, _self: Self) {
+export default function (client: AkClient, _self: Self) {
 	client.Proxy("FontFace", {
 		construct(ctx) {
 			if (typeof ctx.args[1] !== "string") return;

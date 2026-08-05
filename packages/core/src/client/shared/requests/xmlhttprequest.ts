@@ -1,8 +1,8 @@
-import { getFlag, ScramjetContext } from "@/shared";
+import { getFlag, AkContext } from "@/shared";
 import { rewriteUrl, unrewriteUrl, URLMeta } from "@rewriters/url";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: AkClient, self: Self) {
 	let worker;
 	// if (self.Worker && flagEnabled("syncxhr", client.url)) {
 	// 	worker = client.natives.construct("Worker", config.files.sync);
@@ -155,7 +155,7 @@ export default function (client: ScramjetClient, self: Self) {
 	});
 }
 
-export function unrewriteLinkHeader(header: string, context: ScramjetContext) {
+export function unrewriteLinkHeader(header: string, context: AkContext) {
 	return header.replace(
 		/<([^>]+)>/gi,
 		(_match, p1) => `<${unrewriteUrl(p1, context)}>`

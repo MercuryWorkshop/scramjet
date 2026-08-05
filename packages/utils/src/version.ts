@@ -14,27 +14,27 @@ function assertVersionMatch(
 }
 
 export function assertDependencyVersions() {
-	if (typeof $scramjet === "undefined") {
+	if (typeof $ak === "undefined") {
 		console.error(
-			"@mercuryworkshop/scramjet is not loaded. Load scramjet before scramjet-utils."
+			"the core runtime is not loaded. Load it before utils."
 		);
 	}
 
 	assertVersionMatch(
-		"@mercuryworkshop/scramjet",
+		"core",
 		SCRAMJET_EXPECTED_VERSION,
-		$scramjet.versionInfo.version
+		$ak.versionInfo.version
 	);
 
-	if (typeof $scramjetController === "undefined") {
+	if (typeof $akController === "undefined") {
 		console.error(
-			"@mercuryworkshop/scramjet-controller is not loaded. Load the controller before scramjet-utils."
+			"the controller is not loaded. Load it before utils."
 		);
 	}
 
 	assertVersionMatch(
-		"@mercuryworkshop/scramjet-controller",
+		"controller",
 		CONTROLLER_EXPECTED_VERSION,
-		$scramjetController.VERSION
+		$akController.VERSION
 	);
 }

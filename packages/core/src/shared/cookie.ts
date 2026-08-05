@@ -135,7 +135,7 @@ export class CookieJar {
 
 					if (cookie.hostOnly && key !== hostname) continue;
 
-					// Scramjet proxies all origins as HTTPS (including those served over HTTP),
+					// Ak proxies all origins as HTTPS (including those served over HTTP),
 					// so we don't enforce the Secure attribute based on protocol here.
 					// if (cookie.secure && url.protocol !== "https:") continue;
 					if (cookie.httpOnly && fromJs) continue;

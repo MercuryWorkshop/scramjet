@@ -1,15 +1,15 @@
 import { iswindow } from "@client/entry";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
+import { AKCLIENT } from "@/symbols";
+import { AkClient } from "@client/index";
 // import { argdbg } from "@client/shared/err";
 import { Object_defineProperty } from "@/shared/snapshot";
 
-export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
+export function createWrapFn(client: AkClient, self: GlobalThis) {
 	let wrappedParent: GlobalThis | null = null;
 	let wrappedTop: GlobalThis | null = null;
 	if (iswindow) {
 		try {
-			if (SCRAMJETCLIENT in self.parent) {
+			if (AKCLIENT in self.parent) {
 				// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
 				wrappedParent = self.parent;
 			} else {
@@ -28,7 +28,7 @@ export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
 
 			try {
 				// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
-				if (!(SCRAMJETCLIENT in test)) break;
+				if (!(AKCLIENT in test)) break;
 			} catch {
 				// accessing test can throw if it's cross-origin, in which case we should also break
 				break;
@@ -56,7 +56,7 @@ export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
 }
 
 export const order = 4;
-export default function (client: ScramjetClient, self: GlobalThis) {
+export default function (client: AkClient, self: GlobalThis) {
 	Object_defineProperty(self, client.config.globals.wrapfn, {
 		value: client.wrapfn,
 		writable: false,
@@ -157,7 +157,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		}
 	);
 
-	self.$scramitize = function (v) {
+	self.$aktize = function (v) {
 		const t = typeof v;
 		if (t === "object" && v !== null) {
 			if (v === location) debugger;
@@ -166,8 +166,8 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 				if (v === self.top) debugger;
 			}
 		} else if (t === "string") {
-			if (v.includes("scramjet")) debugger;
-			if (v.includes("~/sj")) debugger;
+			if (v.includes("$ak")) debugger;
+			if (v.includes("/a/")) debugger;
 			if (v.includes(location.origin)) debugger;
 		}
 
@@ -175,7 +175,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 	};
 
 	// location = "..." can't be rewritten as wrapfn(location) = ..., so instead it will actually be rewritten as
-	// ((t)=>$scramjet$tryset(location,"+=",t)||location+=t)(...);
+	// ((t)=>$ak$tryset(location,"+=",t)||location+=t)(...);
 	// it has to be a discrete function because there's always the possibility that "location" is a local variable
 	// we have to use an IIFE to avoid duplicating side-effects in the getter
 	Object_defineProperty(self, client.config.globals.trysetfn, {

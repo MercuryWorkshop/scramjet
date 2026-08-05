@@ -96,7 +96,13 @@ async function init() {
 		controller = new Controller({
 			serviceworker: readySw,
 			transport: getTransport(),
-			scramjetConfig: defaultConfigDev,
+			runtimeConfig: defaultConfigDev,
+			config: {
+				corePath: "/assets/app.js",
+				injectPath: "/assets/core.inject.js",
+				wasmPath: "/assets/app.wasm",
+				virtualWasmPath: "app.wasm.js",
+			},
 		});
 		await controller.wait();
 		console.log(controller);

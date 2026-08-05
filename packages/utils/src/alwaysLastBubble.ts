@@ -1,7 +1,7 @@
-import type { ScramjetClient } from "@mercuryworkshop/scramjet";
+import type { AkClient } from "@mercuryworkshop/scramjet";
 
 export function setupAlwaysLastBubble(
-	client: ScramjetClient,
+	client: AkClient,
 	whatToCapture: string[]
 ) {
 	// goal is to override the default behavior of clicking on an <a> link

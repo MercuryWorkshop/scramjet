@@ -68,11 +68,11 @@ export default [
 		js: `
 			if (typeof navigation === "undefined") { pass(); return; }
 			assertEqual(typeof navigation.currentEntry, "object", "currentEntry");
-			assert(!navigation.currentEntry.url.includes("/~/sj/"),
+			assert(!navigation.currentEntry.url.includes("/a/"),
 				"navigation.currentEntry.url must not expose the proxy URL: " + navigation.currentEntry.url);
 			assertEqual(navigation.currentEntry.url, location.href, "currentEntry.url");
 			for (const u of navigation.entries().map((e) => e.url)) {
-				assert(!u.includes("/~/sj/"), "history entry URL leaks: " + u);
+				assert(!u.includes("/a/"), "history entry URL leaks: " + u);
 			}
 			assertEqual(typeof navigation.navigate, "function", "navigate()");
 			assertEqual(typeof navigation.canGoBack, "boolean", "canGoBack");
@@ -85,7 +85,7 @@ export default [
 			history.pushState({}, "", "/navtest?a=1");
 			assertEqual(navigation.currentEntry.url, location.href, "currentEntry follows pushState");
 			assertEqual(new URL(navigation.currentEntry.url).pathname, "/navtest", "pathname");
-			assert(!navigation.currentEntry.url.includes("/~/sj/"), "no proxy URL: " + navigation.currentEntry.url);
+			assert(!navigation.currentEntry.url.includes("/a/"), "no proxy URL: " + navigation.currentEntry.url);
 		`,
 	}),
 	basicTest({

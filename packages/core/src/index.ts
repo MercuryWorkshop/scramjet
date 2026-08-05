@@ -5,31 +5,31 @@
 import "./global.d";
 import { atob } from "@/shared/snapshot";
 import { setWasm } from "@rewriters/wasm";
-import { ScramjetVersionInfo, ScramjetConfig } from "./types";
+import { AkVersionInfo, AkConfig } from "./types";
 
 declare const VERSION: string;
 declare const COMMITHASH: string;
 declare const BUILDDATE: string;
-export const versionInfo: ScramjetVersionInfo = {
+export const versionInfo: AkVersionInfo = {
 	version: VERSION,
 	build: COMMITHASH,
 	date: BUILDDATE,
 };
 
-export const defaultConfig: ScramjetConfig = {
+export const defaultConfig: AkConfig = {
 	globals: {
-		wrapfn: "$scramjet$wrap",
-		wrappropertybase: "$scramjet__",
-		wrappropertyfn: "$scramjet$prop",
-		cleanrestfn: "$scramjet$clean",
-		importfn: "$scramjet$import",
-		rewritefn: "$scramjet$rewrite",
-		metafn: "$scramjet$meta",
-		wrappostmessagefn: "$scramjet$wrappostmessage",
-		pushsourcemapfn: "$scramjet$pushsourcemap",
-		trysetfn: "$scramjet$tryset",
-		templocid: "$scramjet$temploc",
-		tempunusedid: "$scramjet$tempunused",
+		wrapfn: "$ak$wrap",
+		wrappropertybase: "$ak__",
+		wrappropertyfn: "$ak$prop",
+		cleanrestfn: "$ak$clean",
+		importfn: "$ak$import",
+		rewritefn: "$ak$rewrite",
+		metafn: "$ak$meta",
+		wrappostmessagefn: "$ak$wrappostmessage",
+		pushsourcemapfn: "$ak$pushsourcemap",
+		trysetfn: "$ak$tryset",
+		templocid: "$ak$temploc",
+		tempunusedid: "$ak$tempunused",
 	},
 	flags: {
 		syncxhr: false,
@@ -50,7 +50,7 @@ export const defaultConfig: ScramjetConfig = {
 	maskedfiles: [],
 };
 
-export const defaultConfigDev: ScramjetConfig = {
+export const defaultConfigDev: AkConfig = {
 	...defaultConfig,
 	flags: {
 		...defaultConfig.flags,

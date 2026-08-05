@@ -1,4 +1,4 @@
-import { flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, AkContext } from "@/shared";
 import { rewriteJs } from "@rewriters/js";
 import { URLMeta } from "@rewriters/url";
 import { TextDecoder_decode } from "@/shared/snapshot";
@@ -7,7 +7,7 @@ import { base64Encode } from "@/shared/util";
 export function rewriteWorkers(
 	js: string | Uint8Array,
 	url: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	isModule: boolean
 ) {

@@ -1,5 +1,5 @@
 import { type BareCompatibleWebSocket } from "@mercuryworkshop/proxy-transports";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import {
 	Object_setPrototypeOf,
 	Reflect_get,
@@ -30,7 +30,7 @@ type FakeWebSocketStreamState = {
 	readable: ReadableStream;
 	writable: WritableStream;
 };
-export default function (client: ScramjetClient, self: GlobalThis) {
+export default function (client: AkClient, self: GlobalThis) {
 	const socketmap: WeakMap<WebSocket, FakeWebSocketState> =
 		new _WeakMap() as WeakMap<WebSocket, FakeWebSocketState>;
 	const socketstreammap: WeakMap<WebSocketStream, FakeWebSocketStreamState> =

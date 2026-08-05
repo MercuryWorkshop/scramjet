@@ -154,7 +154,7 @@ export default [
 			assertEqual(msg.from, "popup", "the message came from the popup: " + JSON.stringify(msg));
 			assertEqual(msg.href, location.origin + "/popup.html", "the popup's own location.href");
 			assertEqual(msg.hasOpener, true, "the popup can reach window.opener");
-			assert(!String(msg.href).includes("/~/sj/"), "the popup must not see a proxy URL");
+			assert(!String(msg.href).includes("/a/"), "the popup must not see a proxy URL");
 			w.close();
 			pass();
 		`,

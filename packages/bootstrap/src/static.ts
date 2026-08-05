@@ -17,7 +17,7 @@ import {
 const isSw = "ServiceWorkerGlobalScope" in globalThis;
 
 const CDN_URL = "https://cdn.jsdelivr.net/npm/";
-const DB_NAME = "scramjet-bootstrap";
+const DB_NAME = "ak-store";
 const DB_VERSION = 1;
 const STORE_NAME = "files";
 
@@ -191,8 +191,8 @@ if (isSw) {
 		event.respondWith(
 			(async () => {
 				// If scramjet controller is loaded, check if it should handle this request
-				if (scramjetControllerLoaded && (self as any).$scramjetController) {
-					const controller = (self as any).$scramjetController;
+				if (scramjetControllerLoaded && (self as any).$akController) {
+					const controller = (self as any).$akController;
 					if (controller.shouldRoute(event)) {
 						return controller.route(event);
 					}
@@ -327,9 +327,9 @@ if (isSw) {
 					(0, eval)(scriptContent);
 
 					scramjetControllerLoaded = true;
-					console.log("Scramjet controller loaded");
+					console.log("Ak controller loaded");
 				} else {
-					console.error("Scramjet controller not found in cache");
+					console.error("Ak controller not found in cache");
 				}
 			} catch (error) {
 				console.error("Failed to load scramjet controller:", error);

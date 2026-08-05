@@ -1,4 +1,4 @@
-import { flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, AkContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
@@ -23,7 +23,7 @@ type RewriterResult = {
 function rewriteJsWasm(
 	input: string | Uint8Array,
 	source: string | null,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	isModule: boolean
 ): RewriterResult {
@@ -80,11 +80,11 @@ function rewriteJsWasm(
 			dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
 		}
 
-		const { js, map, scramtag, errors } = out;
+		const { js, map, aktag, errors } = out;
 
 		return {
 			js: typeof input === "string" ? TextDecoder_decode(js) : js,
-			tag: scramtag,
+			tag: aktag,
 			map,
 			errors,
 		};
@@ -96,7 +96,7 @@ function rewriteJsWasm(
 export function rewriteJsInner(
 	js: string | Uint8Array,
 	url: string | null,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	isModule = false
 ) {
@@ -106,7 +106,7 @@ export function rewriteJsInner(
 export function rewriteJs(
 	js: string | Uint8Array,
 	url: string | null,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta,
 	isModule = false
 ): string | Uint8Array {

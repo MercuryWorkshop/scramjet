@@ -105,7 +105,7 @@ export type FrameInitHooks = {
 	pre: {
 		context: {
 			window: Window;
-			client: ScramjetClient;
+			client: AkClient;
 			isTopLevel: boolean;
 		};
 		props: {};
@@ -113,7 +113,7 @@ export type FrameInitHooks = {
 	post: {
 		context: {
 			window: Window;
-			client: ScramjetClient;
+			client: AkClient;
 			isTopLevel: boolean;
 		};
 		props: {};

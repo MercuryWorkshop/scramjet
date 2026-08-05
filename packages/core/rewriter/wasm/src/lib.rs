@@ -7,7 +7,7 @@ use jsr::{JsRewriter, JsRewriterOutput, create_js, create_js_output};
 use oxc::allocator::Allocator;
 use wasm_bindgen::prelude::*;
 
-use crate::jsr::{WasmUrlRewriter, get_url_rewriter, scramtag};
+use crate::jsr::{WasmUrlRewriter, get_url_rewriter, aktag};
 
 mod jsr;
 
@@ -65,7 +65,7 @@ fn get_js_config(config: &Object) -> Result<Config> {
 fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 	Ok(Flags {
 		base,
-		sourcetag: scramtag(),
+		sourcetag: aktag(),
 		is_module,
 
 		do_sourcemaps: get_bool(obj, "sourcemaps")?,

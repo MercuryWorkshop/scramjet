@@ -1,6 +1,6 @@
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 
-export class ScramjetHeaders {
+export class AkHeaders {
 	headers = {};
 
 	set(key: string, v: string) {
@@ -42,8 +42,8 @@ export class ScramjetHeaders {
 		return native;
 	}
 
-	static fromRawHeaders(raw: RawHeaders): ScramjetHeaders {
-		const h = new ScramjetHeaders();
+	static fromRawHeaders(raw: RawHeaders): AkHeaders {
+		const h = new AkHeaders();
 		for (const [k, v] of raw) {
 			if (h.has(k)) {
 				// console.debug(
@@ -56,8 +56,8 @@ export class ScramjetHeaders {
 		return h;
 	}
 
-	static fromNativeHeaders(native: Headers): ScramjetHeaders {
-		const h = new ScramjetHeaders();
+	static fromNativeHeaders(native: Headers): AkHeaders {
+		const h = new AkHeaders();
 		for (const [k, v] of native.entries()) {
 			h.set(k, v);
 		}
@@ -65,8 +65,8 @@ export class ScramjetHeaders {
 		return h;
 	}
 
-	clone(): ScramjetHeaders {
-		const newh = new ScramjetHeaders();
+	clone(): AkHeaders {
+		const newh = new AkHeaders();
 		for (const k in this.headers) {
 			newh.set(k, this.headers[k]);
 		}

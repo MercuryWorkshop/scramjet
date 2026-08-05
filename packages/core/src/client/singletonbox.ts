@@ -1,5 +1,5 @@
 import { IncrementalHtmlRewriter } from "@/shared";
-import { ScramjetClient } from "./client";
+import { AkClient } from "./client";
 import { SourceMaps } from "./shared/sourcemaps";
 import {
 	Object_getOwnPropertyNames,
@@ -7,11 +7,11 @@ import {
 } from "@/shared/snapshot";
 
 export class SingletonBox {
-	clients: ScramjetClient[] = [];
-	globals: Map<Self, ScramjetClient> = new Map();
-	documents: Map<Document, ScramjetClient> = new Map();
-	histories: Map<History, ScramjetClient> = new Map();
-	locations: Map<Location, ScramjetClient> = new Map();
+	clients: AkClient[] = [];
+	globals: Map<Self, AkClient> = new Map();
+	documents: Map<Document, AkClient> = new Map();
+	histories: Map<History, AkClient> = new Map();
+	locations: Map<Location, AkClient> = new Map();
 	writeRewriters = new WeakMap<Document, IncrementalHtmlRewriter>();
 	unproxy = new Map<any, any>();
 
@@ -19,9 +19,9 @@ export class SingletonBox {
 
 	sourcemaps: SourceMaps = {};
 
-	constructor(public ownerclient: ScramjetClient) {}
+	constructor(public ownerclient: AkClient) {}
 
-	registerClient(client: ScramjetClient, global: Self) {
+	registerClient(client: AkClient, global: Self) {
 		this.clients.push(client);
 		this.globals.set(global, client);
 		this.documents.set(global.document, client);

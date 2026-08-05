@@ -15,16 +15,16 @@ function assertVersionMatch(
 	}
 }
 
-export function assertRuntimeScramjetVersion() {
-	if (typeof $scramjet === "undefined") {
+export function assertRuntimeAkVersion() {
+	if (typeof $ak === "undefined") {
 		throw new Error(
-			"@mercuryworkshop/scramjet is not loaded. Load scramjet before the controller."
+			"the core runtime is not loaded. Load it before the controller."
 		);
 	}
 
 	assertVersionMatch(
-		"@mercuryworkshop/scramjet",
+		"core",
 		SCRAMJET_EXPECTED_VERSION,
-		$scramjet.versionInfo.version
+		$ak.versionInfo.version
 	);
 }

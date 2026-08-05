@@ -1,8 +1,8 @@
 /**
- * Version information for the current Scramjet build.
+ * Version information for the current Ak build.
  * Contains both the semantic version string and the git commit hash for build identification.
  */
-export interface ScramjetVersionInfo {
+export interface AkVersionInfo {
 	/** The semantic version */
 	version: string;
 	/** The git commit hash that this build was created from */
@@ -12,9 +12,9 @@ export interface ScramjetVersionInfo {
 }
 
 /**
- * Scramjet Feature Flags, configured at build time
+ * Ak Feature Flags, configured at build time
  */
-export type ScramjetFlags = {
+export type AkFlags = {
 	syncxhr: boolean;
 	disableComputedWrap: boolean;
 	rewriterLogs: boolean;
@@ -30,7 +30,7 @@ export type ScramjetFlags = {
 	encapsulateWorkers: boolean;
 };
 
-export interface ScramjetConfig {
+export interface AkConfig {
 	globals: {
 		wrapfn: string;
 		wrappropertybase: string;
@@ -45,17 +45,17 @@ export interface ScramjetConfig {
 		templocid: string;
 		tempunusedid: string;
 	};
-	flags: ScramjetFlags;
-	siteFlags: Record<string, Partial<ScramjetFlags>>;
+	flags: AkFlags;
+	siteFlags: Record<string, Partial<AkFlags>>;
 	maskedfiles: string[];
 }
 
 /**
- * The config for Scramjet initialization.
+ * The config for Ak initialization.
  */
-export interface ScramjetInitConfig
-	extends Omit<ScramjetConfig, "codec" | "flags"> {
-	flags: Partial<ScramjetFlags>;
+export interface AkInitConfig
+	extends Omit<AkConfig, "codec" | "flags"> {
+	flags: Partial<AkFlags>;
 	codec: {
 		encode: (url: string) => string;
 		decode: (url: string) => string;

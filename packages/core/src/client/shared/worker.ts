@@ -1,6 +1,6 @@
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 
-export default function (client: ScramjetClient, _self: GlobalThis) {
+export default function (client: AkClient, _self: GlobalThis) {
 	client.Proxy("Worker", {
 		construct(ctx) {
 			ctx.args[0] = client.rewriteUrl(ctx.args[0], {
@@ -17,7 +17,7 @@ export default function (client: ScramjetClient, _self: GlobalThis) {
 			// 		"Worker.prototype.postMessage",
 			// 		worker,
 			// 		{
-			// 			$scramjet$type: "baremuxinit",
+			// 			$ak$type: "baremuxinit",
 			// 			port,
 			// 		},
 			// 		[port]
@@ -55,7 +55,7 @@ export default function (client: ScramjetClient, _self: GlobalThis) {
 			// 		"MessagePort.prototype.postMessage",
 			// 		worker.port,
 			// 		{
-			// 			$scramjet$type: "baremuxinit",
+			// 			$ak$type: "baremuxinit",
 			// 			port,
 			// 		},
 			// 		[port]

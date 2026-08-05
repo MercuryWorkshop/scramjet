@@ -49,8 +49,8 @@ function routeRequest(
 		res.writeHead(200, { "Content-Type": "application/javascript" });
 		res.end(`importScripts("${config.scramjetControllerSwPath}");
 addEventListener("fetch", (e) => {
-	if ($scramjetController.shouldRoute(e)) {
-		e.respondWith($scramjetController.route(e));
+	if ($akController.shouldRoute(e)) {
+		e.respondWith($akController.route(e));
 	}
 });
 `);
@@ -160,7 +160,7 @@ async function getDownloadedPackageVersion(
 	}
 }
 
-async function updateScramjet(controllerMeta: any) {
+async function updateAk(controllerMeta: any) {
 	const scramjetVersion =
 		controllerMeta.devDependencies["@mercuryworkshop/scramjet"];
 
@@ -232,7 +232,7 @@ export async function bootstrap(
 		await getDownloadedPackageVersion("controller");
 	if (downloadedControllerVersion) {
 		console.log(
-			`Found downloaded Scramjet Controller version: ${downloadedControllerVersion}`
+			`Found downloaded Ak Controller version: ${downloadedControllerVersion}`
 		);
 	}
 
@@ -261,12 +261,12 @@ export async function bootstrap(
 
 	if (downloadedControllerVersion === controllerMeta.version) {
 		console.log(
-			`Scramjet Controller is up to date (version: ${downloadedControllerVersion}), skipping download.`
+			`Ak Controller is up to date (version: ${downloadedControllerVersion}), skipping download.`
 		);
 	} else {
-		await updateScramjet(controllerMeta);
+		await updateAk(controllerMeta);
 		console.log(
-			`Downloaded Scramjet Controller version: ${controllerMeta.version}`
+			`Downloaded Ak Controller version: ${controllerMeta.version}`
 		);
 	}
 
@@ -278,11 +278,11 @@ export async function bootstrap(
 	);
 	if (downloadedUtilsVersion === utilsMeta.version) {
 		console.log(
-			`Scramjet Utils is up to date (version: ${downloadedUtilsVersion}), skipping download.`
+			`Ak Utils is up to date (version: ${downloadedUtilsVersion}), skipping download.`
 		);
 	} else {
 		await unpack(utilsMeta.dist.tarball, "scramjet-utils");
-		console.log(`Downloaded Scramjet Utils version: ${utilsMeta.version}`);
+		console.log(`Downloaded Ak Utils version: ${utilsMeta.version}`);
 	}
 
 	return {

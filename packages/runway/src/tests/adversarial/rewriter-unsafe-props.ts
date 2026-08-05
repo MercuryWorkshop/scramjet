@@ -2,7 +2,7 @@ import { basicTest } from "../../testcommon.ts";
 
 // `location`, `top`, `parent` and `eval` are the rewriter's UNSAFE_GLOBALS, so
 // *every* `.location` / `.top` / `.parent` / `.eval` property access in a page
-// is redirected through the $scramjet__<name> accessor pair installed on
+// is redirected through the $ak__<name> accessor pair installed on
 // Object.prototype (see client/shared/wrap.ts).
 //
 // That means ordinary objects that happen to carry one of those keys - weather
@@ -58,7 +58,7 @@ export default [
 	basicTest({
 		name: "unsafeprops-accessor-invocation-count",
 		js: `
-			// the $scramjet__location getter reads this.location, so a page-level
+			// the $ak__location getter reads this.location, so a page-level
 			// accessor must not be invoked more than once per access
 			let gets = 0, sets = 0, lastSet;
 			const o = {
@@ -132,7 +132,7 @@ export default [
 	// where the redirection becomes observable
 	// ------------------------------------------------------------------
 	basicTest({
-		// KNOWN FAILURE: the trap sees $scramjet__location instead of location,
+		// KNOWN FAILURE: the trap sees $ak__location instead of location,
 		// and is entered twice (once for the mangled name, once for the read the
 		// accessor performs). Every Proxy-based reactivity system - Vue 3, MobX,
 		// immer - keys its dependency tracking on exactly this argument, so a
@@ -167,7 +167,7 @@ export default [
 	basicTest({
 		// KNOWN FAILURE: the accessor lives on Object.prototype, so an object
 		// with a null prototype never reaches it - the write lands in an own
-		// property literally called $scramjet__location. Null-prototype
+		// property literally called $ak__location. Null-prototype
 		// dictionaries are the standard shape for parsed query strings, i18n
 		// tables and JSON maps.
 		name: "unsafeprops-null-prototype",
@@ -181,7 +181,7 @@ export default [
 		`,
 	}),
 	basicTest({
-		// KNOWN FAILURE: rewritten to `delete o.$scramjet__location`, which
+		// KNOWN FAILURE: rewritten to `delete o.$ak__location`, which
 		// removes nothing and still reports success. `delete node.parent` is a
 		// standard way to break reference cycles before serializing a tree.
 		name: "unsafeprops-delete",
@@ -208,7 +208,7 @@ export default [
 		`,
 	}),
 	basicTest({
-		// KNOWN FAILURE: `super.location` becomes `super.$scramjet__location`,
+		// KNOWN FAILURE: `super.location` becomes `super.$ak__location`,
 		// which finds the Object.prototype accessor; its getter then reads
 		// `this.location`, so the lookup collapses onto the instance's own
 		// property instead of continuing up the prototype chain.

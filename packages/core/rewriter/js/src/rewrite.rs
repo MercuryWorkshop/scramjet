@@ -55,18 +55,18 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 
 	// dead code only if debug is disabled
 	#[allow(dead_code)]
-	/// `$scramerr(name)`
+	/// `$akerr(name)`
 	ScramErr {
 		ident: Atom<'data>,
 	},
-	/// `$scramitize(span)`
+	/// `$aktize(span)`
 	Scramitize,
 
 	/// `eval(cfg.rewritefn(inner))`
 	Eval {
 		inner: Span,
 	},
-	/// `((t)=>$scramjet$tryset(name,"op",t)||(name op t))(rhs)`
+	/// `((t)=>$ak$tryset(name,"op",t)||(name op t))(rhs)`
 	Assignment {
 		name: Atom<'data>,
 		rhs: Span,

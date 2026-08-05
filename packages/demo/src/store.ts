@@ -22,7 +22,7 @@ export const demoSettingsStore = createStore(
 		maxRequests: DEFAULT_MAX_REQUESTS,
 	},
 	{
-		ident: "scramjet-demo-settings",
+		ident: "ak-app-settings",
 		backing: "localstorage",
 		autosave: "auto",
 	}

@@ -1,7 +1,7 @@
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { Object_defineProperty, _URL } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: AkClient, self: Self) {
 	const boundimport = client.natives.call(
 		"Function",
 		null,

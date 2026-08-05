@@ -2,7 +2,7 @@ import { basicTest } from "../../testcommon.ts";
 
 /* eslint-disable quotes -- browser snippets are clearer as template literals */
 
-// KNOWN FAILURES in APIs that Scramjet already intercepts but that sit well
+// KNOWN FAILURES in APIs that Ak already intercepts but that sit well
 // outside the primary DOM/fetch/navigation paths. Keep these as differential
 // tests: the bare harness is the browser oracle and each case is issue-sized.
 const probe = (name: string, js: string) =>

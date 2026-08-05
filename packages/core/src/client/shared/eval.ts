@@ -1,10 +1,10 @@
 import { rewriteJs } from "@rewriters/js";
-import { ScramjetClient } from "@client/index";
+import { AkClient } from "@client/index";
 import { Object_defineProperty, String } from "@/shared/snapshot";
 
-export default function (client: ScramjetClient, self: Self) {
+export default function (client: AkClient, self: Self) {
 	// used for proxying *direct eval*
-	// eval("...") -> eval($scramjet$rewrite("..."))
+	// eval("...") -> eval($ak$rewrite("..."))
 	Object_defineProperty(self, client.config.globals.rewritefn, {
 		value: function (js: any) {
 			// if eval is called on anything other than a string, we should just return it unchanged
@@ -26,7 +26,7 @@ export default function (client: ScramjetClient, self: Self) {
 	});
 }
 
-export function createIndirectEval(client: ScramjetClient) {
+export function createIndirectEval(client: AkClient) {
 	const indirection = client.global.eval;
 	const proxy = new Proxy(client.global.eval, {
 		apply(_target, _thisArg, args) {

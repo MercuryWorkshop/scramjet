@@ -106,7 +106,7 @@ export default [
 			assertDeepEqual(d.dataKeys, ["hello"], "no proxy wrapper keys in event.data: " + JSON.stringify(d.dataKeys));
 			assertEqual(d.href, location.origin + "/w.js", "self.location.href");
 			assertEqual(d.pathname, "/w.js", "self.location.pathname");
-			assert(!d.href.includes("/~/sj/"), "self.location.href must not expose the proxy URL");
+			assert(!d.href.includes("/a/"), "self.location.href must not expose the proxy URL");
 			assertEqual(d.isWorkerScope, true, "WorkerGlobalScope exists");
 			assertEqual(d.hasWindow, false, "no window in a worker");
 			assertEqual(d.ua, "string", "navigator.userAgent");
@@ -189,7 +189,7 @@ export default [
 				setTimeout(() => rej(new Error("no error event fired")), 6000);
 			});
 			assert((e.message || "").includes("worker-boom"), "error message: " + e.message);
-			assert(!(e.filename || "").includes("/~/sj/"), "error filename must not expose the proxy URL: " + e.filename);
+			assert(!(e.filename || "").includes("/a/"), "error filename must not expose the proxy URL: " + e.filename);
 			assertEqual(e.filename, location.origin + "/wthrow.js", "error filename");
 			w.terminate();
 		`

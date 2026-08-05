@@ -1,23 +1,23 @@
 import { URLMeta, rewriteUrl, unrewriteUrl } from "@rewriters/url";
-import { ScramjetContext } from "@/shared";
+import { AkContext } from "@/shared";
 import { String } from "@/shared/snapshot";
 
 export function rewriteCss(
 	css: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta: URLMeta
 ) {
 	return handleCss("rewrite", css, context, meta);
 }
 
-export function unrewriteCss(css: string, context: ScramjetContext) {
+export function unrewriteCss(css: string, context: AkContext) {
 	return handleCss("unrewrite", css, context);
 }
 
 function handleCss(
 	type: "rewrite" | "unrewrite",
 	css: string,
-	context: ScramjetContext,
+	context: AkContext,
 	meta?: URLMeta
 ) {
 	// regex from vk6 (https://github.com/ading2210)

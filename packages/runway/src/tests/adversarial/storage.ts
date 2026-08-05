@@ -218,7 +218,7 @@ export default [
 			assert(ev, "a same-origin child frame must receive the storage event");
 			assertEqual(ev.key, "cf", "event.key");
 			assertEqual(ev.newValue, "cfvalue", "event.newValue");
-			assert(!(ev.url || "").includes("/~/sj/"), "event.url must not expose the proxy URL: " + ev.url);
+			assert(!(ev.url || "").includes("/a/"), "event.url must not expose the proxy URL: " + ev.url);
 			localStorage.removeItem("cf");
 		`,
 	}),

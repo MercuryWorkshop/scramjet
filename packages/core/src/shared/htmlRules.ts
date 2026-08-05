@@ -1,14 +1,14 @@
 import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
 import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
-import { ScramjetContext } from "@/shared";
+import { AkContext } from "@/shared";
 import { _URL } from "./snapshot";
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
 	fn: (
 		value: string,
-		context: ScramjetContext,
+		context: AkContext,
 		meta: URLMeta,
 		attrs?: Record<string, string | undefined>
 	) => string | null;
