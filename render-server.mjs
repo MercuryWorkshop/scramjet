@@ -37,6 +37,13 @@ app.use(
 	})
 );
 
+// Lightweight health check for uptime monitors (e.g. UptimeRobot). Kept
+// before the SPA fallback so a keep-alive ping returns a few bytes instead
+// of downloading the whole demo shell each time.
+app.get("/healthz", (_req, res) => {
+	res.type("text/plain").send("ok");
+});
+
 // Single-page-app fallback: anything that isn't a real file gets the shell.
 // Proxied requests are handled by the service worker in the browser and
 // never reach this server.
