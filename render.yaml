@@ -1,0 +1,24 @@
+# Render blueprint: one free web service that serves the static Scramjet
+# demo AND hosts the Wisp WebSocket backend on the same origin.
+#
+# Deploy by pushing this file and clicking "New > Blueprint" in Render, or
+# create the service manually with the same build/start commands.
+services:
+  - type: web
+    name: scramjet
+    runtime: node
+    plan: free
+    # Region is fixed on the free plan; Oregon is the default.
+    region: oregon
+    branch: main
+    buildCommand: bash render-build.sh
+    startCommand: node render-server.mjs
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22.22.2"
+      - key: PNPM_VERSION
+        value: "10.12.1"
+      # RENDER_EXTERNAL_HOSTNAME is injected automatically and is used at
+      # build time to bake wss://<host>/wisp/ into the demo. If you host
+      # somewhere without that variable, set VITE_WISP_URL here instead.
