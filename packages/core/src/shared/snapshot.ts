@@ -1,13 +1,22 @@
 // this is a place for storing stateless globals that will be used by shared/
 // this is NOT a place for putting dom apis
 
+export const Function_prototype_call = globalThis.Function.prototype.call;
+export const Function_prototype_apply = globalThis.Function.prototype.apply;
+export const Function_prototype_bind = globalThis.Function.prototype.bind;
+
 export const String = globalThis.String;
 export const String_fromCodePoint = globalThis.String.fromCodePoint;
 export const String_fromCharCode = globalThis.String.fromCharCode;
-const Function_prototype_call = globalThis.Function.prototype.call;
 export const String_startsWith = Function_prototype_call.bind(
 	globalThis.String.prototype.startsWith
 ) as (str: string, searchString: string, position?: number) => boolean;
+export const String_prototype_toLowerCase =
+	globalThis.String.prototype.toLowerCase;
+export const String_toLowerCase = Function_prototype_call.bind(
+	String_prototype_toLowerCase
+);
+
 export const Number = globalThis.Number;
 export const Number_parseInt = globalThis.Number.parseInt;
 export const Number_isSafeInteger = globalThis.Number.isSafeInteger;

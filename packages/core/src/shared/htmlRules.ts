@@ -10,7 +10,7 @@ export const htmlRules: {
 		value: string,
 		context: ScramjetContext,
 		meta: URLMeta,
-		attrs?: Record<string, string | undefined>
+		getAttr: (name: string) => string | null
 	) => string | null;
 }[] = [
 	{
@@ -27,10 +27,10 @@ export const htmlRules: {
 		"xlink:href": ["image"],
 	},
 	{
-		fn: (value, context, meta, attrs) => {
+		fn: (value, context, meta, getAttr) => {
 			const isModule =
-				attrs?.type?.toLowerCase() === "module" ||
-				attrs?.rel?.toLowerCase() === "modulepreload";
+				getAttr("type")?.toLowerCase() === "module" ||
+				getAttr("rel")?.toLowerCase() === "modulepreload";
 
 			return rewriteUrl(value, context, meta, {
 				isModule,

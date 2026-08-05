@@ -361,7 +361,12 @@ function traverseParsedHtml(
 				if (sel === "*" || sel.includes(node.name)) {
 					if (node.attribs[attr] !== undefined) {
 						const value = node.attribs[attr];
-						const v = rule.fn(value, context, meta, node.attribs);
+						const v = rule.fn(
+							value,
+							context,
+							meta,
+							(name) => node.attribs[name] || null
+						);
 
 						if (v === null) delete node.attribs[attr];
 						else {
