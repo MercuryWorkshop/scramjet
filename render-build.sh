@@ -18,12 +18,18 @@ mkdir -p "$LOCAL_BIN"
 export PATH="$LOCAL_BIN:$HOME/.cargo/bin:$PATH"
 
 echo "==> Installing Rust toolchain"
-if ! command -v cargo >/dev/null 2>&1; then
+if ! command -v rustup >/dev/null 2>&1; then
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-		| sh -s -- -y --profile minimal --default-toolchain none
+		| sh -s -- -y --profile minimal --default-toolchain nightly
 fi
-# rust-toolchain.toml in packages/core/rewriter pins nightly + wasm32 + rust-src,
-# so rustup resolves the correct toolchain the first time cargo runs there.
+# Render's build image ships rustup but with no default toolchain configured,
+# which breaks plain `cargo`/`cargo install`. Pin nightly as the default and
+# make sure the wasm target + rust-src (needed by build-std) are installed.
+# The rewriter build itself uses `cargo +nightly`, and its rust-toolchain.toml
+# pins nightly too, so this stays consistent.
+rustup default nightly
+rustup target add wasm32-unknown-unknown
+rustup component add rust-src
 
 echo "==> Installing wasm-bindgen ${WBG_VER}"
 if ! wasm-bindgen -V 2>/dev/null | grep -q "$WBG_VER"; then
