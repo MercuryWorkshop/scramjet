@@ -611,7 +611,11 @@ where
 		if let Some(source) = &it.source {
 			self.rewrite_url(source, true);
 		}
-		audit_skip!(it.declaration, "export {x} is safe because you can only export locals, which the only unsafe `top/parent` obviously can't be");
+		// the declaration body is normal code and must be rewritten, we just can't touch the
+		// specifiers below since those are binding names, not references
+		if let Some(declaration) = &it.declaration {
+			self.visit_declaration(declaration);
+		}
 		audit_skip!(it.specifiers, "export {x as y} is safe because you can only export locals");
 	}
 
