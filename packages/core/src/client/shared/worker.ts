@@ -13,9 +13,7 @@ export default function (client: ScramjetClient, _self: GlobalThis) {
 
 			// (async () => {
 			// 	const port = await conn.getInnerPort();
-			// 	client.natives.call(
-			// 		"Worker.prototype.postMessage",
-			// 		worker,
+			// 	new client.native.Worker(worker).postMessage(
 			// 		{
 			// 			$scramjet$type: "baremuxinit",
 			// 			port,
@@ -51,9 +49,7 @@ export default function (client: ScramjetClient, _self: GlobalThis) {
 
 			// (async () => {
 			// 	const port = await conn.getInnerPort();
-			// 	client.natives.call(
-			// 		"MessagePort.prototype.postMessage",
-			// 		worker.port,
+			// 	new client.native.MessagePort(worker.port).postMessage(
 			// 		{
 			// 			$scramjet$type: "baremuxinit",
 			// 			port,

@@ -304,10 +304,8 @@ class ExecutionContextWrapper {
 					currentwin = currentwin.parent.window;
 					continue;
 				}
-				const currentFrame = currentclient.descriptors.get(
-					"window.frameElement",
-					currentwin
-				);
+				const currentFrame = new currentclient.native.window(currentwin)
+					.frameElement;
 				if (currentFrame && currentFrame[CONTROLLERFRAME]) {
 					controllerFrame = currentFrame[CONTROLLERFRAME];
 					break;

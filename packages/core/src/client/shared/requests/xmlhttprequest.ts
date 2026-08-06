@@ -5,7 +5,9 @@ import { ScramjetClient } from "@client/index";
 export default function (client: ScramjetClient, self: Self) {
 	let worker;
 	// if (self.Worker && flagEnabled("syncxhr", client.url)) {
-	// 	worker = client.natives.construct("Worker", config.files.sync);
+	// 	// client.native has no construct form, so reach into the store directly
+	// 	const NativeWorker = client.nativeStore.get("window").Worker.value;
+	// 	worker = new NativeWorker(config.files.sync);
 	// }
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
@@ -44,7 +46,7 @@ export default function (client: ScramjetClient, self: Self) {
 			const sab = new SharedArrayBuffer(1024, { maxByteLength: 2147483647 });
 			const view = new DataView(sab);
 
-			client.natives.call("Worker.prototype.postMessage", worker, {
+			new client.native.Worker(worker).postMessage({
 				sab,
 				args,
 				headers: ctx.this[HEADERS],

@@ -2,9 +2,7 @@ import { ScramjetClient } from "@client/index";
 import { Object_defineProperty, _URL } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, self: Self) {
-	const boundimport = client.natives.call(
-		"Function",
-		null,
+	const boundimport = new client.native.window(self).Function(
 		"url",
 		"return import(url)"
 	);

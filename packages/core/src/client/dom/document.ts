@@ -32,26 +32,17 @@ export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Document.prototype.write", {
 		apply(ctx) {
 			const writer = getDocumentWriter(ctx.this);
-			ctx.return(
-				client.natives.call(
-					"Document.prototype.write",
-					ctx.this,
-					writer.write(ctx.args.join(""))
-				)
-			);
+			const nDoc = new client.native.Document(ctx.this);
+			ctx.return(nDoc.write(writer.write(ctx.args.join(""))));
 		},
 	});
 
 	client.Proxy("Document.prototype.writeln", {
 		apply(ctx) {
 			const writer = getDocumentWriter(ctx.this);
-			ctx.return(
-				client.natives.call(
-					"Document.prototype.write",
-					ctx.this,
-					writer.write(ctx.args.join("") + "\n")
-				)
-			);
+			const nDoc = new client.native.Document(ctx.this);
+
+			ctx.return(nDoc.write(writer.write(ctx.args.join("") + "\n")));
 		},
 	});
 
@@ -65,7 +56,8 @@ export default function (client: ScramjetClient, _self: Self) {
 			try {
 				const remaining = writer.end();
 				if (remaining) {
-					client.natives.call("Document.prototype.write", ctx.this, remaining);
+					const nDoc = new client.native.Document(ctx.this);
+					nDoc.write(remaining);
 				}
 			} finally {
 				resetDocumentWriter(ctx.this);

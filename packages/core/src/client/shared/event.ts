@@ -3,6 +3,7 @@ import { ScramjetClient } from "@client/index";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import {
 	Object_defineProperty,
+	Object_getOwnPropertyDescriptor,
 	Reflect_apply,
 	Reflect_get,
 	Reflect_ownKeys,
@@ -185,12 +186,7 @@ export default function (client: ScramjetClient, self: Self) {
 				key.startsWith("on") &&
 				handlers[key.slice(2)]
 			) {
-				const descriptor = client.natives.call(
-					"Object.getOwnPropertyDescriptor",
-					null,
-					target,
-					key
-				);
+				const descriptor = Object_getOwnPropertyDescriptor(target, key);
 				if (!descriptor.get || !descriptor.set || !descriptor.configurable)
 					continue;
 

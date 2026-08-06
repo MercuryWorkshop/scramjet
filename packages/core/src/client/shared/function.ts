@@ -31,24 +31,11 @@ export default function (client: ScramjetClient, _self: Self) {
 
 	client.Proxy("Function", handler);
 
-	const RawFunction = client.natives.call(
-		"eval",
-		null,
-		"(function () {})"
-	).constructor;
-	const RawAsyncFunction = client.natives.call(
-		"eval",
-		null,
-		"(async function () {})"
-	).constructor;
-	const RawGeneratorFunction = client.natives.call(
-		"eval",
-		null,
-		"(function* () {})"
-	).constructor;
-	const RawAsyncGeneratorFunction = client.natives.call(
-		"eval",
-		null,
+	const nWindow = new client.native.window(client.global);
+	const RawFunction = nWindow.eval("(function () {})").constructor;
+	const RawAsyncFunction = nWindow.eval("(async function () {})").constructor;
+	const RawGeneratorFunction = nWindow.eval("(function* () {})").constructor;
+	const RawAsyncGeneratorFunction = nWindow.eval(
 		"(async function* () {})"
 	).constructor;
 

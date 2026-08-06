@@ -88,16 +88,13 @@ export function setupAlwaysLastBubble(
 		const callListener = (e: T) => {
 			// this goes into our code, so restore the original methods
 			// TODO: we probably shouldnt do it like this
-			e.stopPropagation =
-				client.natives.store["Event.prototype.stopPropagation"];
-			e.stopImmediatePropagation =
-				client.natives.store["Event.prototype.stopImmediatePropagation"];
+			const nEvent = new client.native.Event(e);
+			e.stopPropagation = nEvent.stopPropagation;
+			e.stopImmediatePropagation = nEvent.stopImmediatePropagation;
 			listener(e);
 		};
 
-		client.natives.call(
-			"EventTarget.prototype.addEventListener",
-			target,
+		new client.native.EventTarget(target).addEventListener(
 			eventName,
 			(e: T) => {
 				let lastlistener;
