@@ -1,6 +1,7 @@
 import {
 	rewriteUrl,
 	ScramjetContext,
+	carriedHeaderName,
 	ScramjetHeaders,
 	unrewriteUrl,
 	URLMeta,
@@ -37,16 +38,12 @@ const SEC_HEADERS = new _Set([
 	// This needs to be emulated, but for right now it isn't that important of a feature to be worried about
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
 	"clear-site-data",
-]) as _Set<string>;
+]);
 
 /**
  * Headers that are actually URLs that need to be rewritten
  */
-const URL_HEADERS = new _Set([
-	"location",
-	"content-location",
-	"referer",
-]) as _Set<string>;
+const URL_HEADERS = new _Set(["location", "content-location", "referer"]);
 
 function rewriteLinkHeader(
 	link: string,
@@ -58,6 +55,19 @@ function rewriteLinkHeader(
 	});
 }
 
+export function attachCarriedHeaders(
+	headers: ScramjetHeaders,
+	rawHeaders: RawHeaders
+) {
+	for (const [key, value] of rawHeaders) {
+		if (key.toLowerCase().startsWith("set-cookie")) {
+			// this is purely for browser consumption via Headers.get, and set-cookie is always hidden from js
+			continue;
+		}
+		headers.append(carriedHeaderName(key), value);
+	}
+}
+
 export async function rewriteResponseHeaders(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest,
@@ -65,6 +75,7 @@ export async function rewriteResponseHeaders(
 	rawHeaders: RawHeaders
 ): Promise<ScramjetHeaders> {
 	const headers = ScramjetHeaders.fromRawHeaders(rawHeaders);
+	attachCarriedHeaders(headers, rawHeaders);
 
 	for (const cspHeader of SEC_HEADERS) {
 		headers.delete(cspHeader);

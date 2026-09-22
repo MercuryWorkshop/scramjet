@@ -104,7 +104,6 @@ export class ScramjetFetchTrackedClient {
 	constructor(public clientId: string) {}
 }
 
-// eslint-disable-next-line scramjet-core/no-globals
 export class ScramjetFetchHandler extends EventTarget {
 	public client: BareCompatibleClient;
 	public crossOriginIsolated: boolean = false;

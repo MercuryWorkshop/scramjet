@@ -10,7 +10,7 @@ export default function (client: ScramjetClient) {
 		@Type("USVString")
 		static get origin(): string {
 			void new client.native.window(this).origin;
-			
+
 			// have to specifically give the string "null"
 			// https://html.spec.whatwg.org/multipage/webappapis.html#dom-origin
 			return client.siteOrigin ?? "null";
