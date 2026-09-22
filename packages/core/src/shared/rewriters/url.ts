@@ -171,7 +171,11 @@ export function rewriteUrl(
 		}
 
 		const encodedHash = context.interface.codecEncode(realUrl.hash.slice(1));
-		const realHash = encodedHash ? "#" + encodedHash : "";
+		const realHash = encodedHash
+			? "#" + encodedHash
+			: realUrl.href.endsWith("#")
+				? "#"
+				: "";
 		realUrl.hash = "";
 
 		const paramsInit = new _URLSearchParams();
@@ -240,7 +244,11 @@ export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
 			return url;
 		}
 		const decodedHash = context.interface.codecDecode(realUrl.hash.slice(1));
-		const realHash = decodedHash ? "#" + decodedHash : "";
+		const realHash = decodedHash
+			? "#" + decodedHash
+			: realUrl.href.endsWith("#")
+				? "#"
+				: "";
 		realUrl.hash = "";
 		realUrl.search = "";
 
