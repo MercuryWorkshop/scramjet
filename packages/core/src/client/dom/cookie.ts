@@ -1,11 +1,16 @@
 import { ScramjetClient } from "@client/index";
+import { Type } from "@client/webidl";
 
-export default function (client: ScramjetClient, self: Self) {
-	client.Trap("Document.prototype.cookie", {
-		get() {
+export default function (client: ScramjetClient, _self: Self) {
+	client.Intercept(class extends Document {
+		@Type("USVString")
+		get cookie(): string {
+			void super.cookie;
 			return client.context.cookieJar.getCookies(client.url, true);
-		},
-		set(ctx, value: string) {
+		}
+		@Type("USVString")
+		set cookie(value: string) {
+			void super.cookie;
 			client.context.cookieJar.setCookies(value, client.url);
 			client.init.sendSetCookie([
 				{
@@ -13,9 +18,6 @@ export default function (client: ScramjetClient, self: Self) {
 					cookie: value,
 				},
 			]);
-		},
+		}
 	});
-
-	// @ts-ignore
-	delete self.cookieStore;
 }

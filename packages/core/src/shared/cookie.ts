@@ -14,6 +14,7 @@ export type Cookie = {
 	secure?: boolean;
 	httpOnly?: boolean;
 	sameSite?: string; // "strict"|"lax"|"none" or titlecase variants from parsers
+	partitioned?: boolean;
 };
 
 export class CookieJar {
@@ -111,15 +112,19 @@ export class CookieJar {
 		}
 	}
 
-	// SameSite enforcement context passed to getCookies.
+	// SameSite enforcement context passed to getCookieList / getCookies.
 	// "strict"     – same-site request; all cookies allowed
 	// "lax"        – cross-site top-level GET/HEAD navigation; Strict blocked, Lax+None allowed
 	// "cross-site" – cross-site subresource or non-GET navigation; only None allowed
-	getCookies(
+	//
+	// The cookies matching `url`, as the stored records. `getCookies` serializes
+	// these for a Cookie header or `document.cookie`; the Cookie Store API needs
+	// the attributes too, so the matching lives here and the two share it.
+	getCookieList(
 		url: URL,
 		fromJs: boolean,
 		sameSiteContext: "strict" | "lax" | "cross-site" = "strict"
-	): string {
+	): Cookie[] {
 		const now = _Date.now();
 		const hostname = url.hostname;
 		const pathname = url.pathname;
@@ -160,7 +165,15 @@ export class CookieJar {
 			key = dot === -1 ? undefined : key.slice(dot + 1);
 		}
 
-		return validCookies
+		return validCookies;
+	}
+
+	getCookies(
+		url: URL,
+		fromJs: boolean,
+		sameSiteContext: "strict" | "lax" | "cross-site" = "strict"
+	): string {
+		return this.getCookieList(url, fromJs, sameSiteContext)
 			.map((cookie) =>
 				cookie.name ? `${cookie.name}=${cookie.value}` : cookie.value
 			)
