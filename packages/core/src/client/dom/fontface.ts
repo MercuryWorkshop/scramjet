@@ -1,11 +1,27 @@
 import { rewriteCss } from "@rewriters/css";
 import { ScramjetClient } from "@client/index";
+import { Constructor, idlDOMString, idlIsBufferSource } from "@client/webidl";
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.Proxy("FontFace", {
-		construct(ctx) {
-			if (typeof ctx.args[1] !== "string") return;
-			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
-		},
+	client.Intercept(class extends FontFace {
+		// https://drafts.csswg.org/css-font-loading/#fontface-interface
+		@Constructor(
+			"CSSOMString",
+			"(CSSOMString or BinaryData)",
+			"optional FontFaceDescriptors"
+		)
+		static konstructor(
+			family: string,
+			source: string | BufferSource,
+			descriptors?: FontFaceDescriptors
+		) {
+			return new this(
+				family,
+				idlIsBufferSource(source)
+					? (source as BufferSource)
+					: rewriteCss(idlDOMString(source), client.context, client.meta),
+				descriptors
+			);
+		}
 	});
 }

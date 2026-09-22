@@ -2,14 +2,16 @@ import { rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
 import { ForeignContext } from "@/shared/rewriters/html";
 import { String } from "@/shared/snapshot";
+import { Arguments, Returns } from "@client/webidl";
 
-// TODO: this function is untested / llm slop
 function foreignContextForRange(
 	client: ScramjetClient,
 	range: Range
 ): ForeignContext {
-	const node = range.startContainer;
-	const element = node.nodeType === 1 ? node : node.parentElement;
+	const nRange = new client.native.Range(range);
+	const node = nRange.startContainer;
+	const nNode = new client.native.Node(node);
+	const element = nNode.nodeType === 1 ? node : nNode.parentElement;
 	if (!element) return "html";
 	if (client.box.instanceof(element, "SVGElement")) return "svg";
 	if (client.box.instanceof(element, "MathMLElement")) return "math";
@@ -17,16 +19,20 @@ function foreignContextForRange(
 }
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.Proxy("Range.prototype.createContextualFragment", {
-		apply(ctx) {
-			const html = String(ctx.args[0]);
-			ctx.args[0] = rewriteHtml(html, client.context, client.meta, {
+	client.Intercept(class extends Range {
+		@Returns("DocumentFragment")
+		@Arguments("(TrustedHTML or DOMString)")
+		createContextualFragment(string: string | TrustedHTML): DocumentFragment {
+			const html = String(string);
+			const rewritten = rewriteHtml(html, client.context, client.meta, {
 				loadScripts: false,
 				inline: true,
 				source: client.url.href,
 				apisource: "Range.prototype.createContextualFragment",
-				foreignContext: foreignContextForRange(client, ctx.this),
+				foreignContext: foreignContextForRange(client, this),
 			});
-		},
+
+			return super.createContextualFragment(rewritten);
+		}
 	});
 }
