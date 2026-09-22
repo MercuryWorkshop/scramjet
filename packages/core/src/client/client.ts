@@ -259,24 +259,6 @@ export class ScramjetClient {
 
 	wrapfn: (i: any, ...args: any) => any;
 
-	/**
-	 * Listener bookkeeping for the pre-Intercept `shared/event.ts`.
-	 *
-	 * Kept only so that this change does not break a file it does not
-	 * touch; the event rewrite moves this onto the singleton box, keyed
-	 * per realm, and deletes it from here.
-	 */
-	eventcallbacks: _Map<
-		any,
-		[
-			{
-				event: string;
-				originalCallback: AnyFunction;
-				proxiedCallback: AnyFunction;
-			},
-		]
-	> = new _Map();
-
 	meta: URLMeta;
 
 	box: SingletonBox;

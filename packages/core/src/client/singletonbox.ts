@@ -33,14 +33,16 @@ export class SingletonBox {
 		new _WeakMap();
 	eventcallbacks: _WeakMap<
 		EventTarget,
-		_Map<string, _WeakMap<(...args: any) => any, (...args: any) => any>>
+		_Map<string, _WeakMap<object, (...args: any) => any>>
 	> = new _WeakMap();
 	// real events that we're wrapping in event.ts
 	wrappedEvents: _WeakMap<Event, Event> = new _WeakMap();
+	// the reverse: the real event behind each stand-in event.ts hands out
+	standIns: _WeakMap<Event, Event> = new _WeakMap();
 	// fake events that scramjet synthesized
 	trustedEvents: _WeakSet<Event> = new _WeakSet();
-	eventhandlers: _WeakMap<object, _Map<string, (...args: any) => any>> =
-		new _WeakMap();
+	// the page's function behind each wrapper event.ts puts in an `on*` slot
+	eventhandlers: _WeakMap<object, (...args: any) => any> = new _WeakMap();
 
 	unproxy: _Map<any, any> = new _Map([]);
 	ctors: Record<string, Function[]> = Object_create(null);

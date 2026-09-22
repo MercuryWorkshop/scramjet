@@ -74,6 +74,11 @@ export function setupAlwaysLastBubble(
 		},
 	});
 
+	const nativeEventMethods = client.nativeStore.get("Event")!;
+	const nativeStopPropagation = nativeEventMethods.stopPropagation.value;
+	const nativeStopImmediatePropagation =
+		nativeEventMethods.stopImmediatePropagation.value;
+
 	return function addAlwaysLastEventListener<T extends Event>(
 		target: EventTarget,
 		eventName: string,
@@ -88,9 +93,8 @@ export function setupAlwaysLastBubble(
 		const callListener = (e: T) => {
 			// this goes into our code, so restore the original methods
 			// TODO: we probably shouldnt do it like this
-			const nEvent = new client.native.Event(e);
-			e.stopPropagation = nEvent.stopPropagation;
-			e.stopImmediatePropagation = nEvent.stopImmediatePropagation;
+			e.stopPropagation = nativeStopPropagation;
+			e.stopImmediatePropagation = nativeStopImmediatePropagation;
 			listener(e);
 		};
 
