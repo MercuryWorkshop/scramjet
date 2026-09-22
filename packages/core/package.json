@@ -51,6 +51,7 @@
 		"@types/estree": "^1.0.8",
 		"@types/node": "^24.3.1",
 		"@types/serviceworker": "^0.0.197",
+		"@types/trusted-types": "^2.0.7",
 		"@typescript-eslint/eslint-plugin": "8.62.0",
 		"@typescript-eslint/parser": "8.62.0",
 		"eslint": "^10.1.0",

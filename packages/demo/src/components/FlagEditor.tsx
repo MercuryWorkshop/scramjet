@@ -25,8 +25,6 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 		"enable support for rewriting es6 destructure syntax (currently experimental)",
 	allowInvalidJs:
 		"if invalid javascript is evaluated, pass through unsafely instead of throwing",
-	allowFailedIntercepts:
-		"if an api interceptor fails, call the api with original input unsafely instead of throwing",
 	encapsulateWorkers:
 		"wrap web worker scripts in data urls to prevent scope issues (potentially buggy)",
 	scramitize:

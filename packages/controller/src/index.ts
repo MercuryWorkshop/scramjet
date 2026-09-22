@@ -66,7 +66,6 @@ export const config: Config = {
 const scramjetConfig: Partial<ScramjetConfig> = {
 	flags: {
 		...scramjetDefaultConfig.flags,
-		allowFailedIntercepts: true,
 	},
 	maskedfiles: ["inject.js", "scramjet.wasm.js"],
 };

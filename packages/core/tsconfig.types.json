@@ -7,7 +7,7 @@
 		"removeComments": false,
 		"skipLibCheck": true,
 		"noEmitOnError": false,
-		"types": ["@types/serviceworker"],
+		"types": ["@types/serviceworker", "@types/trusted-types"],
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": true,
 		"noEmit": false

@@ -217,6 +217,12 @@ export const tsloader = {
 		jsc: {
 			parser: {
 				syntax: "typescript",
+				// interceptors declare their IDL with decorators (@Arguments etc.)
+				decorators: true,
+			},
+			transform: {
+				// the 2022-03 standard proposal, not the legacy TS semantics
+				decoratorVersion: "2022-03",
 			},
 			target: "es2022",
 		},

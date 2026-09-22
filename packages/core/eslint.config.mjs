@@ -7,12 +7,14 @@ import { FlatCompat } from "@eslint/eslintrc";
 import noGlobalsPlugin from "./tools/eslint/no-globals-plugin.mjs";
 import noInstanceofPlugin from "./tools/eslint/no-instanceof-plugin.mjs";
 import poisonedCtxPlugin from "./tools/eslint/poisoned-ctx-plugin.mjs";
+import brandCheckPlugin from "./tools/eslint/brand-check-plugin.mjs";
 
 const scramjetCorePlugin = {
 	rules: {
 		...noGlobalsPlugin.rules,
 		...noInstanceofPlugin.rules,
 		...poisonedCtxPlugin.rules,
+		...brandCheckPlugin.rules,
 	},
 };
 
@@ -80,6 +82,7 @@ export default [
 			"scramjet-core": scramjetCorePlugin,
 		},
 		rules: {
+			"scramjet-core/intercept-brand-check": "warn",
 			"scramjet-core/no-globals": [
 				"error",
 				{
