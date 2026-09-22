@@ -1177,11 +1177,17 @@ return { apply, construct };
 
 	/**
 	 * `checkReceiver` must synchronously invoke a side-effect-free native getter
-	 * or method on the receiver, throwing for an invalid receiver. It is required
-	 * for instance members with IDL arguments: Web IDL checks the receiver before
-	 * converting arguments. For example, Headers can use the saved `has` method
-	 * with a fixed valid name; Blob can use its saved `size` getter. Merely
-	 * constructing a `client.native` wrapper does not check anything.
+	 * or method on the receiver, throwing for an invalid receiver. Web IDL checks
+	 * the receiver before converting arguments, and conversion runs page code, so
+	 * an instance member with IDL arguments wants one. For example, Headers can
+	 * use the saved `has` method with a fixed valid name; Blob can use its saved
+	 * `size` getter. Merely constructing a `client.native` wrapper does not check
+	 * anything.
+	 *
+	 * Wanted, not required: omitting it leaves the ordering imprecise rather than
+	 * refusing the declaration, because a promise-only interface has no member
+	 * that can satisfy the contract and the interfaces that do are better off
+	 * installed. See #117.
 	 */
 	Intercept(handler: any, checkReceiver?: (receiver: any) => void): void {
 		const foreignbaseclass = Object_getPrototypeOf(handler);
@@ -1198,25 +1204,15 @@ return { apply, construct };
 			Object_getOwnPropertyDescriptors(handler.prototype);
 		const staticDescs: Record<string | symbol, PropertyDescriptor> =
 			Object_getOwnPropertyDescriptors(handler);
-		// Refuse an unsafe declaration before installing any of its members.
-		if (!checkReceiver) {
-			for (const descs of isglobal
-				? [prototypeDescs, staticDescs]
-				: [prototypeDescs]) {
-				for (const key of Reflect_ownKeys(descs)) {
-					const desc = descs[key];
-					if (isConstructorMember(desc.value)) continue;
-					if (
-						memberValidator(this.box, desc.value) ||
-						memberValidator(this.box, desc.set, true)
-					) {
-						throw new Error(
-							`Intercept(${classname}.${String(key)}) requires a native receiver check before IDL conversion`
-						);
-					}
-				}
-			}
-		}
+		// A declaration that converts IDL arguments without a `checkReceiver`
+		// used to be refused here. Nothing has ever passed one, so the refusal
+		// threw for every such interface and `loadModules` swallowed it into a
+		// `dbg.error` - silently uninstalling cookie, CookieStore, history,
+		// performance and opfs, which is a far worse outcome than the argument
+		// conversion ordering it was guarding. See #117 for the real fix: a
+		// predicate that asks whether a conversion can run page code at all, an
+		// async brand check for the promise-only interfaces, and a build-time
+		// failure rather than a runtime one.
 
 		// create a fake parent prototype for the handler, so that `super.method()` calls resolve to the native store versions
 		const fakePrototype = {};
