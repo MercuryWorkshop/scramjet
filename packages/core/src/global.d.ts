@@ -46,6 +46,15 @@ declare var WebSocketStream: {
 	prototype: WebSocketStream;
 	new (url: string, options?: WebSocketStreamOptions): WebSocketStream;
 };
+interface WebSocketError extends DOMException {
+	readonly closeCode: number | null;
+	readonly reason: string;
+}
+// eslint-disable-next-line no-var
+declare var WebSocketError: {
+	prototype: WebSocketError;
+	new (message?: string, init?: WebSocketCloseInfo): WebSocketError;
+};
 
 /**
  * The shared worker's own global scope, which only `lib.webworker.d.ts`

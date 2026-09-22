@@ -629,6 +629,57 @@ export class ScramjetClient {
 				dbg.error("failed to install scramjet module", err);
 			}
 		}
+
+		// read once every module has installed and before any page script has
+		// run, so these are our interceptors rather than the page's
+		const EventTarget_prototype = this.global.EventTarget.prototype;
+		this.listenerMethods = {
+			add: Object_getOwnPropertyDescriptor(
+				EventTarget_prototype,
+				"addEventListener"
+			).value,
+			remove: Object_getOwnPropertyDescriptor(
+				EventTarget_prototype,
+				"removeEventListener"
+			).value,
+		};
+	}
+
+	/**
+	 * `addEventListener` / `removeEventListener` as the page sees them *after*
+	 * hooking - `shared/event.ts`'s interceptors, not the natives.
+	 *
+	 * For a listener scramjet registers on the page's behalf, like the one
+	 * behind a faked `on*` handler (see `EventHandlerSlot`). Going through the
+	 * interceptor is the point: that is what hands it the same stand-in event
+	 * the page's own listeners get. Captured once in `hook`, because reading it
+	 * off `EventTarget.prototype` at the time would find whatever the page has
+	 * put there since.
+	 */
+	listenerMethods: { add: AnyFunction; remove: AnyFunction } | null = null;
+
+	/**
+	 * Dispatch `event` at `target` on the platform's behalf.
+	 *
+	 * For an event the browser would have fired but cannot, because scramjet
+	 * fakes the object that fires it - a WebSocket's `open`, `message`,
+	 * `close` and `error`. Anything dispatched from script reads back
+	 * `isTrusted === false`, and `isTrusted` is [LegacyUnforgeable], so the
+	 * event is marked in `box.trustedEvents` instead and `shared/event.ts`
+	 * answers `true` for it on the stand-in its listeners get.
+	 *
+	 * Through the saved native rather than `target.dispatchEvent`: that is a
+	 * prototype lookup the page can redirect, and it would then be handed every
+	 * event scramjet fires.
+	 */
+	dispatchEvent(target: EventTarget, event: Event): boolean {
+		this.box.trustedEvents.add(event);
+
+		return Reflect_apply(
+			this.nativeStore.get("EventTarget").dispatchEvent.value,
+			target,
+			[event]
+		);
 	}
 
 	get url(): _URL {

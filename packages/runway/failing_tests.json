@@ -206,6 +206,10 @@
 		"rewriter-css-unrewrite-regression-import-layer-supports-media",
 		"rewriter-css-unrewrite-uppercase-url-function",
 		"rewriter-css-unrewrite-url",
-		"broadcastchannel-cross-origin-isolated"
+		"broadcastchannel-cross-origin-isolated",
+		"wsfidelity-abnormal-closure",
+		"wsfidelity-connection-refused",
+		"wsfidelity-protocol-negotiated",
+		"wsfidelity-stream-connection-refused"
 	]
 }

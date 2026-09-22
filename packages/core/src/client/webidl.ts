@@ -1557,7 +1557,10 @@ const IDL_CLAMP_BOUNDS: Record<string, [number, number]> = {
  * nearest integer - choosing the *even* one on an exact half, which is not
  * what `Math.round` does.
  */
-function clampToIDLInteger(value: unknown, bounds: [number, number]): number {
+export function clampToIDLInteger(
+	value: unknown,
+	bounds: [number, number]
+): number {
 	let x = +(value as number);
 	if (Number_isNaN(x)) return 0;
 
