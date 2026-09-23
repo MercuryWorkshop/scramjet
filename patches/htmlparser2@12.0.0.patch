@@ -1,8 +1,8 @@
 diff --git a/dist/Parser.d.ts b/dist/Parser.d.ts
-index 08d4a77..022c34f 100644
+index 08d4a770927ee68ec575cf3943165304fc2468a0..b619507ead70fa0ebd518011f478c53a8e6c7926 100644
 --- a/dist/Parser.d.ts
 +++ b/dist/Parser.d.ts
-@@ -38,6 +38,16 @@ export interface ParserOptions {
+@@ -38,6 +38,18 @@ export interface ParserOptions {
       * @default xmlMode
       */
      recognizeSelfClosing?: boolean;
@@ -16,11 +16,21 @@ index 08d4a77..022c34f 100644
 +     * @default "html"
 +     */
 +    startingForeignContext?: "svg" | "math" | "html";
++    /** Whether HTML parsing treats `<noscript>` as a raw-text element. */
++    scriptingEnabled?: boolean;
      /**
       * Allows the default tokenizer to be overwritten.
       */
+@@ -124,6 +136,7 @@ export declare class Parser implements Callbacks {
+     ontextentity(cp: number, endIndex: number): void;
+     /** @internal */
+     isInForeignContext(): boolean;
++    isScriptingEnabled(): boolean;
+     /**
+      * Checks if the current tag is a void element. Override this if you want
+      * to specify your own additional void elements.
 diff --git a/dist/Parser.js b/dist/Parser.js
-index c73086d..9fc2075 100644
+index c73086d6509f9a75fcbd61fddd87e421117b40e3..3bef2cef4c3663bca51ad7a019a66e1d61fd3b19 100644
 --- a/dist/Parser.js
 +++ b/dist/Parser.js
 @@ -149,6 +149,16 @@ var ForeignContext;
@@ -49,7 +59,31 @@ index c73086d..9fc2075 100644
          this.cbs.onparserinit?.(this);
      }
      // Tokenizer event handlers
-@@ -560,7 +570,7 @@ export class Parser {
+@@ -222,6 +232,9 @@ export class Parser {
+     isInForeignContext() {
+         return this.foreignContext[0] !== ForeignContext.None;
+     }
++    isScriptingEnabled() {
++        return this.options.scriptingEnabled ?? true;
++    }
+     /**
+      * Checks if the current tag is a void element. Override this if you want
+      * to specify your own additional void elements.
+@@ -342,6 +355,13 @@ export class Parser {
+     onclosetag(start, endIndex) {
+         this.endIndex = endIndex;
+         const name = this.readTagName(start, endIndex);
++        // HTML end tags for <p> and <br> break out of foreign content.
++        // This follows the foreign-content parsing rules in the HTML Standard.
++        if (this.htmlMode && this.isInForeignContext() && (name === "p" || name === "br")) {
++            while (this.stack.length > 0 && this.isInForeignContext()) {
++                this.popElement(true);
++            }
++        }
+         if (!this.isVoidElement(name)) {
+             const pos = this.stack.indexOf(name);
+             if (pos !== -1) {
+@@ -560,7 +580,7 @@ export class Parser {
          this.cbs.onparserinit?.(this);
          this.buffers.length = 0;
          this.foreignContext.length = 0;
@@ -58,8 +92,63 @@ index c73086d..9fc2075 100644
          this.bufferOffset = 0;
          this.writeIndex = 0;
          this.ended = false;
+diff --git a/dist/Tokenizer.d.ts b/dist/Tokenizer.d.ts
+index 9969e78d0fdb77232354e7ef8dd23bc2e97445ff..1b2fcadfba32ec9a17882867779178b0b435b480 100644
+--- a/dist/Tokenizer.d.ts
++++ b/dist/Tokenizer.d.ts
+@@ -27,6 +27,7 @@ export interface Callbacks {
+     ontext(start: number, endIndex: number): void;
+     ontextentity(codepoint: number, endIndex: number): void;
+     isInForeignContext?(): boolean;
++    isScriptingEnabled?(): boolean;
+ }
+ /**
+  * Tokenizer implementation used by `Parser`.
+diff --git a/dist/Tokenizer.js b/dist/Tokenizer.js
+index 95a23e305669163e71c77f4b5cf5901a18fa18c0..6d66c4f5c883b3c5cc43eebbb3ca45ee8c8f029b 100644
+--- a/dist/Tokenizer.js
++++ b/dist/Tokenizer.js
+@@ -104,6 +104,9 @@ const Sequences = {
+     NoembedEnd: new Uint8Array([
+         0x3c, 0x2f, 0x6e, 0x6f, 0x65, 0x6d, 0x62, 0x65, 0x64,
+     ]), // `</noembed`
++    NoscriptEnd: new Uint8Array([
++        0x3c, 0x2f, 0x6e, 0x6f, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74,
++    ]), // `</noscript`
+     NoframesEnd: new Uint8Array([
+         0x3c, 0x2f, 0x6e, 0x6f, 0x66, 0x72, 0x61, 0x6d, 0x65, 0x73,
+     ]), // `</noframes`
+@@ -263,6 +266,14 @@ export default class Tokenizer {
+                 this.sequenceIndex = 5;
+                 return;
+             }
++            else if (this.sequenceIndex === 4 &&
++                this.currentSequence === Sequences.NoembedEnd &&
++                lower === Sequences.NoscriptEnd[4] &&
++                this.cbs.isScriptingEnabled?.() !== false) {
++                this.currentSequence = Sequences.NoscriptEnd;
++                this.sequenceIndex = 5;
++                return;
++            }
+         }
+         else if (isEndOfTagSection(c)) {
+             // Full match on a valid tag boundary — keep the sequence.
+@@ -462,9 +473,12 @@ export default class Tokenizer {
+         }
+         else if (this.isTagStartChar(c)) {
+             this.sectionStart = this.index;
+-            const special = this.xmlMode || this.cbs.isInForeignContext?.()
++            let special = this.xmlMode || this.cbs.isInForeignContext?.()
+                 ? undefined
+                 : specialStartSequences.get(c | 0x20);
++            if (special === Sequences.NoscriptEnd && this.cbs.isScriptingEnabled?.() === false) {
++                special = undefined;
++            }
+             if (special === undefined) {
+                 this.state = State.InTagName;
+             }
 diff --git a/src/Parser.ts b/src/Parser.ts
-index 800ca0e..609498e 100644
+index 800ca0e7719a73f9723c74182e3cb6c06877a5b0..2b19c68e3eb84f44401d6801fc68d8be1a77c3f5 100644
 --- a/src/Parser.ts
 +++ b/src/Parser.ts
 @@ -158,6 +158,19 @@ const enum ForeignContext {
@@ -82,7 +171,7 @@ index 800ca0e..609498e 100644
  /**
   * Options for the streaming HTML/XML parser.
   */
-@@ -203,6 +216,17 @@ export interface ParserOptions {
+@@ -203,6 +216,19 @@ export interface ParserOptions {
       */
      recognizeSelfClosing?: boolean;
  
@@ -96,11 +185,13 @@ index 800ca0e..609498e 100644
 +     * @default "html"
 +     */
 +    startingForeignContext?: "svg" | "math" | "html";
++    /** Whether HTML parsing treats `<noscript>` as a raw-text element. */
++    scriptingEnabled?: boolean;
 +
      /**
       * Allows the default tokenizer to be overwritten.
       */
-@@ -303,7 +327,9 @@ export class Parser implements Callbacks {
+@@ -303,7 +329,9 @@ export class Parser implements Callbacks {
              this.options,
              this,
          );
@@ -111,7 +202,33 @@ index 800ca0e..609498e 100644
          this.cbs.onparserinit?.(this);
      }
  
-@@ -722,7 +748,9 @@ export class Parser implements Callbacks {
+@@ -337,6 +365,10 @@ export class Parser implements Callbacks {
+         return this.foreignContext[0] !== ForeignContext.None;
+     }
+ 
++    isScriptingEnabled(): boolean {
++        return this.options.scriptingEnabled ?? true;
++    }
++
+     /**
+      * Checks if the current tag is a void element. Override this if you want
+      * to specify your own additional void elements.
+@@ -473,6 +505,14 @@ export class Parser implements Callbacks {
+         this.endIndex = endIndex;
+         const name = this.readTagName(start, endIndex);
+ 
++        // HTML end tags for <p> and <br> break out of foreign content.
++        // This follows the foreign-content parsing rules in the HTML Standard.
++        if (this.htmlMode && this.isInForeignContext() && (name === "p" || name === "br")) {
++            while (this.stack.length > 0 && this.isInForeignContext()) {
++                this.popElement(true);
++            }
++        }
++
+         if (!this.isVoidElement(name)) {
+             const pos = this.stack.indexOf(name);
+             if (pos !== -1) {
+@@ -722,7 +762,9 @@ export class Parser implements Callbacks {
          this.cbs.onparserinit?.(this);
          this.buffers.length = 0;
          this.foreignContext.length = 0;
@@ -122,3 +239,59 @@ index 800ca0e..609498e 100644
          this.bufferOffset = 0;
          this.writeIndex = 0;
          this.ended = false;
+diff --git a/src/Tokenizer.ts b/src/Tokenizer.ts
+index be64a327f5312e427cb8f0a49a21b1115dff3cef..693d6a2770e54ffca8f08453ae946f2e884b576b 100644
+--- a/src/Tokenizer.ts
++++ b/src/Tokenizer.ts
+@@ -127,6 +127,7 @@ export interface Callbacks {
+     ontext(start: number, endIndex: number): void;
+     ontextentity(codepoint: number, endIndex: number): void;
+     isInForeignContext?(): boolean;
++    isScriptingEnabled?(): boolean;
+ }
+ 
+ /**
+@@ -145,6 +146,9 @@ const Sequences = {
+     NoembedEnd: new Uint8Array([
+         0x3c, 0x2f, 0x6e, 0x6f, 0x65, 0x6d, 0x62, 0x65, 0x64,
+     ]), // `</noembed`
++    NoscriptEnd: new Uint8Array([
++        0x3c, 0x2f, 0x6e, 0x6f, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74,
++    ]), // `</noscript`
+     NoframesEnd: new Uint8Array([
+         0x3c, 0x2f, 0x6e, 0x6f, 0x66, 0x72, 0x61, 0x6d, 0x65, 0x73,
+     ]), // `</noframes`
+@@ -334,6 +338,15 @@ export default class Tokenizer {
+                 this.currentSequence = Sequences.NoframesEnd;
+                 this.sequenceIndex = 5;
+                 return;
++            } else if (
++                this.sequenceIndex === 4 &&
++                this.currentSequence === Sequences.NoembedEnd &&
++                lower === Sequences.NoscriptEnd[4] &&
++                this.cbs.isScriptingEnabled?.() !== false
++            ) {
++                this.currentSequence = Sequences.NoscriptEnd;
++                this.sequenceIndex = 5;
++                return;
+             }
+         } else if (isEndOfTagSection(c)) {
+             // Full match on a valid tag boundary — keep the sequence.
+@@ -543,10 +556,16 @@ export default class Tokenizer {
+         } else if (this.isTagStartChar(c)) {
+             this.sectionStart = this.index;
+ 
+-            const special =
++            let special =
+                 this.xmlMode || this.cbs.isInForeignContext?.()
+                     ? undefined
+                     : specialStartSequences.get(c | 0x20);
++            if (
++                special === Sequences.NoscriptEnd &&
++                this.cbs.isScriptingEnabled?.() === false
++            ) {
++                special = undefined;
++            }
+ 
+             if (special === undefined) {
+                 this.state = State.InTagName;

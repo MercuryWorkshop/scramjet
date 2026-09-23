@@ -98,6 +98,49 @@ declare var CSSPositionTryRule: {
 	new (): CSSPositionTryRule;
 };
 
+/**
+ * The HTML sanitizer API. Chrome ships `setHTML`, `setHTMLUnsafe`'s options
+ * argument and the sanitizer dictionaries; lib.dom has only the one-argument
+ * `setHTMLUnsafe`, so the rest is declared here.
+ *
+ * `sanitizer` is typed loosely on purpose - scramjet passes whatever it was
+ * given straight through, and the `Sanitizer` interface is still moving.
+ *
+ * https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-element-sethtml
+ */
+interface SetHTMLOptions {
+	sanitizer?: any;
+}
+interface SetHTMLUnsafeOptions {
+	sanitizer?: any;
+	runScripts?: boolean;
+}
+interface Element {
+	/** https://dom.spec.whatwg.org/#dom-parentnode-movebefore - Chrome 133+. */
+	moveBefore(node: Node, child: Node | null): void;
+	setHTML(html: string, options?: SetHTMLOptions): void;
+	setHTMLUnsafe(html: string, options?: SetHTMLUnsafeOptions): void;
+}
+interface ShadowRoot {
+	setHTML(html: string, options?: SetHTMLOptions): void;
+	setHTMLUnsafe(html: string, options?: SetHTMLUnsafeOptions): void;
+}
+
+/**
+ * Two iframe attributes lib.dom does not know about.
+ *
+ * `csp` is from csp-embedded-enforcement and `credentialless` from
+ * anonymous-iframe; scramjet strips both content attributes, so the reflected
+ * IDL attributes have to answer out of the mirror instead.
+ *
+ * https://w3c.github.io/webappsec-cspee/#csp-attribute
+ * https://wicg.github.io/anonymous-iframe/#dom-htmliframeelement-credentialless
+ */
+interface HTMLIFrameElement {
+	csp: string;
+	credentialless: boolean;
+}
+
 declare const dbg: {
 	log: (message: string, ...args: any[]) => void;
 	warn: (message: string, ...args: any[]) => void;

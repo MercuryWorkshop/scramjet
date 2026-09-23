@@ -5,3 +5,14 @@ frontend/public/chi
 chii/
 chobitsu/
 playwright/
+
+# vendored from upstream; kept in upstream's formatting so fixes can be diffed and backported
+packages/core/src/shared/htmlparser/Tokenizer.ts
+packages/core/src/shared/htmlparser/Parser.ts
+packages/core/src/shared/htmlparser/decode*.ts
+packages/core/tests/htmlparser/Tokenizer.spec.ts
+packages/core/tests/htmlparser/Parser.spec.ts
+packages/core/tests/htmlparser/Parser.events.spec.ts
+packages/core/tests/htmlparser/Documents.spec.ts
+packages/core/tests/htmlparser/__fixtures__/
+packages/core/tests/htmlparser/__snapshots__/

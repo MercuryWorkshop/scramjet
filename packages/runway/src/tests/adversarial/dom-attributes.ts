@@ -143,15 +143,47 @@ export default [
 		`,
 	}),
 	basicTest({
-		// KNOWN FAILURE: the DOM holds the rewritten value, so a selector written
-		// against the author's value never matches. `querySelector('link[href="…"]')`
-		// and `[src="…"]` lookups are everywhere in loader and dedup code.
+		// Selectors must test the author's value, including when the live DOM
+		// holds a proxy URL under the same attribute name.
 		name: "domattr-selector-literal-value",
 		js: `
 			document.body.innerHTML = '<a href="/l1">a</a><img src="/i1.png">';
 			assert(document.querySelector('[href="/l1"]') !== null, "attribute selector on href");
 			assert(document.querySelector('[src="/i1.png"]') !== null, "attribute selector on src");
 			assert(document.querySelector('a[href^="/l"]') !== null, "prefix attribute selector");
+		`,
+	}),
+	basicTest({
+		name: "domattr-selector-mirrored-paths",
+		js: `
+			const host = document.createElement("section");
+			host.id = "selector-mirror-test";
+			host.innerHTML = '<a class="route" href="#/">Home</a><a href="/other">Other</a><img src="/image.png">';
+			document.body.append(host);
+			const route = host.querySelector("a.route");
+			const other = host.querySelectorAll("a")[1];
+			assertEqual(document.querySelector('a[href="#/"]'), route, "document exact match");
+			assertEqual(host.querySelector('a[href="#/"]'), route, "element exact match");
+			assertEqual(host.querySelector('a[h\\\\72 ef="#/"]'), route, "escaped attribute name");
+			assertEqual(host.querySelector('a[HREF="#/"]'), route, "HTML attribute-name casing");
+			assertEqual(host.querySelector('a:not([href="#/"])'), other, "negated match");
+			assertEqual(host.querySelector('a[href^="/oth"]'), other, "prefix match");
+			assertEqual(document.querySelector('#selector-mirror-test:has(> a[href="#/"])'), host, "nested selector");
+			assertEqual(host.querySelectorAll('a[href]').length, 2, "querySelectorAll presence");
+			assertEqual(route.matches('[href="#/"]'), true, "matches");
+			assertEqual(route.closest('a[href="#/"]'), route, "closest");
+			assertEqual(host.querySelector('[scramjet-attr-href]'), null, "internal mirror hidden");
+			const fragment = document.createDocumentFragment();
+			const fragLink = document.createElement("a");
+			fragLink.href = "#/";
+			fragment.append(fragLink);
+			assertEqual(fragment.querySelector('a[href="#/"]'), fragLink, "fragment selector");
+			const shadow = host.attachShadow({mode: "open"});
+			shadow.innerHTML = '<a href="#/">Shadow</a>';
+			assertEqual(shadow.querySelector('a[href="#/"]')?.textContent, "Shadow", "shadow selector");
+			const iframe = document.createElement("iframe");
+			iframe.setAttribute("sandbox", "allow-scripts");
+			assertEqual(iframe.matches('[sandbox="allow-scripts"]'), true, "stripped attribute value");
 		`,
 	}),
 	basicTest({

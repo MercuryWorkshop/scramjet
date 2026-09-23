@@ -1,5 +1,5 @@
 import { ScramjetConfig, ScramjetFlags, ScramjetVersionInfo } from "@/types";
-import DomHandler, { Element } from "domhandler";
+import type { Document, Element } from "./htmlparser";
 import { URLMeta } from "@rewriters/url";
 import { CookieJar } from "./cookie";
 import { TapInstance } from "@/Tap";
@@ -33,7 +33,7 @@ export type ScramjetInterface = {
 
 	getInjectScripts(
 		meta: URLMeta,
-		handler: DomHandler,
+		root: Document,
 		htmlcontext: HtmlContext,
 		script: (src: string) => Element
 	): Element[];
@@ -59,7 +59,7 @@ export type ScramjetContext = {
 export type HtmlRewriterHooks = {
 	pre: {
 		context: {
-			handler: DomHandler;
+			root: Document;
 			meta: URLMeta;
 			origHtml: string;
 			htmlcontext: HtmlContext;
@@ -67,7 +67,7 @@ export type HtmlRewriterHooks = {
 	};
 	post: {
 		context: {
-			handler: DomHandler;
+			root: Document;
 			meta: URLMeta;
 			origHtml: string;
 			htmlcontext: HtmlContext;

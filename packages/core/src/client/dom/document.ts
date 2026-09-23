@@ -12,6 +12,7 @@ import {
 import { createReferrerString } from "@/fetch/util";
 import { openWindowSteps } from "@client/helpers";
 import { Arguments, Returns, Type } from "@client/webidl";
+import { rewriteAttributeSelectors } from "@client/selectors";
 
 export default function (client: ScramjetClient, self: Self) {
 	const nativeGlobal = new client.native.window(self);
@@ -69,6 +70,40 @@ export default function (client: ScramjetClient, self: Self) {
 		@Returns("undefined")
 		writeln(...text: string[]): void {
 			super.write(getDocumentWriter(this).write(Array_join(text, "") + "\n"));
+		}
+
+		@Arguments("DOMString", "optional boolean", "optional DOMString")
+		@Returns("boolean")
+		execCommand(commandId: string, showUI?: boolean, value?: string): boolean {
+			if (String_toLowerCase(String(commandId)) !== "inserttext") {
+				return super.execCommand(commandId, showUI, value);
+			}
+
+			const selection = nativeGlobal.getSelection();
+			if (!selection || selection.rangeCount === 0) {
+				return super.execCommand(commandId, showUI, value);
+			}
+
+			const range = selection.getRangeAt(0);
+			const parent = range.startContainer;
+			if (
+				!range.collapsed ||
+				new client.native.Node(parent).nodeType !== 1 ||
+				client.text.kind(parent as Element) !== "script"
+			) {
+				return super.execCommand(commandId, showUI, value);
+			}
+
+			const children = new client.native.Node(parent).childNodes;
+			const reference = children.item(range.startOffset);
+			const inserted = client.text.insertText(
+				parent,
+				reference,
+				String(value ?? "")
+			);
+			selection.collapse(inserted, inserted.length);
+
+			return true;
 		}
 
 		@Arguments()
@@ -219,15 +254,23 @@ export default function (client: ScramjetClient, self: Self) {
 		}
 	});
 
-	client.Proxy(
-		["Document.prototype.querySelector", "Document.prototype.querySelectorAll"],
-		{
-			apply(ctx) {
-				ctx.args[0] = String(ctx.args[0]).replace(
-					/((?:^|\s)\b\w+\[(?:src|href|data-href))[\^]?(=['"]?(?:https?[:])?\/\/)/,
-					"$1*$2"
-				);
-			},
+	client.Intercept(class extends Document {
+		@Arguments("DOMString")
+		@Returns("Element?")
+		querySelector(selectors: string): Element | null {
+			const result = super.querySelector(selectors);
+			const rewritten = rewriteAttributeSelectors(selectors);
+
+			return rewritten === null ? result : super.querySelector(rewritten);
 		}
-	);
+
+		@Arguments("DOMString")
+		@Returns("NodeList")
+		querySelectorAll(selectors: string): NodeListOf<Element> {
+			const result = super.querySelectorAll(selectors);
+			const rewritten = rewriteAttributeSelectors(selectors);
+
+			return rewritten === null ? result : super.querySelectorAll(rewritten);
+		}
+	});
 }

@@ -13,10 +13,34 @@ import {
 	_WeakMap,
 } from "@/shared/snapshot";
 import { Arguments, Returns, Type, idlDOMString } from "@client/webidl";
+import { mirrorAttributeName } from "@client/attributes";
 
 export default function (client: ScramjetClient, self: Self) {
 	const rewrite = (css: string) => rewriteCss(css, client.context, client.meta);
 	const unrewrite = (css: string) => unrewriteCss(css, client.context);
+	const attrs = client.attributes;
+	const STYLE_MIRROR = mirrorAttributeName("style");
+
+	/**
+	 * After a write through an element's inline style - CSSOM or typed OM -
+	 * bring its `style` mirror into line with what the write left behind.
+	 *
+	 * The write changes the attribute the document holds and nothing else, so
+	 * a mirror recorded by an earlier `setAttribute` or by the parser would go
+	 * on answering `getAttribute("style")` with the value before it. And an
+	 * element that had no style attribute at all now has one carrying
+	 * rewritten URLs and no mirror to hide them. Either way the page is owed
+	 * the serialization the engine produced, with its URLs as the page wrote
+	 * them.
+	 */
+	const touched = (declaration: object) => {
+		const owner = client.box.inlineStyleOwners.get(declaration);
+		if (!owner) return;
+
+		const current = attrs.raw.get(owner, "style");
+		if (current === null) attrs.raw.remove(owner, STYLE_MIRROR);
+		else attrs.raw.set(owner, STYLE_MIRROR, unrewrite(current));
+	};
 
 	// https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface
 	client.Intercept(class extends CSSStyleDeclaration {
@@ -33,6 +57,7 @@ export default function (client: ScramjetClient, self: Self) {
 		@Returns("CSSOMString")
 		removeProperty(property: string): string {
 			const removed = super.removeProperty(property);
+			touched(this);
 
 			return removed ? unrewrite(removed) : removed;
 		}
@@ -50,6 +75,7 @@ export default function (client: ScramjetClient, self: Self) {
 		@Returns("undefined")
 		setProperty(property: string, value: string, priority?: string): void {
 			super.setProperty(property, value ? rewrite(value) : value, priority);
+			touched(this);
 		}
 
 		@Type("[LegacyNullToEmptyString] CSSOMString")
@@ -60,6 +86,7 @@ export default function (client: ScramjetClient, self: Self) {
 		@Type("[LegacyNullToEmptyString] CSSOMString")
 		set cssText(value: string) {
 			super.cssText = rewrite(value);
+			touched(this);
 		}
 	});
 
@@ -231,7 +258,10 @@ export default function (client: ScramjetClient, self: Self) {
 
 				// the empty string is the spec's signal to remove the property,
 				// not something to rewrite
-				return Reflect_set(target, prop, css ? rewrite(css) : css);
+				const result = Reflect_set(target, prop, css ? rewrite(css) : css);
+				touched(target);
+
+				return result;
 			},
 
 			getOwnPropertyDescriptor(target, prop) {
@@ -250,10 +280,13 @@ export default function (client: ScramjetClient, self: Self) {
 
 				const css = toCssValue(desc.value);
 
-				return Reflect_defineProperty(target, prop, {
+				const result = Reflect_defineProperty(target, prop, {
 					...desc,
 					value: css ? rewrite(css) : css,
 				});
+				touched(target);
+
+				return result;
 			},
 		});
 	};
@@ -292,17 +325,41 @@ export default function (client: ScramjetClient, self: Self) {
 		return wrapper;
 	};
 
+	/** An element's own inline declaration, remembered as belonging to it. */
+	const elementStyle = (element: Element, declaration: CSSStyleDeclaration) => {
+		client.box.inlineStyleOwners.set(declaration, element);
+
+		return inlineStyle("CSSStyleProperties", declaration);
+	};
+
+	/** An element's typed OM view of the same attribute. */
+	const elementStyleMap = (element: Element, map: StylePropertyMap) => {
+		client.box.inlineStyleOwners.set(map, element);
+
+		return map;
+	};
+
 	client.Intercept(class extends HTMLElement {
 		@Type("CSSStyleProperties")
 		get style(): CSSStyleDeclaration {
-			return inlineStyle("CSSStyleProperties", super.style);
+			return elementStyle(this, super.style);
+		}
+
+		@Type("StylePropertyMap")
+		get attributeStyleMap(): StylePropertyMap {
+			return elementStyleMap(this, super.attributeStyleMap);
 		}
 	});
 
 	client.Intercept(class extends SVGElement {
 		@Type("CSSStyleProperties")
 		get style(): CSSStyleDeclaration {
-			return inlineStyle("CSSStyleProperties", super.style);
+			return elementStyle(this, super.style);
+		}
+
+		@Type("StylePropertyMap")
+		get attributeStyleMap(): StylePropertyMap {
+			return elementStyleMap(this, super.attributeStyleMap);
 		}
 	});
 
@@ -310,7 +367,61 @@ export default function (client: ScramjetClient, self: Self) {
 		client.Intercept(class extends MathMLElement {
 			@Type("CSSStyleProperties")
 			get style(): CSSStyleDeclaration {
-				return inlineStyle("CSSStyleProperties", super.style);
+				return elementStyle(this, super.style);
+			}
+
+			@Type("StylePropertyMap")
+			get attributeStyleMap(): StylePropertyMap {
+				return elementStyleMap(this, super.attributeStyleMap);
+			}
+		});
+	}
+
+	/**
+	 * https://drafts.css-houdini.org/css-typed-om-1/#stylepropertymap - the
+	 * typed OM's write half. A string value is parsed as CSS exactly the way
+	 * `setProperty`'s is, so it gets the same rewrite; a `CSSStyleValue` was
+	 * already rewritten when `CSSStyleValue.parse` built it. The map an
+	 * element hands out writes that element's style attribute.
+	 */
+	if ("StylePropertyMap" in self) {
+		const rewriteValues = (values: (CSSStyleValue | string)[]) => {
+			const out: (CSSStyleValue | string)[] = [];
+			for (let i = 0; i < values.length; i++) {
+				const value = values[i];
+				out[i] = typeof value === "string" && value ? rewrite(value) : value;
+			}
+
+			return out;
+		};
+
+		client.Intercept(class extends StylePropertyMap {
+			@Arguments("USVString", "(CSSStyleValue or USVString)...")
+			@Returns("undefined")
+			set(property: string, ...values: (CSSStyleValue | string)[]): void {
+				super.set(property, ...rewriteValues(values));
+				touched(this);
+			}
+
+			@Arguments("USVString", "(CSSStyleValue or USVString)...")
+			@Returns("undefined")
+			append(property: string, ...values: (CSSStyleValue | string)[]): void {
+				super.append(property, ...rewriteValues(values));
+				touched(this);
+			}
+
+			@Arguments("USVString")
+			@Returns("undefined")
+			delete(property: string): void {
+				super.delete(property);
+				touched(this);
+			}
+
+			@Arguments()
+			@Returns("undefined")
+			clear(): void {
+				super.clear();
+				touched(this);
 			}
 		});
 	}

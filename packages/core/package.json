@@ -17,6 +17,7 @@
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
+		"test": "vitest run",
 		"prepack": "RELEASE=1 npm run rewriter:build && npm run build && cp ../../README.md ./README.md",
 		"postpack": "rm -rf ./README.md"
 	},
@@ -56,14 +57,11 @@
 		"@typescript-eslint/parser": "8.62.0",
 		"eslint": "^10.1.0",
 		"tslib": "^2.8.1",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.11"
 	},
 	"dependencies": {
 		"@mercuryworkshop/proxy-transports": "catalog:",
-		"dom-serializer": "^2.0.0",
-		"domhandler": "^5.0.3",
-		"domutils": "^3.2.2",
-		"htmlparser2": "catalog:",
 		"idb": "^8.0.3",
 		"parse-domain": "^8.2.2"
 	}

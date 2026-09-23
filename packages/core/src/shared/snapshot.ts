@@ -54,6 +54,12 @@ export const String_prototype_replace = globalThis.String.prototype.replace;
 export const String_replace = Function_prototype_call.bind(
 	String_prototype_replace
 );
+export const String_slice = Function_prototype_call.bind(
+	globalThis.String.prototype.slice
+) as (s: string, start?: number, end?: number) => string;
+export const String_codePointAt = Function_prototype_call.bind(
+	globalThis.String.prototype.codePointAt
+) as (s: string, index: number) => number | undefined;
 
 /**
  * `String.prototype.replace` with a regex is not enough to be safe from the
@@ -73,6 +79,9 @@ export const Number_isSafeInteger = globalThis.Number.isSafeInteger;
 export const Number_isFinite = globalThis.Number.isFinite;
 export const Number_isNaN = globalThis.Number.isNaN;
 export const Number_isInteger = globalThis.Number.isInteger;
+export const Number_toString = Function_prototype_call.bind(
+	globalThis.Number.prototype.toString
+) as (n: number, radix?: number) => string;
 
 export const BigInt = globalThis.BigInt;
 export const BigInt_asIntN = globalThis.BigInt.asIntN;
@@ -81,6 +90,15 @@ export const BigInt_asUintN = globalThis.BigInt.asUintN;
 export const encodeURIComponent = globalThis.encodeURIComponent;
 
 export const Symbol_iterator = globalThis.Symbol.iterator;
+/**
+ * `OrdinaryHasInstance`, as `Function.prototype[Symbol.hasInstance]` exposes
+ * it. Called directly rather than through `instanceof`, which consults the
+ * right-hand side's own `Symbol.hasInstance` first - and a page can define one
+ * on any interface object it likes.
+ */
+export const Function_hasInstance = Function_prototype_call.bind(
+	globalThis.Function.prototype[globalThis.Symbol.hasInstance]
+) as (ctor: object, value: unknown) => boolean;
 
 export const Object_keys = globalThis.Object.keys;
 export const Object_values = globalThis.Object.values;
@@ -99,6 +117,7 @@ export const Object_setPrototypeOf = globalThis.Object.setPrototypeOf;
 export const Object_getPrototypeOf = globalThis.Object.getPrototypeOf;
 export const Object_create = globalThis.Object.create;
 export const Object_assign = globalThis.Object.assign;
+export const Object_freeze = globalThis.Object.freeze;
 
 export const Reflect_get = globalThis.Reflect.get;
 export const Reflect_set = globalThis.Reflect.set;
@@ -143,6 +162,29 @@ export const SharedArrayBuffer_prototype_byteLength =
 				"byteLength"
 			)?.get
 		: undefined;
+/**
+ * The mutating array methods. Calling one on an ordinary array is still not
+ * safe from the page: `push` stores with [[Set]], which finds a setter the page
+ * put on `Array.prototype[n]`. Use them on arrays with no prototype (see
+ * `nullArray` in shared/htmlparser/safe.ts).
+ */
+type ArrayOf<T> = { length: number; [index: number]: T };
+export const Array_push = Function_prototype_call.bind(
+	globalThis.Array.prototype.push
+) as <T>(array: ArrayOf<T>, ...items: T[]) => number;
+export const Array_pop = Function_prototype_call.bind(
+	globalThis.Array.prototype.pop
+) as <T>(array: ArrayOf<T>) => T | undefined;
+export const Array_shift = Function_prototype_call.bind(
+	globalThis.Array.prototype.shift
+) as <T>(array: ArrayOf<T>) => T | undefined;
+export const Array_unshift = Function_prototype_call.bind(
+	globalThis.Array.prototype.unshift
+) as <T>(array: ArrayOf<T>, ...items: T[]) => number;
+export const Array_includes = Function_prototype_call.bind(
+	globalThis.Array.prototype.includes
+) as <T>(array: ArrayOf<T>, search: unknown, from?: number) => boolean;
+export const Uint16Array = globalThis.Uint16Array;
 export const Array_from = globalThis.Array.from;
 export const Array_isArray = globalThis.Array.isArray;
 export const Array_of = globalThis.Array.of;
@@ -152,6 +194,13 @@ export const Array_sort = Function_prototype_call.bind(
 export const Array_join = Function_prototype_call.bind(
 	globalThis.Array.prototype.join
 ) as (array: unknown[], separator?: string) => string;
+export const Array_indexOf = Function_prototype_call.bind(
+	globalThis.Array.prototype.indexOf
+) as <T>(
+	array: readonly T[] | { length: number; [index: number]: T },
+	search: unknown,
+	from?: number
+) => number;
 
 export const JSON_parse = globalThis.JSON.parse;
 export const JSON_stringify = globalThis.JSON.stringify;
@@ -181,6 +230,7 @@ export const Error_prototype_toString = globalThis.Error.prototype.toString;
 export const TypeError = globalThis.TypeError;
 export const Math_random = globalThis.Math.random;
 export const Math_min = globalThis.Math.min;
+export const Math_max = globalThis.Math.max;
 export const Math_floor = globalThis.Math.floor;
 export const Math_trunc = globalThis.Math.trunc;
 export const Math_fround = globalThis.Math.fround;

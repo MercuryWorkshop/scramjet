@@ -2,7 +2,30 @@ import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
 import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
+import { parseDeclarativeRefresh } from "./refresh";
 import { _URL } from "./snapshot";
+
+/**
+ * The SVG elements whose `href` is a URL reference that is fetched or
+ * navigated. Shared between the modern `href` and the legacy `xlink:href`,
+ * which every one of them still honours: a rule for one and not the other is
+ * a hole with the other's name on it.
+ */
+const svgUrlReferences = [
+	"use",
+	"textPath",
+	"mpath",
+	"feImage",
+	"animate",
+	"animateMotion",
+	"animateTransform",
+	"set",
+	"discard",
+	"linearGradient",
+	"radialGradient",
+	"pattern",
+	"filter",
+];
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
@@ -24,7 +47,9 @@ export const htmlRules: {
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
 		poster: ["video"],
-		"xlink:href": ["image"],
+		// `image` and `a` exist in both vocabularies; the SVG one also takes the
+		// legacy spelling
+		"xlink:href": ["image", "a"],
 	},
 	{
 		fn: (value, context, meta, getAttr) => {
@@ -38,7 +63,10 @@ export const htmlRules: {
 		},
 
 		src: ["script"],
-		href: ["link"],
+		// an SVG script takes its source from `href`, not `src` - and it is a
+		// script like any other, run in the proxy's origin
+		href: ["link", "script"],
+		"xlink:href": ["script"],
 	},
 	{
 		fn: (value, context, meta) => {
@@ -135,20 +163,28 @@ export const htmlRules: {
 			if (value.startsWith("#")) return value;
 			return rewriteUrl(value, context, meta);
 		},
-		href: [
-			"use",
-			"textPath",
-			"mpath",
-			"feImage",
-			"animate",
-			"animateMotion",
-			"animateTransform",
-			"set",
-			"discard",
-			"linearGradient",
-			"radialGradient",
-			"pattern",
-			"filter",
-		],
+		href: svgUrlReferences,
+		"xlink:href": svgUrlReferences,
+	},
+	{
+		// https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-refresh -
+		// only a URL once `http-equiv` says so. `dom/element.ts` re-runs this
+		// when `http-equiv` changes, so the order the two are set in does not
+		// matter
+		fn: (value, context, meta, getAttr) => {
+			if (getAttr("http-equiv")?.toLowerCase() !== "refresh") return value;
+
+			const refresh = parseDeclarativeRefresh(value);
+			if (!refresh || refresh.url === null || refresh.url.length === 0) {
+				return value;
+			}
+
+			return (
+				value.slice(0, refresh.urlStart) +
+				rewriteUrl(refresh.url.trim(), context, meta) +
+				value.slice(refresh.urlEnd)
+			);
+		},
+		content: ["meta"],
 	},
 ];

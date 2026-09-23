@@ -1,694 +1,418 @@
-import { htmlRules } from "@/shared/htmlRules";
-import {
-	String,
-	TextEncoder_encode,
-	Object_keys,
-	Object_defineProperty,
-	Object_getOwnPropertyDescriptor,
-	atob,
-} from "@/shared/snapshot";
-import { bytesToBase64 } from "@/shared/util";
-import { rewriteCss, unrewriteCss } from "@rewriters/css";
-import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
-import { rewriteJs } from "@rewriters/js";
-import { unrewriteUrl } from "@rewriters/url";
-import { SCRAMJETCLIENT } from "@/symbols";
+/**
+ * The `Element` half of the attribute layer: every member that reads or writes
+ * an attribute by name, answered through `client.attributes` (see
+ * `client/attributes.ts`).
+ *
+ * https://dom.spec.whatwg.org/#interface-element
+ */
+
 import { ScramjetClient } from "@client/index";
+import { Arguments, Returns } from "@client/webidl";
 import {
-	getScriptBlockTypeString,
-	isHtmlMimeType,
-	isModuleScriptType,
-	isScriptType,
-} from "@/shared/mime";
-import { ForeignContext } from "@/shared/rewriters/html";
+	isInternalAttribute,
+	isValidAttributeLocalName,
+	localPart,
+	mirrorAttributeName,
+	mirroredAttributeName,
+	nullNamespace,
+} from "@client/attributes";
+import { String } from "@/shared/snapshot";
+import { rewriteAttributeSelectors } from "@client/selectors";
 
-export function foreignContextForElement(
-	client: ScramjetClient,
-	element: Element
-): ForeignContext {
-	if (client.box.instanceof(element, "SVGElement")) return "svg";
-	if (client.box.instanceof(element, "MathMLElement")) return "math";
-	return "html";
-}
+export default function (client: ScramjetClient, _self: Self) {
+	const attrs = client.attributes;
 
-// NOTE: NOT INCLUSIVE OF THE CURRENT ELEMENT
-export function insideForeignContext(
-	client: ScramjetClient,
-	element: Element | null
-): ForeignContext {
-	let current: Element | null = element.parentElement;
+	const invalidName = (name: string, member: string) =>
+		client.errors.domException("InvalidCharacterError", {
+			execute: member,
+			on: "Element",
+			detail: `'${name}' is not a valid attribute name.`,
+		});
 
-	while (current) {
-		const context = foreignContextForElement(client, current);
-		if (context !== "html") return context;
-		// EXPLICITLY an html context, don't go up further
-		if (client.box.instanceof(current, "SVGForeignObjectElement"))
-			return "html";
-		current = current.parentElement;
-	}
+	// https://dom.spec.whatwg.org/#interface-element
+	client.Intercept(class extends Element {
+		@Arguments("DOMString")
+		@Returns("Element?")
+		querySelector(selectors: string): Element | null {
+			// the native first, on what the page wrote: an invalid selector
+			// throws a SyntaxError that has to quote the page's own string
+			const result = super.querySelector(selectors);
+			const hidden = rewriteAttributeSelectors(selectors);
 
-	return "html";
-}
-
-function scriptBlockTypeForElement(
-	client: ScramjetClient,
-	element: Element
-): string {
-	const nElement = new client.native.Element(element);
-	const hasType = nElement.hasAttribute("type") as boolean;
-	const hasLanguage = nElement.hasAttribute("language") as boolean;
-	const type = hasType
-		? (nElement.getAttribute("type") as string | null)
-		: null;
-	const language = hasLanguage
-		? (nElement.getAttribute("language") as string | null)
-		: null;
-	return getScriptBlockTypeString(type, language, hasType, hasLanguage);
-}
-
-export default function (client: ScramjetClient, self: typeof window) {
-	const attrObject = {
-		nonce: [self.HTMLElement],
-		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
-		csp: [self.HTMLIFrameElement],
-		credentialless: [self.HTMLIFrameElement],
-		src: [
-			self.HTMLImageElement,
-			self.HTMLMediaElement,
-			self.HTMLIFrameElement,
-			self.HTMLFrameElement,
-			self.HTMLEmbedElement,
-			self.HTMLScriptElement,
-			self.HTMLSourceElement,
-		],
-		href: [self.HTMLAnchorElement, self.HTMLLinkElement],
-		data: [self.HTMLObjectElement],
-		action: [self.HTMLFormElement],
-		formaction: [self.HTMLButtonElement, self.HTMLInputElement],
-		srcdoc: [self.HTMLIFrameElement],
-		poster: [self.HTMLVideoElement],
-		imagesrcset: [self.HTMLLinkElement],
-	};
-
-	const urlinterfaces = [
-		self.HTMLAnchorElement.prototype,
-		self.HTMLAreaElement.prototype,
-	];
-	const originalhrefs = [
-		Object_getOwnPropertyDescriptor(self.HTMLAnchorElement.prototype, "href"),
-		Object_getOwnPropertyDescriptor(self.HTMLAreaElement.prototype, "href"),
-	];
-
-	const attrs = Object_keys(attrObject);
-
-	for (const attr of attrs) {
-		for (const element of attrObject[attr]) {
-			const descriptor = Object_getOwnPropertyDescriptor(
-				element.prototype,
-				attr
-			);
-			Object_defineProperty(element.prototype, attr, {
-				get() {
-					if (["src", "data", "href", "action", "formaction"].includes(attr)) {
-						return unrewriteUrl(descriptor.get.call(this), client.context);
-					}
-
-					return descriptor.get.call(this);
-				},
-
-				set(value) {
-					// if (
-					// 	this.tagName === "IFRAME" &&
-					// 	attr === "src" &&
-					// 	value === "about:blank"
-					// ) {
-					// 	this.setAttribute("srcdoc", "");
-					// 	return;
-					// }
-					return this.setAttribute(attr, value);
-				},
-			});
+			return hidden === null ? result : super.querySelector(hidden);
 		}
-	}
 
-	client.Trap("HTMLImageElement.prototype.currentSrc", {
-		get(ctx) {
-			const currentSrc = ctx.get() as string;
-			if (!currentSrc) return currentSrc;
-			return unrewriteUrl(currentSrc, client.context);
-		},
-	});
+		@Arguments("DOMString")
+		@Returns("NodeList")
+		querySelectorAll(selectors: string): NodeListOf<Element> {
+			const result = super.querySelectorAll(selectors);
+			const hidden = rewriteAttributeSelectors(selectors);
 
-	// note that href is not here
-	const urlprops = [
-		"protocol",
-		"hash",
-		"host",
-		"hostname",
-		"origin",
-		"pathname",
-		"port",
-		"search",
-	];
-	for (const prop of urlprops) {
-		for (const i in urlinterfaces) {
-			const target = urlinterfaces[i];
-			const desc = originalhrefs[i];
-			client.RawTrap(target, prop, {
-				get(ctx) {
-					const href = desc.get.call(ctx.this);
-					if (!href) return href;
-
-					const url = new URL(unrewriteUrl(href, client.context));
-
-					return url[prop];
-				},
-			});
+			return hidden === null ? result : super.querySelectorAll(hidden);
 		}
-	}
 
-	client.Trap("Node.prototype.baseURI", {
-		get(ctx) {
-			const node = ctx.this as Node;
-			const doc = client.box.instanceof(node, "Document")
-				? (node as Document)
-				: node.ownerDocument;
-			const base = doc?.querySelector("base[href]") as HTMLBaseElement | null;
+		@Arguments("DOMString")
+		@Returns("boolean")
+		matches(selectors: string): boolean {
+			const result = super.matches(selectors);
+			const hidden = rewriteAttributeSelectors(selectors);
 
-			if (base) {
-				const href = base.getAttribute("href") || base.href;
-				if (href) return new URL(href, client.url.href).href;
+			return hidden === null ? result : super.matches(hidden);
+		}
+
+		@Arguments("DOMString")
+		@Returns("Element?")
+		closest(selectors: string): Element | null {
+			const result = super.closest(selectors);
+			const hidden = rewriteAttributeSelectors(selectors);
+
+			return hidden === null ? result : super.closest(hidden);
+		}
+
+		@Arguments()
+		@Returns("boolean")
+		hasAttributes(): boolean {
+			// the cheap answer is right unless something of ours is in the list:
+			// an element carrying only a script source has attributes the page
+			// must not be told about
+			if (!super.hasAttributes()) return false;
+
+			return attrs.names(this).length > 0;
+		}
+
+		@Arguments()
+		@Returns("sequence<DOMString>")
+		getAttributeNames(): string[] {
+			void super.hasAttributes();
+
+			return attrs.names(this);
+		}
+
+		@Arguments("DOMString")
+		@Returns("DOMString?")
+		getAttribute(qualifiedName: string): string | null {
+			void super.hasAttributes();
+
+			return attrs.get(this, attrs.qualify(this, qualifiedName));
+		}
+
+		@Arguments("DOMString?", "DOMString")
+		@Returns("DOMString?")
+		getAttributeNS(namespace: string | null, localName: string): string | null {
+			namespace = nullNamespace(namespace);
+			const node = super.getAttributeNodeNS(namespace, localName);
+			if (!node) {
+				// a namespace-less lookup can still be answered by a mirror, which
+				// carries no namespace and a name the native would never match
+				if (namespace) return null;
+				const mirror = attrs.strippedNode(this, localName);
+
+				return mirror ? attrs.visibleValue(mirror) : null;
 			}
 
-			return client.url.href;
-		},
-		set() {
+			if (isInternalAttribute(attrs.attrName(node))) return null;
+
+			const mirror = attrs.mirrorOf(this, node);
+
+			return mirror === null ? attrs.attrValue(node) : mirror;
+		}
+
+		// the IDL takes `(TrustedType or DOMString)`. `TrustedType` is a typedef
+		// for the union of the three trusted types, expanded here because the
+		// union coercer brand checks its members by name and has never heard of
+		// the typedef
+		@Arguments(
+			"DOMString",
+			"(TrustedHTML or TrustedScript or TrustedScriptURL or DOMString)"
+		)
+		@Returns("undefined")
+		setAttribute(qualifiedName: string, value: string): void {
+			void super.hasAttributes();
+
+			// 1. If qualifiedName is not a valid attribute local name, throw an
+			//    "InvalidCharacterError" DOMException
+			if (!isValidAttributeLocalName(qualifiedName)) {
+				throw invalidName(qualifiedName, "setAttribute");
+			}
+
+			attrs.set(this, attrs.qualify(this, qualifiedName), String(value));
+		}
+
+		@Arguments(
+			"DOMString?",
+			"DOMString",
+			"(TrustedHTML or TrustedScript or TrustedScriptURL or DOMString)"
+		)
+		@Returns("undefined")
+		setAttributeNS(
+			namespace: string | null,
+			qualifiedName: string,
+			value: string
+		): void {
+			namespace = nullNamespace(namespace);
+			const text = String(value);
+			if (isInternalAttribute(qualifiedName)) {
+				void super.hasAttributes();
+
+				return;
+			}
+			const rewrite = attrs.rewriterNS(this, namespace, qualifiedName);
+			if (!rewrite) {
+				super.setAttributeNS(namespace, qualifiedName, text);
+				if (namespace === null) {
+					attrs.changed(this, qualifiedName, text);
+				}
+
+				return;
+			}
+
+			const rewritten = rewrite(text);
+			const live = rewritten === null ? "" : rewritten;
+
+			// a stripped attribute in the null namespace is `setAttribute` by
+			// another name - with no prefix, which is the one thing the native
+			// would still refuse, and does so before touching anything. going
+			// through the native write would put the attribute down and take it
+			// away again, two mutations the page could observe
+			if (
+				rewritten === null &&
+				namespace === null &&
+				!super.hasAttribute(qualifiedName)
+			) {
+				if (
+					!isValidAttributeLocalName(qualifiedName) ||
+					qualifiedName.includes(":")
+				) {
+					super.setAttributeNS(namespace, qualifiedName, live);
+				}
+				attrs.set(this, qualifiedName, text);
+
+				return;
+			}
+
+			// a name the mirror cannot be written under is one the native refuses
+			// too, and its error is the one the page is owed
+			if (!isValidAttributeLocalName(qualifiedName)) {
+				super.setAttributeNS(namespace, qualifiedName, live);
+
+				return;
+			}
+
+			// keyed on the qualified name the document will hold, which is what a
+			// namespace-less read asks for. that is not necessarily the one just
+			// passed: an existing attribute in the same namespace under another
+			// prefix only has its value changed, and keeps its own name
+			const local = localPart(qualifiedName);
+			const existing = super.getAttributeNodeNS(namespace, local);
+			const name = existing ? attrs.attrName(existing) : qualifiedName;
+			const mirrorName = mirrorAttributeName(name);
+			const stale = attrs.raw.get(this, mirrorName);
+
+			// the mirror goes down first, for the reason `set` gives - the write
+			// runs a custom element's attributeChangedCallback, which reads the
+			// attribute back. the native validates the namespace against the
+			// qualified name, and a call that throws must not leave the mirror
+			// behind for every later read to answer out of
+			attrs.raw.set(this, mirrorName, text);
+			try {
+				super.setAttributeNS(namespace, qualifiedName, live);
+			} catch (err) {
+				if (stale === null) attrs.raw.remove(this, mirrorName);
+				else attrs.raw.set(this, mirrorName, stale);
+				throw err;
+			}
+			// `removeAttributeNS` takes the *local* name, and a prefixed qualified
+			// name handed to it matches nothing - leaving the empty attribute in
+			// place of the one the rule wanted gone
+			if (rewritten === null) super.removeAttributeNS(namespace, local);
+
+			if (namespace === null) attrs.changed(this, name, text);
+		}
+
+		@Arguments("DOMString")
+		@Returns("undefined")
+		removeAttribute(qualifiedName: string): void {
+			void super.hasAttributes();
+
+			attrs.remove(this, attrs.qualify(this, qualifiedName));
+		}
+
+		@Arguments("DOMString?", "DOMString")
+		@Returns("undefined")
+		removeAttributeNS(namespace: string | null, localName: string): void {
+			namespace = nullNamespace(namespace);
+			const node = super.getAttributeNodeNS(namespace, localName);
+			if (node) {
+				const name = attrs.heldName(this, node);
+				if (isInternalAttribute(name)) return;
+				const mirror = attrs.mirrorOf(this, node);
+				if (mirror !== null) attrs.raw.remove(this, mirrorAttributeName(name));
+				super.removeAttributeNS(namespace, localName);
+				attrs.detached(node, mirror);
+				if (namespace === null) attrs.changed(this, name, null);
+
+				return;
+			}
+
+			// a rule that strips the attribute outright (`nonce`, `sandbox`)
+			// leaves only the mirror, which carries no namespace - so a
+			// namespace-less removal has to find it by name
+			if (namespace === null && attrs.strippedNode(this, localName)) {
+				attrs.remove(this, localName);
+			}
+		}
+
+		// `force` is `optional boolean`, not a nullable required one. declaring
+		// it required made every one-argument call fail validation and fall
+		// through to the native, which toggled the real attribute and left the
+		// mirror behind to answer `getAttribute` forever
+		@Arguments("DOMString", "optional boolean")
+		@Returns("boolean")
+		toggleAttribute(qualifiedName: string, force?: boolean): boolean {
+			void super.hasAttributes();
+
+			// 1. If qualifiedName is not a valid attribute local name, throw an
+			//    "InvalidCharacterError" DOMException
+			if (!isValidAttributeLocalName(qualifiedName)) {
+				throw invalidName(qualifiedName, "toggleAttribute");
+			}
+			if (isInternalAttribute(qualifiedName)) return false;
+			// 2. If this is in the HTML namespace and its node document is an HTML
+			//    document, lowercase qualifiedName
+			const name = attrs.qualify(this, qualifiedName);
+			// 3. Let attribute be the first attribute whose qualified name is
+			//    qualifiedName, and null otherwise
+			// 4. If attribute is null:
+			if (!attrs.has(this, name)) {
+				// 4.2. Return false, if force is given and is false
+				if (force === false) return false;
+				// 4.1. Append an attribute with the empty value, and return true
+				attrs.set(this, name, "");
+
+				return true;
+			}
+			// 6. Return true, if force is given and is true
+			if (force === true) return true;
+			// 5. If force is not given or is false, remove it and return false
+			attrs.remove(this, name);
+
 			return false;
-		},
-	});
+		}
 
-	client.Proxy("Element.prototype.getAttribute", {
-		apply(ctx) {
-			const [name] = ctx.args;
+		@Arguments("DOMString")
+		@Returns("boolean")
+		hasAttribute(qualifiedName: string): boolean {
+			void super.hasAttributes();
 
-			if (name.startsWith("scramjet-attr")) {
-				return ctx.return(null);
-			}
+			return attrs.has(this, attrs.qualify(this, qualifiedName));
+		}
 
+		@Arguments("DOMString?", "DOMString")
+		@Returns("boolean")
+		hasAttributeNS(namespace: string | null, localName: string): boolean {
+			namespace = nullNamespace(namespace);
+			const node = super.getAttributeNodeNS(namespace, localName);
+			if (node) return !isInternalAttribute(attrs.attrName(node));
+
+			return namespace ? false : !!attrs.strippedNode(this, localName);
+		}
+
+		@Arguments("DOMString")
+		@Returns("Attr?")
+		getAttributeNode(qualifiedName: string): Attr | null {
+			void super.hasAttributes();
+
+			return attrs.node(this, attrs.qualify(this, qualifiedName));
+		}
+
+		@Arguments("DOMString?", "DOMString")
+		@Returns("Attr?")
+		getAttributeNodeNS(
+			namespace: string | null,
+			localName: string
+		): Attr | null {
+			namespace = nullNamespace(namespace);
+			const node = super.getAttributeNodeNS(namespace, localName);
+			if (node) return isInternalAttribute(attrs.attrName(node)) ? null : node;
+
+			return namespace ? null : attrs.strippedNode(this, localName);
+		}
+
+		@Arguments("Attr")
+		@Returns("Attr?")
+		setAttributeNode(attr: Attr): Attr | null {
+			void super.hasAttributes();
+
+			return attrs.insertNode(this, attr, false);
+		}
+
+		@Arguments("Attr")
+		@Returns("Attr?")
+		setAttributeNodeNS(attr: Attr): Attr | null {
+			void super.hasAttributes();
+
+			return attrs.insertNode(this, attr, true);
+		}
+
+		@Arguments("Attr")
+		@Returns("Attr")
+		removeAttributeNode(attr: Attr): Attr {
+			void super.hasAttributes();
+
+			// the page's own node for a stripped attribute, which the document
+			// never held
 			if (
-				new client.native.Element(ctx.this).hasAttribute(
-					`scramjet-attr-${name}`
-				)
+				attrs.nativeOwner(attr) === null &&
+				attrs.owner(attr) === (this as Element)
 			) {
-				const attrib = ctx.fn.call(ctx.this, `scramjet-attr-${name}`);
-				if (attrib === null) return ctx.return("");
+				attrs.remove(this, attrs.attrName(attr));
 
-				return ctx.return(attrib);
-			}
-		},
-	});
-
-	client.Proxy("Element.prototype.getAttributeNames", {
-		apply(ctx) {
-			const attrNames = ctx.call() as string[];
-			const cleaned = attrNames.filter(
-				(attr) => !attr.startsWith("scramjet-attr")
-			);
-
-			ctx.return(cleaned);
-		},
-	});
-
-	client.Proxy("Element.prototype.getAttributeNode", {
-		apply(ctx) {
-			if (String(ctx.args[0]).startsWith("scramjet-attr"))
-				return ctx.return(null);
-		},
-	});
-
-	client.Proxy("Element.prototype.hasAttribute", {
-		apply(ctx) {
-			if (String(ctx.args[0]).startsWith("scramjet-attr"))
-				return ctx.return(false);
-		},
-	});
-
-	client.Proxy("Element.prototype.setAttribute", {
-		apply(ctx) {
-			let [name, value] = ctx.args;
-			const tagName = ctx.this.tagName.toLowerCase();
-
-			if (value != null) value = String(value);
-			ctx.args[1] = value;
-
-			const ruleList = htmlRules.find((rule) => {
-				const r = rule[name.toLowerCase()];
-				if (!r) return false;
-				if (r === "*") return true;
-				if (typeof r === "function") return false; // this can't happen but ts
-
-				return r.includes(tagName);
-			});
-
-			if (ruleList) {
-				const ret = ruleList.fn(value, client.context, client.meta, (attr) =>
-					ctx.this.getAttribute(attr)
-				);
-				if (ret == null) {
-					new client.native.Element(ctx.this).removeAttribute(name);
-					ctx.fn.call(ctx.this, `scramjet-attr-${name}`, value);
-					ctx.return(undefined);
-
-					return;
-				}
-				ctx.args[1] = ret;
-				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`, value);
-			}
-		},
-	});
-
-	// i actually need to do something with this
-	client.Proxy("Element.prototype.setAttributeNode", {
-		apply(_ctx) {},
-	});
-
-	client.Proxy("Element.prototype.setAttributeNS", {
-		apply(ctx) {
-			// TODO: this could leak by like calling stringify twice or some dumb shit lol
-			const name = String(ctx.args[1]);
-			const value = String(ctx.args[2]);
-
-			const ruleList = htmlRules.find((rule) => {
-				const r = rule[String(name).toLowerCase()];
-				if (!r) return false;
-				if (r === "*") return true;
-				if (typeof r === "function") return false; // this can't happen but ts
-
-				return r.includes(ctx.this.tagName.toLowerCase());
-			});
-
-			if (ruleList) {
-				ctx.args[2] = ruleList.fn(value, client.context, client.meta, (attr) =>
-					ctx.this.getAttribute(attr)
-				);
-				new client.native.Element(ctx.this).setAttribute(
-					`scramjet-attr-${ctx.args[1]}`,
-					value
-				);
-			}
-		},
-	});
-
-	// this is separate from the regular href handlers because it returns an SVGAnimatedString
-	client.Trap("SVGAnimatedString.prototype.baseVal", {
-		get(ctx) {
-			const href = ctx.get() as string;
-			if (!href) return href;
-
-			return unrewriteUrl(href, client.context);
-		},
-		set(ctx, val: string) {
-			ctx.set(client.rewriteUrl(val));
-		},
-	});
-	client.Trap("SVGAnimatedString.prototype.animVal", {
-		get(ctx) {
-			const href = ctx.get() as string;
-			if (!href) return href;
-
-			return unrewriteUrl(href, client.context);
-		},
-		// it has no setter
-	});
-
-	client.Proxy("Element.prototype.removeAttribute", {
-		apply(ctx) {
-			const name = String(ctx.args[0]);
-			if (name.startsWith("scramjet-attr")) return ctx.return(undefined);
-			if (new client.native.Element(ctx.this).hasAttribute(name)) {
-				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
-			}
-		},
-	});
-
-	client.Proxy("Element.prototype.toggleAttribute", {
-		apply(ctx) {
-			const name = String(ctx.args[0]);
-			if (name.startsWith("scramjet-attr")) return ctx.return(false);
-			if (new client.native.Element(ctx.this).hasAttribute(name)) {
-				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`);
-			}
-		},
-	});
-
-	client.Trap("Element.prototype.innerHTML", {
-		set(ctx, value: string) {
-			// null specifically becomes "" and not "null". undefined does not
-			if (value === null) return;
-			const html = String(value);
-			let newval;
-			const scriptBlockType = client.box.instanceof(
-				ctx.this,
-				"HTMLScriptElement"
-			)
-				? scriptBlockTypeForElement(client, ctx.this)
-				: null;
-			if (
-				client.box.instanceof(ctx.this, "HTMLScriptElement") &&
-				isScriptType(scriptBlockType)
-			) {
-				newval = rewriteJs(
-					html,
-					"(anonymous script element)",
-					client.context,
-					client.meta,
-					isModuleScriptType(scriptBlockType)
-				);
-				new client.native.Element(ctx.this).setAttribute(
-					"scramjet-attr-script-source-src",
-					bytesToBase64(TextEncoder_encode(newval))
-				);
-			} else if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
-				newval = rewriteCss(html, client.context, client.meta);
-			} else {
-				try {
-					newval = rewriteHtml(html, client.context, client.meta, {
-						loadScripts: false,
-						inline: true,
-						source: client.url.href,
-						apisource: "set Element.prototype.innerHTML",
-						foreignContext: foreignContextForElement(client, ctx.this),
-					});
-				} catch {
-					newval = html;
-				}
+				return attr;
 			}
 
-			ctx.set(newval);
-		},
-		get(ctx) {
-			if (client.box.instanceof(ctx.this, "HTMLScriptElement")) {
-				const scriptSource = new client.native.Element(ctx.this).getAttribute(
-					"scramjet-attr-script-source-src"
-				);
+			const name = attrs.heldName(this, attr);
+			const mirrored = mirroredAttributeName(name);
+			// the mirror node standing in for a stripped attribute is what
+			// `getAttributeNode("nonce")` hands out, and removing it is removing
+			// that attribute
+			if (mirrored && attrs.nativeOwner(attr) === (this as Element)) {
+				attrs.remove(this, mirrored);
 
-				if (scriptSource) {
-					return atob(scriptSource);
-				}
-
-				return ctx.get();
-			}
-			if (client.box.instanceof(ctx.this, "HTMLStyleElement")) {
-				return ctx.get();
+				return attr;
 			}
 
-			return unrewriteHtml(
-				ctx.get(),
-				foreignContextForElement(client, ctx.this)
-			);
-		},
-	});
+			const mirror = attrs.mirrorOf(this, attr);
+			// first, so an attribute this element does not have throws the spec's
+			// NotFoundError before anything has been touched
+			const removed = super.removeAttributeNode(attr);
 
-	const rewriteTextForElement = (element: Element, value: string) => {
-		const scriptBlockType = client.box.instanceof(element, "HTMLScriptElement")
-			? scriptBlockTypeForElement(client, element)
-			: null;
+			if (!isInternalAttribute(name)) {
+				if (mirror !== null) attrs.raw.remove(this, mirrorAttributeName(name));
+				attrs.detached(removed, mirror);
+				attrs.changed(this, name, null);
+			}
 
-		if (
-			client.box.instanceof(element, "HTMLScriptElement") &&
-			isScriptType(scriptBlockType)
-		) {
-			const newval: string = rewriteJs(
-				value,
-				"(anonymous script element)",
-				client.context,
-				client.meta,
-				isModuleScriptType(scriptBlockType)
-			) as string;
-			new client.native.Element(element).setAttribute(
-				"scramjet-attr-script-source-src",
-				bytesToBase64(TextEncoder_encode(value))
-			);
-
-			return newval;
-		} else if (client.box.instanceof(element, "HTMLStyleElement")) {
-			return rewriteCss(value, client.context, client.meta);
-		} else {
-			return value;
+			return removed;
 		}
-	};
-	const getTextForElement = (element: Element, text: string) => {
-		if (client.box.instanceof(element, "HTMLScriptElement")) {
-			const scriptSource = new client.native.Element(element).getAttribute(
-				"scramjet-attr-script-source-src"
-			);
-			if (scriptSource) return atob(scriptSource);
-			return text;
+	});
+
+	client.Intercept(class extends DocumentFragment {
+		@Arguments("DOMString")
+		@Returns("Element?")
+		querySelector(selectors: string): Element | null {
+			const result = super.querySelector(selectors);
+			const rewritten = rewriteAttributeSelectors(selectors);
+
+			return rewritten === null ? result : super.querySelector(rewritten);
 		}
-		if (client.box.instanceof(element, "HTMLStyleElement")) {
-			return unrewriteCss(text, client.context);
+
+		@Arguments("DOMString")
+		@Returns("NodeList")
+		querySelectorAll(selectors: string): NodeListOf<Element> {
+			const result = super.querySelectorAll(selectors);
+			const rewritten = rewriteAttributeSelectors(selectors);
+
+			return rewritten === null ? result : super.querySelectorAll(rewritten);
 		}
-		return text;
-	};
-
-	client.Trap(
-		["Node.prototype.textContent", "HTMLScriptElement.prototype.textContent"],
-		{
-			set(ctx, value) {
-				const text = String(value);
-				return ctx.set(rewriteTextForElement(ctx.this, text));
-			},
-			get(ctx) {
-				return getTextForElement(ctx.this, ctx.get());
-			},
-		}
-	);
-	client.Trap(
-		[
-			"HTMLElement.prototype.innerText",
-			"HTMLScriptElement.prototype.innerText",
-		],
-		{
-			set(ctx, value: string) {
-				const text = String(value);
-				return ctx.set(rewriteTextForElement(ctx.this, text));
-			},
-			get(ctx) {
-				return getTextForElement(ctx.this, ctx.get());
-			},
-		}
-	);
-
-	client.Trap("Element.prototype.outerHTML", {
-		set(ctx, value: string) {
-			const html = String(value);
-			ctx.set(
-				rewriteHtml(html, client.context, client.meta, {
-					loadScripts: false,
-					inline: true,
-					source: client.url.href,
-					apisource: "set Element.prototype.outerHTML",
-					foreignContext: insideForeignContext(client, ctx.this),
-				})
-			);
-		},
-		get(ctx) {
-			return unrewriteHtml(ctx.get(), insideForeignContext(client, ctx.this));
-		},
-	});
-
-	client.Proxy("Element.prototype.setHTMLUnsafe", {
-		apply(ctx) {
-			const html = String(ctx.args[0]);
-			ctx.args[0] = rewriteHtml(html, client.context, client.meta, {
-				loadScripts: false,
-				inline: true,
-				source: client.url.href,
-				apisource: "set Element.prototype.setHTMLUnsafe",
-				foreignContext: foreignContextForElement(client, ctx.this),
-			});
-		},
-	});
-
-	client.Proxy("Element.prototype.getHTML", {
-		apply(ctx) {
-			ctx.return(unrewriteHtml(ctx.call()));
-		},
-	});
-
-	client.Proxy("Element.prototype.insertAdjacentHTML", {
-		apply(ctx) {
-			const html = String(ctx.args[1]);
-			ctx.args[1] = rewriteHtml(html, client.context, client.meta, {
-				loadScripts: false,
-				inline: true,
-				source: client.url.href,
-				apisource: "set Element.prototype.insertAdjacentHTML",
-				foreignContext: foreignContextForElement(client, ctx.this),
-			});
-		},
-	});
-
-	// TODO: this needs to be done for all insert methods
-	// client.Proxy(["Element.prototype.appendChild", "Element.prototype.append"], {
-	// 	apply(ctx) {
-	// 		if (ctx.this instanceof self.HTMLStyleElement) {
-	// 			for (const node of ctx.args) {
-	// 				if (node instanceof self.Text) {
-	// 					node.data = rewriteCss(
-	// 						ctx.args[0].data,
-	// 						client.context,
-	// 						client.meta
-	// 					);
-	// 				}
-	// 			}
-	// 		} else if (ctx.this instanceof self.HTMLScriptElement) {
-	// 			for (const node of ctx.args) {
-	// 				if (node instanceof self.Text) {
-	// 					const newval: string = rewriteJs(
-	// 						node.data,
-	// 						"(anonymous script element)",
-	// 						client.context,
-	// 						client.meta
-	// 					) as string;
-	// 					new client.native.Element(ctx.this).setAttribute(
-	// 						"scramjet-attr-script-source-src",
-	// 						bytesToBase64(encoder.encode(newval))
-	// 					);
-	// 					node.data = newval;
-	// 				}
-	// 			}
-	// 		}
-	// 	},
-	// });
-
-	client.Proxy("Audio", {
-		construct(ctx) {
-			if (ctx.args[0]) ctx.args[0] = client.rewriteUrl(ctx.args[0]);
-		},
-	});
-	client.Proxy("Text.prototype.appendData", {
-		apply(ctx) {
-			const text = String(ctx.args[0]);
-			const parent = new client.native.Node(ctx.this).parentElement;
-			ctx.args[0] = rewriteTextForElement(parent, text);
-		},
-	});
-
-	client.Proxy("Text.prototype.insertData", {
-		apply(ctx) {
-			const text = String(ctx.args[1]);
-			const parent = new client.native.Node(ctx.this).parentElement;
-			ctx.args[1] = rewriteTextForElement(parent, text);
-		},
-	});
-
-	client.Proxy("Text.prototype.replaceData", {
-		apply(ctx) {
-			const text = String(ctx.args[2]);
-			const parent = new client.native.Node(ctx.this).parentElement;
-			ctx.args[2] = rewriteTextForElement(parent, text);
-		},
-	});
-
-	client.Trap("Text.prototype.wholeText", {
-		get(ctx) {
-			const parent = new client.native.Node(ctx.this).parentElement;
-			return getTextForElement(parent, ctx.get());
-		},
-		set(ctx, v) {
-			const text = String(v);
-			const parent = new client.native.Node(ctx.this).parentElement;
-			return ctx.set(rewriteTextForElement(parent, text));
-		},
-	});
-
-	client.Proxy("HTMLAnchorElement.prototype.toString", {
-		apply(ctx) {
-			const href = ctx.call();
-			if (!href) return href;
-			return ctx.return(unrewriteUrl(href, client.context));
-		},
-	});
-
-	client.Trap(
-		[
-			"HTMLIFrameElement.prototype.contentWindow",
-			"HTMLFrameElement.prototype.contentWindow",
-			"HTMLObjectElement.prototype.contentWindow",
-			"HTMLEmbedElement.prototype.contentWindow",
-		],
-		{
-			get(ctx) {
-				const realwin = ctx.get() as Window;
-				if (!realwin) return realwin;
-
-				try {
-					if (!(SCRAMJETCLIENT in realwin)) {
-						// hook the iframe before the client can start to steal globals out of it
-						client.init.hookSubcontext(realwin, ctx.this);
-					}
-				} catch {
-					// cross-origin iframe, can't do anything here
-					return realwin;
-				}
-
-				return realwin;
-			},
-		}
-	);
-
-	client.Trap(
-		[
-			"HTMLIFrameElement.prototype.contentDocument",
-			"HTMLFrameElement.prototype.contentDocument",
-			"HTMLObjectElement.prototype.contentDocument",
-			"HTMLEmbedElement.prototype.contentDocument",
-		],
-		{
-			get(ctx) {
-				const realwin = new client.native[ctx.this.constructor.name](ctx.this)
-					.contentWindow;
-				if (!realwin) return realwin;
-
-				if (!(SCRAMJETCLIENT in realwin)) {
-					client.init.hookSubcontext(realwin, ctx.this);
-				}
-
-				return realwin.document;
-			},
-		}
-	);
-
-	client.Proxy(
-		[
-			"HTMLIFrameElement.prototype.getSVGDocument",
-			"HTMLObjectElement.prototype.getSVGDocument",
-			"HTMLEmbedElement.prototype.getSVGDocument",
-		],
-		{
-			apply(ctx) {
-				const doc = ctx.call();
-				if (doc) {
-					// we trap the contentDocument, this is really the scramjet version
-					return ctx.return(ctx.this.contentDocument);
-				}
-			},
-		}
-	);
-
-	client.Proxy("DOMParser.prototype.parseFromString", {
-		apply(ctx) {
-			const html = String(ctx.args[0]);
-			const mime = String(ctx.args[1]);
-			// TODO: what do we do if it's xml/svg?
-			if (!isHtmlMimeType(mime)) return;
-			ctx.args[0] = rewriteHtml(html, client.context, client.meta, {
-				loadScripts: false,
-				inline: true,
-				source: client.url.href,
-				apisource: "DOMParser.prototype.parseFromString",
-			});
-		},
 	});
 }

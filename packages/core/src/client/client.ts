@@ -22,6 +22,8 @@ import {
 } from "@/shared";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
+import { AttributeLayer } from "./attributes";
+import { TextLayer } from "./text";
 import { ScramjetConfig } from "@/types";
 import { Tap } from "@/Tap";
 import {
@@ -263,6 +265,11 @@ export class ScramjetClient {
 
 	box: SingletonBox;
 
+	/** The attribute layer: every attribute read and write goes through it. */
+	attributes: AttributeLayer;
+	/** The text layer: a script's and a style's source, and the text around them. */
+	text: TextLayer;
+
 	context: ScramjetContext;
 
 	initHeaders: ScramjetHeaders;
@@ -295,11 +302,14 @@ export class ScramjetClient {
 		{},
 		{
 			get: (_target: any, prototype: string) => {
+				// Each class closes over this client's fixed native descriptor table.
+				const cached = this.nativeClasses.get(prototype);
+				if (cached) return cached;
 				const descriptors = this.nativeStore.get(prototype);
 				if (!descriptors) {
 					throw new Error(`No native descriptors found for ${prototype}`);
 				}
-				return class {
+				const nativeClass = class {
 					constructor(object: any) {
 						return new Proxy(
 							{},
@@ -336,9 +346,12 @@ export class ScramjetClient {
 						);
 					}
 				};
+				this.nativeClasses.set(prototype, nativeClass);
+				return nativeClass;
 			},
 		}
 	);
+	private nativeClasses = new _Map<string, any>();
 	nativeStore: Map<string, Record<string, PropertyDescriptor>> = new _Map();
 
 	/**
@@ -404,6 +417,8 @@ export class ScramjetClient {
 
 		this.saveNatives();
 		this.errors = new NativeErrors(global as Self);
+		this.attributes = new AttributeLayer(this);
+		this.text = new TextLayer(this);
 
 		this.box.registerClient(this, global as Self);
 

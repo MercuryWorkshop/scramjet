@@ -168,13 +168,6 @@ export interface IDLNamedTypes {
 	VoidFunction: () => void;
 	QueuingStrategySize: (chunk: any) => number;
 
-	/**
-	 * html's sanitizer options, the second argument to `parseHTMLUnsafe` and
-	 * `setHTMLUnsafe`. A dictionary, so no interface object, and lib.dom does
-	 * not model it yet - it is only ever forwarded to the native.
-	 */
-	SetHTMLUnsafeOptions: object;
-
 	// --- typedefs --------------------------------------------------------
 	XMLHttpRequestBodyInit:
 		| Blob
@@ -222,6 +215,7 @@ export interface IDLNamedTypes {
 	ShadowRootMode: ShadowRootMode;
 	InsertPosition: InsertPosition;
 	DocumentReadyState: DocumentReadyState;
+	DOMParserSupportedType: DOMParserSupportedType;
 	ScrollBehavior: ScrollBehavior;
 	CookieSameSite: CookieSameSite;
 
@@ -243,6 +237,9 @@ export interface IDLNamedTypes {
 	WindowPostMessageOptions: WindowPostMessageOptions;
 	ShadowRootInit: ShadowRootInit;
 	GetRootNodeOptions: GetRootNodeOptions;
+	GetHTMLOptions: GetHTMLOptions;
+	SetHTMLOptions: SetHTMLOptions;
+	SetHTMLUnsafeOptions: SetHTMLUnsafeOptions;
 	ScrollIntoViewOptions: ScrollIntoViewOptions;
 	CookieInit: CookieInit;
 	CookieListItem: CookieListItem;

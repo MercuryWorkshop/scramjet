@@ -55,6 +55,27 @@ export function parseQueryParams(searchParams: URLSearchParams): {
 	return { params, extras };
 }
 
+/**
+ * Whether a request with none of the proxy's parameters is a module script.
+ *
+ * Every URL scramjet rewrites carries its parameters - `$io` at the least,
+ * since the page's origin is never the proxy's. One that arrives with none was
+ * built by the browser: an import map's prefix mapping extends a prefix that
+ * cannot carry a query (see `rewriters/importmap`), so the `$module` a
+ * rewritten module URL would have is missing. Modules are fetched in `cors`
+ * mode, and a classic script element only is when it asks to be.
+ */
+function isUnmarkedModule(
+	request: ScramjetFetchRequest,
+	params: QueryParams
+): boolean {
+	// a query the specifier carried past the prefix is the module's own, and
+	// is passed through the way a form's is
+	if (Object_keys(params).length !== 0) return false;
+
+	return request.rawDestination === "script" && request.mode === "cors";
+}
+
 export function parseRequest(
 	request: ScramjetFetchRequest,
 	handler: ScramjetFetchHandler
@@ -125,7 +146,7 @@ export function parseRequest(
 	const parsed: ScramjetFetchParsed = {
 		meta,
 		url,
-		isModule: params.isModule === "module",
+		isModule: params.isModule === "module" || isUnmarkedModule(request, params),
 		referrerPolicy: params.referrerPolicy,
 		referrerSourceUrl,
 		trackedClient,
