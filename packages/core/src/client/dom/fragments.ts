@@ -1,7 +1,12 @@
 import { rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
 import { ForeignContext } from "@/shared/rewriters/html";
-import { Array_indexOf, String, String_substring } from "@/shared/snapshot";
+import {
+	Array_indexOf,
+	String,
+	String_substring,
+	drain,
+} from "@/shared/snapshot";
 import { Arguments, Returns, Type } from "@client/webidl";
 import { foreignContextForElement } from "@client/dom/markup";
 
@@ -144,8 +149,8 @@ export default function (client: ScramjetClient, _self: Self) {
 			new client.native.Range(self).startContainer,
 			new client.native.Range(self).endContainer,
 		];
-		for (let i = 0; i < ends.length; i++) {
-			for (let n: Node | null = ends[i]; n && n !== common; n = parentOf(n)) {
+		for (const end of drain(ends)) {
+			for (let n: Node | null = end; n && n !== common; n = parentOf(n)) {
 				if (!isText(n)) return true;
 			}
 		}
@@ -278,7 +283,7 @@ export default function (client: ScramjetClient, _self: Self) {
 
 			const parts = covered(this, intersecting(this, root));
 			let out = "";
-			for (let i = 0; i < parts.length; i++) out += parts[i];
+			for (const part of drain(parts)) out += part;
 
 			return out;
 		}
@@ -366,7 +371,7 @@ export default function (client: ScramjetClient, _self: Self) {
 					text.record(nodes[i], String_substring(page, endOffset));
 				}
 			}
-			for (let i = 0; i < owners.length; i++) text.sync(owners[i]);
+			for (const owner of drain(owners)) text.sync(owner);
 
 			return fragment;
 		}

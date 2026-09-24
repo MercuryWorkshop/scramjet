@@ -54,6 +54,8 @@ import {
 	Symbol_iterator,
 	TypeError,
 	Error,
+	Array_includes,
+	drain,
 } from "@/shared/snapshot";
 import type { AnyFunction } from "@/types";
 
@@ -680,7 +682,7 @@ export type IDLMemberSignature = {
 
 // keyed on the function object rather than `context.metadata`, which swc
 // doesn't implement for 2022-03 decorators
-const signatures = new _WeakMap([]) as WeakMap<AnyFunction, IDLMemberSignature>;
+const signatures = new _WeakMap() as WeakMap<AnyFunction, IDLMemberSignature>;
 
 function record(fn: AnyFunction, patch: IDLMemberSignature) {
 	const existing = signatures.get(fn);
@@ -1175,11 +1177,11 @@ function compileIDLUnion(box: IDLBrandChecker, inner: string): IDLCoerce {
 	const interfaces: string[] = [];
 	let fallback: IDLCoerce | undefined;
 
-	for (let i = 0; i < members.length; i++) {
-		const raw = members[i].trim();
+	for (const member of drain(members)) {
+		const raw = member.trim();
 		const name = stripIDLExtendedAttributes(raw);
 
-		if (IDL_STRING_TYPES.indexOf(name) !== -1) {
+		if (Array_includes(IDL_STRING_TYPES, name)) {
 			// two string members can't be told apart, so give up
 			if (fallback) return idlPassthrough;
 			fallback = compileIDLType(box, raw);
@@ -1194,7 +1196,7 @@ function compileIDLUnion(box: IDLBrandChecker, inner: string): IDLCoerce {
 		// an interface this realm does not have at all: nothing can be an
 		// instance of it, so the member is dropped and the rest of the union
 		// still gets converted
-		if (IDL_OPTIONAL_INTERFACES.indexOf(name) !== -1) continue;
+		if (Array_includes(IDL_OPTIONAL_INTERFACES, name)) continue;
 
 		// a dictionary, enum, sequence, numeric or unknown member — the spec's
 		// disambiguation rules for those need more type information than we have
@@ -1222,7 +1224,7 @@ function compileIDLUnion(box: IDLBrandChecker, inner: string): IDLCoerce {
  * name boundary, and `"DOMString..."` has no name at all.
  */
 function stripIDLArgumentName(s: string): string {
-	if (IDL_MULTIWORD_PRIMITIVES.indexOf(s) !== -1) return s;
+	if (Array_includes(IDL_MULTIWORD_PRIMITIVES, s)) return s;
 
 	const space = s.lastIndexOf(" ");
 	if (space <= 0) return s;
@@ -1367,7 +1369,7 @@ function compileIDLType(
 		if (enforceRange) return idlPassthrough;
 
 		// the extended attribute is only ever spec'd on string types
-		if (nullToEmpty && IDL_STRING_TYPES.indexOf(s) !== -1) {
+		if (nullToEmpty && Array_includes(IDL_STRING_TYPES, s)) {
 			return (value) => (value === null ? "" : primitive(value));
 		}
 
@@ -1881,12 +1883,11 @@ export function dictionaryReader<
 ): (value: unknown) => IDLDictionaryOf<P & M> {
 	const keys = sortedIDLMemberNames(inherited ?? {});
 	const own = sortedIDLMemberNames(members);
-	for (let i = 0; i < own.length; i++) keys[keys.length] = own[i];
+	for (const key of drain(own)) keys[keys.length] = key;
 	const all: Record<string, string> = { ...inherited, ...members };
 
 	const compiled: CompiledMember[] = [];
-	for (let i = 0; i < keys.length; i++) {
-		const key = keys[i];
+	for (const key of drain(keys)) {
 		const raw = String_trim(all[key]);
 
 		let declaration = raw;

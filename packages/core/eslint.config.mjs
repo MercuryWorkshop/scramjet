@@ -8,6 +8,7 @@ import noGlobalsPlugin from "./tools/eslint/no-globals-plugin.mjs";
 import noInstanceofPlugin from "./tools/eslint/no-instanceof-plugin.mjs";
 import poisonedCtxPlugin from "./tools/eslint/poisoned-ctx-plugin.mjs";
 import brandCheckPlugin from "./tools/eslint/brand-check-plugin.mjs";
+import noUnsafeIterationPlugin from "./tools/eslint/no-unsafe-iteration-plugin.mjs";
 
 const scramjetCorePlugin = {
 	rules: {
@@ -15,6 +16,7 @@ const scramjetCorePlugin = {
 		...noInstanceofPlugin.rules,
 		...poisonedCtxPlugin.rules,
 		...brandCheckPlugin.rules,
+		...noUnsafeIterationPlugin.rules,
 	},
 };
 
@@ -99,9 +101,20 @@ export default [
 		},
 	},
 	{
+		// the page realm, where the iteration intrinsics are page-replaceable.
+		// `src/shared/` is deliberately not covered: most of it runs in the
+		// service worker, where there is no page script to replace anything
 		files: ["src/client/**/*.ts"],
 		rules: {
 			"scramjet-core/no-poisoned-ctx-value": "warn",
+			"scramjet-core/no-unsafe-iteration": "error",
+		},
+	},
+	{
+		// shared, but dispatched in the page on every navigation and pushState
+		files: ["src/Tap.ts"],
+		rules: {
+			"scramjet-core/no-unsafe-iteration": "error",
 		},
 	},
 ];

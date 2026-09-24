@@ -37,6 +37,7 @@ import {
 	String,
 	Symbol_iterator,
 	_Map,
+	drain,
 } from "@/shared/snapshot";
 
 /**
@@ -127,14 +128,16 @@ export default function (client: ScramjetClient, _self: Self) {
 					return function* (this: NamedNodeMap) {
 						const owner = ownerOf(brand(this));
 						if (!owner) {
-							const iterator = new client.native.NamedNodeMap(real(this))[
-								Symbol_iterator
-							]();
-							for (const attr of iterator) yield attr;
+							// indexed through the native, not by running the native
+							// iterator: `for...of` over it reads `next` and
+							// @@iterator off prototypes the page can replace.
+							// `length` is read every step, as the live iterator does
+							const native = new client.native.NamedNodeMap(real(this));
+							for (let i = 0; i < native.length; i++) yield native.item(i)!;
 							return;
 						}
 						const nodes = attrs.nodes(owner);
-						for (let i = 0; i < nodes.length; i++) yield nodes[i];
+						for (const node of drain(nodes)) yield node;
 					};
 				}
 
@@ -166,7 +169,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			ownKeys(target) {
 				const names = attrs.names(element);
 				const keys: (string | symbol)[] = [];
-				const seen = new _Map<string, true>([]);
+				const seen = new _Map<string, true>();
 
 				// an attribute named "0" is already listed as the index it shares
 				// its key with, and a key listed twice breaks the proxy invariant
@@ -174,18 +177,17 @@ export default function (client: ScramjetClient, _self: Self) {
 					keys[keys.length] = String(i);
 					seen.set(String(i), true);
 				}
-				for (let i = 0; i < names.length; i++) {
-					if (seen.get(names[i])) continue;
-					seen.set(names[i], true);
-					keys[keys.length] = names[i];
+				for (const name of drain(names)) {
+					if (seen.get(name)) continue;
+					seen.set(name, true);
+					keys[keys.length] = name;
 				}
 				// anything the native owns that is neither an index nor an
 				// attribute name. there is nothing in practice, but a key that
 				// exists and is left out of `ownKeys` is a proxy invariant
 				// violation waiting to happen
 				const own = Reflect_ownKeys(target);
-				for (let i = 0; i < own.length; i++) {
-					const key = own[i];
+				for (const key of drain(own)) {
 					if (typeof key !== "string") {
 						keys[keys.length] = key;
 						continue;

@@ -1,5 +1,10 @@
 import { ScramjetClient } from "@client/index";
-import { String, String_endsWith, String_startsWith } from "@/shared/snapshot";
+import {
+	String,
+	String_endsWith,
+	String_startsWith,
+	drain,
+} from "@/shared/snapshot";
 import { Arguments, Returns, Type } from "@client/webidl";
 
 export default function (client: ScramjetClient) {
@@ -37,8 +42,8 @@ export default function (client: ScramjetClient) {
 
 		const name = visibleName(nativeName(entry));
 		const masked = client.config.maskedfiles;
-		for (let i = 0; i < masked.length; i++) {
-			if (String_endsWith(name, masked[i])) return true;
+		for (const file of drain(masked)) {
+			if (String_endsWith(name, file)) return true;
 		}
 
 		return false;

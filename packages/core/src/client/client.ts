@@ -60,11 +60,13 @@ import {
 	Object_setPrototypeOf,
 	Object_assign,
 	Promise_then,
+	drain,
 	String_startsWith,
 	String_trim,
 	String_split,
 	String_toLowerCase,
 	_RegExp,
+	Array_includes,
 } from "@/shared/snapshot";
 import {
 	isConstructorMember,
@@ -182,8 +184,8 @@ export type ScramjetModule = {
 };
 
 function findBox(global: Window, seen: Window[]): SingletonBox | null {
-	if (seen.includes(global)) return null;
-	seen.push(global);
+	if (Array_includes(seen, global)) return null;
+	seen[seen.length] = global;
 
 	try {
 		if ((SCRAMJETCLIENT in global) as any) {
@@ -339,7 +341,9 @@ export class ScramjetClient {
 												Reflect_apply(fn, object, args),
 										});
 									} else if (desc.get) {
-										return desc.get.call(object);
+										// not `desc.get.call`: that looks `call` up on
+										// Function.prototype, which the page can replace
+										return Reflect_apply(desc.get, object, []);
 									}
 								},
 								set(_target, method: string, value: any) {
@@ -349,7 +353,7 @@ export class ScramjetClient {
 											`No native setter ${method.toString()} found for ${prototype}`
 										);
 									}
-									desc.set.call(object, value);
+									Reflect_apply(desc.set, object, [value]);
 									return true;
 								},
 							}
@@ -378,7 +382,7 @@ export class ScramjetClient {
 	 * there is no setter to find and the key is defined outright.
 	 */
 	saveNatives() {
-		for (const key of Object_getOwnPropertyNames(this.global)) {
+		for (const key of drain(Object_getOwnPropertyNames(this.global))) {
 			const value = this.global[key];
 			if (typeof value === "function" && "prototype" in value) {
 				const natives = Object_create(null);
@@ -510,12 +514,20 @@ export class ScramjetClient {
 				if (!iswindow) return "";
 				// TODO: need to nullify the actual meta tag so it still sends unsafe-url
 				const nDoc = new client.native.Document(client.global.document);
-				const meta = [
-					...nDoc.querySelectorAll("meta[name='referrer']"),
-					...nDoc.querySelectorAll("meta[name='referrer-policy']"),
-					...nDoc.querySelectorAll("meta[http-equiv='referrer-policy']"),
-				];
-				const last = meta[meta.length - 1];
+				// only the last match counts, so look for it list by list from the
+				// back. Indexed, and not `drain`: a NodeList is a live platform
+				// collection, and spreading it ran the page-replaceable
+				// iteration protocol over what decides the referrer policy
+				let last: Element | undefined;
+				for (const selector of drain([
+					"meta[http-equiv='referrer-policy']",
+					"meta[name='referrer-policy']",
+					"meta[name='referrer']",
+				])) {
+					const list = nDoc.querySelectorAll(selector);
+					last = list[list.length - 1];
+					if (last) break;
+				}
 				if (last) {
 					const nLast = new client.native.HTMLMetaElement(last);
 					return nLast.getAttribute("content");
@@ -549,7 +561,7 @@ export class ScramjetClient {
 
 		const modules: ScramjetModule[] = [];
 
-		for (const key of context.keys()) {
+		for (const key of drain(context.keys())) {
 			if (!key.endsWith(".ts")) continue;
 			if (
 				(key.startsWith("./dom/") && "window" in this.global) ||
@@ -567,7 +579,7 @@ export class ScramjetClient {
 			return aorder - border;
 		});
 
-		for (const module of modules) {
+		for (const module of drain(modules)) {
 			// one module throwing used to abort the loop, so a single interface
 			// missing from this realm silently left every module after it
 			// uninstalled. a hooked-but-incomplete realm is bad; an unhooked one
@@ -804,14 +816,30 @@ export class ScramjetClient {
 				String_toLowerCase(sandbox),
 				new _RegExp("[\\t\\n\\f\\r ]+")
 			);
-			for (let i = 0; i < tokens.length; i++) {
-				if (tokens[i] === "allow-same-origin") return false;
+			for (const token of drain(tokens)) {
+				if (token === "allow-same-origin") return false;
 			}
 
 			return true;
 		} catch {
 			return false;
 		}
+	}
+
+	/**
+	 * `"Element.prototype.innerHTML"` as the object that owns the last name
+	 * and that name, walked from this client's global. Null when a step along
+	 * the way is missing from this realm.
+	 */
+	private resolvePath(name: string): { owner: any; prop: string } | null {
+		const path = String_split(name, ".");
+		const prop = path[path.length - 1];
+		let owner: any = this.global;
+		for (let i = 0; i < path.length - 1; i++) {
+			owner = owner?.[path[i]];
+		}
+
+		return owner && prop ? { owner, prop } : null;
 	}
 
 	/**
@@ -856,20 +884,17 @@ export class ScramjetClient {
 	): void;
 	Proxy(name: string | string[], handler: Proxy<any>): void {
 		if (Array_isArray(name)) {
-			for (const n of name) {
+			for (const n of drain(name)) {
 				this.Proxy(n, handler);
 			}
 
 			return;
 		}
 
-		const split = name.split(".");
-		const prop = split.pop();
-		const target = split.reduce((a, b) => a?.[b], this.global);
+		const target = this.resolvePath(name);
 		if (!target) return;
-		if (!prop) return;
 
-		this.RawProxy(target, prop, handler, name);
+		this.RawProxy(target.owner, target.prop, handler, name);
 	}
 	/**
 	 * A named `apply`/`construct` pair for one intercepted member.
@@ -1150,20 +1175,17 @@ return { apply, construct };
 	): void;
 	Trap(name: string | string[], descriptor: Trap<any>): void {
 		if (Array_isArray(name)) {
-			for (const n of name) {
+			for (const n of drain(name)) {
 				this.Trap(n, descriptor);
 			}
 
 			return;
 		}
 
-		const split = name.split(".");
-		const prop = split.pop();
-		const target = split.reduce((a, b) => a?.[b], this.global);
+		const target = this.resolvePath(name);
 		if (!target) return;
-		if (!prop) return;
 
-		this.RawTrap(target, prop, descriptor, name);
+		this.RawTrap(target.owner, target.prop, descriptor, name);
 	}
 	RawTrap(
 		target: any,
@@ -1460,13 +1482,13 @@ return { apply, construct };
 			return "value" in desc && desc.writable === false;
 		};
 
-		for (const prop of Reflect_ownKeys(prototypeDescs)) {
+		for (const prop of drain(Reflect_ownKeys(prototypeDescs))) {
 			const classDesc = prototypeDescs[prop];
 			if (isClassMetadata(prop, classDesc, false)) continue;
 			if (isConstructorMember(classDesc.value)) continue;
 			writePrototypeField(prop, baseclass.prototype, classDesc, true);
 		}
-		for (const prop of Reflect_ownKeys(staticDescs)) {
+		for (const prop of drain(Reflect_ownKeys(staticDescs))) {
 			const handlerDesc = staticDescs[prop];
 			if (isClassMetadata(prop, handlerDesc, true)) continue;
 			const value = handlerDesc.value;

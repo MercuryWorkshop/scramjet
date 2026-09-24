@@ -43,6 +43,7 @@ import {
 	String_startsWith,
 	String_substring,
 	String_toLowerCase,
+	drain,
 } from "@/shared/snapshot";
 
 /**
@@ -537,6 +538,9 @@ export class AttributeLayer {
 			callback = definition.prototype.attributeChangedCallback;
 			const observed = (definition as any).observedAttributes;
 			if (observed === undefined || observed === null) return;
+			// the page's own iterable, so its own iteration protocol is the one
+			// the browser would run too, when `define()` converts it
+			// eslint-disable-next-line scramjet-core/no-unsafe-iteration
 			for (const entry of observed as Iterable<unknown>) {
 				if (String(entry) === name) listed = true;
 			}
@@ -560,8 +564,8 @@ export class AttributeLayer {
 		).getAttributeNames();
 
 		let internal = false;
-		for (let i = 0; i < all.length; i++) {
-			if (isInternalAttribute(all[i])) {
+		for (const name of drain(all)) {
+			if (isInternalAttribute(name)) {
 				internal = true;
 				break;
 			}
@@ -569,8 +573,7 @@ export class AttributeLayer {
 		if (!internal) return all;
 
 		const out: string[] = [];
-		for (let i = 0; i < all.length; i++) {
-			const name = all[i];
+		for (const name of drain(all)) {
 			const mirrored = mirroredAttributeName(name);
 
 			// an ordinary attribute, in its own position

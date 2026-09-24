@@ -10,24 +10,25 @@ import {
 	_WeakSet,
 	Object_create,
 	Function_hasInstance,
+	drain,
 } from "@/shared/snapshot";
 import { FakeWebSocketState } from "./shared/requests/WebSocket";
 import { FakeWebSocketStreamState } from "./shared/requests/WebSocketStream";
 
 export class SingletonBox {
 	clients: ScramjetClient[] = [];
-	clientIds: _Map<string, ScramjetClient> = new _Map([]);
-	globals: _Map<Self, ScramjetClient> = new _Map([]);
-	documents: _Map<Document, ScramjetClient> = new _Map([]);
-	histories: _Map<History, ScramjetClient> = new _Map([]);
-	objectPrototypes: _Map<object, ScramjetClient> = new _Map([]);
-	locations: _Map<Location, ScramjetClient> = new _Map([]);
-	functions: _Map<typeof Function, ScramjetClient> = new _Map([]);
+	clientIds: _Map<string, ScramjetClient> = new _Map();
+	globals: _Map<Self, ScramjetClient> = new _Map();
+	documents: _Map<Document, ScramjetClient> = new _Map();
+	histories: _Map<History, ScramjetClient> = new _Map();
+	objectPrototypes: _Map<object, ScramjetClient> = new _Map();
+	locations: _Map<Location, ScramjetClient> = new _Map();
+	functions: _Map<typeof Function, ScramjetClient> = new _Map();
 	writeRewriters: _WeakMap<Document, IncrementalHtmlRewriter> = new _WeakMap(
 		[]
 	);
-	taggedHeaders: _WeakSet<Headers> = new _WeakSet([]);
-	taggedResponses: _WeakSet<Response> = new _WeakSet([]);
+	taggedHeaders: _WeakSet<Headers> = new _WeakSet();
+	taggedResponses: _WeakSet<Response> = new _WeakSet();
 	scopedOpfsRoots: _WeakSet<FileSystemHandle> = new _WeakSet();
 	styleDeclarations: _WeakMap<CSSStyleDeclaration, CSSStyleDeclaration> =
 		new _WeakMap();
@@ -131,9 +132,9 @@ export class SingletonBox {
 
 	unproxy: _WeakMap<object, any> = new _WeakMap();
 
-	socketmap: _WeakMap<WebSocket, FakeWebSocketState> = new _WeakMap([]);
+	socketmap: _WeakMap<WebSocket, FakeWebSocketState> = new _WeakMap();
 	socketstreammap: _WeakMap<WebSocketStream, FakeWebSocketStreamState> =
-		new _WeakMap([]);
+		new _WeakMap();
 
 	ctors: Record<string, ((...args: any[]) => any)[]> = Object_create(null);
 
@@ -185,8 +186,7 @@ export class SingletonBox {
 		this.clientIds.set(client.id, client);
 
 		const names = Object_getOwnPropertyNames(global);
-		for (let i = 0; i < names.length; i++) {
-			const prop = names[i];
+		for (const prop of drain(names)) {
 			const desc = Object_getOwnPropertyDescriptor(global, prop);
 			if (desc && typeof desc.value === "function") {
 				let ctors = this.ctors[prop];
@@ -208,8 +208,11 @@ export class SingletonBox {
 		// not `instanceof`, which would run a page-defined
 		// `Symbol.hasInstance` - and callers use the answer to decide whether a
 		// value gets rewritten
-		for (const ctor of ctors) {
-			if (Function_hasInstance(ctor, obj)) return true;
+		// indexed rather than `for...of` or `drain`: this is the brand check
+		// every interceptor gates on, the hottest path in the client, and the
+		// bare protocol would have let a page decide its answer
+		for (let i = 0; i < ctors.length; i++) {
+			if (Function_hasInstance(ctors[i], obj)) return true;
 		}
 		return false;
 	}

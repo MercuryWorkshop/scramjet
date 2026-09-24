@@ -1,4 +1,10 @@
-import { Promise_all } from "@/shared/snapshot";
+import {
+	Array_includes,
+	Array_map,
+	Object_create,
+	Promise_all,
+	drain,
+} from "@/shared/snapshot";
 
 type Description = {
 	context?: object;
@@ -43,50 +49,66 @@ function mergeTapOrder(plugin: Plugin, order?: TapOrder): TapOrder {
 	};
 }
 
+/**
+ * Order `callbacks` so each runs after the plugins it names in `after`, and
+ * before the ones it names in `before`.
+ *
+ * Dispatch happens in the page realm - every navigation and `pushState` goes
+ * through here - so this sticks to `drain` and indexed writes: `for...of`,
+ * spread and the `Array.prototype` methods all reach intrinsics the page can
+ * replace, and with them which hooks run, in what order.
+ */
 function sortCallbacks<T extends Description>(
 	callbacks: CallbackInfo<T>[]
 ): CallbackInfo<T>[] {
-	const afters: Record<string, string[]> = {};
-	for (const callback of callbacks) {
+	const afters: Record<string, string[]> = Object_create(null);
+	const addAfter = (plugin: string, after: string) => {
+		const list = (afters[plugin] ??= []);
+		if (!Array_includes(list, after)) list[list.length] = after;
+	};
+	for (const callback of drain(callbacks)) {
 		if (callback.order.before) {
-			for (const before of callback.order.before) {
-				afters[before] ??= [];
-				if (!afters[before].includes(callback.plugin.name)) {
-					afters[before].push(callback.plugin.name);
-				}
+			for (const before of drain(callback.order.before)) {
+				addAfter(before, callback.plugin.name);
 			}
 		}
 		if (callback.order.after) {
-			for (const after of callback.order.after) {
-				afters[callback.plugin.name] ??= [];
-				if (!afters[callback.plugin.name].includes(after)) {
-					afters[callback.plugin.name].push(after);
-				}
+			for (const after of drain(callback.order.after)) {
+				addAfter(callback.plugin.name, after);
 			}
 		}
 	}
 
+	const byName = (name: string) => {
+		for (const callback of drain(callbacks)) {
+			if (callback.plugin.name === name) return callback;
+		}
+
+		return undefined;
+	};
+
 	const sorted: CallbackInfo<T>[] = [];
-	function recurse(callback: CallbackInfo<T>, visited: string[]) {
-		if (afters[callback.plugin.name]) {
-			for (const after of afters[callback.plugin.name]) {
-				if (visited.includes(after)) {
-					throw `Circular dependency detected: ${callback.plugin.name} -> ${after}. Using append order.`;
+	// the chain of plugins being placed, innermost last
+	const visiting: string[] = [];
+	function recurse(callback: CallbackInfo<T>) {
+		const name = callback.plugin.name;
+		if (afters[name]) {
+			visiting[visiting.length] = name;
+			for (const after of drain(afters[name])) {
+				if (Array_includes(visiting, after)) {
+					throw `Circular dependency detected: ${name} -> ${after}. Using append order.`;
 				}
-				const afterCallback = callbacks.find((c) => c.plugin.name === after);
-				if (afterCallback) {
-					recurse(afterCallback, [...visited, callback.plugin.name]);
-				}
+				const afterCallback = byName(after);
+				if (afterCallback) recurse(afterCallback);
 			}
+			visiting.length--;
 		}
-		if (!sorted.includes(callback)) {
-			sorted.push(callback);
-		}
+		if (!Array_includes(sorted, callback)) sorted[sorted.length] = callback;
 	}
 
 	try {
-		for (const callback of callbacks) {
-			recurse(callback, []);
+		for (const callback of drain(callbacks)) {
+			recurse(callback);
 		}
 		return sorted;
 	} catch (err) {
@@ -117,13 +139,12 @@ export class Tap {
 		props: T["props"]
 	): Promise<void[]> | null {
 		const internal = hook as unknown as InternalHookDescription;
-		let callbacks = internal.tap.callbacks[internal.key];
+		const callbacks = internal.tap.callbacks[internal.key];
 		if (!callbacks || callbacks.length === 0) return null;
 
-		callbacks = sortCallbacks([...callbacks] as CallbackInfo<T>[]);
+		const sorted = sortCallbacks(callbacks as CallbackInfo<T>[]);
 
-		const results = callbacks.map((cb) => cb.callback(context, props));
-		return Promise_all(results);
+		return Promise_all(Array_map(sorted, (cb) => cb.callback(context, props)));
 	}
 
 	static tap<T extends Description>(
@@ -135,11 +156,8 @@ export class Tap {
 		const internal = hook as unknown as InternalHookDescription;
 		const callbacks = internal.tap.callbacks;
 		if (!callbacks[internal.key]) callbacks[internal.key] = [];
-		callbacks[internal.key]!.push({
-			callback,
-			plugin,
-			order,
-		});
+		const list = callbacks[internal.key]!;
+		list[list.length] = { callback, plugin, order };
 	}
 
 	static create<T extends Record<string, Description>>(): TapInstance<T> {
@@ -161,6 +179,6 @@ export class Tap {
 
 	static getTappers<T extends Description>(hook: T): Plugin[] {
 		const internal = hook as unknown as InternalHookDescription;
-		return internal.tap.callbacks[internal.key].map((c) => c.plugin);
+		return Array_map(internal.tap.callbacks[internal.key], (c) => c.plugin);
 	}
 }

@@ -12,6 +12,7 @@ import {
 	Reflect_apply,
 	Reflect_get,
 	String_startsWith,
+	drain,
 } from "@/shared/snapshot";
 
 /** The init members a string-input `fetch()` / `new Request()` reads, sorted. */
@@ -42,12 +43,23 @@ export default function (client: ScramjetClient, self: Self) {
 
 	const toNativeHeaders = (headers: Headers) => {
 		const nGlobal = new client.native.window(self);
-		const nHeaders = new client.native.Headers(headers);
 		const newHeaders = new nGlobal.Headers();
-		for (const [key, value] of nHeaders.entries()) {
+		const nNew = new client.native.Headers(newHeaders);
+
+		// `forEach`, which the native drives itself, rather than
+		// `for (const [key, value] of nHeaders.entries())`. Reaching the
+		// headers through `client.native` bought nothing there, because the
+		// iteration never touched the native: the loop read @@iterator off the
+		// iterator, which resolves to the page-replaceable `%IteratorPrototype%`,
+		// and the destructuring read `Array.prototype[@@iterator]`. A page could
+		// therefore choose what the restored view contained - and that view is
+		// what `new Headers(init)`, `new Request(url, {headers})` and
+		// `new Response(body, {headers})` are filled from
+		new client.native.Headers(headers).forEach((value: string, key: string) => {
 			const original = uncarriedHeaderName(key);
-			if (original !== null) newHeaders.set(original, value);
-		}
+			if (original !== null) nNew.set(original, value);
+		});
+
 		return newHeaders;
 	};
 
@@ -100,8 +112,8 @@ export default function (client: ScramjetClient, self: Self) {
 			return { init, members };
 		}
 
-		for (let i = 0; i < keys.length; i++) {
-			members[keys[i]] = (init as Record<string, unknown>)[keys[i]];
+		for (const key of drain(keys)) {
+			members[key] = (init as Record<string, unknown>)[key];
 		}
 
 		if (members.mode !== undefined) members.mode = idlDOMString(members.mode);

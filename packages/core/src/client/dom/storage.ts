@@ -13,6 +13,7 @@ import {
 	String_substring,
 	_Set,
 	_WeakMap,
+	drain,
 } from "@/shared/snapshot";
 
 export const enabled = (_client: ScramjetClient, self: Self) =>
@@ -57,8 +58,8 @@ export default function (client: ScramjetClient, self: Self) {
 		const all = Object_keys(area);
 		const mine: string[] = [];
 
-		for (let i = 0; i < all.length; i++) {
-			if (String_startsWith(all[i], scope)) mine[mine.length] = all[i];
+		for (const key of drain(all)) {
+			if (String_startsWith(key, scope)) mine[mine.length] = key;
 		}
 
 		return mine;
@@ -139,7 +140,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 			// this site's entries only, never the whole area. `Object_keys`
 			// snapshots, so removing while iterating is safe
-			for (const key of scopedKeys(area)) {
+			for (const key of drain(scopedKeys(area))) {
 				nArea.removeItem(key);
 			}
 		}
@@ -160,8 +161,8 @@ export default function (client: ScramjetClient, self: Self) {
 		proto = Object_getPrototypeOf(proto)
 	) {
 		const keys = Reflect_ownKeys(proto);
-		for (let i = 0; i < keys.length; i++) {
-			if (typeof keys[i] === "string") memberNames.add(keys[i] as string);
+		for (const key of drain(keys)) {
+			if (typeof key === "string") memberNames.add(key as string);
 		}
 	}
 
@@ -221,8 +222,7 @@ export default function (client: ScramjetClient, self: Self) {
 			const keys: string[] = [];
 			const own = Reflect_ownKeys(target);
 
-			for (let i = 0; i < own.length; i++) {
-				const key = own[i];
+			for (const key of drain(own)) {
 				if (typeof key !== "string" || !String_startsWith(key, scope)) continue;
 				keys[keys.length] = String_substring(key, scope.length);
 			}

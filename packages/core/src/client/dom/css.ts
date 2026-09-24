@@ -11,6 +11,7 @@ import {
 	_Map,
 	_Set,
 	_WeakMap,
+	drain,
 } from "@/shared/snapshot";
 import { Arguments, Returns, Type, idlDOMString } from "@client/webidl";
 import { mirrorAttributeName } from "@client/attributes";
@@ -207,8 +208,8 @@ export default function (client: ScramjetClient, self: Self) {
 
 		const names = new _Set<string>();
 		const own = Object_getOwnPropertyNames(style);
-		for (let i = 0; i < own.length; i++) {
-			if (!isIndex(own[i])) names.add(own[i]);
+		for (const name of drain(own)) {
+			if (!isIndex(name)) names.add(name);
 		}
 		cssAttributesByKind.set(kind, names);
 
@@ -384,11 +385,18 @@ export default function (client: ScramjetClient, self: Self) {
 	 * element hands out writes that element's style attribute.
 	 */
 	if ("StylePropertyMap" in self) {
-		const rewriteValues = (values: (CSSStyleValue | string)[]) => {
-			const out: (CSSStyleValue | string)[] = [];
+		// `(property, ...values)` as one array for `Reflect_apply`, since
+		// spreading it into the call would run the page-replaceable iteration
+		// protocol over values that were just rewritten
+		const rewriteArgs = (
+			property: string,
+			values: (CSSStyleValue | string)[]
+		) => {
+			const out: (CSSStyleValue | string)[] = [property];
 			for (let i = 0; i < values.length; i++) {
 				const value = values[i];
-				out[i] = typeof value === "string" && value ? rewrite(value) : value;
+				out[i + 1] =
+					typeof value === "string" && value ? rewrite(value) : value;
 			}
 
 			return out;
@@ -398,14 +406,14 @@ export default function (client: ScramjetClient, self: Self) {
 			@Arguments("USVString", "(CSSStyleValue or USVString)...")
 			@Returns("undefined")
 			set(property: string, ...values: (CSSStyleValue | string)[]): void {
-				super.set(property, ...rewriteValues(values));
+				Reflect_apply(super.set, this, rewriteArgs(property, values));
 				touched(this);
 			}
 
 			@Arguments("USVString", "(CSSStyleValue or USVString)...")
 			@Returns("undefined")
 			append(property: string, ...values: (CSSStyleValue | string)[]): void {
-				super.append(property, ...rewriteValues(values));
+				Reflect_apply(super.append, this, rewriteArgs(property, values));
 				touched(this);
 			}
 

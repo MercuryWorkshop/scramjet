@@ -7,6 +7,7 @@ import {
 	_URL,
 	Object_defineProperty,
 	Object_getOwnPropertyDescriptor,
+	drain,
 } from "@/shared/snapshot";
 
 export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
@@ -29,7 +30,7 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 		"port",
 		"search",
 	];
-	for (const prop of urlprops) {
+	for (const prop of drain(urlprops)) {
 		const native = Object_getOwnPropertyDescriptor(descriptorSource, prop);
 		if (!native) continue;
 

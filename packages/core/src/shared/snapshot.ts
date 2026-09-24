@@ -89,7 +89,11 @@ export const BigInt_asUintN = globalThis.BigInt.asUintN;
 
 export const encodeURIComponent = globalThis.encodeURIComponent;
 
-export const Symbol_iterator = globalThis.Symbol.iterator;
+// annotated rather than inferred: an alias widens `unique symbol` to plain
+// `symbol`, and a computed key of that type builds an index signature instead
+// of the well-known `[Symbol.iterator]` member `Iterable<T>` asks for
+export const Symbol_iterator: typeof Symbol.iterator =
+	globalThis.Symbol.iterator;
 /**
  * `OrdinaryHasInstance`, as `Function.prototype[Symbol.hasInstance]` exposes
  * it. Called directly rather than through `instanceof`, which consults the
@@ -208,6 +212,70 @@ export const Array_indexOf = Function_prototype_call.bind(
 	from?: number
 ) => number;
 
+/**
+ * `filter` and `map` rather than the methods, for the same reason everything
+ * else here is captured: the page can replace `Array.prototype.filter`. They
+ * are also the array operations that do *not* run the iteration protocol -
+ * unlike `for...of`, destructuring and spread, which reach
+ * `%IteratorPrototype%[@@iterator]` and `Array.prototype[@@iterator]`, both of
+ * which are writable and configurable. See `no-unsafe-iteration`.
+ */
+export const Array_filter = Function_prototype_call.bind(
+	globalThis.Array.prototype.filter
+) as <T>(array: T[], predicate: (value: T, index: number) => unknown) => T[];
+export const Array_map = Function_prototype_call.bind(
+	globalThis.Array.prototype.map
+) as <T, U>(array: T[], transform: (value: T, index: number) => U) => U[];
+
+/**
+ * A `for...of`-able view of `items` that a page cannot hijack.
+ *
+ * `for...of`, array destructuring and spread all run the iteration protocol,
+ * and every lookup in it lands somewhere a page can write: `@@iterator` on
+ * `Array.prototype` and on `%IteratorPrototype%`, `next` on the iterator's own
+ * prototype, and `done`/`value` whenever the result object inherits them.
+ * Reaching the *value* through `client.native` does not help, because the
+ * iteration never touches the native.
+ *
+ * This hands back a protocol built entirely from own properties of objects
+ * created right here, so each of those lookups resolves before it reaches
+ * anything the page can reassign. `for (const x of drain(xs))` is then exactly
+ * as safe as an indexed loop, and reads like the loop it replaces.
+ *
+ * `items` has to be something already safe to index: an array this code built
+ * - `Object_keys`, `Reflect_ownKeys`, a literal, a native's return value - and
+ * not a live platform collection, whose `length` is a page-replaceable
+ * accessor in its own right.
+ *
+ * Costs roughly ten times an indexed loop per element. That is nothing at the
+ * sizes it is used on here, and it is the one reason `SingletonBox.instanceof`
+ * stays indexed.
+ */
+export function drain<T>(items: ArrayLike<T>): Iterable<T> {
+	return {
+		[Symbol_iterator](): Iterator<T> {
+			let i = 0;
+			// one result object, reused. The protocol reads `done` and `value`
+			// off it before asking for the next step, so a fresh one per step
+			// buys nothing the engine does not already elide
+			const step = { done: false, value: undefined as T };
+
+			return {
+				next() {
+					if (i < items.length) {
+						step.value = items[i++];
+					} else {
+						step.done = true;
+						step.value = undefined as T;
+					}
+
+					return step as IteratorResult<T>;
+				},
+			};
+		},
+	};
+}
+
 export const JSON_parse = globalThis.JSON.parse;
 export const JSON_stringify = globalThis.JSON.stringify;
 
@@ -244,21 +312,50 @@ export const Math_floor = globalThis.Math.floor;
 export const Math_trunc = globalThis.Math.trunc;
 export const Math_fround = globalThis.Math.fround;
 
-export const Promise_all = globalThis.Promise.all.bind(globalThis.Promise);
-export const Promise_race = globalThis.Promise.race.bind(globalThis.Promise);
+const _Promise = globalThis.Promise;
 export const Promise_resolve = globalThis.Promise.resolve.bind(
 	globalThis.Promise
 );
 export const Promise_reject = globalThis.Promise.reject.bind(
 	globalThis.Promise
 );
-export const Promise_allSettled = globalThis.Promise.allSettled.bind(
-	globalThis.Promise
-);
-export const Promise_any = globalThis.Promise.any.bind(globalThis.Promise);
 export const Promise_then = Function_prototype_call.bind(
 	globalThis.Promise.prototype.then
 );
+
+/**
+ * `Promise.all`, without the parts of it a page can reach.
+ *
+ * Binding the native only fixes which `all` runs. It still walks its argument
+ * with the iteration protocol, through the page-replaceable
+ * `Array.prototype[@@iterator]`, and settles each element by calling its
+ * `then` - `Promise.prototype.then`, also page-writable. Either would let a
+ * page choose what an awaited batch resolved to. This indexes the array and
+ * settles each element through the snapshotted `then`.
+ *
+ * `items` has to be safe to index, as for `drain`.
+ */
+export function Promise_all<T>(
+	items: ArrayLike<T | PromiseLike<T>>
+): Promise<Awaited<T>[]> {
+	return new _Promise((resolve, reject) => {
+		const results: Awaited<T>[] = [];
+		let remaining = items.length;
+		if (remaining === 0) return resolve(results);
+
+		for (let i = 0; i < items.length; i++) {
+			const index = i;
+			Promise_then(
+				Promise_resolve(items[i]),
+				(value: Awaited<T>) => {
+					results[index] = value;
+					if (--remaining === 0) resolve(results);
+				},
+				reject
+			);
+		}
+	});
+}
 
 export const Symbol_for = globalThis.Symbol.for;
 

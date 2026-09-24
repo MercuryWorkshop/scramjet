@@ -17,6 +17,8 @@ import {
 	String_substring,
 	_Map,
 	_WeakMap,
+	drain,
+	Array_includes,
 } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, self: Self) {
@@ -459,8 +461,8 @@ export default function (client: ScramjetClient, self: Self) {
 	const ontargets = (): object[] => {
 		const found: object[] = [self.self];
 
-		for (const name of Object_getOwnPropertyNames(self)) {
-			if (synthetic.indexOf(name) !== -1) continue;
+		for (const name of drain(Object_getOwnPropertyNames(self))) {
+			if (Array_includes(synthetic, name)) continue;
 
 			const descriptor = Object_getOwnPropertyDescriptor(self, name);
 			if (!descriptor || typeof descriptor.value !== "function") continue;
@@ -474,9 +476,9 @@ export default function (client: ScramjetClient, self: Self) {
 
 	const handlertypes = Object_keys(handlers);
 
-	for (const target of ontargets()) {
-		for (let i = 0; i < handlertypes.length; i++) {
-			const key = "on" + handlertypes[i];
+	for (const target of drain(ontargets())) {
+		for (const type of drain(handlertypes)) {
+			const key = "on" + type;
 
 			const descriptor = Object_getOwnPropertyDescriptor(target, key);
 			if (!descriptor || !descriptor.get || !descriptor.set) continue;

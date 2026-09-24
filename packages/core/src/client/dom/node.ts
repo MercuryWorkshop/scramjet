@@ -16,6 +16,8 @@ import {
 	String,
 	String_substring,
 	String_toLowerCase,
+	Reflect_apply,
+	drain,
 } from "@/shared/snapshot";
 
 /** Node types, as `Node.prototype.nodeType` reports them. */
@@ -257,13 +259,13 @@ export default function (client: ScramjetClient, _self: Self) {
 			// back into the rewritten whole
 			const self = this as Node;
 			const affected = rawTextInclusiveDescendants(self);
-			for (let i = 0; i < affected.length; i++) {
-				text.normalizeChildren(affected[i]);
+			for (const node of drain(affected)) {
+				text.normalizeChildren(node);
 			}
 
 			super.normalize();
 
-			for (let i = 0; i < affected.length; i++) text.sync(affected[i]);
+			for (const node of drain(affected)) text.sync(node);
 		}
 	});
 
@@ -276,7 +278,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			void super.hasAttributes();
 
 			const args = asNodes(this, nodes) as (Node | string)[];
-			text.around(this, args, () => super.append(...args));
+			text.around(this, args, () => Reflect_apply(super.append, this, args));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -285,7 +287,7 @@ export default function (client: ScramjetClient, _self: Self) {
 			void super.hasAttributes();
 
 			const args = asNodes(this, nodes) as (Node | string)[];
-			text.around(this, args, () => super.prepend(...args));
+			text.around(this, args, () => Reflect_apply(super.prepend, this, args));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -294,7 +296,9 @@ export default function (client: ScramjetClient, _self: Self) {
 			void super.hasAttributes();
 
 			const args = asNodes(this, nodes) as (Node | string)[];
-			text.around(this, args, () => super.replaceChildren(...args));
+			text.around(this, args, () =>
+				Reflect_apply(super.replaceChildren, this, args)
+			);
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -302,7 +306,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		after(...nodes: (Node | string)[]): void {
 			const parent = super.parentNode;
 			const args = asNodes(parent, nodes) as (Node | string)[];
-			text.around(parent, args, () => super.after(...args));
+			text.around(parent, args, () => Reflect_apply(super.after, this, args));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -310,7 +314,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		before(...nodes: (Node | string)[]): void {
 			const parent = super.parentNode;
 			const args = asNodes(parent, nodes) as (Node | string)[];
-			text.around(parent, args, () => super.before(...args));
+			text.around(parent, args, () => Reflect_apply(super.before, this, args));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -318,7 +322,9 @@ export default function (client: ScramjetClient, _self: Self) {
 		replaceWith(...nodes: (Node | string)[]): void {
 			const parent = super.parentNode;
 			const args = asNodes(parent, nodes) as (Node | string)[];
-			text.around(parent, args, () => super.replaceWith(...args));
+			text.around(parent, args, () =>
+				Reflect_apply(super.replaceWith, this, args)
+			);
 		}
 
 		@Arguments("DOMString", "DOMString")
@@ -379,7 +385,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		append(...nodes: (Node | string)[]): void {
 			void super.childElementCount;
 
-			text.around(this, nodes, () => super.append(...nodes));
+			text.around(this, nodes, () => Reflect_apply(super.append, this, nodes));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -387,7 +393,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		prepend(...nodes: (Node | string)[]): void {
 			void super.childElementCount;
 
-			text.around(this, nodes, () => super.prepend(...nodes));
+			text.around(this, nodes, () => Reflect_apply(super.prepend, this, nodes));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -395,7 +401,9 @@ export default function (client: ScramjetClient, _self: Self) {
 		replaceChildren(...nodes: (Node | string)[]): void {
 			void super.childElementCount;
 
-			text.around(this, nodes, () => super.replaceChildren(...nodes));
+			text.around(this, nodes, () =>
+				Reflect_apply(super.replaceChildren, this, nodes)
+			);
 		}
 
 		@Arguments("Node", "Node?")
@@ -413,7 +421,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		append(...nodes: (Node | string)[]): void {
 			void super.childElementCount;
 
-			text.around(this, nodes, () => super.append(...nodes));
+			text.around(this, nodes, () => Reflect_apply(super.append, this, nodes));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -421,7 +429,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		prepend(...nodes: (Node | string)[]): void {
 			void super.childElementCount;
 
-			text.around(this, nodes, () => super.prepend(...nodes));
+			text.around(this, nodes, () => Reflect_apply(super.prepend, this, nodes));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -429,7 +437,9 @@ export default function (client: ScramjetClient, _self: Self) {
 		replaceChildren(...nodes: (Node | string)[]): void {
 			void super.childElementCount;
 
-			text.around(this, nodes, () => super.replaceChildren(...nodes));
+			text.around(this, nodes, () =>
+				Reflect_apply(super.replaceChildren, this, nodes)
+			);
 		}
 
 		@Arguments("Node", "Node?")
@@ -550,7 +560,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		after(...nodes: (Node | string)[]): void {
 			const parent = super.parentNode;
 			const args = asNodes(parent, nodes) as (Node | string)[];
-			text.around(parent, args, () => super.after(...args));
+			text.around(parent, args, () => Reflect_apply(super.after, this, args));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -558,7 +568,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		before(...nodes: (Node | string)[]): void {
 			const parent = super.parentNode;
 			const args = asNodes(parent, nodes) as (Node | string)[];
-			text.around(parent, args, () => super.before(...args));
+			text.around(parent, args, () => Reflect_apply(super.before, this, args));
 		}
 
 		@Arguments("(Node or DOMString)...")
@@ -566,7 +576,9 @@ export default function (client: ScramjetClient, _self: Self) {
 		replaceWith(...nodes: (Node | string)[]): void {
 			const parent = super.parentNode;
 			const args = asNodes(parent, nodes) as (Node | string)[];
-			text.around(parent, args, () => super.replaceWith(...args));
+			text.around(parent, args, () =>
+				Reflect_apply(super.replaceWith, this, args)
+			);
 		}
 
 		@Arguments()

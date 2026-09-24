@@ -3,6 +3,7 @@ import {
 	Number_isSafeInteger,
 	Error,
 	TextDecoder_decode,
+	Reflect_apply,
 } from "@/shared/snapshot";
 import { base64ToBytes } from "@/shared/util";
 import { ProxyCtx, ScramjetClient } from "@client/index";
@@ -123,11 +124,15 @@ function doUnrewrite(
 	client: ScramjetClient,
 	ctx: ProxyCtx<"Function.prototype.toString", "apply">
 ) {
-	const stringified: string = ctx.fn.call(ctx.this);
+	// not `ctx.fn.call`, which looks `call` up on the page-writable
+	// Function.prototype
+	const stringified: string = Reflect_apply(ctx.fn, ctx.this, []);
 
 	const extracted = extractTag(stringified);
 	if (!extracted) return ctx.return(stringified);
-	const [tag, tagOffset, tagStart] = extracted;
+	const tag = extracted[0];
+	const tagOffset = extracted[1];
+	const tagStart = extracted[2];
 
 	const fnStart = tagStart - tagOffset;
 	const fnEnd = fnStart + stringified.length;
@@ -151,12 +156,13 @@ function doUnrewrite(
 		if (getEnd(rewrites[end]) < fnEnd) end++;
 		else break;
 	}
-	const fnrewrites = rewrites.slice(i, end);
-
 	let newString = "";
 	let lastpos = 0;
 
-	for (const rewrite of fnrewrites) {
+	// indexed over the range rather than a `slice` to `for...of`: this runs
+	// for every `toString` of a rewritten function
+	for (; i < end; i++) {
+		const rewrite = rewrites[i];
 		newString += stringified.slice(lastpos, rewrite.start - fnStart);
 
 		if (rewrite.type === RewriteType.Insert) {

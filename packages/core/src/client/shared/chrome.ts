@@ -3,15 +3,16 @@
 
 import { iswindow } from "@client/entry";
 import { ScramjetClient } from "@client/index";
+import { String_split } from "@/shared/snapshot";
 
 // type self as any here, most of these are not defined in the types
 export default function (client: ScramjetClient, self: any) {
 	const del = (name: string) => {
-		const split = name.split(".");
-		const prop = split.pop();
-		const target = split.reduce((a, b) => a?.[b], self);
-		if (!target) return;
-		if (prop && prop in target) delete target[prop];
+		const path = String_split(name, ".");
+		const prop = path[path.length - 1];
+		let target = self;
+		for (let i = 0; i < path.length - 1; i++) target = target?.[path[i]];
+		if (target && prop in target) delete target[prop];
 	};
 
 	// obviously

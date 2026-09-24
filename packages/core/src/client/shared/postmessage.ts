@@ -227,37 +227,6 @@ export default function (client: ScramjetClient, self: Self) {
 		new client.native.EventTarget(self).addEventListener("message", gate, true);
 	}
 
-	// if (iswindow)
-	// 	client.Proxy("window.postMessage", {
-	// 		apply(ctx) {
-	// 						// console.log(
-	// 			// 	callerClient,
-	// 			// 	client,
-	// 			// 	callerGlobalThisProxied.document,
-	// 			// 	self.document,
-	// 			// 	callerClient === client
-	// 			// );
-	// 			const inherit =
-	// 				callerClient.url.href === "about:srcdoc" ||
-	// 				callerClient.url.href === "about:blank";
-	// 			ctx.args[0] = {
-	// 				$scramjet$messagetype: "window",
-	// 				$scramjet$origin: inherit
-	// 					? callerClient.global.parent[SCRAMJETCLIENT].url.origin
-	// 					: callerClient.url.origin,
-	// 				$scramjet$data: ctx.args[0],
-	// 			};
-	// 			// console.error("?", ctx.args);
-	// 			// eval("debugger");
-
-	// 			// * origin because obviously
-	// 			if (typeof ctx.args[1] === "string") ctx.args[1] = "*";
-	// 			if (typeof ctx.args[1] === "object") ctx.args[1].targetOrigin = "*";
-
-	// 			ctx.return(wrappedPostMessage.call(ctx.fn, ...ctx.args));
-	// 		},
-	// 	});
-
 	client.Proxy("BroadcastChannel.prototype.postMessage", {
 		apply(ctx) {
 			ctx.args[0] = {

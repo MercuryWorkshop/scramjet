@@ -12,6 +12,7 @@ import {
 	String_substring,
 	String_toLowerCase,
 	TypeError,
+	drain,
 } from "@/shared/snapshot";
 import { ScramjetClient } from "@client/client";
 import {
@@ -77,9 +78,9 @@ export default function (client: ScramjetClient, _self: Self) {
 		const cookies = client.context.cookieJar.getCookieList(client.url, true);
 		const items: CookieListItem[] = [];
 
-		for (let i = 0; i < cookies.length; i++) {
-			if (name !== undefined && cookies[i].name !== name) continue;
-			items[items.length] = toCookieListItem(cookies[i]);
+		for (const cookie of drain(cookies)) {
+			if (name !== undefined && cookie.name !== name) continue;
+			items[items.length] = toCookieListItem(cookie);
 		}
 
 		return items;

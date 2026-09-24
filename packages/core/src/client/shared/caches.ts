@@ -8,6 +8,7 @@ import {
 	String_trim,
 	_Set,
 	_URL,
+	drain,
 } from "@/shared/snapshot";
 
 export const enabled = (_client: ScramjetClient, self: Self) =>
@@ -41,8 +42,8 @@ export default function (client: ScramjetClient, self: Self) {
 		if (vary === null) return false;
 
 		const parts = String_split(vary, ",");
-		for (let i = 0; i < parts.length; i++) {
-			if (String_trim(parts[i]) === "*") return true;
+		for (const part of drain(parts)) {
+			if (String_trim(part) === "*") return true;
 		}
 
 		return false;
@@ -135,8 +136,8 @@ export default function (client: ScramjetClient, self: Self) {
 		method: "add" | "addAll",
 		put: (key: RequestInfo, response: Response) => Promise<void>
 	): Promise<void> => {
-		for (let i = 0; i < requests.length; i++) {
-			const url = realUrl(requests[i]);
+		for (const request of drain(requests)) {
+			const url = realUrl(request);
 			if (
 				!String_startsWith(url, "http:") &&
 				!String_startsWith(url, "https:")
@@ -150,7 +151,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 			// a cache key is always a GET, and the spec refuses the batch here
 			// rather than letting `put` reject it one entry in
-			if (methodOf(requests[i]) !== "GET") {
+			if (methodOf(request) !== "GET") {
 				throw client.errors.typeError({
 					execute: method,
 					on: "Cache",
@@ -171,8 +172,8 @@ export default function (client: ScramjetClient, self: Self) {
 		}
 		const responses = await Promise_all(fetches);
 
-		for (let i = 0; i < responses.length; i++) {
-			const status = new client.native.Response(responses[i]).status;
+		for (const response of drain(responses)) {
+			const status = new client.native.Response(response).status;
 
 			// `status` through the native rather than `ok`, which is a
 			// page-replaceable accessor on `Response.prototype`. 206 is inside
@@ -187,7 +188,7 @@ export default function (client: ScramjetClient, self: Self) {
 				});
 			}
 
-			if (variesOnEverything(responses[i])) {
+			if (variesOnEverything(response)) {
 				throw client.errors.typeError({
 					execute: method,
 					on: "Cache",
@@ -197,8 +198,8 @@ export default function (client: ScramjetClient, self: Self) {
 		}
 
 		const seen = new _Set<string>();
-		for (let i = 0; i < requests.length; i++) {
-			const url = realUrl(requests[i]);
+		for (const request of drain(requests)) {
+			const url = realUrl(request);
 			if (seen.has(url)) {
 				throw client.errors.domException("InvalidStateError", {
 					execute: method,
@@ -245,7 +246,7 @@ export default function (client: ScramjetClient, self: Self) {
 				request === undefined ? undefined : cacheKey(request),
 				options
 			);
-			for (const match of matches) tag(match);
+			for (const match of drain(matches)) tag(match);
 
 			return matches;
 		}
@@ -296,8 +297,8 @@ export default function (client: ScramjetClient, self: Self) {
 				: super.keys(cacheKey(request), options));
 			const visible: Request[] = [];
 
-			for (let i = 0; i < stored.length; i++) {
-				visible[visible.length] = pageKey(stored[i]);
+			for (const key of drain(stored)) {
+				visible[visible.length] = pageKey(key);
 			}
 
 			return visible;
@@ -383,13 +384,13 @@ export default function (client: ScramjetClient, self: Self) {
 			const names = await super.keys();
 			const prefix = scopePrefix();
 
-			for (let i = 0; i < names.length; i++) {
-				if (!String_startsWith(names[i], prefix)) continue;
+			for (const name of drain(names)) {
+				if (!String_startsWith(name, prefix)) continue;
 
 				// sequential on purpose - the spec's answer is the first match
 				// in insertion order, so a later cache must not be able to win
 				// eslint-disable-next-line no-await-in-loop
-				const cache = await super.open(names[i]);
+				const cache = await super.open(name);
 				// through the native rather than the page-visible
 				// `Cache.prototype.match`, which would run `cacheKey` a second
 				// time over a key that has already been through it
@@ -417,9 +418,9 @@ export default function (client: ScramjetClient, self: Self) {
 			const prefix = scopePrefix();
 			const visible: string[] = [];
 
-			for (let i = 0; i < names.length; i++) {
-				if (String_startsWith(names[i], prefix)) {
-					visible[visible.length] = String_substring(names[i], prefix.length);
+			for (const name of drain(names)) {
+				if (String_startsWith(name, prefix)) {
+					visible[visible.length] = String_substring(name, prefix.length);
 				}
 			}
 

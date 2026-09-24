@@ -4,6 +4,7 @@ import {
 	String_indexOf,
 	String_startsWith,
 	String_substring,
+	drain,
 } from "@/shared/snapshot";
 
 export const enabled = (_client: ScramjetClient, self: Self) =>
@@ -51,15 +52,15 @@ export default function (client: ScramjetClient) {
 			const prefix = `${client.scopeOrigin}@`;
 			const visible: IDBDatabaseInfo[] = [];
 
-			for (let i = 0; i < all.length; i++) {
-				const name = all[i].name;
+			for (const database of drain(all)) {
+				const name = database.name;
 				// a database with no name is not one of ours and cannot be
 				// attributed to this origin
 				if (name === undefined || !String_startsWith(name, prefix)) continue;
 
 				visible[visible.length] = {
 					name: String_substring(name, prefix.length),
-					version: all[i].version,
+					version: database.version,
 				};
 			}
 

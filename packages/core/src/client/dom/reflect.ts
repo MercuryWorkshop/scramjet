@@ -26,7 +26,13 @@ import { ScramjetClient } from "@client/index";
 import { Arguments, Returns, Type, idlUSVString } from "@client/webidl";
 import { unrewriteUrl } from "@rewriters/url";
 import { XLINK_NAMESPACE } from "@client/attributes";
-import { String, String_startsWith, _URL } from "@/shared/snapshot";
+import {
+	String,
+	String_startsWith,
+	_URL,
+	Reflect_apply,
+	drain,
+} from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, self: Self) {
 	const attrs = client.attributes;
@@ -501,14 +507,14 @@ export default function (client: ScramjetClient, self: Self) {
 		@Arguments("DOMString...")
 		@Returns("undefined")
 		add(...tokens: string[]): void {
-			super.add(...tokens);
+			Reflect_apply(super.add, this, tokens);
 			syncSandbox(this);
 		}
 
 		@Arguments("DOMString...")
 		@Returns("undefined")
 		remove(...tokens: string[]): void {
-			super.remove(...tokens);
+			Reflect_apply(super.remove, this, tokens);
 			syncSandbox(this);
 		}
 
@@ -1378,7 +1384,7 @@ export default function (client: ScramjetClient, self: Self) {
 		"SVGFilterElement",
 	];
 
-	for (const name of SVG_URI_REFERENCES) {
+	for (const name of drain(SVG_URI_REFERENCES)) {
 		client.Trap(`${name}.prototype.href`, {
 			get(ctx) {
 				const animated = ctx.get() as SVGAnimatedString;

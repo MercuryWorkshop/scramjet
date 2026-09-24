@@ -6,6 +6,7 @@ import {
 	String_startsWith,
 	String_substring,
 	String_toLowerCase,
+	drain,
 } from "@/shared/snapshot";
 import { carriedHeaderName, uncarriedHeaderName } from "@/shared/headers";
 import { ScramjetClient } from "@client/client";
@@ -74,20 +75,18 @@ export default function (client: ScramjetClient) {
 			const restored: { name: string; line: string }[] = [];
 			const lines = String_split(raw, "\r\n");
 
-			for (let i = 0; i < lines.length; i++) {
-				const colon = String_indexOf(lines[i], ":");
+			for (const line of drain(lines)) {
+				const colon = String_indexOf(line, ":");
 				if (colon === -1) continue;
 
-				const carried = uncarriedHeaderName(
-					String_substring(lines[i], 0, colon)
-				);
+				const carried = uncarriedHeaderName(String_substring(line, 0, colon));
 				if (carried === null) continue;
 
 				const name = String_toLowerCase(carried);
 				// the value keeps the separator and its leading space verbatim
 				restored[restored.length] = {
 					name,
-					line: name + String_substring(lines[i], colon),
+					line: name + String_substring(line, colon),
 				};
 			}
 

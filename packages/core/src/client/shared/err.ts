@@ -3,6 +3,7 @@ import {
 	Object_getOwnPropertyDescriptor,
 	Reflect_apply,
 	Symbol_iterator,
+	Array_includes,
 } from "@/shared/snapshot";
 
 export const enabled = (client: ScramjetClient) =>
@@ -23,8 +24,8 @@ export function argdbg(arg, recurse = []) {
 					if (desc && desc.get) continue;
 
 					const ar = arg[prop];
-					if (recurse.includes(ar)) continue;
-					recurse.push(ar);
+					if (Array_includes(recurse, ar)) continue;
+					recurse[recurse.length] = ar;
 					argdbg(ar, recurse);
 				}
 			break;

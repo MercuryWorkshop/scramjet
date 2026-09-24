@@ -1,5 +1,5 @@
 import { GlobalScope, ScramjetClient } from "@client/index";
-import { String } from "@/shared/snapshot";
+import { String, Reflect_apply } from "@/shared/snapshot";
 import { Arguments, Returns, idlUSVString } from "@client/webidl";
 
 export default function (client: ScramjetClient) {
@@ -48,7 +48,14 @@ export default function (client: ScramjetClient) {
 			// fixed where the failure is produced rather than where it surfaces.
 			// (The SyntaxError for an unparseable URL is already clean: such a
 			// URL reaches the native exactly as the page wrote it.)
-			new client.native.window(this).importScripts(...rewritten);
+			// `Reflect_apply` rather than a spread: the spread would run the
+			// page-replaceable iteration protocol over the list just rewritten,
+			// so a page could hand the native other URLs than `rewriteUrl` saw
+			Reflect_apply(
+				new client.native.window(this).importScripts,
+				null,
+				rewritten
+			);
 		}
 	});
 }

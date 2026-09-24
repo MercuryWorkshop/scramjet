@@ -27,6 +27,7 @@ for (const body of [
 	"void super.toString(); return 1;",
 	"new client.native.Blob(this).size = 1; return 1;",
 	"void new client.native.Node(this).ELEMENT_NODE; return 1;",
+	"Reflect_apply(super.slice, other, args); return 1;",
 ]) {
 	test(`rejects unchecked path: ${body}`, () => {
 		const messages = check(body);
@@ -42,6 +43,7 @@ for (const body of [
 	"void new client.native.Blob(this).size; return 1;",
 	"if (flag) return super.size; super.slice(); return 1;",
 	"try { return super.size; } catch { throw Error(); }",
+	"Reflect_apply(super.slice, this, args); return 1;",
 ]) {
 	test(`accepts native check: ${body}`, () =>
 		assert.deepEqual(check(body), []));

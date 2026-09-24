@@ -311,9 +311,18 @@ const brandCheckPlugin = {
 					"CallExpression:exit"(node) {
 						const frame = frames[frames.length - 1];
 						if (!frame?.member) return;
-						const callee = node.callee;
+						// `Reflect_apply(super.m, this, args)` is `super.m(...args)`
+						// without the spread, which runs the page-replaceable
+						// iteration protocol - see `no-unsafe-iteration`
+						const applied =
+							node.callee.type === "Identifier" &&
+							node.callee.name === "Reflect_apply" &&
+							node.arguments.length >= 2 &&
+							node.arguments[1].type === "ThisExpression" &&
+							node.arguments[0].type === "MemberExpression";
+						const callee = applied ? node.arguments[0] : node.callee;
 						if (
-							node.optional ||
+							(!applied && node.optional) ||
 							callee.type !== "MemberExpression" ||
 							callee.optional ||
 							callee.computed
