@@ -33,7 +33,7 @@ import {
 	String_toLowerCase,
 	_URL,
 } from "@/shared/snapshot";
-import { flagEnabled } from "..";
+import { flagEnabled, flagsUrl } from "..";
 import {
 	getScriptBlockTypeString,
 	isModuleScriptType,
@@ -351,7 +351,7 @@ export function rewriteHtml(
 ) {
 	const before = Performance_now();
 	const ret = rewriteHtmlInner(html, context, meta, htmlcontext);
-	if (flagEnabled("rewriterLogs", context, meta.base)) {
+	if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
 		dbg.time(meta, before, "html rewrite");
 	}
 

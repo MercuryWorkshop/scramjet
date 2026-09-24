@@ -7,6 +7,7 @@ import {
 } from ".";
 import {
 	flagEnabled,
+	flagsUrl,
 	isHtmlMimeType,
 	isJavascriptMimeType,
 	rewriteCss,
@@ -64,7 +65,11 @@ export async function rewriteBody(
 				);
 
 				if (
-					flagEnabled("debugSourceURL", handler.context, parsed.meta.origin)
+					flagEnabled(
+						"debugSourceURL",
+						handler.context,
+						flagsUrl(parsed.meta, parsed.meta.origin)
+					)
 				) {
 					if (rewritten instanceof Uint8Array) {
 						rewritten = new TextDecoder().decode(rewritten);

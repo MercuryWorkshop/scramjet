@@ -128,6 +128,7 @@ export const htmlRules: {
 					// for srcdoc origin is the origin of the page that the iframe is on. base and path get dropped
 					origin: new _URL(meta.origin.origin),
 					base: new _URL(meta.origin.origin),
+					topUrl: meta.topUrl,
 					topFrameName: meta.topFrameName,
 					parentFrameName: meta.parentFrameName,
 					referrerPolicy: meta.referrerPolicy,

@@ -12,6 +12,21 @@ export * from "./htmlRules";
 export * from "./mime";
 export * from "./rewriters";
 
+/**
+ * The URL whose flags a context runs with: its top-level frame's, so that a
+ * subframe - or a script, or a worker - never picks different flags than the
+ * page it is part of. `fallback` is for a meta that was built without one.
+ */
+export function flagsUrl(meta: URLMeta, fallback: URL = meta.base): URL {
+	return meta.topUrl ?? fallback;
+}
+
+/**
+ * A flag's value for one URL: the configured default, unless a `siteFlags`
+ * pattern matches and overrides it.
+ *
+ * `url` should be a top-level frame's (see {@link flagsUrl}).
+ */
 export function flagEnabled(
 	flag: keyof ScramjetFlags,
 	context: ScramjetContext,

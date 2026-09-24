@@ -1,4 +1,10 @@
-import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
+import {
+	Object_entries,
+	Object_keys,
+	_Set,
+	_URL,
+	Error,
+} from "@/shared/snapshot";
 import { unrewriteUrl, URLMeta } from "@rewriters/url";
 import {
 	ScramjetFetchHandler,
@@ -14,6 +20,7 @@ export const QP = {
 	topFrame: "$tf",
 	parentFrame: "$pf",
 	isIframe: "$iframe",
+	topUrl: "$top",
 	mode: "$mode",
 	credentials: "$cred",
 	destination: "$dest",
@@ -74,6 +81,66 @@ function isUnmarkedModule(
 	if (Object_keys(params).length !== 0) return false;
 
 	return request.rawDestination === "script" && request.mode === "cors";
+}
+
+const NAVIGATION_DESTINATIONS = new _Set<RequestDestination>([
+	"document",
+	"iframe",
+	"frame",
+	"object",
+	"embed",
+	"fencedframe" as RequestDestination,
+]);
+
+/**
+ * The top-level frame the request is for, whose flags it is handled with.
+ *
+ * A subframe's navigation says so in `$top`, which `rewriteUrl` adds for an
+ * iframe's `src` and for anything a subframe navigates itself to. One without
+ * it is taken to be the top-level frame's own - the frame a `ScramjetFrame`
+ * holds is an iframe as far as the browser is concerned, so the destination
+ * cannot tell them apart. (A top-level page navigating a child by name, with
+ * `target` or `window.open`, is the case this gets wrong.)
+ *
+ * Anything that is not a navigation belongs to the client that asked for it:
+ * a subframe or worker whose own URL carries `$top`, or else the top-level
+ * frame itself.
+ */
+function resolveTopUrl(
+	request: ScramjetFetchRequest,
+	params: QueryParams,
+	url: _URL,
+	handler: ScramjetFetchHandler
+): _URL {
+	const parse = (href: string | null | undefined) => {
+		if (!href) return null;
+		try {
+			return new _URL(href);
+		} catch {
+			return null;
+		}
+	};
+
+	if (request.rawDestination === "document") return url;
+
+	const carried = parse(params.topUrl);
+	if (carried) return carried;
+	if (NAVIGATION_DESTINATIONS.has(request.rawDestination)) return url;
+
+	const client = request.rawClientUrl;
+	if (client && client.href.startsWith(handler.context.prefix.href)) {
+		const clientTop = parse(client.searchParams.get(QP.topUrl));
+		if (clientTop) return clientTop;
+
+		const clientUrl = parse(unrewriteUrl(client, handler.context));
+		if (
+			clientUrl &&
+			(clientUrl.protocol === "http:" || clientUrl.protocol === "https:")
+		)
+			return clientUrl;
+	}
+
+	return url;
 }
 
 export function parseRequest(
@@ -138,6 +205,7 @@ export function parseRequest(
 	const meta: URLMeta = {
 		origin: url,
 		base: url,
+		topUrl: resolveTopUrl(request, params, url, handler),
 		topFrameName: params.topFrame,
 		parentFrameName: params.parentFrame,
 		referrerPolicy: params.referrerPolicy,

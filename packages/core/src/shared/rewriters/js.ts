@@ -1,4 +1,4 @@
-import { flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, flagsUrl, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
@@ -31,7 +31,7 @@ function rewriteJsWasm(
 
 	const flagsobj = {};
 	for (const flag of Object_keys(context.config.flags)) {
-		flagsobj[flag] = flagEnabled(flag as any, context, meta.base);
+		flagsobj[flag] = flagEnabled(flag as any, context, flagsUrl(meta));
 	}
 
 	try {
@@ -76,7 +76,7 @@ function rewriteJsWasm(
 
 		// 	return { js: input, tag: "", map: null };
 		// }
-		if (flagEnabled("rewriterLogs", context, meta.base)) {
+		if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
 			dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
 		}
 
@@ -114,7 +114,7 @@ export function rewriteJs(
 		const res = rewriteJsInner(js, url, context, meta, isModule);
 		let newjs = res.js;
 
-		if (flagEnabled("sourcemaps", context, meta.base)) {
+		if (flagEnabled("sourcemaps", context, flagsUrl(meta))) {
 			const pushmap = globalThis[context.config.globals.pushsourcemapfn];
 			if (pushmap) {
 				pushmap(Array_from(res.map), res.tag);
@@ -135,7 +135,7 @@ export function rewriteJs(
 			}
 		}
 
-		if (flagEnabled("rewriterLogs", context, meta.base)) {
+		if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
 			for (const error of res.errors) {
 				dbg.error("oxc parse error", error);
 			}
@@ -149,7 +149,7 @@ export function rewriteJs(
 			err.message,
 			typeof js !== "string" ? TextDecoder_decode(js) : js
 		);
-		if (flagEnabled("allowInvalidJs", context, meta.base)) {
+		if (flagEnabled("allowInvalidJs", context, flagsUrl(meta))) {
 			return js;
 		} else {
 			throw err;

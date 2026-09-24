@@ -4,6 +4,7 @@ import {
 	RawHeaders,
 } from "@mercuryworkshop/proxy-transports";
 import { SCRAMJETCLIENT } from "@/symbols";
+import { QP } from "@/fetch/parse";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
@@ -277,6 +278,7 @@ export class ScramjetClient {
 	history: TrackedHistoryState[];
 
 	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
+	private cachedTopUrl: _URL | null = null;
 
 	/**
 	 * The members already patched in this realm, keyed on the object that owns
@@ -450,6 +452,9 @@ export class ScramjetClient {
 			get origin() {
 				return client.url;
 			},
+			get topUrl() {
+				return client.topUrl;
+			},
 			get base() {
 				if (iswindow) {
 					const base = new client.native.Document(
@@ -468,104 +473,24 @@ export class ScramjetClient {
 
 				return client.url;
 			},
-			// TODO: very bad assumptions made here, window.parent never throws
 			get topFrameName() {
 				if (!iswindow)
 					throw new Error("topFrameName was called from a worker?");
+				if (client.parentFrame() === "top") return null;
 
-				let currentWin = client.global;
-
-				try {
-					if (currentWin.parent.window == currentWin.window) {
-						// we're top level & we don't have a frame name
-						return null;
-					}
-				} catch {
-					// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
-				}
-
-				try {
-					// find the topmost frame that's controlled by scramjet, stopping before the real top frame
-					while (currentWin.parent.window !== currentWin.window) {
-						if (!currentWin.parent.window[SCRAMJETCLIENT]) break;
-						currentWin = currentWin.parent.window;
-					}
-				} catch {
-					// doesn't matter if it throws here just means we found the topmost one
-				}
-
-				const curclient = currentWin[SCRAMJETCLIENT];
-				const frame = new curclient.native.window(currentWin).frameElement;
-				if (!frame) {
-					// we're inside an iframe, but the top frame is scramjet-controlled and top level, so we can't get a top frame name
-					// or we're cross-origin and frameElement doesn't exist. that's a TODO because this won't work
-					return null;
-				}
-				if (!frame.name) {
-					// the top frame is scramjet-controlled, but it has no name. this is user error
-					dbg.error(
-						"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
-					);
-
-					return null;
-				}
-
-				return frame.name;
+				return client.topmostClient().frameName();
 			},
 			get parentFrameName() {
 				if (!iswindow)
 					throw new Error("parentFrameName was called from a worker?");
 
-				try {
-					try {
-						if (client.global.parent.window == client.global.window) {
-							// we're top level & we don't have a frame name
-							return null;
-						}
-					} catch {
-						// accessing parent was blocked by CORS, we're in a frame but the parent is cross origin
-						return null;
-					}
+				const parent = client.parentFrame();
+				if (parent === "top" || parent === "unreachable") return null;
+				// a parent outside the sandbox is the embedder, and the frame it
+				// made for us is the one targets name
+				if (parent === "foreign") return client.frameName();
 
-					const parentWin = client.global.parent.window;
-					if (parentWin[SCRAMJETCLIENT]) {
-						// we're inside an iframe, and the parent is scramjet-controlled
-						const parentClient = parentWin[SCRAMJETCLIENT];
-						const frame = new parentClient.native.window(parentWin)
-							.frameElement;
-						if (!frame) {
-							// parent is scramjet controlled and top-level. there is no parent frame name
-							return null;
-						}
-
-						if (!frame.name) {
-							// the parent frame is scramjet-controlled, but it has no name. this is user error
-							dbg.error(
-								"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
-							);
-
-							return null;
-						}
-
-						return frame.name;
-					} else {
-						// we're inside an iframe, and the parent is not scramjet-controlled
-						// return our own frame name
-						const frame = new client.native.window(client.global).frameElement;
-						if (!frame.name) {
-							// the parent frame is not scramjet-controlled, so we can't get a parent frame name
-							dbg.error(
-								"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
-							);
-
-							return null;
-						}
-
-						return frame.name;
-					}
-				} catch {
-					return null;
-				}
+				return parent.frameName();
 			},
 			get referrerPolicy(): string | undefined {
 				if (client.initHeaders && client.initHeaders.has("referrer-policy")) {
@@ -1577,11 +1502,90 @@ return { apply, construct };
 		return unrewriteUrl(url, this.context);
 	}
 
+	/**
+	 * This window's parent, as far as scramjet can see it: `"top"` for a
+	 * top-level window, `"unreachable"` for a parent in another origin (an
+	 * opaque sandboxed frame's), `"foreign"` for one scramjet does not control
+	 * - the embedder - and otherwise the parent's client.
+	 */
+	parentFrame(): ScramjetClient | "top" | "unreachable" | "foreign" {
+		try {
+			const parent = this.global.parent.window;
+			if (parent === this.global.window) return "top";
+
+			return parent[SCRAMJETCLIENT] ?? "foreign";
+		} catch {
+			return "unreachable";
+		}
+	}
+
+	/** The topmost scramjet-controlled window this one is inside, or itself. */
+	topmostClient(): ScramjetClient {
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
+		let current: ScramjetClient = this;
+		for (;;) {
+			const parent = current.parentFrame();
+			if (typeof parent !== "object") return current;
+			current = parent;
+		}
+	}
+
+	/**
+	 * The name of the frame element holding this window, which is what the
+	 * page's `_top` and `_parent` targets are rewritten to. Null when there is
+	 * no frame element to be seen.
+	 */
+	frameName(): string | null {
+		const frame = new this.native.window(this.global).frameElement;
+		if (!frame) return null;
+		if (!frame.name) {
+			dbg.error(
+				"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
+			);
+
+			return null;
+		}
+
+		return frame.name;
+	}
+
+	/**
+	 * The URL of the top-level frame this client belongs to, which its flags
+	 * are read for: the topmost scramjet-controlled window above it, or its own
+	 * when there is none. Fixed the first time it is asked for, so a frame's
+	 * flags cannot change under it when the top-level frame navigates.
+	 *
+	 * A worker, or a frame that cannot reach its parent, has only what its URL
+	 * was rewritten with (`$top`) to go on.
+	 */
+	get topUrl(): _URL {
+		if (this.cachedTopUrl) return this.cachedTopUrl;
+
+		const parent = iswindow ? this.parentFrame() : "unreachable";
+		let top: _URL | null = null;
+		if (typeof parent === "object") {
+			top = parent.topUrl;
+		} else if (parent === "unreachable") {
+			try {
+				const carried = new _URL(this.global.location.href).searchParams.get(
+					QP.topUrl
+				);
+				if (carried) top = new _URL(carried);
+			} catch {
+				// not a URL scramjet made
+			}
+		}
+
+		this.cachedTopUrl = top ?? this.url;
+
+		return this.cachedTopUrl;
+	}
+
 	flagEnabled(flag: keyof ScramjetConfig["flags"]): boolean {
 		const cached = this.flagCache.get(flag);
 		if (cached !== undefined) return cached;
 
-		const result = flagEnabled(flag, this.context, this.url);
+		const result = flagEnabled(flag, this.context, this.topUrl);
 		this.flagCache.set(flag, result);
 		return result;
 	}
