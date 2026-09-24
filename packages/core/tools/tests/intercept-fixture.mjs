@@ -41,7 +41,13 @@ globalThis.fixture = {
 		const client = Object.create(require('./client').ScramjetClient.prototype);
 		client.global = globalThis;
 		client.patched = new WeakMap();
-		client.box = { unproxy: new Map(), ctors: {}, realms: new Map(), instanceof: () => false };
+		client.box = {
+			unproxy: new Map(),
+			ctors: {},
+			realms: new Map(),
+			objectPrototypes: new WeakMap(),
+			instanceof: () => false,
+		};
 		client.flagEnabled = () => false;
 		client.nativeStore = new Map();
 		client.saveNatives();

@@ -1,6 +1,7 @@
 import { isHtmlMimeType, ScramjetHeaders } from "@/shared";
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
 import { ScramjetFetchParsed } from ".";
+import { _URL } from "@/shared/snapshot";
 
 export function normalizeContentType(
 	parsed: ScramjetFetchParsed,
@@ -40,7 +41,7 @@ export function createReferrerString(
 
 	const referrerOrigin = clientUrl.origin;
 
-	const referrerUrl = new URL(clientUrl.href);
+	const referrerUrl = new _URL(clientUrl.href);
 	referrerUrl.hash = "";
 	const referrerUrlString = referrerUrl.href;
 

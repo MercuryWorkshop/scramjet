@@ -393,7 +393,6 @@ export function extractCharsetFromMeta(s: string): string | null {
 
 		const ch = s[position];
 
-		// eslint-disable-next-line quotes
 		if (ch === '"' || ch === "'") {
 			// Find matching close quote
 			const closeIdx = s.indexOf(ch, position + 1);
@@ -984,11 +983,9 @@ export function extractCharsetFromContentType(
 				if (pos >= params.length) return null;
 
 				// Quoted value
-				// eslint-disable-next-line quotes
 				if (params[pos] === '"') {
 					pos++;
 					let value = "";
-					// eslint-disable-next-line quotes
 					while (pos < params.length && params[pos] !== '"') {
 						// Handle backslash escape in quoted string per HTTP spec
 						if (params[pos] === "\\" && pos + 1 < params.length) {

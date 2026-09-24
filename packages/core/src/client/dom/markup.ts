@@ -249,6 +249,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		// not URLs, so everything it leaves behind still has to be rewritten
 		@Arguments("DOMString", "optional SetHTMLOptions")
 		@Returns("undefined")
+		// eslint-disable-next-line scramjet-core/intercept-brand-check -- calls super.setHTML on every path; setHTML is missing from lib.dom
 		setHTML(html: string, options?: SetHTMLOptions): void {
 			// https://wicg.github.io/sanitizer-api/#set-and-filter-html - a
 			// script context is refused outright, and a style's text survives the

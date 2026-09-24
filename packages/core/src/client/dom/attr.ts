@@ -35,6 +35,7 @@ import {
 	Reflect_has,
 	Reflect_ownKeys,
 	String,
+	Symbol_iterator,
 	_Map,
 } from "@/shared/snapshot";
 
@@ -122,12 +123,12 @@ export default function (client: ScramjetClient, _self: Self) {
 			// native accessor called with a proxy as its receiver fails its own
 			// brand check. `length` is an accessor
 			get(target, prop) {
-				if (prop === Symbol.iterator || prop === "values") {
+				if (prop === Symbol_iterator || prop === "values") {
 					return function* (this: NamedNodeMap) {
 						const owner = ownerOf(brand(this));
 						if (!owner) {
 							const iterator = new client.native.NamedNodeMap(real(this))[
-								Symbol.iterator
+								Symbol_iterator
 							]();
 							for (const attr of iterator) yield attr;
 							return;

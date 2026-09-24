@@ -11,10 +11,7 @@ export default function (client: ScramjetClient, self: any) {
 		const prop = split.pop();
 		const target = split.reduce((a, b) => a?.[b], self);
 		if (!target) return;
-		if (prop && prop in target) {
-			delete target[prop];
-		} else {
-		}
+		if (prop && prop in target) delete target[prop];
 	};
 
 	// obviously
@@ -36,7 +33,7 @@ export default function (client: ScramjetClient, self: any) {
 	if (!iswindow) return;
 	// DOM specific ones below here
 
-	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
+	del("Navigator.prototype.serviceWorker");
 	del("MediaDevices.prototype.setCaptureHandleConfig");
 
 	// web bluetooth api

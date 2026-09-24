@@ -1,5 +1,6 @@
 // adapted from https://www.npmjs.com/package/set-cookie-parser, licensed MIT
 // we'll be forever in the shadow of node-unblocker or something
+import { Array_isArray, TextEncoder_encode, _Date } from "@/shared/snapshot";
 
 type ParsedCookie = {
 	name: string;
@@ -14,8 +15,6 @@ type ParsedCookie = {
 };
 
 const MAX_COOKIE_PAIR_BYTES = 4096;
-const textEncoder = new TextEncoder();
-
 function isNonEmptyString(str: unknown): str is string {
 	return typeof str === "string" && !!str.trim();
 }
@@ -33,7 +32,7 @@ function hasCtlCharacters(value: string): boolean {
 
 function cookiePairByteLength(name: string, value: string): number {
 	// RFC length checks ignore the '=' separator.
-	return textEncoder.encode(`${name}${value}`).length;
+	return TextEncoder_encode(`${name}${value}`).length;
 }
 
 function parseString(setCookieValue: string): ParsedCookie | null {
@@ -60,7 +59,7 @@ function parseString(setCookieValue: string): ParsedCookie | null {
 		const sideValue = sides.join("=");
 
 		if (key === "expires") {
-			cookie.expires = new Date(sideValue);
+			cookie.expires = new _Date(sideValue);
 		} else if (key === "max-age") {
 			cookie.maxAge = parseInt(sideValue, 10);
 		} else if (key === "secure") {
@@ -123,7 +122,7 @@ function parse(input: string | undefined): ParsedCookie[] {
 }
 
 function splitCookiesString(cookiesString: unknown): string[] {
-	if (Array.isArray(cookiesString)) {
+	if (Array_isArray(cookiesString)) {
 		return cookiesString;
 	}
 	if (typeof cookiesString !== "string") {

@@ -49,7 +49,7 @@ export default [
 		rules: {
 			"no-await-in-loop": "warn",
 			"no-unused-labels": "warn",
-			quotes: ["error", "double"],
+			quotes: ["error", "double", { avoidEscape: true }],
 			"getter-return": "error",
 			"newline-before-return": "off",
 			"no-multiple-empty-lines": "error",
@@ -82,7 +82,7 @@ export default [
 			"scramjet-core": scramjetCorePlugin,
 		},
 		rules: {
-			"scramjet-core/intercept-brand-check": "warn",
+			"scramjet-core/intercept-brand-check": "error",
 			"scramjet-core/no-globals": [
 				"error",
 				{

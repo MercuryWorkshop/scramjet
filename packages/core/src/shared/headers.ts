@@ -3,6 +3,7 @@ import {
 	String_startsWith,
 	String_substring,
 	String_toLowerCase,
+	_Headers,
 } from "./snapshot";
 
 /**
@@ -86,7 +87,7 @@ export class ScramjetHeaders {
 	}
 
 	toNativeHeaders(): Headers {
-		const native = new Headers();
+		const native = new _Headers();
 		for (const k in this.headers) {
 			native.set(k, this.headers[k]);
 		}

@@ -657,8 +657,7 @@ export class Parser implements Callbacks {
             this.attribname,
             this.attribvalue,
             quote === QuoteType.Double
-                ? // eslint-disable-next-line quotes
-                  '"'
+                ? '"'
                 : quote === QuoteType.Single
                   ? "'"
                   : quote === QuoteType.NoValue

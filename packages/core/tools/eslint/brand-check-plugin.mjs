@@ -32,43 +32,61 @@ import path from "node:path";
 
 // lib.dom distinguishes attributes from operations. A property read alone
 // only invokes a native for an attribute; constants are data properties too.
-// Unknown interfaces/members are conservatively left unmarked.
+// Worker-only interfaces (SharedWorkerGlobalScope and friends) live in
+// lib.webworker, so both are loaded. Unknown interfaces/members are
+// conservatively left unmarked.
 const interfaces = new Map();
-const lib = path.join(
-	path.dirname(ts.getDefaultLibFilePath({})),
-	"lib.dom.d.ts"
-);
-const dom = ts.createSourceFile(
-	lib,
-	ts.sys.readFile(lib),
-	ts.ScriptTarget.Latest
-);
-for (const node of dom.statements) {
-	if (!ts.isInterfaceDeclaration(node)) continue;
-	const declarations = interfaces.get(node.name.text) ?? [];
-	declarations.push(node);
-	interfaces.set(node.name.text, declarations);
+const libDir = path.dirname(ts.getDefaultLibFilePath({}));
+for (const name of ["lib.dom.d.ts", "lib.webworker.d.ts"]) {
+	const file = path.join(libDir, name);
+	const source = ts.createSourceFile(
+		file,
+		ts.sys.readFile(file),
+		ts.ScriptTarget.Latest
+	);
+	for (const node of source.statements) {
+		if (!ts.isInterfaceDeclaration(node)) continue;
+		const declarations = interfaces.get(node.name.text) ?? [];
+		declarations.push({ node, source });
+		interfaces.set(node.name.text, declarations);
+	}
 }
 
+/**
+ * How a native interface exposes `property`: "method" for an operation, and for
+ * an attribute which halves of the accessor exist - "getter" (readonly),
+ * "setter" or "accessor" (both). lib.dom spells most attributes as property
+ * signatures, but the ones whose setter takes a different type than the getter
+ * returns (`style`, `location`, ...) as a `get`/`set` pair.
+ */
 function nativeMember(iface, property, seen = new Set()) {
 	if (seen.has(iface)) return undefined;
 	seen.add(iface);
-	for (const declaration of interfaces.get(iface) ?? []) {
+	for (const { node: declaration, source } of interfaces.get(iface) ?? []) {
+		let get = false;
+		let set = false;
 		for (const member of declaration.members) {
-			if (member.name?.getText(dom) !== property) continue;
+			if (member.name?.getText(source) !== property) continue;
 			if (ts.isMethodSignature(member)) return "method";
-			if (
+			if (ts.isGetAccessorDeclaration(member)) get = true;
+			else if (ts.isSetAccessorDeclaration(member)) set = true;
+			else if (
 				ts.isPropertySignature(member) &&
 				member.type &&
 				!ts.isLiteralTypeNode(member.type)
-			)
-				return "getter";
-			return undefined;
+			) {
+				const readonly = member.modifiers?.some(
+					(m) => m.kind === ts.SyntaxKind.ReadonlyKeyword
+				);
+
+				return readonly ? "getter" : "accessor";
+			} else return undefined;
 		}
+		if (get || set) return get && set ? "accessor" : get ? "getter" : "setter";
 		for (const heritage of declaration.heritageClauses ?? []) {
 			for (const parent of heritage.types) {
 				const kind = nativeMember(
-					parent.expression.getText(dom),
+					parent.expression.getText(source),
 					property,
 					seen
 				);
@@ -275,13 +293,19 @@ const brandCheckPlugin = {
 							node.parent.callee === node
 						)
 							return;
+						const kind = nativeMember(iface, node.property.name);
+						// a plain assignment runs only the setter, with `this` as the
+						// receiver; a readonly attribute throws whatever the receiver
 						if (
 							node.parent.type === "AssignmentExpression" &&
 							node.parent.left === node &&
 							node.parent.operator === "="
-						)
+						) {
+							if (kind === "setter" || kind === "accessor") mark();
+
 							return;
-						if (nativeMember(iface, node.property.name) === "getter") mark();
+						}
+						if (kind === "getter" || kind === "accessor") mark();
 					},
 
 					"CallExpression:exit"(node) {

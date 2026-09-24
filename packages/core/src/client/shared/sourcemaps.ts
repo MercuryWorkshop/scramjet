@@ -2,9 +2,9 @@ import {
 	Object_defineProperty,
 	Number_isSafeInteger,
 	Error,
+	TextDecoder_decode,
 } from "@/shared/snapshot";
 import { base64ToBytes } from "@/shared/util";
-import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
 import { ProxyCtx, ScramjetClient } from "@client/index";
 
 enum RewriteType {
@@ -46,24 +46,26 @@ export function registerRewrites(
 	// because it can only reach us as source text. one rewritten in this realm
 	// hands the buffer over directly
 	const sourcemap = typeof buf === "string" ? base64ToBytes(buf) : buf;
-	const view = new DataView(
-		sourcemap.buffer,
-		sourcemap.byteOffset,
-		sourcemap.byteLength
-	);
-	const decoder = new TextDecoder("utf-8");
+	// indexing the bytes directly rather than through a DataView, whose
+	// prototype methods the page can replace
+	const u32 = (at: number) =>
+		(sourcemap[at] |
+			(sourcemap[at + 1] << 8) |
+			(sourcemap[at + 2] << 16) |
+			(sourcemap[at + 3] << 24)) >>>
+		0;
 
 	const rewrites: Rewrite[] = [];
 
-	const rewritelen = view.getUint32(0, true);
+	const rewritelen = u32(0);
 	let cursor = 4;
 	for (let i = 0; i < rewritelen; i++) {
-		const start = view.getUint32(cursor, true);
+		const start = u32(cursor);
 		cursor += 4;
-		const size = view.getUint32(cursor, true);
+		const size = u32(cursor);
 		cursor += 4;
 
-		const type = view.getUint8(cursor) as RewriteType;
+		const type = sourcemap[cursor] as RewriteType;
 		cursor += 1;
 
 		if (type == RewriteType.Insert) {
@@ -71,10 +73,10 @@ export function registerRewrites(
 		} else if (type == RewriteType.Replace) {
 			const end = start + size;
 
-			const oldLen = view.getUint32(cursor, true);
+			const oldLen = u32(cursor);
 			cursor += 4;
 
-			const oldStr = decoder.decode(
+			const oldStr = TextDecoder_decode(
 				sourcemap.subarray(cursor, cursor + oldLen)
 			);
 

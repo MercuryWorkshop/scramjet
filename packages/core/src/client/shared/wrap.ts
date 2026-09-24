@@ -5,23 +5,24 @@ import { ScramjetClient } from "@client/index";
 import { Object_defineProperty } from "@/shared/snapshot";
 
 export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
-	let wrappedParent: GlobalThis | null = null;
-	let wrappedTop: GlobalThis | null = null;
+	let wrappedParent: Window | null = null;
+	let wrappedTop: Window | null = null;
 	if (iswindow) {
+		const win = self as Self;
 		try {
 			if (SCRAMJETCLIENT in self.parent) {
 				// ... then we're in a subframe, and the parent frame is also in a proxy context, so we should return its proxy
 				wrappedParent = self.parent;
 			} else {
 				// ... then we should pretend we aren't nested and return the current window
-				wrappedParent = self;
+				wrappedParent = win;
 			}
 		} catch {
 			// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
-			wrappedParent = self;
+			wrappedParent = win;
 		}
 		// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
-		let current = self;
+		let current: Window = win;
 		for (;;) {
 			const test = current.parent.self;
 			if (test === current) break; // there is no parent, actual or emulated.
@@ -97,7 +98,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		enumerable: false,
 	});
 	Object_defineProperty(self, client.config.globals.cleanrestfn, {
-		value: function (obj) {
+		value: function (_obj) {
 			// TODO
 		},
 		writable: false,

@@ -46,3 +46,40 @@ for (const body of [
 	test(`accepts native check: ${body}`, () =>
 		assert.deepEqual(check(body), []));
 }
+
+function checkMember(iface, member) {
+	return linter.verify(
+		`client.Intercept(class extends ${iface} { ${member} });`,
+		[
+			{
+				plugins: { local: plugin },
+				rules: { "local/intercept-brand-check": "error" },
+				languageOptions: { ecmaVersion: 2022, sourceType: "module" },
+			},
+		]
+	);
+}
+for (const [iface, member] of [
+	// lib.dom spells `style` as a get/set accessor pair, not a property
+	["HTMLElement", "get style() { return wrap(super.style); }"],
+	// assigning a writable attribute runs its native setter on `this`
+	[
+		"CSSStyleDeclaration",
+		"set cssText(v) { super.cssText = v; touched(this); }",
+	],
+	// worker-only interfaces come from lib.webworker
+	["SharedWorkerGlobalScope", "get name() { return strip(super.name); }"],
+]) {
+	test(`accepts native check: ${iface} ${member}`, () =>
+		assert.deepEqual(checkMember(iface, member), []));
+}
+for (const [iface, member] of [
+	["Document", "set title(v) { store(v); }"],
+	["Document", "get title() { if (mine) return ''; return super.title; }"],
+]) {
+	test(`rejects unchecked path: ${iface} ${member}`, () => {
+		const messages = checkMember(iface, member);
+		assert.equal(messages.length, 1);
+		assert.equal(messages[0].messageId, "missingBrandCheck");
+	});
+}

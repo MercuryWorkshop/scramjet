@@ -8,6 +8,8 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
+	// taken once, before page code can replace it
+	// eslint-disable-next-line scramjet-core/no-globals
 	const log = console.log;
 	client.Trap("console.log", {
 		set(_ctx, _v) {

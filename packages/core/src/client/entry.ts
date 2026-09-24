@@ -1,10 +1,8 @@
 // entrypoint for scramjet.client.js
 
-import { ScramjetContext, ScramjetInterface } from "@/shared/index";
-import { SCRAMJETCLIENT } from "@/symbols";
-import { ScramjetClient } from "@client/index";
-import { ScramjetConfig } from "@/types";
-
+// these run once, when the client bundle loads and before any page code, to
+// ask which kind of global this is - there is no wrapper to go through yet
+/* eslint-disable scramjet-core/no-globals, scramjet-core/no-instanceof */
 export const iswindow = "window" in globalThis && window instanceof Window;
 export const isworker = "WorkerGlobalScope" in globalThis;
 export const issw = "ServiceWorkerGlobalScope" in globalThis;

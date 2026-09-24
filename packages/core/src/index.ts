@@ -3,7 +3,7 @@
 // the entry point for scramjet.all.js (what most sites wil use) is entry.ts
 
 import "./global.d";
-import { atob } from "@/shared/snapshot";
+import { atob, _Uint8Array } from "@/shared/snapshot";
 import { setWasm } from "@rewriters/wasm";
 import { pstAvailable } from "@/shared/incumbency";
 import { ScramjetVersionInfo, ScramjetConfig } from "./types";
@@ -69,7 +69,7 @@ export const defaultConfigDev: ScramjetConfig = {
 declare const REWRITERWASM: string | undefined;
 // bundled build will have the wasm binary inlined as a base64 string
 if (REWRITERWASM) {
-	setWasm(Uint8Array.from(atob(REWRITERWASM), (c) => c.charCodeAt(0)));
+	setWasm(_Uint8Array.from(atob(REWRITERWASM), (c) => c.charCodeAt(0)));
 }
 
 export * from "./symbols";

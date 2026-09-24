@@ -201,7 +201,10 @@ test("receiver checks precede coercion, including forged prototypes and setters"
 	);
 });
 
-test("unsafe coercing instance declarations are rejected before installation", async () => {
+// Intercept used to refuse this declaration, but nothing ever passed a
+// checkReceiver, so the refusal silently uninstalled whole interfaces. Until
+// #117 lands a real predicate, a missing receiver check installs anyway.
+test("coercing instance declarations without a receiver check still install", async () => {
 	assert.deepEqual(
 		await evaluate(() => {
 			const client = fixture.makeClient();
@@ -220,7 +223,7 @@ test("unsafe coercing instance declarations are rejected before installation", a
 			}
 			return [refused, Headers.prototype.set === original];
 		}),
-		[true, true]
+		[false, false]
 	);
 });
 

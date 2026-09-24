@@ -138,6 +138,12 @@ export const AsyncFunction_prototype = globalThis.Object.getPrototypeOf(
 	async function () {}
 );
 export const ArrayBuffer_isView = globalThis.ArrayBuffer.isView;
+export const WebAssembly_Module = globalThis.WebAssembly.Module;
+// taken before page code runs: `self` is [Replaceable] on a window, so a page
+// can shadow it. the Location itself is [LegacyUnforgeable]. undefined outside
+// a browser (the rewriter's node tests)
+export const selfLocation: Location | WorkerLocation | undefined =
+	globalThis.location;
 // WebIDL discriminates buffer types on internal slots, and the byteLength
 // getters are the only reachable test for those slots. Unlike `instanceof` they
 // are realm-independent and cannot be forged with a Symbol.toStringTag
@@ -410,6 +416,8 @@ export const _TextDecoder = makeWrap(globalThis.TextDecoder);
 export type _TextDecoder = Wrapped<TextDecoder>;
 export const _TextEncoder = makeWrap(globalThis.TextEncoder);
 export type _TextEncoder = Wrapped<TextEncoder>;
+export const _Blob = makeWrap(globalThis.Blob);
+export type _Blob = Wrapped<Blob>;
 
 export function makeWrap<T extends object>(source: T): Wrapped<T> {
 	// Constructable builtins like Set/Map/URL need to retain their [[Construct]]

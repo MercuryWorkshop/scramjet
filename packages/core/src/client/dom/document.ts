@@ -79,7 +79,9 @@ export default function (client: ScramjetClient, self: Self) {
 				return super.execCommand(commandId, showUI, value);
 			}
 
-			const selection = nativeGlobal.getSelection();
+			// the receiver's selection, not this window's: a document from
+			// another frame has its own. `getSelection` also brand-checks `this`
+			const selection = super.getSelection();
 			if (!selection || selection.rangeCount === 0) {
 				return super.execCommand(commandId, showUI, value);
 			}

@@ -196,7 +196,7 @@ export function parseRequest(
 	const fetchMode = ["cors", "no-cors", "same-origin", "navigate"].includes(
 		params.mode
 	)
-		? params.mode
+		? (params.mode as RequestMode)
 		: undefined;
 	const destination =
 		(params.destination as RequestDestination | undefined) ||

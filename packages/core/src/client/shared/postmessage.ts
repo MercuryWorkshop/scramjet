@@ -20,7 +20,7 @@ import { incumbentFor, interceptDepth } from "./incumbency";
  */
 const readWindowPostMessageOptions = dictionaryReader(
 	"WindowPostMessageOptions",
-	{ targetOrigin: `USVString = "/"` },
+	{ targetOrigin: 'USVString = "/"' },
 	{ transfer: "sequence<object> = []" }
 );
 const toTargetOrigin = idlConverter(
@@ -129,11 +129,13 @@ export default function (client: ScramjetClient, self: Self) {
 				// the receiver is checked before any argument is converted, and
 				// converting the options runs getters. A global member gets no
 				// `checkReceiver` from `Intercept`, so the brand check is a side
-				// effect free native getter on the page's own receiver
-				new client.native.window(this).closed;
+				// effect free native getter on the page's own receiver. `super` is
+				// no use on a GlobalScope static - see `GlobalScope` in client.ts
+				const native = new client.native.window(this);
+				void native.closed;
 
 				// too few arguments: the native throws the arity error itself
-				if (args.length === 0) return super.postMessage();
+				if (args.length === 0) return (native.postMessage as () => void)();
 
 				// the incumbent is whoever called in, which has to be asked
 				// before anything below can run page code: converting the
@@ -189,7 +191,7 @@ export default function (client: ScramjetClient, self: Self) {
 				// are all the native's. Every document here shares the proxy's
 				// real origin, so the native's own origin check is left at "/",
 				// and the page's is made by the recipient - see `event.ts`
-				super.postMessage(envelope, "/", transfer);
+				native.postMessage(envelope, "/", transfer);
 			}
 		});
 
@@ -278,10 +280,15 @@ export default function (client: ScramjetClient, self: Self) {
 		client.Intercept(class extends GlobalScope {
 			@Arguments(
 				"any",
-				"(sequence<object> or optional StructuredSerializeOptions = {})"
+				"optional (sequence<object> or StructuredSerializeOptions) = {}"
 			)
 			static postMessage(message: any, transferoptions: any) {
-				super.postMessage(makeWorkerPostMessageBody(message), transferoptions);
+				// not `super`: in a worker the global's members live on
+				// `WorkerGlobalScope.prototype`, where `super` never looks
+				new client.native.window(this).postMessage(
+					makeWorkerPostMessageBody(message),
+					transferoptions
+				);
 			}
 		});
 	}
@@ -289,7 +296,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Intercept(class extends MessagePort {
 		@Arguments(
 			"any",
-			"(sequence<object> or optional StructuredSerializeOptions = {})"
+			"optional (sequence<object> or StructuredSerializeOptions) = {}"
 		)
 		postMessage(message: any, transferoptions: any) {
 			super.postMessage(makeWorkerPostMessageBody(message), transferoptions);
@@ -299,7 +306,7 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Intercept(class extends Worker {
 		@Arguments(
 			"any",
-			"(sequence<object> or optional StructuredSerializeOptions = {})"
+			"optional (sequence<object> or StructuredSerializeOptions) = {}"
 		)
 		postMessage(message: any, transferoptions: any) {
 			super.postMessage(makeWorkerPostMessageBody(message), transferoptions);

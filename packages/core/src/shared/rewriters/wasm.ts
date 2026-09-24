@@ -6,17 +6,23 @@ import { flagEnabled, flagsUrl, ScramjetContext } from "@/shared";
 export type { JsRewriterOutput, Rewriter };
 
 import { URLMeta } from "@rewriters/url";
-import { Error, TextDecoder_decode } from "@/shared/snapshot";
+import {
+	ArrayBuffer_isView,
+	Error,
+	TextDecoder_decode,
+	WebAssembly_Module,
+	_Uint8Array,
+} from "@/shared/snapshot";
 
-let wasm_u8: Uint8Array;
+let wasm_u8: Uint8Array | undefined;
 export function setWasm(u8: Uint8Array | ArrayBuffer) {
-	wasm_u8 = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8);
+	wasm_u8 = ArrayBuffer_isView(u8) ? u8 : new _Uint8Array(u8);
 }
 
 const MAGIC = "\0asm".split("").map((x) => x.charCodeAt(0));
 
 function initWasm() {
-	if (!(wasm_u8 instanceof Uint8Array))
+	if (!wasm_u8)
 		throw new Error("rewriter wasm not found (was setWasm called?)");
 
 	if (![...wasm_u8.slice(0, 4)].every((x, i) => x === MAGIC[i]))
@@ -26,7 +32,7 @@ function initWasm() {
 		);
 
 	initSync({
-		module: new WebAssembly.Module(wasm_u8 as unknown as BufferSource),
+		module: new WebAssembly_Module(wasm_u8 as unknown as BufferSource),
 	});
 }
 

@@ -65,8 +65,7 @@ export default function (client: ScramjetClient, self: Self) {
 		// the empty string is not a value to rewrite, it is the spec's signal
 		// to remove the property, so it has to pass through untouched.
 		// `priority` defaults to "" in the IDL; the parser discards defaults, so
-		// spelling it out here would only pick a fight between prettier and the
-		// quotes rule
+		// it is not spelled out here
 		@Arguments(
 			"CSSOMString",
 			"[LegacyNullToEmptyString] CSSOMString",
@@ -443,6 +442,7 @@ export default function (client: ScramjetClient, self: Self) {
 	if ("CSSMarginRule" in self) {
 		client.Intercept(class extends CSSMarginRule {
 			@Type("CSSMarginDescriptors")
+			// eslint-disable-next-line scramjet-core/intercept-brand-check -- reads super.style on every path; CSSMarginRule is missing from lib.dom
 			get style(): CSSStyleDeclaration {
 				return inlineStyle("CSSMarginDescriptors", super.style);
 			}
@@ -475,6 +475,7 @@ export default function (client: ScramjetClient, self: Self) {
 	if ("CSSPositionTryRule" in self) {
 		client.Intercept(class extends CSSPositionTryRule {
 			@Type("CSSPositionTryDescriptors")
+			// eslint-disable-next-line scramjet-core/intercept-brand-check -- reads super.style on every path; CSSPositionTryRule is missing from lib.dom
 			get style(): CSSStyleDeclaration {
 				return inlineStyle("CSSPositionTryDescriptors", super.style);
 			}

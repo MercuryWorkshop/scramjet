@@ -135,7 +135,7 @@ export class SingletonBox {
 	socketstreammap: _WeakMap<WebSocketStream, FakeWebSocketStreamState> =
 		new _WeakMap([]);
 
-	ctors: Record<string, Function[]> = Object_create(null);
+	ctors: Record<string, ((...args: any[]) => any)[]> = Object_create(null);
 
 	sourcemaps: SourceMaps = {};
 

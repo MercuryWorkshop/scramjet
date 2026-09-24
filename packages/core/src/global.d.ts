@@ -115,9 +115,11 @@ interface SetHTMLUnsafeOptions {
 	sanitizer?: any;
 	runScripts?: boolean;
 }
-interface Element {
+interface ParentNode {
 	/** https://dom.spec.whatwg.org/#dom-parentnode-movebefore - Chrome 133+. */
 	moveBefore(node: Node, child: Node | null): void;
+}
+interface Element {
 	setHTML(html: string, options?: SetHTMLOptions): void;
 	setHTMLUnsafe(html: string, options?: SetHTMLUnsafeOptions): void;
 }

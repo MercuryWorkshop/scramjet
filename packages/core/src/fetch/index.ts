@@ -6,7 +6,6 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 
 import { type URLMeta } from "@rewriters/url";
-import { type ScramjetRequestMode } from "./parse";
 import { ScramjetHeaders } from "@/shared/headers";
 import { HtmlRewriterHooks, ScramjetContext } from "@/shared";
 import { Tap, TapInstance } from "@/Tap";
@@ -50,7 +49,7 @@ export interface ScramjetFetchParsed {
 	fetchCredentialsInclude?: boolean;
 
 	// tracks RequestInit.mode if set
-	fetchMode?: ScramjetRequestMode;
+	fetchMode?: RequestMode;
 
 	// was this request made by an iframe? (scramjet's definition of an iframe, not the browser's)
 	isIframe?: boolean;
@@ -109,10 +108,7 @@ export class ScramjetFetchHandler extends EventTarget {
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
 
-	public trackedClients: _Map<string, ScramjetFetchTrackedClient> = new _Map<
-		string,
-		ScramjetFetchTrackedClient
-	>();
+	public trackedClients: _Map<string, ScramjetFetchTrackedClient> = new _Map();
 
 	public hooks: {
 		rewriter: {
