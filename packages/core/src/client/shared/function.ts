@@ -14,7 +14,9 @@ function rewriteFunction<T extends string, U extends "construct" | "apply">(
 		`return ${stringifiedFunction}`,
 		"(function proxy)",
 		client.context,
-		client.meta
+		client.meta,
+		false,
+		client
 	);
 	ctx.return(ctx.fn(content)());
 }

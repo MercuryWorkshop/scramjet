@@ -5,6 +5,7 @@
 import "./global.d";
 import { atob } from "@/shared/snapshot";
 import { setWasm } from "@rewriters/wasm";
+import { pstAvailable } from "@/shared/incumbency";
 import { ScramjetVersionInfo, ScramjetConfig } from "./types";
 
 declare const VERSION: string;
@@ -21,14 +22,17 @@ export const defaultConfig: ScramjetConfig = {
 		wrapfn: "$scramjet$wrap",
 		wrappropertybase: "$scramjet__",
 		wrappropertyfn: "$scramjet$prop",
+		callfn: "$scramjet$call",
 		cleanrestfn: "$scramjet$clean",
 		importfn: "$scramjet$import",
 		rewritefn: "$scramjet$rewrite",
 		metafn: "$scramjet$meta",
-		wrappostmessagefn: "$scramjet$wrappostmessage",
 		pushsourcemapfn: "$scramjet$pushsourcemap",
+		registerrealmfn: "$scramjet$registerrealm",
 		trysetfn: "$scramjet$tryset",
 		templocid: "$scramjet$temploc",
+		tempreceiverid: "$scramjet$tempreceiver",
+		tempcalleeid: "$scramjet$tempcallee",
 		tempunusedid: "$scramjet$tempunused",
 	},
 	flags: {
@@ -37,13 +41,13 @@ export const defaultConfig: ScramjetConfig = {
 		rewriterLogs: false,
 		captureErrors: false,
 		cleanErrors: true,
-		scramitize: false,
 		sourcemaps: true,
 		destructureRewrites: true,
 		allowInvalidJs: true,
 		debugTrampolines: false,
 		encapsulateWorkers: true,
 		debugSourceURL: false,
+		incumbency: pstAvailable ? "pst" : "lazystamp",
 	},
 	siteFlags: {},
 	maskedfiles: [],

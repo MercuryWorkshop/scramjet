@@ -1865,33 +1865,29 @@ function compileIDLDefault(
  * once was for. The keys are sorted here, at install time, so it stops being
  * something a reviewer has to check.
  *
- * TODO: no inherited dictionaries. WebIDL converts a parent's members before
- * the child's, and expressing that needs the parent named here; nothing scramjet
- * reads inherits today, so this throws rather than guessing if one ever does.
+ * An inherited dictionary's members are passed as `inherited`, and are read
+ * first: WebIDL converts a parent's members, in their own sorted order, before
+ * any of the child's. Sorting the two together would read a child's
+ * `targetOrigin` before its parent's `transfer`.
+ * https://webidl.spec.whatwg.org/#es-dictionary
  */
-export function dictionaryReader<const M extends Record<string, string>>(
+export function dictionaryReader<
+	const M extends Record<string, string>,
+	const P extends Record<string, string> = Record<never, string>,
+>(
 	name: string,
-	members: M
-): (value: unknown) => IDLDictionaryOf<M> {
-	const keys = Object_keys(members);
-
-	// insertion sort rather than `Array.prototype.sort`: this runs at module
-	// scope, so the intrinsic is still pristine, but not depending on that is
-	// free here
-	for (let i = 1; i < keys.length; i++) {
-		const key = keys[i];
-		let j = i - 1;
-		while (j >= 0 && keys[j] > key) {
-			keys[j + 1] = keys[j];
-			j--;
-		}
-		keys[j + 1] = key;
-	}
+	members: M,
+	inherited?: P
+): (value: unknown) => IDLDictionaryOf<P & M> {
+	const keys = sortedIDLMemberNames(inherited ?? {});
+	const own = sortedIDLMemberNames(members);
+	for (let i = 0; i < own.length; i++) keys[keys.length] = own[i];
+	const all: Record<string, string> = { ...inherited, ...members };
 
 	const compiled: CompiledMember[] = [];
 	for (let i = 0; i < keys.length; i++) {
 		const key = keys[i];
-		const raw = String_trim(members[key]);
+		const raw = String_trim(all[key]);
 
 		let declaration = raw;
 		let required = false;
@@ -1971,8 +1967,51 @@ export function dictionaryReader<const M extends Record<string, string>>(
 			out[member.key] = member.coerce(raw);
 		}
 
-		return out as IDLDictionaryOf<M>;
+		return out as IDLDictionaryOf<P & M>;
 	};
+}
+
+/**
+ * The conversion for one IDL type, for a member that has to run it itself -
+ * one with overloads, say, which `@Arguments` cannot describe. Brand checks
+ * are out of reach here, so this is for primitives, strings and sequences of
+ * them. A failure is a real TypeError, as in a {@link dictionaryReader}.
+ */
+export function idlConverter(
+	type: string,
+	message: string
+): (value: unknown) => unknown {
+	const compile = compileIDLType({ ctors: {}, instanceof: () => false }, type);
+
+	return (value) => {
+		try {
+			return compile(value);
+		} catch (err) {
+			if (err === IDL_REJECTED) throw new TypeError(message);
+
+			throw err;
+		}
+	};
+}
+
+/** One dictionary's own member names, in the order WebIDL converts them. */
+function sortedIDLMemberNames(members: Record<string, string>): string[] {
+	const keys = Object_keys(members);
+
+	// insertion sort rather than `Array.prototype.sort`: this runs at module
+	// scope, so the intrinsic is still pristine, but not depending on that is
+	// free here
+	for (let i = 1; i < keys.length; i++) {
+		const key = keys[i];
+		let j = i - 1;
+		while (j >= 0 && keys[j] > key) {
+			keys[j + 1] = keys[j];
+			j--;
+		}
+		keys[j + 1] = key;
+	}
+
+	return keys;
 }
 
 /**

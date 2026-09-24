@@ -1,128 +1,127 @@
-import { serverTest } from "../testcommon.ts";
+import { incumbenceMatrix, incumbenceTest } from "../incumbence.ts";
 
-const doc = (text: string) => `<!doctype html>${text}`;
+/**
+ * `window.open` parses its URL against the **entry** settings object, so the
+ * answer is the realm whose script or callback the browser entered to get here,
+ * and not the realm that owns the `open` being called.
+ *
+ * This is the sink the pattern list was written against, so it runs all of
+ * them. Every expectation below was measured against Chromium.
+ */
+const windowOpen = incumbenceMatrix({
+	prefix: "incumbent-window-open",
+	sink: (win) => `${win}.open('flag.html')`,
+	expect: {
+		sanity: "frame",
+		"sanity-sanity": "top",
+		crossrealm: "frame",
+		functioncall: "frame",
+		eval: "frame",
+		"eval-functioncall": "frame",
+		functionctor: "frame",
+		settimeout: "top",
+		"settimeout-cb": "frame",
+		"settimeout-cb-eval": "frame",
+		promise: "top",
+		"promise-cb": "frame",
+		"cross-promise": "frame",
+		"cross-promise-direct": "top",
+		"event-listener": "frame",
+		"external-script": "frame",
+		"external-script-crossrealm": "frame",
+		module: "frame",
+		"module-external": "frame",
+		"base-element": "base",
+		"base-element-crossrealm": "frame",
+		"reverse-crossrealm": "top",
+		"reverse-functioncall": "top",
+		"three-realm-sanity": "sub",
+		"three-realm": "top",
+		"three-realm-timer": "top",
+		"settimeout-foreign-cb": "top",
+		"event-listener-foreign-cb": "top",
+		"event-listener-foreign-target": "top",
+		"promise-bound": "top",
+		"message-event": "frame",
+		queuemicrotask: "frame",
+		"async-await": "frame",
+		"async-crossrealm-function": "top",
+		"inline-handler": "frame",
+		"direct-eval-crossrealm": "frame",
+		"builtin-callback": "frame",
+		"argument-coercion": "frame",
+		"dynamic-import": "top",
+		"about-blank": "frame",
+		srcdoc: "frame",
+	},
+});
 
-function navIncumbenceTest(props: {
-	name: string;
-	js: string;
-	reverse?: boolean;
-	topjs?: string;
-}) {
-	props.topjs ??= "";
-	props.reverse ??= false;
-	return serverTest({
-		name: props.name,
-		async start(server, port, { pass, fail }) {
-			server.on("request", (req, res) => {
-				if (req.url! === "/") {
-					res.setHeader("Content-Type", "text/html");
-					res.end(
-						doc(`<script>${props.topjs}</script><iframe src="/dir/frame.html">`)
-					);
-				} else if (req.url! === "/dir/frame.html") {
-					res.setHeader("Content-Type", "text/html");
-					res.end(doc(`<script>${props.js}</script>`));
-				} else if (req.url! === "/dir/flag.html") {
-					res.setHeader("Content-Type", "text/html");
-					if (props.reverse) {
-						res.end(doc('<script>opener.fail("wrong window opened")</script>'));
-					} else {
-						res.end(
-							doc('<script>opener.pass("correct window opened")</script>')
-						);
-					}
-				} else if (req.url! === "/flag.html") {
-					res.setHeader("Content-Type", "text/html");
-					if (props.reverse) {
-						res.end(
-							doc('<script>opener.pass("correct window opened")</script>')
-						);
-					} else {
-						res.end(doc('<script>opener.fail("wrong window opened")</script>'));
-					}
-				} else {
-					res.statusCode = 404;
-					console.error("Not Found: " + req.url);
-					res.end();
-				}
-			});
+/**
+ * A receiver from one realm and a function from another.
+ *
+ * `this` decides which window the popup is opened *from* - its opener, its
+ * target name lookup - and decides nothing at all about the URL. The realm the
+ * method came from decides nothing either way. These are sink-specific, so they
+ * are not patterns: splitting the two only means something for an API whose
+ * receiver is a realm's own global or document.
+ */
+const receiver = [
+	incumbenceTest({
+		name: "incumbent-window-open-receiver-foreign-function",
+		docs: { frame: "parent.open.call(window, 'flag.html')" },
+		expect: "frame",
+	}),
+	incumbenceTest({
+		name: "incumbent-window-open-receiver-foreign-receiver",
+		docs: { frame: "open.call(parent, 'flag.html')" },
+		expect: "frame",
+	}),
+	incumbenceTest({
+		name: "incumbent-window-open-receiver-foreign-function-reverse",
+		docs: { top: "onload = () => frames[0].open.call(window, 'flag.html')" },
+		expect: "top",
+	}),
+	incumbenceTest({
+		name: "incumbent-window-open-receiver-foreign-receiver-reverse",
+		docs: { top: "onload = () => open.call(frames[0], 'flag.html')" },
+		expect: "top",
+	}),
+	incumbenceTest({
+		name: "incumbent-window-open-receiver-bound",
+		docs: { frame: "parent.open.bind(window)('flag.html')" },
+		expect: "frame",
+	}),
+	incumbenceTest({
+		name: "incumbent-window-open-receiver-reflect-apply",
+		docs: { frame: "Reflect.apply(parent.open, window, ['flag.html'])" },
+		expect: "frame",
+	}),
+	incumbenceTest({
+		// three-argument `document.open` is the window open steps under another
+		// name, reached through a Document receiver instead of a Window one
+		name: "incumbent-document-open-crossrealm",
+		docs: { frame: "parent.document.open('flag.html', '_blank', '')" },
+		expect: "frame",
+	}),
+	incumbenceTest({
+		name: "incumbent-document-open-foreign-receiver",
+		docs: {
+			frame: "document.open.call(parent.document, 'flag.html', '_blank', '')",
 		},
-	});
-}
-
-export default [
-	navIncumbenceTest({
-		name: "incumbent-window-open-sanity",
-		js: "window.open('flag.html')",
+		expect: "frame",
 	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-sanity-sanity",
-		topjs: "window.open('flag.html')",
-		js: "",
-		reverse: true,
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-crossrealm",
-		js: "parent.window.open('flag.html')",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-functioncall",
-		topjs: "function doOpen(){ window.open('flag.html') }",
-		js: "parent.doOpen()",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-eval",
-		js: "parent.eval('window.open(`flag.html`)')",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-eval-functioncall",
-		topjs: "function doOpen(){ window.open('flag.html') }",
-		js: "parent.eval('doOpen()')",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-functionctor",
-		js: "new parent.Function('window.open(`flag.html`)')()",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-settimeout",
-		reverse: true,
-		js: "parent.setTimeout('window.open(`flag.html`)')",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-settimeout-cb",
-		js: "parent.setTimeout(()=>parent.window.open(`flag.html`))",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-settimeout-cb-eval",
-		js: "parent.setTimeout(()=>parent.eval('window.open(`flag.html`)'))",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-promise",
-		js: "new Promise(r=>r()).then(new parent.Function('window.open(`flag.html`)'))",
-		reverse: true,
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-promise-cb",
-		js: "new Promise(r=>r()).then(()=>new parent.Function('window.open(`flag.html`)')())",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-cross-promise",
-		js: "parent.eval('new Promise(r=>r())').then(()=>new parent.Function('window.open(`flag.html`)')())",
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-cross-promise-direct",
-		js: "parent.eval('new Promise(r=>r())').then(new parent.Function('window.open(`flag.html`)'))",
-		reverse: true,
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-cross-promise-direct",
-		js: "parent.eval('new Promise(r=>r())').then(new parent.Function('window.open(`flag.html`)'))",
-		reverse: true,
-	}),
-	navIncumbenceTest({
-		name: "incumbent-window-open-event-listener",
-		js: "addEventListener('snarkle', ()=>{ parent.window.open('flag.html') })",
-		topjs:
-			"window.onload = () => { frames[0].dispatchEvent(new Event('snarkle')) }",
+	incumbenceTest({
+		// the method taken off the top's interface prototype rather than off one
+		// of its documents, so nothing but the receiver names a realm.
+		// `Window.prototype` has no `open` to do this with - the window's is an
+		// own property of the global - which is why this one is on Document
+		name: "incumbent-document-open-interface-prototype",
+		docs: {
+			frame:
+				"parent.Document.prototype.open.call(document, 'flag.html', '_blank', '')",
+		},
+		expect: "frame",
 	}),
 ];
+
+export default [...windowOpen, ...receiver];

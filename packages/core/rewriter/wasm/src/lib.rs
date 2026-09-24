@@ -1,7 +1,7 @@
 pub mod error;
 
 use error::{Result, RewriterError};
-use js::cfg::{Config, Flags};
+use js::cfg::{Config, Flags, IncumbencyMode};
 use js_sys::{Object, Reflect};
 use jsr::{JsRewriter, JsRewriterOutput, create_js, create_js_output};
 use oxc::allocator::Allocator;
@@ -34,6 +34,12 @@ fn get_bool(obj: &JsValue, k: &'static str) -> Result<bool> {
 		.ok_or_else(|| RewriterError::not_bool(k))
 }
 
+fn get_incumbency(obj: &JsValue, k: &'static str) -> Result<IncumbencyMode> {
+	get_str(obj, k)?
+		.parse()
+		.map_err(|e| RewriterError::Incumbency(k, e))
+}
+
 fn set_obj(obj: &Object, k: &str, v: &JsValue) -> Result<()> {
 	if Reflect::set(&obj.into(), &k.into(), v)? {
 		Ok(())
@@ -49,15 +55,18 @@ fn get_js_config(config: &Object) -> Result<Config> {
 		wrapfn: get_str(config, "wrapfn")?,
 		wrappropertybase: get_str(config, "wrappropertybase")?,
 		wrappropertyfn: get_str(config, "wrappropertyfn")?,
+		callfn: get_str(config, "callfn")?,
 		cleanrestfn: get_str(config, "cleanrestfn")?,
 		importfn: get_str(config, "importfn")?,
 		rewritefn: get_str(config, "rewritefn")?,
-		wrappostmessagefn: get_str(config, "wrappostmessagefn")?,
 		metafn: get_str(config, "metafn")?,
 		pushsourcemapfn: get_str(config, "pushsourcemapfn")?,
+		registerrealmfn: get_str(config, "registerrealmfn")?,
 
 		trysetfn: get_str(config, "trysetfn")?,
 		templocid: get_str(config, "templocid")?,
+		tempreceiverid: get_str(config, "tempreceiverid")?,
+		tempcalleeid: get_str(config, "tempcalleeid")?,
 		tempunusedid: get_str(config, "tempunusedid")?,
 	})
 }
@@ -66,14 +75,16 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 	Ok(Flags {
 		base,
 		sourcetag: scramtag(),
+		script_id: get_str(obj, "scriptId")?,
 		is_module,
 
 		do_sourcemaps: get_bool(obj, "sourcemaps")?,
+		inline_sourcemap: get_bool(obj, "inlineSourcemap")?,
 		capture_errors: get_bool(obj, "captureErrors")?,
-		scramitize: get_bool(obj, "scramitize")?,
 		disable_computed_wrap: get_bool(obj, "disableComputedWrap")?,
 		destructure_rewrites: get_bool(obj, "destructureRewrites")?,
 
+		incumbency: get_incumbency(obj, "incumbency")?,
 	})
 }
 

@@ -28,7 +28,12 @@
  * inner result passed out as the outer `detail`.
  */
 
-import { Error, String_split, String_trim } from "@/shared/snapshot";
+import {
+	Error,
+	String_endsWith,
+	String_split,
+	String_trim,
+} from "@/shared/snapshot";
 import type { AnyFunction } from "@/types";
 
 /** `at name (https://host/path.js:1:2)`, or the same without the name. */
@@ -61,6 +66,28 @@ export const SCRAMJET_SCRIPT_URL: string | null = (() => {
 
 	return null;
 })();
+
+/**
+ * Whether a stack frame's file is scramjet's own - the client bundle, or a
+ * file the embedder compiled it into and named in `maskedfiles`.
+ *
+ * Used both to drop scramjet's frames out of a page's stack and to skip past
+ * them when scramjet is reading a stack for itself, where the first frame that
+ * is *not* ours is the script that called in.
+ */
+export function isOwnScript(
+	url: string,
+	maskedfiles: string[] | undefined
+): boolean {
+	if (url === SCRAMJET_SCRIPT_URL) return true;
+	if (!maskedfiles) return false;
+
+	for (let i = 0; i < maskedfiles.length; i++) {
+		if (String_endsWith(url, maskedfiles[i])) return true;
+	}
+
+	return false;
+}
 
 /**
  * Where a member sits, for the prefix Blink puts on its message. Exactly one of

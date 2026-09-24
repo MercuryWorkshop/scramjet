@@ -1,6 +1,7 @@
 import { IncrementalHtmlRewriter } from "@/shared";
 import { ScramjetClient } from "./client";
 import { SourceMaps } from "./shared/sourcemaps";
+import { ScriptRealm } from "./shared/incumbency";
 import {
 	Object_getOwnPropertyNames,
 	Object_getOwnPropertyDescriptor,
@@ -15,15 +16,11 @@ import { FakeWebSocketStreamState } from "./shared/requests/WebSocketStream";
 
 export class SingletonBox {
 	clients: ScramjetClient[] = [];
+	clientIds: _Map<string, ScramjetClient> = new _Map([]);
 	globals: _Map<Self, ScramjetClient> = new _Map([]);
 	documents: _Map<Document, ScramjetClient> = new _Map([]);
 	histories: _Map<History, ScramjetClient> = new _Map([]);
-	/**
-	 * Keyed on each realm's `Object.prototype`, which every object created in
-	 * that realm reaches at the end of its prototype chain. One entry per realm
-	 * rather than one per interface.
-	 */
-	realms: _Map<object, ScramjetClient> = new _Map([]);
+	objectPrototypes: _Map<object, ScramjetClient> = new _Map([]);
 	locations: _Map<Location, ScramjetClient> = new _Map([]);
 	functions: _Map<typeof Function, ScramjetClient> = new _Map([]);
 	writeRewriters: _WeakMap<Document, IncrementalHtmlRewriter> = new _WeakMap(
@@ -132,7 +129,7 @@ export class SingletonBox {
 	// the page's function behind each wrapper event.ts puts in an `on*` slot
 	eventhandlers: _WeakMap<object, (...args: any) => any> = new _WeakMap();
 
-	unproxy: _Map<any, any> = new _Map([]);
+	unproxy: _WeakMap<object, any> = new _WeakMap();
 
 	socketmap: _WeakMap<WebSocket, FakeWebSocketState> = new _WeakMap([]);
 	socketstreammap: _WeakMap<WebSocketStream, FakeWebSocketStreamState> =
@@ -141,6 +138,39 @@ export class SingletonBox {
 	ctors: Record<string, Function[]> = Object_create(null);
 
 	sourcemaps: SourceMaps = {};
+
+	/** keyed by the private ID a rewritten script registers itself under */
+	scriptrealms: Record<string, ScriptRealm> = {};
+
+	/** `pst` mode's index into {@link scriptrealms}: script source hash -> registration ID */
+	scripthashes: Record<string, string> = {};
+
+	/**
+	 * `stamp` and `lazystamp` mode's incumbent: the realm of the innermost
+	 * rewritten call site on the stack.
+	 *
+	 * One slot for the whole client tree rather than one per realm, because a
+	 * call crosses realms and the question it answers - "whose script is
+	 * running" - is about the stack, not about any one global. Only the
+	 * innermost call can be the answer, so `callfn` overwrites this and never
+	 * puts it back: between calls it holds the realm that was last running,
+	 * which is the answer for a callback the host invoked with no script of
+	 * the page's on the stack.
+	 */
+	incumbent: Self | null = null;
+
+	/**
+	 * The backup incumbent settings object stack, innermost last. Shared for
+	 * the same reason {@link incumbent} is.
+	 * https://html.spec.whatwg.org/multipage/webappapis.html#backup-incumbent-settings-object-stack
+	 */
+	backupincumbents: ScramjetClient[] = [];
+
+	/**
+	 * The members that read the incumbent, as installed - see `installBind`
+	 * in `shared/incumbency.ts`.
+	 */
+	incumbentSinks: _WeakSet<object> = new _WeakSet();
 
 	constructor(public ownerclient: ScramjetClient) {}
 
@@ -151,7 +181,8 @@ export class SingletonBox {
 		this.locations.set(global.location, client);
 		this.histories.set(global.history, client);
 		this.functions.set(global.Function, client);
-		this.realms.set(global.Object.prototype, client);
+		this.objectPrototypes.set(global.Object.prototype, client);
+		this.clientIds.set(client.id, client);
 
 		const names = Object_getOwnPropertyNames(global);
 		for (let i = 0; i < names.length; i++) {

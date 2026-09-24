@@ -4,7 +4,7 @@ use oxc::{
 };
 use smallvec::{SmallVec, smallvec};
 
-use crate::changes::{JsChange, change};
+use crate::changes::{CallReceiver, JsChange, JsChangeType::{CallFnPrelude, LiteralCallFnLeft, LiteralCallFnRight}, change};
 
 macro_rules! rewrite {
     ($span:expr, $($ty:tt)*) => {
@@ -19,8 +19,6 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	WrapFn {
 		enclose: bool,
 	},
-	/// `wrapPostMessage(object)`
-	WrapPostMessage,
 
 	// `new Foo()` -> `new (Foo)()`
 	WrapNew,
@@ -30,8 +28,35 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	/// `cfg.metafn("cfg.base")`
 	MetaFn,
 
-	SetRealmFn,
-
+	/// `object.method(...args)` ->
+	/// `($r = object, cfg.callfn($r, $r.method, ...args))`,
+	/// where `$r` is `cfg.tempreceiverid`
+	MemberCallFn {
+		args: Option<Span>,
+		object: Span,
+		expression: Span,
+		optional: bool,
+		computed: bool,
+		/// the callee's own `?.`, as in `a.b?.()`
+		optional_call: bool,
+		/// how many `?.` links the object chain still has to short circuit on,
+		/// each of which opens a group this call has to close
+		guards: u32,
+		/// the callee is a parenthesized chain, so a short circuit calls `undefined`
+		throws: bool,
+	},
+	LiteralCallFn {
+		args: Option<Span>,
+		inner: Span,
+		receiver: CallReceiver,
+		/// the call's own `?.`, as in `f?.()`
+		optional_call: bool,
+	},
+	/// `,${cfg.tempreceiverid}==null?void 0:(${cfg.tempreceiverid}=${cfg.tempreceiverid}.`
+	ChainGuard {
+		computed: bool,
+		throws: bool,
+	},
 	/// `location` -> `$sj_location`
 	RewriteProperty {
 		ident: Atom<'data>,
@@ -59,9 +84,6 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	ScramErr {
 		ident: Atom<'data>,
 	},
-	/// `$scramitize(span)`
-	Scramitize,
-
 	/// `eval(cfg.rewritefn(inner))`
 	Eval {
 		inner: Span,
@@ -91,6 +113,12 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 		restids: Vec<Atom<'data>>,
 		location_assigned: bool,
 		declare_local_location: bool,
+	},
+
+	/// `.` -> `?.`, `[` -> `?.[`, `(` -> `?.(`: the link after a stamped call that can short circuit, which the
+	/// call's rewrite has taken out of the chain
+	OptionalLink {
+		opener: &'static str,
 	},
 
 	// don't use for anything static, only use for stuff like rewriteurl
@@ -241,24 +269,65 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 					declare_local_location
 				}
 			)],
-			Self::WrapPostMessage => smallvec![change!(span!(start), WrapPostMessageLeft), change!(span!(end),
-				ClosingParen { semi: false, replace: false}
-			)],
 			Self::WrapNew => smallvec![change!(span!(start), OpeningParen), change!(span!(end), ClosingParen { semi: false, replace: false })],
-			Self::SetRealmFn => smallvec![change!(span, SetRealmFn)],
+			Self::MemberCallFn { args, object, expression, optional, computed, optional_call, guards, throws } => {
+				// the prelude reaches from the call to the object rather than
+				// sitting at the call's start, so that the parens of a
+				// `(a.b)()` are consumed by it instead of being left behind
+				let mut out: SmallVec<[JsChange; 2]> = smallvec![
+					change!(span!(span object start), CallFnPrelude),
+					change!(span!(object expression between), CallFnLeft { optional, computed, optional_call, throws }),
+				];
+
+				// one group per guard, one for the prelude, and - when there
+				// are no arguments - one for the call whose own parens the
+				// right hand side has just eaten
+				let mut closing = guards + 1;
+				match &args {
+					Some(ar) => out.push(change!(span!(expression ar between), CallFnRight { computed, optional_call })),
+					None => {
+						out.push(change!(span!(expression span end), CallFnRight { computed, optional_call }));
+						closing += 1;
+					}
+				}
+				if optional && optional_call {
+					closing += 1;
+				}
+				for _ in 0..closing {
+					out.push(change!(span!(span span end), ClosingParen { semi: false, replace: false }));
+				}
+
+				out
+			}
+			Self::ChainGuard { computed, throws } => smallvec![change!(span, ChainGuard { computed, throws })],
+			Self::LiteralCallFn { args, inner, receiver, optional_call } => {
+				let mut out: SmallVec<[JsChange; 2]> =
+					smallvec![change!(span!(start), LiteralCallFnLeft { receiver, optional_call })];
+
+				match (&args, optional_call) {
+					(Some(ar), false) => out.push(change!(span!(inner ar between), Replace { text: "," })),
+					(None, false) => out.push(change!(
+						span!(inner span end),
+						ClosingParen { semi: false, replace: true }
+					)),
+					// parking the callee opens a group of its own, and with no
+					// arguments the call's parens have been eaten along with it
+					(Some(ar), true) => {
+						out.push(change!(span!(inner ar between), LiteralCallFnRight { receiver }));
+						out.push(change!(span!(span span end), ClosingParen { semi: false, replace: false }));
+					}
+					(None, true) => {
+						out.push(change!(span!(inner span end), LiteralCallFnRight { receiver }));
+						out.push(change!(span!(span span end), ClosingParen { semi: false, replace: false }));
+						out.push(change!(span!(span span end), ClosingParen { semi: false, replace: false }));
+					}
+				}
+
+				out
+			}
 			Self::ImportFn => smallvec![change!(span, ImportFn)],
 			Self::MetaFn => smallvec![change!(span, MetaFn)],
 			Self::ScramErr { ident } => smallvec![change!(span!(end), ScramErrFn { ident })],
-			Self::Scramitize => smallvec![
-				change!(span!(start), ScramitizeFn),
-				change!(
-					span!(end),
-					ClosingParen {
-						semi: false,
-						replace: false
-					}
-				)
-			],
 			Self::Eval { inner } => smallvec![
 				change!(Span::new(inner.start, inner.start), EvalRewriteFn),
 				change!(
@@ -283,6 +352,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 				smallvec![change!(span!(end), ShorthandObj { ident: name })]
 			}
 			Self::SourceTag => smallvec![change!(span, SourceTag)],
+			Self::OptionalLink { opener } => smallvec![change!(span, Replace { text: opener })],
 			Self::Replace { text } => smallvec![change!(span, Replace { text })],
 			Self::Delete => smallvec![change!(span, Delete)],
 		}

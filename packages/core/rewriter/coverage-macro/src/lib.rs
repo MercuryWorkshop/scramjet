@@ -26,7 +26,7 @@ mod witness;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{ItemFn, parse_macro_input, parse_str, spanned::Spanned};
+use syn::{ItemFn, parse_macro_input, parse2, spanned::Spanned};
 
 use crate::analyze::{
     Findings, PathKind, Witness, analyze_with_helpers_typed, extract_receiver_and_field,
@@ -60,7 +60,11 @@ pub fn coverage_checked(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // 1. Expand marker macros in the body to real walk code.
     let new_body = expand_markers(&node_name, **def, &func.block, &graph);
-    let new_body: syn::Block = match parse_str(&new_body.to_string()) {
+    // parsed from the tokens themselves, never from their `to_string()` - a
+    // round trip through a string resets every span to the macro's call site,
+    // which leaves the whole body unmapped to the source it came from. rustc
+    // then suppresses lints in it and rust-analyzer can offer nothing inside
+    let new_body: syn::Block = match parse2(new_body) {
         Ok(b) => b,
         Err(_) => {
             // Fall back to leaving the body untouched if our rewrite produced
@@ -298,7 +302,7 @@ fn expand_markers(
 }
 
 fn expand_block_inner(block: &syn::Block, def: NodeDef, out: &mut TokenStream2) {
-    let brace = proc_macro2::Group::new(
+    let mut brace = proc_macro2::Group::new(
         proc_macro2::Delimiter::Brace,
         {
             let mut inner = TokenStream2::new();
@@ -308,6 +312,9 @@ fn expand_block_inner(block: &syn::Block, def: NodeDef, out: &mut TokenStream2) 
             inner
         },
     );
+    // a fresh group is born at the call site; the braces it stands in for are
+    // in the source, and the body's own span is read off them
+    brace.set_span(block.brace_token.span.join());
     out.extend(Some(proc_macro2::TokenTree::Group(brace)));
 }
 
@@ -330,8 +337,19 @@ fn expand_token_stream(input: TokenStream2, def: NodeDef) -> TokenStream2 {
                 if bang.as_char() == '!' && g.delimiter() == proc_macro2::Delimiter::Parenthesis {
                     let n = name.to_string();
                     if let Some(replacement) = try_expand_marker(&n, g.stream(), def) {
+                        let empty = replacement.is_empty();
                         out.extend(replacement);
                         i += 3;
+                        // a marker that expands to nothing leaves the `;` that
+                        // terminated it behind as an empty statement, which is
+                        // a `redundant_semicolons` warning on the line the
+                        // marker was written on
+                        if empty
+                            && let Some(TokenTree::Punct(p)) = tts.get(i)
+                            && p.as_char() == ';'
+                        {
+                            i += 1;
+                        }
                         continue;
                     }
                 }
@@ -340,7 +358,8 @@ fn expand_token_stream(input: TokenStream2, def: NodeDef) -> TokenStream2 {
         match &tts[i] {
             TokenTree::Group(g) => {
                 let inner = expand_token_stream(g.stream(), def);
-                let new_group = proc_macro2::Group::new(g.delimiter(), inner);
+                let mut new_group = proc_macro2::Group::new(g.delimiter(), inner);
+                new_group.set_span(g.span());
                 out.extend(Some(TokenTree::Group(new_group)));
             }
             other => out.extend(Some(other.clone())),

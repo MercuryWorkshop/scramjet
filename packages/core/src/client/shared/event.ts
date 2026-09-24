@@ -33,9 +33,17 @@ export default function (client: ScramjetClient, self: Self) {
 				source(this: MessageEvent) {
 					if (this.source === null) return null;
 
-					// const scram: ScramjetClient = this.source[SCRAMJETCLIENT];
-
-					// if (scram) return scram.globalProxy;
+					const data = this.data;
+					if (
+						typeof data === "object" &&
+						data !== null &&
+						Object_hasOwn(data, "$scramjet$messagetype")
+					) {
+						const cl = client.box.clientIds.get(data.$scramjet$clientid);
+						// a sender whose client has since gone - its document
+						// navigated away - leaves nothing better than the native
+						if (cl) return cl.global;
+					}
 
 					return this.source;
 				},

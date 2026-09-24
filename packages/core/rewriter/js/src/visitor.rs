@@ -6,7 +6,8 @@ use oxc::{
 	ast::ast::{
 		AssignmentExpression, AssignmentTarget, AssignmentTargetMaybeDefault,
 		AssignmentTargetProperty, AssignmentTargetPropertyIdentifier, BindingPattern,
-		BindingPatternKind, BindingProperty, CallExpression, ComputedMemberExpression,
+		BindingPatternKind, BindingProperty, CallExpression, ChainElement, ComputedMemberExpression,
+		WithStatement,
 		DebuggerStatement, ExportAllDeclaration, ExportNamedDeclaration, Expression, ForStatement,
 		ForStatementInit, ForStatementLeft, FormalParameter, FunctionBody, IdentifierReference,
 		ImportDeclaration, ImportExpression, MemberExpression, MetaProperty, NewExpression,
@@ -20,10 +21,44 @@ use oxc::{
 };
 
 use crate::{
-	cfg::{Config, Flags, UrlRewriter},
-	changes::JsChanges,
-	rewrite::rewrite,
+	cfg::{Config, Flags, IncumbencyMode, UrlRewriter}, changes::{CallReceiver, JsChanges}, rewrite::rewrite,
 };
+
+/// Whether evaluating `expr` can short circuit the optional chain it is part of: a `?.` anywhere in it that is
+/// not behind parentheses, which end a chain.
+fn short_circuits(expr: &Expression) -> bool {
+	match expr {
+		Expression::StaticMemberExpression(m) => m.optional || short_circuits(&m.object),
+		Expression::ComputedMemberExpression(c) => c.optional || short_circuits(&c.object),
+		Expression::PrivateFieldExpression(p) => p.optional || short_circuits(&p.object),
+		Expression::CallExpression(c) => c.optional || short_circuits(&c.callee),
+		_ => false,
+	}
+}
+
+/// Whether `lazystamp` records the realm for a call to `callee`: one that names `postMessage` as it is written.
+/// That is the whole of what makes it lazy - a computed key only counts when it is a literal spelling the name.
+fn names_post_message(callee: &Expression) -> bool {
+	let is_name = |key: &Expression| match key.get_inner_expression() {
+		Expression::StringLiteral(s) => s.value == "postMessage",
+		Expression::TemplateLiteral(t) if t.expressions.is_empty() => {
+			t.quasis.first().and_then(|q| q.value.cooked.as_ref()).is_some_and(|c| c == "postMessage")
+		}
+		_ => false,
+	};
+
+	match callee.get_inner_expression() {
+		Expression::Identifier(s) => s.name == "postMessage",
+		Expression::StaticMemberExpression(m) => m.property.name == "postMessage",
+		Expression::ComputedMemberExpression(c) => is_name(&c.expression),
+		Expression::ChainExpression(chain) => match &chain.expression {
+			ChainElement::StaticMemberExpression(m) => m.property.name == "postMessage",
+			ChainElement::ComputedMemberExpression(c) => is_name(&c.expression),
+			_ => false,
+		},
+		_ => false,
+	}
+}
 
 // required stub markers
 macro_rules! audit_skip { ($($t:tt)*) => {}; }
@@ -46,6 +81,12 @@ where
 	pub config: &'data Config,
 	pub rewriter: &'data E,
 	pub flags: Flags,
+
+	/// how many `with` bodies the visitor is inside, where a bare `f()` may be called with the `with` object as
+	/// its receiver - which is not known until it runs
+	pub with_depth: u32,
+	/// the members a stamped call has split into a receiver and a lookup, whose links its own rewrite owns
+	pub split_members: std::vec::Vec<Span>,
 }
 
 impl<'data, E> Visitor<'_, 'data, E>
@@ -73,6 +114,35 @@ where
 		if UNSAFE_GLOBALS.contains(&name.as_str()) {
 			self.jschanges.add(rewrite!(span, WrapFn { enclose: true }));
 		}
+	}
+
+	/// Whether `call` is rewritten into a `callfn` call - which takes it out of any chain it is part of.
+	fn stamps(&self, call: &CallExpression) -> bool {
+		let should_stamp = match &self.flags.incumbency {
+			IncumbencyMode::Stamp => true,
+			IncumbencyMode::LazyStamp => names_post_message(&call.callee),
+			_ => false,
+		};
+		if !should_stamp {
+			return false;
+		}
+
+		match call.callee.get_inner_expression() {
+			// a direct eval is rewritten as one
+			Expression::Identifier(s) if s.name == "eval" && !call.optional => false,
+			Expression::Identifier(_) => self.with_depth == 0,
+			Expression::Super(_) | Expression::PrivateFieldExpression(_) => false,
+			Expression::ChainExpression(c) => !matches!(c.expression, ChainElement::PrivateFieldExpression(_)),
+			_ => true,
+		}
+	}
+
+	/// Whether `object` is a stamped call that can short circuit. Its rewrite ends the chain it was part of, so the
+	/// link after it has to short circuit on its own: when the call evaluates to `undefined`, so does the rest of
+	/// the chain. That also happens if the call itself returns null or undefined, where the chain would have gone
+	/// on and thrown
+	fn short_circuited_call(&self, object: &Expression) -> bool {
+		matches!(object, Expression::CallExpression(c) if self.stamps(c)) && short_circuits(object)
 	}
 
 	fn handle_computed_member_expression(&mut self, it: &ComputedMemberExpression<'data>) {
@@ -168,9 +238,9 @@ where
 						}
 
 						// this is really annoying, we have to list out all the things that *aren't* expressions, you can't just check if it is one
-						// otherwise { 0:location } rewrites to { scramjet$prop(0):location } which is obviously invalid syntax 
+						// otherwise { 0:location } rewrites to { scramjet$prop(0):location } which is obviously invalid syntax
 						PropertyKey::NumericLiteral(_) | PropertyKey::RegExpLiteral(_) | PropertyKey::BigIntLiteral(_) | PropertyKey::PrivateIdentifier(_) => {}
-						
+
 						_ => {
 							// { ["location"]: x } = self;
 							self.jschanges.add(rewrite!(p.name.span(), WrapProperty));
@@ -474,10 +544,6 @@ where
 		walk::walk_expression(self, &right);
 		walk::walk_statement(self, &body);
 	}
-
-	fn scramitize(&mut self, span: Span) {
-		self.jschanges.add(rewrite!(span, Scramitize));
-	}
 }
 
 impl<'data, E> Visit<'data> for Visitor<'_, 'data, E>
@@ -517,19 +583,18 @@ where
 
 	#[coverage_checked(MemberExpression)]
 	fn visit_member_expression(&mut self, it: &MemberExpression<'data>) {
+		if !it.optional() && !self.split_members.contains(&it.span()) && self.short_circuited_call(it.object()) {
+			let object_end = it.object().span().end;
+			let (end, opener) = match &it {
+				MemberExpression::StaticMemberExpression(s) => (s.property.span.start, "?."),
+				MemberExpression::ComputedMemberExpression(c) => (c.expression.span().start, "?.["),
+				MemberExpression::PrivateFieldExpression(p) => (p.field.span.start, "?."),
+			};
+			self.jschanges.add(rewrite!(Span::new(object_end, end), OptionalLink { opener }));
+		}
+
 		match &it {
 			MemberExpression::StaticMemberExpression(s) => {
-				// TODO
-				// you could break this with ["postMessage"] etc
-				// however this code only exists because of recaptcha whatever
-				// and it would slow down js execution a lot
-				if s.property.name == "postMessage" && !matches!(&s.object, Expression::Super(_)) {
-					self.jschanges.add(rewrite!(s.object.span(), WrapPostMessage));
-
-					walk::walk_expression(self, &s.object);
-					return; // unwise to walk the rest of the tree
-				}
-
 				if UNSAFE_GLOBALS.contains(&s.property.name.as_str()) {
 					self.jschanges.add(rewrite!(
 						s.property.span(),
@@ -546,6 +611,14 @@ where
 		}
 
 		walk::walk_member_expression(self, it);
+	}
+
+	#[coverage_checked(WithStatement)]
+	fn visit_with_statement(&mut self, it: &WithStatement<'data>) {
+		self.visit_expression(&it.object);
+		self.with_depth += 1;
+		self.visit_statement(&it.body);
+		self.with_depth -= 1;
 	}
 
 	#[coverage_checked(DebuggerStatement)]
@@ -575,9 +648,115 @@ where
 				return;
 			}
 		}
-		if self.flags.scramitize {
-			self.scramitize(it.span);
+
+		let should_stamp = match &self.flags.incumbency {
+			IncumbencyMode::Stamp => true,
+			IncumbencyMode::LazyStamp => names_post_message(&it.callee),
+			_ => false,
+		};
+
+		if should_stamp {
+			let args = it.arguments_span();
+			let callee = it.callee.get_inner_expression();
+			// `(a?.b)()` is still a call of `a.b` with `a` as its receiver. It is not part of the chain, though: when
+			// the chain short circuits, the call is of `undefined`
+			let (member, throws) = match callee {
+				Expression::ComputedMemberExpression(c) => {
+					(Some((&c.object, c.expression.span(), c.optional, true)), false)
+				}
+				Expression::StaticMemberExpression(m) => {
+					(Some((&m.object, m.property.span(), m.optional, false)), false)
+				}
+				Expression::ChainExpression(chain) => match &chain.expression {
+					ChainElement::ComputedMemberExpression(c) => {
+						(Some((&c.object, c.expression.span(), c.optional, true)), !it.optional)
+					}
+					ChainElement::StaticMemberExpression(m) => {
+						(Some((&m.object, m.property.span(), m.optional, false)), !it.optional)
+					}
+					_ => (None, false),
+				},
+				_ => (None, false),
+			};
+			let private = matches!(callee, Expression::PrivateFieldExpression(_))
+				|| matches!(callee, Expression::ChainExpression(c) if matches!(c.expression, ChainElement::PrivateFieldExpression(_)));
+
+			match member {
+				// `super.m()` looks the method up on the home object but calls it with the `this` already in scope,
+				// and `super` is a keyword that cannot be parked in a temp. `super.m` does read as a value though,
+				// so hand the lookup over whole and name the receiver directly
+				Some((object, ..))
+					if matches!(object.get_inner_expression(), Expression::Super(_)) =>
+				{
+					self.jschanges.add(rewrite!(it.span, LiteralCallFn {
+						args,
+						inner: it.callee.span(),
+						receiver: CallReceiver::This,
+						optional_call: it.optional,
+					}))
+				}
+				Some((object, expression, optional, computed)) => {
+					// splitting the callee into a receiver and a lookup loses the short circuit a `?.` further up
+					// the chain would have done, so every one of them gets a nullish check of its own
+					let mut guards = 0;
+					let mut link = object.get_inner_expression();
+					loop {
+						let (inner, property, optional, computed) = match link {
+							Expression::ComputedMemberExpression(c) => {
+								(&c.object, c.expression.span(), c.optional, true)
+							}
+							Expression::StaticMemberExpression(m) => {
+								(&m.object, m.property.span(), m.optional, false)
+							}
+							_ => break,
+						};
+						self.split_members.push(link.span());
+						if optional || self.short_circuited_call(inner) {
+							let gap = Span::new(inner.span().end, property.start);
+							self.jschanges.add(rewrite!(gap, ChainGuard { computed, throws }));
+							guards += 1;
+						}
+						link = inner.get_inner_expression();
+					}
+
+					self.split_members.push(callee.span());
+					self.jschanges.add(rewrite!(it.span, MemberCallFn {
+						args,
+						object: object.span(),
+						expression,
+						optional: optional || self.short_circuited_call(object),
+						computed,
+						optional_call: it.optional,
+						guards,
+						throws,
+					}))
+				}
+				// even if you set `this.#p()` to a native method, it will always throw illegal invocation or a typeerror
+				// if you ever use this for something other than incumbency stamping this must be handled properly
+				None if private => {}
+				// `super()` runs the parent constructor rather than calling a function value, and `super` does not
+				// read as one - there is nothing here to hand to `callfn`
+				None if matches!(callee, Expression::Super(_)) => {}
+				// inside `with`, a bare `f()` is called with the `with` object as its receiver if that is where `f`
+				// was found, which only the running code knows
+				None if self.with_depth > 0 && matches!(callee, Expression::Identifier(_)) => {}
+				// anything else is called with no receiver of its own
+				None => self.jschanges.add(rewrite!(it.span, LiteralCallFn {
+					args,
+					inner: it.callee.span(),
+					receiver: CallReceiver::Undefined,
+					optional_call: it.optional || self.short_circuited_call(&it.callee),
+				})),
+			}
+		} else if !it.optional && self.short_circuited_call(&it.callee) {
+			// the call's opening paren, up to its first argument or its closing paren
+			let end = it.arguments.first().map_or(it.span.end - 1, |a| a.span().start);
+			self.jschanges.add(rewrite!(
+				Span::new(it.callee.span().end, end),
+				OptionalLink { opener: "?.(" }
+			));
 		}
+
 		walk::walk_call_expression(self, it);
 	}
 

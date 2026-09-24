@@ -73,27 +73,33 @@ impl NativeRewriter {
 					wrapfn: cfg.wrapfn.clone(),
 					wrappropertybase: cfg.wrappropertybase.clone(),
 					wrappropertyfn: cfg.wrappropertyfn.clone(),
+					callfn: cfg.callfn.clone(),
 					cleanrestfn: cfg.cleanrestfn.clone(),
 					importfn: cfg.importfn.clone(),
 					rewritefn: cfg.rewritefn.clone(),
-					wrappostmessagefn: cfg.wrappostmessage.clone(),
 					metafn: cfg.metafn.clone(),
 					pushsourcemapfn: cfg.pushsourcemapfn.clone(),
+					registerrealmfn: cfg.registerrealmfn.clone(),
 
 					trysetfn: cfg.trysetfn.clone(),
 					templocid: cfg.templocid.clone(),
+					tempreceiverid: cfg.tempreceiverid.clone(),
+					tempcalleeid: cfg.tempcalleeid.clone(),
 					tempunusedid: cfg.tempunusedid.clone(),
 				},
 				Flags {
 					base: cfg.base.clone(),
 					sourcetag: cfg.sourcetag.clone(),
+					script_id: String::from("0"),
 					is_module: cfg.is_module,
 
 					capture_errors: cfg.capture_errors,
 					do_sourcemaps: cfg.do_sourcemaps,
-					scramitize: cfg.scramitize,
+					inline_sourcemap: cfg.inline_sourcemap,
 					disable_computed_wrap: cfg.disable_computed_wrap,
 					destructure_rewrites: cfg.destructure_rewrites,
+
+					incumbency: cfg.incumbency,
 				},
 				&rewriter
 			)

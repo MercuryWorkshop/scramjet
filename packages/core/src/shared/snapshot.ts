@@ -214,6 +214,9 @@ export const TextDecoder_decode = textDecoder.decode.bind(textDecoder);
 const performance = globalThis.performance;
 export const Performance_now = performance.now.bind(performance);
 
+const crypto = globalThis.crypto;
+export const Crypto_getRandomValues = crypto.getRandomValues.bind(crypto);
+
 export const btoa = globalThis.btoa;
 export const atob = globalThis.atob;
 export const URL_createObjectURL = globalThis.URL.createObjectURL.bind(
@@ -298,11 +301,12 @@ type WrappedCtor<
 	};
 
 /**
- * The four collection constructors get hand-written signatures rather than
- * `infer Args` off the source. Inferring from an overloaded constructor picks
- * one overload arbitrarily, which is how `new _Map()` ended up demanding an
- * argument; writing them out keeps the initialiser optional and gives the type
- * parameter a default, so `new _Set()`, `new _Set<string>()` and
+ * The four collection constructors, and `Uint8Array`, get hand-written
+ * signatures rather than `infer Args` off the source. Inferring from an
+ * overloaded constructor picks one overload arbitrarily, which is how
+ * `new _Map()` ended up demanding an argument and `new _Uint8Array(n)`
+ * demanding none; writing them out keeps the initialiser optional and gives
+ * the type parameter a default, so `new _Set()`, `new _Set<string>()` and
  * `new _Set(["a"])` all behave like the real thing.
  *
  * Strong collections are tested before weak ones - see InstantiatePrototype.
@@ -351,13 +355,29 @@ type WrappedConstructor<T> =
 								): Wrapped<WeakSet<U>>;
 							}
 						>
-					: T extends abstract new (...args: infer Args) => infer Instance
-						? Omit<T, "prototype"> & {
-								new (...args: Args): WrappedInstance<Instance>;
-								prototype: WrappedInstance<Instance>;
-								readonly [WrappedBrand]: T;
-							}
-						: never;
+					: ConstructorPrototype<T> extends Uint8Array<ArrayBufferLike>
+						? WrappedCtor<
+								T,
+								[],
+								{
+									new (length?: number): Wrapped<Uint8Array>;
+									new (
+										source: ArrayLike<number> | Iterable<number>
+									): Wrapped<Uint8Array>;
+									new (
+										buffer: ArrayBufferLike,
+										byteOffset?: number,
+										length?: number
+									): Wrapped<Uint8Array>;
+								}
+							>
+						: T extends abstract new (...args: infer Args) => infer Instance
+							? Omit<T, "prototype"> & {
+									new (...args: Args): WrappedInstance<Instance>;
+									prototype: WrappedInstance<Instance>;
+									readonly [WrappedBrand]: T;
+								}
+							: never;
 
 export type Wrapped<T> = T extends abstract new (...args: any) => any
 	? WrappedConstructor<T>

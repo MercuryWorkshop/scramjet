@@ -57,6 +57,23 @@ export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
 
 export const order = 4;
 export default function (client: ScramjetClient, self: GlobalThis) {
+	// a temporary slot that $call can use to store the receiver
+	Object_defineProperty(self, client.config.globals.tempreceiverid, {
+		value: undefined,
+		writable: true,
+		configurable: false,
+		enumerable: false,
+	});
+
+	// the same, for the callee of an optional call, which has to be parked
+	// before the arguments are evaluated so that a nullish one can skip them
+	Object_defineProperty(self, client.config.globals.tempcalleeid, {
+		value: undefined,
+		writable: true,
+		configurable: false,
+		enumerable: false,
+	});
+
 	Object_defineProperty(self, client.config.globals.wrapfn, {
 		value: client.wrapfn,
 		writable: false,
@@ -156,23 +173,6 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 			enumerable: false,
 		}
 	);
-
-	self.$scramitize = function (v) {
-		const t = typeof v;
-		if (t === "object" && v !== null) {
-			if (v === location) debugger;
-			if (iswindow) {
-				// if (v === self.parent) debugger;
-				if (v === self.top) debugger;
-			}
-		} else if (t === "string") {
-			if (v.includes("scramjet")) debugger;
-			if (v.includes("~/sj")) debugger;
-			if (v.includes(location.origin)) debugger;
-		}
-
-		return v;
-	};
 
 	// location = "..." can't be rewritten as wrapfn(location) = ..., so instead it will actually be rewritten as
 	// ((t)=>$scramjet$tryset(location,"+=",t)||location+=t)(...);

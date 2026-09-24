@@ -180,7 +180,8 @@ export class TextLayer {
 					"(anonymous script element)",
 					client.context,
 					client.meta,
-					module
+					module,
+					client
 				) as string;
 		}
 

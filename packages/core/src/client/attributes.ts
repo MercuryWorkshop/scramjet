@@ -309,7 +309,9 @@ export class AttributeLayer {
 					value,
 					`(inline ${name} on element)`,
 					client.context,
-					client.meta
+					client.meta,
+					false,
+					client
 				) as string;
 		}
 

@@ -3,6 +3,7 @@ import {
 	Number_isSafeInteger,
 	Error,
 } from "@/shared/snapshot";
+import { base64ToBytes } from "@/shared/util";
 import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
 import { ProxyCtx, ScramjetClient } from "@client/index";
 
@@ -36,13 +37,20 @@ function getEnd(rewrite: Rewrite): number {
 	throw "unreachable";
 }
 
-function registerRewrites(
+export function registerRewrites(
 	client: ScramjetClient,
-	buf: Array<number>,
+	buf: string | Uint8Array,
 	tag: string
 ) {
-	const sourcemap = Uint8Array.from(buf);
-	const view = new DataView(sourcemap.buffer);
+	// a script rewritten in the service worker carries its map inline as base64,
+	// because it can only reach us as source text. one rewritten in this realm
+	// hands the buffer over directly
+	const sourcemap = typeof buf === "string" ? base64ToBytes(buf) : buf;
+	const view = new DataView(
+		sourcemap.buffer,
+		sourcemap.byteOffset,
+		sourcemap.byteLength
+	);
 	const decoder = new TextDecoder("utf-8");
 
 	const rewrites: Rewrite[] = [];
@@ -169,9 +177,9 @@ export const enabled = (client: ScramjetClient) =>
 	client.flagEnabled("sourcemaps");
 
 export default function (client: ScramjetClient, self: Self) {
-	// every script will push a sourcemap
+	// a script rewritten outside the client pushes its own sourcemap
 	Object_defineProperty(self, client.config.globals.pushsourcemapfn, {
-		value: (buf: Array<number>, tag: string) => {
+		value: (buf: string | Uint8Array, tag: string) => {
 			// const before = performance.now();
 			registerRewrites(client, buf, tag);
 			// if (client.flagEnabled("rewriterLogs")) {

@@ -27,8 +27,6 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 		"if invalid javascript is evaluated, pass through unsafely instead of throwing",
 	encapsulateWorkers:
 		"wrap web worker scripts in data urls to prevent scope issues (potentially buggy)",
-	scramitize:
-		"Trigger debugger whenever the string 'scramjet' or the real location is detected in attacker code (debug feature)",
 	rewriterLogs: "Enable rewriter logging (debug feature)",
 	captureErrors: "Capture and handle JavaScript errors (debug feature)",
 	debugTrampolines: "Show proxied api in stack traces (debug feature)",

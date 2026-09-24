@@ -3,16 +3,31 @@ import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
 import {
-	Array_from,
 	TextDecoder_decode,
-	_RegExp,
+	Crypto_getRandomValues,
 	_Uint8Array,
 	Object_keys,
 	Performance_now,
 } from "../snapshot";
+import { incumbencyMode } from "@/shared/incumbency";
+import type { ScramjetClient } from "@client/index";
+import { registerRewrites } from "@client/shared/sourcemaps";
 
 // eslint-disable-next-line scramjet-core/no-globals
 Error.stackTraceLimit = 50;
+
+/** A private PST registration ID, generated independently for each rewrite. */
+const SCRIPT_ID_BYTES = 16;
+const HEX = "0123456789abcdef";
+
+function genScriptId(): string {
+	const bytes = Crypto_getRandomValues(new _Uint8Array(SCRIPT_ID_BYTES));
+	let id = "";
+	for (let i = 0; i < SCRIPT_ID_BYTES; i++) {
+		id += HEX[bytes[i] >> 4] + HEX[bytes[i] & 0xf];
+	}
+	return id;
+}
 
 type RewriterResult = {
 	js: string | Uint8Array;
@@ -25,7 +40,8 @@ function rewriteJsWasm(
 	source: string | null,
 	context: ScramjetContext,
 	meta: URLMeta,
-	isModule: boolean
+	isModule: boolean,
+	inlineSourcemap: boolean
 ): RewriterResult {
 	const [rewriter, ret] = getRewriter(context, meta);
 
@@ -33,17 +49,22 @@ function rewriteJsWasm(
 	for (const flag of Object_keys(context.config.flags)) {
 		flagsobj[flag] = flagEnabled(flag as any, context, flagsUrl(meta));
 	}
+	// the one flag that is not a boolean, and the rewriter wants the mode this
+	// engine can actually do rather than the one that was configured
+	flagsobj["incumbency"] = incumbencyMode(context, flagsUrl(meta));
+	flagsobj["inlineSourcemap"] = inlineSourcemap;
+	flagsobj["scriptId"] = genScriptId();
 
 	try {
 		let out: JsRewriterOutput;
 		const before = Performance_now();
-		// try {
+		const globals = {
+			...context.config.globals,
+			prefix: context.prefix.pathname,
+		};
 		if (typeof input === "string") {
 			out = rewriter.rewrite_js(
-				{
-					...context.config.globals,
-					prefix: context.prefix.pathname,
-				},
+				globals,
 				flagsobj,
 				context.interface.codecEncode,
 				input,
@@ -53,10 +74,7 @@ function rewriteJsWasm(
 			);
 		} else {
 			out = rewriter.rewrite_js_bytes(
-				{
-					...context.config.globals,
-					prefix: context.prefix.pathname,
-				},
+				globals,
 				flagsobj,
 				context.interface.codecEncode,
 				input,
@@ -65,17 +83,6 @@ function rewriteJsWasm(
 				isModule
 			);
 		}
-		// } catch (err) {
-		// 	const err1 = err as Error;
-		// 	console.warn(
-		// 		"failed rewriting js for",
-		// 		source,
-		// 		err1.message,
-		// 		input instanceof Uint8Array ? textDecoder.decode(input) : input
-		// 	);
-
-		// 	return { js: input, tag: "", map: null };
-		// }
 		if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
 			dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
 		}
@@ -100,7 +107,7 @@ export function rewriteJsInner(
 	meta: URLMeta,
 	isModule = false
 ) {
-	return rewriteJsWasm(js, url, context, meta, isModule);
+	return rewriteJsWasm(js, url, context, meta, isModule, true);
 }
 
 export function rewriteJs(
@@ -108,31 +115,20 @@ export function rewriteJs(
 	url: string | null,
 	context: ScramjetContext,
 	meta: URLMeta,
-	isModule = false
+	isModule = false,
+	/**
+	 * The client rewriting the script, when a client is. It is handed the
+	 * sourcemap directly. Without one - the service worker, or code shared
+	 * with it - the map goes in the script's prelude, and the script hands it
+	 * to its client itself when it runs.
+	 */
+	client?: ScramjetClient
 ): string | Uint8Array {
 	try {
-		const res = rewriteJsInner(js, url, context, meta, isModule);
-		let newjs = res.js;
+		const res = rewriteJsWasm(js, url, context, meta, isModule, !client);
 
-		if (flagEnabled("sourcemaps", context, flagsUrl(meta))) {
-			const pushmap = globalThis[context.config.globals.pushsourcemapfn];
-			if (pushmap) {
-				pushmap(Array_from(res.map), res.tag);
-			} else {
-				// TODO: how do we check instanceof here?
-				if (typeof newjs !== "string") {
-					newjs = TextDecoder_decode(newjs);
-				}
-				const sourcemapfn = `${context.config.globals.pushsourcemapfn}([${res.map.join(",")}], "${res.tag}");`;
-
-				// don't put the sourcemap call before "use strict"
-				const strictMode = new _RegExp(/^\s*(['"])use strict\1;?/);
-				if (strictMode.test(newjs)) {
-					newjs = newjs.replace(strictMode, `$&\n${sourcemapfn}`);
-				} else {
-					newjs = `${sourcemapfn}\n${newjs}`;
-				}
-			}
+		if (client && flagEnabled("sourcemaps", context, flagsUrl(meta))) {
+			registerRewrites(client, res.map, res.tag);
 		}
 
 		if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
@@ -141,7 +137,7 @@ export function rewriteJs(
 			}
 		}
 
-		return newjs;
+		return res.js;
 	} catch (err) {
 		dbg.warn(
 			"failed rewriting js for",

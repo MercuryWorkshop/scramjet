@@ -19,6 +19,11 @@ export type DirectTestContext = {
 export type Test = {
 	name: string;
 	port: number;
+	/** Override the proxy's incumbency mode for this test's navigation. */
+	debugTrampolines?: boolean;
+	incumbencyMode?: "pst" | "stamp" | "lazystamp" | "none";
+	/** URL-pattern overrides, applied only while this test runs. */
+	incumbencySiteFlags?: Record<string, NonNullable<Test["incumbencyMode"]>>;
 	/**
 	 * Hostname used in the URL passed to the harness (default `localhost`).
 	 * Cleartext traffic goes to `127.0.0.1:testPort` with a matching `Host` header (no `/etc/hosts`).

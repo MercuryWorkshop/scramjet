@@ -9,6 +9,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use js::cfg::IncumbencyMode;
 use oxc::{
 	allocator::{Allocator, StringBuilder},
 	diagnostics::NamedSource,
@@ -28,6 +29,8 @@ pub struct RewriterOptions {
 	wrappropertybase: String,
 	#[clap(long, default_value = "$prop")]
 	wrappropertyfn: String,
+	#[clap(long, default_value = "$call")]
+	callfn: String,
 	#[clap(long, default_value = "$clean")]
 	cleanrestfn: String,
 	#[clap(long, default_value = "$import")]
@@ -36,15 +39,19 @@ pub struct RewriterOptions {
 	rewritefn: String,
 	#[clap(long, default_value = "$meta")]
 	metafn: String,
-	#[clap(long, default_value = "$wrapPostMessage")]
-	wrappostmessage: String,
 	#[clap(long, default_value = "$pushsourcemap")]
 	pushsourcemapfn: String,
+	#[clap(long, default_value = "$registerrealm")]
+	registerrealmfn: String,
 
 	#[clap(long, default_value = "$tryset")]
 	trysetfn: String,
 	#[clap(long, default_value = "$temploc")]
 	templocid: String,
+	#[clap(long, default_value = "$tempreceiver")]
+	tempreceiverid: String,
+	#[clap(long, default_value = "$tempcallee")]
+	tempcalleeid: String,
 	#[clap(long, default_value = "$tempunused")]
 	tempunusedid: String,
 
@@ -60,11 +67,13 @@ pub struct RewriterOptions {
 	#[clap(long, default_value_t = false)]
 	do_sourcemaps: bool,
 	#[clap(long, default_value_t = false)]
-	scramitize: bool,
+	inline_sourcemap: bool,
 	#[clap(long, default_value_t = false)]
 	disable_computed_wrap: bool,
 	#[clap(long, default_value_t = false)]
 	destructure_rewrites: bool,
+	#[clap(long, default_value = "none")]
+	incumbency: IncumbencyMode,
 }
 
 impl Default for RewriterOptions {

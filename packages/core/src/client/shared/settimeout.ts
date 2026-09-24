@@ -11,7 +11,9 @@ export default function (client: ScramjetClient, _self: Self) {
 			String(handler),
 			"(setTimeout string eval)",
 			client.context,
-			client.meta
+			client.meta,
+			false,
+			client
 		);
 
 		return typeof rewritten === "string"

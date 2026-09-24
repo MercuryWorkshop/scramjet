@@ -460,198 +460,241 @@ async function runTestOnHarness(
 	// document emits on the way out isn't charged to this test.
 	await resetTestFrame(page);
 	await syncRunwayCleartextHarness(page, test);
-
-	const warmProxiedUrl = async (url: string) => {
-		const proxiedUrl = await page.evaluate((targetUrl) => {
-			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
-				return (window as any).__runwayGetProxiedUrl(targetUrl);
+	await page.evaluate(
+		({ mode, siteFlags, debugTrampolines }) => {
+			const harness = window as any;
+			const config = harness.__runwayController?.scramjetConfig;
+			if (!config) return;
+			if (!harness.__runwayIncumbencyDefaults) {
+				harness.__runwayIncumbencyDefaults = {
+					mode: config.flags.incumbency,
+					debugTrampolines: config.flags.debugTrampolines,
+					siteFlags: { ...config.siteFlags },
+				};
 			}
-			return "";
-		}, url);
+			const defaults = harness.__runwayIncumbencyDefaults;
+			config.flags.incumbency = mode ?? defaults.mode;
+			config.flags.debugTrampolines =
+				debugTrampolines ?? defaults.debugTrampolines;
+			config.siteFlags = { ...defaults.siteFlags };
+			for (const [pattern, incumbency] of Object.entries(siteFlags ?? {})) {
+				config.siteFlags[pattern] = {
+					...config.siteFlags[pattern],
+					incumbency,
+				};
+			}
+		},
+		{
+			mode: test.incumbencyMode,
+			siteFlags: test.incumbencySiteFlags,
+			debugTrampolines: test.debugTrampolines,
+		}
+	);
 
-		if (!proxiedUrl) return;
-
-		await page.evaluate(
-			async ({ url, timeout }) => {
-				const controller = new AbortController();
-				const timeoutId = setTimeout(() => controller.abort(), timeout);
-				try {
-					const response = await fetch(url, {
-						signal: controller.signal,
-					});
-					if (!response.ok) {
-						throw new Error(`Warm fetch failed with ${response.status}`);
-					}
-					await response.body?.cancel().catch(() => {});
-				} catch (error) {
-					if (error instanceof DOMException && error.name === "AbortError") {
-						return;
-					}
-					throw error;
-				} finally {
-					clearTimeout(timeoutId);
+	try {
+		const warmProxiedUrl = async (url: string) => {
+			const proxiedUrl = await page.evaluate((targetUrl) => {
+				if (typeof (window as any).__runwayGetProxiedUrl === "function") {
+					return (window as any).__runwayGetProxiedUrl(targetUrl);
 				}
-			},
-			{ url: proxiedUrl, timeout: Math.min(timeout, 5000) }
-		);
-	};
-
-	// Handle playwright tests (tests that control the browser directly)
-	if (test.playwrightFn) {
-		const frame = page.frameLocator("#testframe");
-		const navigate = async (url: string) => {
-			await page.evaluate((u) => {
-				(window as any).__runwayNavigate(u);
+				return "";
 			}, url);
+
+			if (!proxiedUrl) return;
+
+			await page.evaluate(
+				async ({ url, timeout }) => {
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), timeout);
+					try {
+						const response = await fetch(url, {
+							signal: controller.signal,
+						});
+						if (!response.ok) {
+							throw new Error(`Warm fetch failed with ${response.status}`);
+						}
+						await response.body?.cancel().catch(() => {});
+					} catch (error) {
+						if (error instanceof DOMException && error.name === "AbortError") {
+							return;
+						}
+						throw error;
+					} finally {
+						clearTimeout(timeoutId);
+					}
+				},
+				{ url: proxiedUrl, timeout: Math.min(timeout, 5000) }
+			);
 		};
 
-		try {
-			await test.playwrightFn({ page, frame, navigate });
-			return { status: "pass" };
-		} catch (error) {
-			return {
-				status: "fail",
-				message: error instanceof Error ? error.message : String(error),
-				details: error instanceof Error ? error.stack : undefined,
+		// Handle playwright tests (tests that control the browser directly)
+		if (test.playwrightFn) {
+			const frame = page.frameLocator("#testframe");
+			const navigate = async (url: string) => {
+				await page.evaluate((u) => {
+					(window as any).__runwayNavigate(u);
+				}, url);
 			};
-		}
-	}
 
-	const runwayToken = crypto.randomUUID();
-	const testUrl = test.topLevelScramjet
-		? runwayTestTargetUrl(test)
-		: appendRunwayToken(
-				runwayTestTargetUrl(test),
-				runwayToken,
-				test.name.startsWith("wpt-")
-			);
-	const harnessResultPromise = waitForResult(
-		timeout,
-		test.topLevelScramjet ? undefined : runwayToken
-	);
-	let result: TestResult;
-	let topLevelPage: Page | null = null;
-	let stopWatchingTopLevelPage: (() => void) | null = null;
-	let topLevelNavigationPromise: Promise<void> | null = null;
-	if (test.topLevelScramjet) {
-		const proxiedUrl = await page.evaluate((url) => {
-			if (typeof (window as any).__runwayGetProxiedUrl === "function") {
-				return (window as any).__runwayGetProxiedUrl(url);
+			try {
+				await test.playwrightFn({ page, frame, navigate });
+				return { status: "pass" };
+			} catch (error) {
+				return {
+					status: "fail",
+					message: error instanceof Error ? error.message : String(error),
+					details: error instanceof Error ? error.stack : undefined,
+				};
 			}
-			(window as any).__runwayNavigate(url);
-			const iframe = document.getElementById(
-				"testframe"
-			) as HTMLIFrameElement | null;
-			return iframe?.src || "";
-		}, testUrl);
-		await page.evaluate(
-			async ({ url, timeout }) => {
-				const controller = new AbortController();
-				const timeoutId = setTimeout(() => controller.abort(), timeout);
-				try {
-					const response = await fetch(url, {
-						signal: controller.signal,
-					});
-					if (!response.ok) {
-						throw new Error(`Warm fetch failed with ${response.status}`);
-					}
-					await response.body?.cancel().catch(() => {});
-				} catch (error) {
-					if (error instanceof DOMException && error.name === "AbortError") {
-						return;
-					}
-					throw error;
-				} finally {
-					clearTimeout(timeoutId);
-				}
-			},
-			{ url: proxiedUrl, timeout: Math.min(timeout, 5000) }
+		}
+
+		const runwayToken = crypto.randomUUID();
+		const testUrl = test.topLevelScramjet
+			? runwayTestTargetUrl(test)
+			: appendRunwayToken(
+					runwayTestTargetUrl(test),
+					runwayToken,
+					test.name.startsWith("wpt-")
+				);
+		const harnessResultPromise = waitForResult(
+			timeout,
+			test.topLevelScramjet ? undefined : runwayToken
 		);
-		topLevelPage = await context.newPage();
-		stopWatchingTopLevelPage = watchPage(topLevelPage);
-		topLevelNavigationPromise = topLevelPage
-			.goto(proxiedUrl, { waitUntil: "commit" })
-			.then(() => {});
-	} else {
-		if (test.warmProxiedNavigation) {
-			await warmProxiedUrl(testUrl);
-		}
-		await page.evaluate((url) => {
-			// This function should be defined by the harness
-			(window as any).__runwayNavigate(url);
-		}, testUrl);
-	}
-
-	if (serverResult) {
-		const raced = await Promise.race([
-			harnessResultPromise.then((value) => ({
-				source: "harness" as const,
-				value,
-			})),
-			serverResult.then((value) => ({ source: "server" as const, value })),
-			...(topLevelNavigationPromise
-				? [
-						topLevelNavigationPromise.then(
-							() =>
-								new Promise<never>(() => {
-									// keep the race pending; completion is driven by pass/fail
-								}),
-							(error) => ({
-								source: "navigation" as const,
-								value: {
-									status: "fail" as const,
-									message:
-										error instanceof Error ? error.message : String(error),
-								},
-							})
-						),
-					]
-				: []),
-		]);
-		if (raced.source === "server") {
-			cancelWaitForResult();
-		}
-		result = raced.value;
-	} else {
-		if (topLevelNavigationPromise) {
-			const raced = await Promise.race([
-				harnessResultPromise,
-				topLevelNavigationPromise.then(
-					() =>
-						new Promise<never>(() => {
-							// keep pending; pass/fail will resolve separately
-						}),
-					(error) => ({
-						status: "fail" as const,
-						message: error instanceof Error ? error.message : String(error),
-					})
-				),
-			]);
-			result = raced;
+		let result: TestResult;
+		let topLevelPage: Page | null = null;
+		let stopWatchingTopLevelPage: (() => void) | null = null;
+		let topLevelNavigationPromise: Promise<void> | null = null;
+		if (test.topLevelScramjet) {
+			const proxiedUrl = await page.evaluate((url) => {
+				if (typeof (window as any).__runwayGetProxiedUrl === "function") {
+					return (window as any).__runwayGetProxiedUrl(url);
+				}
+				(window as any).__runwayNavigate(url);
+				const iframe = document.getElementById(
+					"testframe"
+				) as HTMLIFrameElement | null;
+				return iframe?.src || "";
+			}, testUrl);
+			await page.evaluate(
+				async ({ url, timeout }) => {
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), timeout);
+					try {
+						const response = await fetch(url, {
+							signal: controller.signal,
+						});
+						if (!response.ok) {
+							throw new Error(`Warm fetch failed with ${response.status}`);
+						}
+						await response.body?.cancel().catch(() => {});
+					} catch (error) {
+						if (error instanceof DOMException && error.name === "AbortError") {
+							return;
+						}
+						throw error;
+					} finally {
+						clearTimeout(timeoutId);
+					}
+				},
+				{ url: proxiedUrl, timeout: Math.min(timeout, 5000) }
+			);
+			topLevelPage = await context.newPage();
+			stopWatchingTopLevelPage = watchPage(topLevelPage);
+			topLevelNavigationPromise = topLevelPage
+				.goto(proxiedUrl, { waitUntil: "commit" })
+				.then(() => {});
 		} else {
-			result = await harnessResultPromise;
+			if (test.warmProxiedNavigation) {
+				await warmProxiedUrl(testUrl);
+			}
+			await page.evaluate((url) => {
+				// This function should be defined by the harness
+				(window as any).__runwayNavigate(url);
+			}, testUrl);
 		}
-	}
-	if (stopWatchingTopLevelPage) {
-		stopWatchingTopLevelPage();
-	}
-	if (topLevelPage) {
-		await topLevelPage.close().catch(() => {});
-	}
 
-	// Validate okCount if expectedOkCount is set
-	if (result.status === "pass" && test.expectedOkCount !== undefined) {
-		const actualOkCount = getOkCount();
-		if (actualOkCount !== test.expectedOkCount) {
-			return {
-				status: "fail",
-				message: `Expected ${test.expectedOkCount} ok() calls, but got ${actualOkCount}`,
-				details: { expected: test.expectedOkCount, actual: actualOkCount },
-			};
+		if (serverResult) {
+			const raced = await Promise.race([
+				harnessResultPromise.then((value) => ({
+					source: "harness" as const,
+					value,
+				})),
+				serverResult.then((value) => ({ source: "server" as const, value })),
+				...(topLevelNavigationPromise
+					? [
+							topLevelNavigationPromise.then(
+								() =>
+									new Promise<never>(() => {
+										// keep the race pending; completion is driven by pass/fail
+									}),
+								(error) => ({
+									source: "navigation" as const,
+									value: {
+										status: "fail" as const,
+										message:
+											error instanceof Error ? error.message : String(error),
+									},
+								})
+							),
+						]
+					: []),
+			]);
+			if (raced.source === "server") {
+				cancelWaitForResult();
+			}
+			result = raced.value;
+		} else {
+			if (topLevelNavigationPromise) {
+				const raced = await Promise.race([
+					harnessResultPromise,
+					topLevelNavigationPromise.then(
+						() =>
+							new Promise<never>(() => {
+								// keep pending; pass/fail will resolve separately
+							}),
+						(error) => ({
+							status: "fail" as const,
+							message: error instanceof Error ? error.message : String(error),
+						})
+					),
+				]);
+				result = raced;
+			} else {
+				result = await harnessResultPromise;
+			}
 		}
-	}
+		if (stopWatchingTopLevelPage) {
+			stopWatchingTopLevelPage();
+		}
+		if (topLevelPage) {
+			await topLevelPage.close().catch(() => {});
+		}
 
-	return result;
+		// Validate okCount if expectedOkCount is set
+		if (result.status === "pass" && test.expectedOkCount !== undefined) {
+			const actualOkCount = getOkCount();
+			if (actualOkCount !== test.expectedOkCount) {
+				return {
+					status: "fail",
+					message: `Expected ${test.expectedOkCount} ok() calls, but got ${actualOkCount}`,
+					details: { expected: test.expectedOkCount, actual: actualOkCount },
+				};
+			}
+		}
+
+		return result;
+	} finally {
+		if (!page.isClosed())
+			await page.evaluate(() => {
+				const harness = window as any;
+				const config = harness.__runwayController?.scramjetConfig;
+				const defaults = harness.__runwayIncumbencyDefaults;
+				if (!config || !defaults) return;
+				config.flags.incumbency = defaults.mode;
+				config.flags.debugTrampolines = defaults.debugTrampolines;
+				config.siteFlags = { ...defaults.siteFlags };
+			});
+	}
 }
 
 function appendRunwayToken(url: string, token: string, useQuery: boolean) {

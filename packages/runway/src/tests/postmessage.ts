@@ -30,7 +30,7 @@ export default [
             addEventListener("message", (event) => {
                 assertEqual(event.isTrusted, true, "isTrusted should be true");
                 assertEqual(event.source, window, "source should be correct");
-                assertEqual(event.origin, location.origin, "origin should be correct");
+                assertEqual(event.origin, new URL(document.URL).origin, "origin should be correct");
                 pass();
             });
             postMessage("test");
@@ -54,7 +54,7 @@ export default [
             addEventListener("message", (event) => {
                 assertEqual(event.isTrusted, true, "isTrusted should be true");
                 assertEqual(event.source, window, "source should be correct");
-                assertEqual(event.origin, location.origin, "origin should be correct");
+                assertEqual(event.origin, new URL(document.URL).origin, "origin should be correct");
                 pass();
             });
             self.postMessage("test");
