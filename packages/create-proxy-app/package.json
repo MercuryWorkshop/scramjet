@@ -16,12 +16,6 @@
 	"files": [
 		"dist"
 	],
-	"scripts": {
-		"build": "cd ../.. && rspack build --mode production --configName create-proxy-app",
-		"prepack": "pnpm run build",
-		"prepublishOnly": "npx only-allow pnpm",
-		"pub": "pnpm publish --no-git-checks --access public"
-	},
 	"devDependencies": {
 		"@types/node": "^26.0.1"
 	},

@@ -11,16 +11,6 @@
 		"type": "git",
 		"url": "https://github.com/MercuryWorkshop/scramjet"
 	},
-	"scripts": {
-		"build": "cd ../.. && rspack build --mode production",
-		"rewriter:build": "cd rewriter/wasm/ && bash build.sh && cd ../../",
-		"format": "prettier --write .",
-		"lint": "eslint ./src/",
-		"lint:fix": "eslint ./src/ --fix",
-		"test": "vitest run",
-		"prepack": "RELEASE=1 npm run rewriter:build && npm run build && cp ../../README.md ./README.md",
-		"postpack": "rm -rf ./README.md"
-	},
 	"exports": {
 		".": {
 			"types": "./dist/types/typesEntry.d.ts",

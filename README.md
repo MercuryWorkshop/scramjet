@@ -46,17 +46,16 @@ Some of the popular websites that Scramjet supports include:
 #### Building
 
 - Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
-- Install the dependencies with `pnpm i`
-- Change directories with `cd packages/core`
-- Build the rewriter with `pnpm rewriter:build`
-- Build Scramjet with `pnpm build`
+- Build everything with `./cv build` (`.\cv.ps1` on Windows). It installs the
+  dependencies, offers to install the rust tools above through cargo, and
+  only rebuilds what changed. `./cv build wasm` builds just the rewriter.
 
 ### Running Scramjet Locally
 
 You can run the Scramjet dev server when running this command at the root
 
 ```sh
-pnpm dev
+./cv dev
 ```
 
 The demo page for scramjet should now be running at <http://localhost:4141> and should rebuild upon a file being changed (excluding the rewriter).

@@ -4,9 +4,6 @@
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
 	"license": "AGPL-3.0-only",
-	"scripts": {
-		"build": "vite build"
-	},
 	"devDependencies": {
 		"vite": "^7.3.1",
 		"vite-plugin-static-copy": "^3.1.6"

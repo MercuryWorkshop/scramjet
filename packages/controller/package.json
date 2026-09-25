@@ -12,10 +12,6 @@
 		"url": "https://github.com/MercuryWorkshop/scramjet.git",
 		"directory": "packages/controller"
 	},
-	"scripts": {
-		"build": "cd ../.. && rspack build --mode production --config-name scramjet-iife --config-name scramjet-controller",
-		"prepack": "pnpm build"
-	},
 	"exports": {
 		".": {
 			"types": "./dist/types/typesEntry.d.ts",

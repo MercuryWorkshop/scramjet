@@ -11,12 +11,6 @@
 		"url": "https://github.com/MercuryWorkshop/scramjet.git",
 		"directory": "packages/bootstrap"
 	},
-	"scripts": {
-		"build": "cd ../.. && rspack build --mode production",
-		"prepack": "pnpm build",
-		"prepublishOnly": "npx only-allow pnpm",
-		"pub": "pnpm publish --no-git-checks --access public"
-	},
 	"dependencies": {
 		"@mercuryworkshop/wisp-js": "catalog:",
 		"@mercuryworkshop/scramjet-controller": "workspace:*",

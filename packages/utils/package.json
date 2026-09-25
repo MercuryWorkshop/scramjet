@@ -21,12 +21,6 @@
 	"files": [
 		"dist"
 	],
-	"scripts": {
-		"build": "cd ../.. && rspack build --mode production",
-		"prepack": "pnpm run build",
-		"prepublishOnly": "npx only-allow pnpm",
-		"pub": "pnpm publish --no-git-checks --access public"
-	},
 	"peerDependencies": {
 		"@mercuryworkshop/scramjet": "*",
 		"@mercuryworkshop/scramjet-controller": "*",

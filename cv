@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# cv: build tasks for this repository. `./cv` prints help.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+if ! command -v node >/dev/null 2>&1; then
+	echo "cv: node 22.18+ is required (https://nodejs.org)" >&2
+	exit 1
+fi
+if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=18)?0:1)'; then
+	echo "cv: node $(node -v) is too old, need 22.18+ (it runs TypeScript directly)" >&2
+	exit 1
+fi
+
+exec node --no-warnings=ExperimentalWarning packages/cv/main.ts "$@"

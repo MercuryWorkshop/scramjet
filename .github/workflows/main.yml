@@ -118,25 +118,8 @@ jobs:
           rewriter-path: packages/core/rewriter
           github-token: ${{ github.token }}
 
-      - name: Pack Scramjet
-        run: pnpm pack
-        working-directory: packages/core
-
-      - name: Pack Scramjet Controller
-        run: pnpm pack
-        working-directory: packages/controller
-
-      - name: Pack Scramjet Utils
-        run: pnpm pack
-        working-directory: packages/utils
-
-      - name: Pack Proxy Bootstrap
-        run: pnpm pack
-        working-directory: packages/bootstrap
-
-      - name: Pack create-proxy-app
-        run: pnpm pack
-        working-directory: packages/create-proxy-app
+      - name: Build and pack every package (release rewriter, core, controller, utils, bootstrap, create-proxy-app)
+        run: ./cv npm --yes
 
       - name: Upload Artifact (scramjet/core)
         uses: actions/upload-artifact@v4
@@ -218,7 +201,7 @@ jobs:
         working-directory: packages/core
 
       - name: Run package validation tests
-        run: pnpm test:package
+        run: ./cv validate
 
   tests:
     name: Run Scramjet Tests
@@ -260,8 +243,7 @@ jobs:
         working-directory: packages/runway
 
       - name: Run Runway tests
-        run: OMIT_WPT=1 pnpm test --parallel 4
-        working-directory: packages/runway
+        run: OMIT_WPT=1 CV_PREBUILT=core,controller ./cv test --parallel 4
 
   rewritertests:
     name: Run Rewriter Tests
@@ -415,8 +397,7 @@ jobs:
           path: packages/utils/dist
 
       - name: Build Frontend
-        run: VITE_WISP_URL="wss://anura.pro/" pnpm build
-        working-directory: packages/demo
+        run: VITE_WISP_URL="wss://anura.pro/" CV_PREBUILT=core,controller,utils ./cv build demo
 
       - name: Upload Artifact (frontend)
         uses: actions/upload-artifact@v4
