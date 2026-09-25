@@ -285,7 +285,8 @@ export class ScramjetClient {
 
 	history: TrackedHistoryState[];
 
-	id = `client-${Math_random().toString(36).substring(4)}`;
+	/** Assigned by {@link SingletonBox.registerClient}. */
+	id: string;
 
 	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
 	private cachedTopUrl: _URL | null = null;

@@ -17,6 +17,10 @@ import { FakeWebSocketStreamState } from "./shared/requests/WebSocketStream";
 
 export class SingletonBox {
 	clients: ScramjetClient[] = [];
+	/**
+	 * Every client by its id, which is how a posted message names its sender -
+	 * see `shared/postmessage.ts` and `MessageEvent.source` in `shared/event.ts`.
+	 */
 	clientIds: _Map<string, ScramjetClient> = new _Map();
 	globals: _Map<Self, ScramjetClient> = new _Map();
 	documents: _Map<Document, ScramjetClient> = new _Map();
@@ -173,6 +177,19 @@ export class SingletonBox {
 	 */
 	incumbentSinks: _WeakSet<object> = new _WeakSet();
 
+	/**
+	 * The next id {@link registerClient} hands out.
+	 *
+	 * A count rather than a random draw: this box is the only place an id is
+	 * looked up, so unique within it is all an id has to be, and a count is
+	 * that by construction. A random one is not - `Math.random` and
+	 * `crypto.getRandomValues` keep their state per realm, an engine can be
+	 * made to start every realm from the same seed (V8's `--random-seed`),
+	 * and then every client draws the same id. A draw would also be taken out
+	 * of the page's own sequence.
+	 */
+	private nextClientId = 0;
+
 	constructor(public ownerclient: ScramjetClient) {}
 
 	registerClient(client: ScramjetClient, global: Self) {
@@ -183,6 +200,7 @@ export class SingletonBox {
 		this.histories.set(global.history, client);
 		this.functions.set(global.Function, client);
 		this.objectPrototypes.set(global.Object.prototype, client);
+		client.id = `client-${this.nextClientId++}`;
 		this.clientIds.set(client.id, client);
 
 		const names = Object_getOwnPropertyNames(global);
