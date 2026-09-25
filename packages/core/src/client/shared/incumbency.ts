@@ -30,7 +30,7 @@ export type ScriptRealm = {
  * globals - a global nothing calls is a surface for nothing.
  */
 export const enabled = (client: ScramjetClient) => {
-	const mode = incumbencyMode(client.context, client.topUrl);
+	const mode = incumbencyMode(client.context);
 
 	return mode === "pst" || mode === "stamp" || mode === "lazystamp";
 };
@@ -81,7 +81,7 @@ export function incumbentFor(
 	client: ScramjetClient,
 	depth: number
 ): ScramjetClient | null {
-	const mode = incumbencyMode(client.context, client.topUrl);
+	const mode = incumbencyMode(client.context);
 
 	if (mode === "pst") {
 		// rawCallSites and this function, then the member's own frames
@@ -171,7 +171,7 @@ function callWithBackupIncumbent(
 	const depth = stack.length;
 	stack[depth] = incumbent;
 
-	const mode = incumbencyMode(client.context, client.topUrl);
+	const mode = incumbencyMode(client.context);
 	if (mode === "stamp" || mode === "lazystamp") {
 		box.incumbent = incumbent.global as Self;
 	}
@@ -184,7 +184,7 @@ function callWithBackupIncumbent(
 }
 
 export default function (client: ScramjetClient, self: Self) {
-	const mode = incumbencyMode(client.context, client.topUrl);
+	const mode = incumbencyMode(client.context);
 
 	installBind(client);
 

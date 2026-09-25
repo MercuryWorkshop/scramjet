@@ -23,11 +23,6 @@ export type Test = {
 	debugTrampolines?: boolean;
 	incumbencyMode?: "pst" | "stamp" | "lazystamp" | "none";
 	/**
-	 * `siteFlags` incumbency overrides, keyed on a hostname pattern
-	 * (`example.com`, `*.example.com`, `*`), applied only while this test runs.
-	 */
-	incumbencySiteFlags?: Record<string, NonNullable<Test["incumbencyMode"]>>;
-	/**
 	 * Hostname used in the URL passed to the harness (default `localhost`).
 	 * Cleartext traffic goes to `127.0.0.1:testPort` with a matching `Host` header (no `/etc/hosts`).
 	 * When set to anything other than `localhost` or `127.0.0.1`, {@link runwayTestTargetUrl}

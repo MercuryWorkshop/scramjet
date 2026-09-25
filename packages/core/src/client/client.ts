@@ -5,7 +5,6 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { IFACE_NAME } from "@client/iface";
-import { QP } from "@/fetch/parse";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
@@ -392,15 +391,6 @@ export class ScramjetClient {
 	/** Assigned by {@link SingletonBox.registerClient}. */
 	id: string;
 
-	/**
-	 * Flags as read for `flagCacheHost`, the top-level frame's hostname, which
-	 * is all that flags depend on. A client outlives its first document when a
-	 * window's initial `about:blank` is reused for the page loaded into it (a
-	 * popup), so the cache has to follow the host rather than last forever.
-	 */
-	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
-	private flagCacheHost: string | null = null;
-
 	/** The members patched in this realm, keyed on the object that owns them. */
 	private slots = new _WeakMap<object, _Map<string | symbol, Slot>>();
 	/** The same slots, keyed on the native function a method slot replaced. */
@@ -571,9 +561,6 @@ export class ScramjetClient {
 		this.meta = {
 			get origin() {
 				return client.url;
-			},
-			get topUrl() {
-				return client.topUrl;
 			},
 			get base() {
 				if (iswindow) {
@@ -1951,39 +1938,8 @@ return { apply, construct };
 		return frame.name;
 	}
 
-	// The URL of the top-level frame this client belongs to
-	get topUrl(): _URL {
-		const parent = iswindow ? this.parentFrame() : "unreachable";
-		let top: _URL | null = null;
-		if (typeof parent === "object") {
-			top = parent.topUrl;
-		} else if (parent === "unreachable") {
-			try {
-				const carried = new _URL(this.global.location.href).searchParams.get(
-					QP.topUrl
-				);
-				if (carried) top = new _URL(carried);
-			} catch {
-				// not a URL scramjet made
-			}
-		}
-
-		return top ?? this.url;
-	}
-
 	flagEnabled(flag: BooleanFlag): boolean {
-		const top = this.topUrl;
-		if (top.hostname !== this.flagCacheHost) {
-			this.flagCache.clear();
-			this.flagCacheHost = top.hostname;
-		}
-
-		const cached = this.flagCache.get(flag);
-		if (cached !== undefined) return cached;
-
-		const result = flagEnabled(flag, this.context, top);
-		this.flagCache.set(flag, result);
-		return result;
+		return flagEnabled(flag, this.context);
 	}
 
 	get config(): ScramjetConfig {

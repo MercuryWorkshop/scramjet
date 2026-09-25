@@ -35,21 +35,10 @@ export type RewriteUrlOptions = {
 export type URLMeta = {
 	origin: _URL;
 	base: _URL;
-	/**
-	 * The URL of the top-level frame this context belongs to, whose hostname
-	 * is what `siteFlags` are matched against: a subframe, a worker and a
-	 * script from another site all run with the flags of the page they are
-	 * part of.
-	 */
-	topUrl?: _URL;
 	topFrameName?: string;
 	parentFrameName?: string;
 	referrerPolicy?: string;
 };
-
-function isWorkerDestination(destination?: RequestDestination) {
-	return destination === "worker" || destination === "sharedworker";
-}
 
 function tryCanParseURL(url: string, origin?: string | URL): _URL | null {
 	try {
@@ -202,16 +191,6 @@ export function rewriteUrl(
 		if (options?.parentFrame)
 			paramsInit.set(QP.parentFrame, options.parentFrame);
 		if (options?.isIframe) paramsInit.set(QP.isIframe, options.isIframe);
-		// only where the service worker could not work it out from the client
-		// that made the request: a frame or a worker, which becomes its own
-		// client, or a context whose top-level frame is not itself
-		if (
-			meta.topUrl &&
-			(options?.isIframe ||
-				isWorkerDestination(options?.destination) ||
-				meta.topUrl.href !== meta.origin.href)
-		)
-			paramsInit.set(QP.topUrl, meta.topUrl.href);
 		if (options?.mode) paramsInit.set(QP.mode, options.mode);
 		if (options?.credentials)
 			paramsInit.set(QP.credentials, options.credentials);

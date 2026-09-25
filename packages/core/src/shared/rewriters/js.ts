@@ -1,4 +1,4 @@
-import { flagEnabled, flagsUrl, ScramjetContext } from "@/shared";
+import { flagEnabled, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput } from "@rewriters/wasm";
@@ -47,11 +47,11 @@ function rewriteJsWasm(
 
 	const flagsobj = {};
 	for (const flag of Object_keys(context.config.flags)) {
-		flagsobj[flag] = flagEnabled(flag as any, context, flagsUrl(meta));
+		flagsobj[flag] = flagEnabled(flag as any, context);
 	}
 	// the one flag that is not a boolean, and the rewriter wants the mode this
 	// engine can actually do rather than the one that was configured
-	flagsobj["incumbency"] = incumbencyMode(context, flagsUrl(meta));
+	flagsobj["incumbency"] = incumbencyMode(context);
 	flagsobj["inlineSourcemap"] = inlineSourcemap;
 	flagsobj["scriptId"] = genScriptId();
 
@@ -83,7 +83,7 @@ function rewriteJsWasm(
 				isModule
 			);
 		}
-		if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
+		if (flagEnabled("rewriterLogs", context)) {
 			dbg.time(meta, before, `oxc rewrite for "${source || "(unknown)"}"`);
 		}
 
@@ -127,11 +127,11 @@ export function rewriteJs(
 	try {
 		const res = rewriteJsWasm(js, url, context, meta, isModule, !client);
 
-		if (client && flagEnabled("sourcemaps", context, flagsUrl(meta))) {
+		if (client && flagEnabled("sourcemaps", context)) {
 			registerRewrites(client, res.map, res.tag);
 		}
 
-		if (flagEnabled("rewriterLogs", context, flagsUrl(meta))) {
+		if (flagEnabled("rewriterLogs", context)) {
 			for (const error of res.errors) {
 				dbg.error("oxc parse error", error);
 			}
@@ -145,7 +145,7 @@ export function rewriteJs(
 			err.message,
 			typeof js !== "string" ? TextDecoder_decode(js) : js
 		);
-		if (flagEnabled("allowInvalidJs", context, flagsUrl(meta))) {
+		if (flagEnabled("allowInvalidJs", context)) {
 			return js;
 		} else {
 			throw err;

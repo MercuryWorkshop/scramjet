@@ -72,14 +72,6 @@ export interface ScramjetConfig {
 		tempunusedid: string;
 	};
 	flags: ScramjetFlags;
-	/**
-	 * Per-site overrides of `flags`, keyed on a hostname pattern:
-	 * `example.com` for that host alone, `*.example.com` for it and every
-	 * subdomain, or `*` for everything. They are matched against the hostname
-	 * of the top-level frame only, so a page and everything in it - subframes,
-	 * workers, scripts from other sites - always run with the same flags.
-	 */
-	siteFlags: Record<string, Partial<ScramjetFlags>>;
 	maskedfiles: string[];
 }
 

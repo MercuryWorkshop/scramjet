@@ -49,7 +49,6 @@ export const defaultConfig: ScramjetConfig = {
 		debugSourceURL: false,
 		incumbency: pstAvailable ? "pst" : "lazystamp",
 	},
-	siteFlags: {},
 	maskedfiles: [],
 };
 

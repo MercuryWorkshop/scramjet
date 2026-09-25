@@ -1,7 +1,7 @@
 // i am a cat. i like to be petted. i like to be fed. i like to be
 import { initSync, Rewriter } from "../../../rewriter/wasm/out/wasm.js";
 import type { JsRewriterOutput } from "../../../rewriter/wasm/out/wasm.js";
-import { flagEnabled, flagsUrl, ScramjetContext } from "@/shared";
+import { flagEnabled, ScramjetContext } from "@/shared";
 
 export type { JsRewriterOutput, Rewriter };
 
@@ -49,7 +49,7 @@ export function getRewriter(
 	const len = rewriters.length;
 
 	if (index === -1) {
-		if (flagEnabled("rewriterLogs", context, flagsUrl(meta)))
+		if (flagEnabled("rewriterLogs", context))
 			dbg.log(`creating new rewriter, ${len} rewriters made already`);
 
 		const rewriter = new Rewriter();

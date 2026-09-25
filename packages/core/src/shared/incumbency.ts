@@ -141,9 +141,6 @@ export const pstAvailable: boolean = (() => {
  * built ({@link pstAvailable}), and a `pst` handed to an engine without the
  * two V8-only pieces it needs simply does not attribute anything.
  */
-export function incumbencyMode(
-	context: ScramjetContext,
-	url: URL
-): IncumbencyMode {
-	return flagValue("incumbency", context, url);
+export function incumbencyMode(context: ScramjetContext): IncumbencyMode {
+	return flagValue("incumbency", context);
 }

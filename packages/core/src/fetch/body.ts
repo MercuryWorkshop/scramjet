@@ -7,7 +7,6 @@ import {
 } from ".";
 import {
 	flagEnabled,
-	flagsUrl,
 	isHtmlMimeType,
 	isJavascriptMimeType,
 	rewriteCss,
@@ -68,13 +67,7 @@ export async function rewriteBody(
 					parsed.isModule
 				);
 
-				if (
-					flagEnabled(
-						"debugSourceURL",
-						handler.context,
-						flagsUrl(parsed.meta, parsed.meta.origin)
-					)
-				) {
+				if (flagEnabled("debugSourceURL", handler.context)) {
 					if (typeof rewritten !== "string") {
 						rewritten = TextDecoder_decode(rewritten);
 					}
