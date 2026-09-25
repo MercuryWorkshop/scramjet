@@ -3,6 +3,11 @@
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type { Controllerbound, SWbound } from "./types";
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
+import {
+	CHUNKED_STREAM,
+	isChunkedStream,
+	streamOfChunked,
+} from "./streamfallback";
 
 function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
@@ -194,7 +199,13 @@ export async function route(event: FetchEvent): Promise<Response> {
 				: undefined
 		);
 
-		return new Response(response.body, {
+		// Where the stream couldn't be transferred, the controller sent a port instead — rebuild the
+		// stream from it so Response gets exactly what it gets everywhere else.
+		const body = isChunkedStream(response.body)
+			? streamOfChunked(response.body[CHUNKED_STREAM])
+			: response.body;
+
+		return new Response(body, {
 			status: response.status,
 			statusText: response.statusText,
 			headers: response.headers,

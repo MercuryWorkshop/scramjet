@@ -20,6 +20,12 @@ import {
 	type TrackedHistoryState,
 	Plugin,
 } from "@mercuryworkshop/scramjet";
+import {
+	CHUNKED_STREAM,
+	canTransferStream,
+	chunkedStreamOf,
+	isChunkedStream,
+} from "./streamfallback";
 import { CONTROLLERFRAME } from "./symbols";
 import type {
 	FrameInitHooks,
@@ -323,17 +329,27 @@ export class Controller {
 					clientId: data.clientId,
 				});
 
+				// Safari can't transfer a ReadableStream, so hand over a port and pump the body
+				// through it instead of failing outright. See streamfallback.ts.
+				const body =
+					fetchresponse.body instanceof ReadableStream && !canTransferStream()
+						? chunkedStreamOf(
+								fetchresponse.body as ReadableStream<Uint8Array>
+							)
+						: fetchresponse.body;
+
 				return [
 					{
-						body: fetchresponse.body,
+						body,
 						status: fetchresponse.status,
 						statusText: fetchresponse.statusText,
 						headers: fetchresponse.headers.toRawHeaders(),
 					},
-					fetchresponse.body instanceof ReadableStream ||
-					fetchresponse.body instanceof ArrayBuffer
-						? [fetchresponse.body]
-						: [],
+					isChunkedStream(body)
+						? [body[CHUNKED_STREAM]]
+						: body instanceof ReadableStream || body instanceof ArrayBuffer
+							? [body]
+							: [],
 				];
 			} catch (e) {
 				const reqcontext: typeof frame.hooks.error.request.context = {
