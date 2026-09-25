@@ -393,12 +393,13 @@ export class ScramjetClient {
 	id: string;
 
 	/**
-	 * Flags as read for `flagCacheTop`, so a repeat read skips the `siteFlags`
-	 * regexes. Keyed on the top URL rather than kept for the client's life,
-	 * which is what left a popup reading its flags for `about:blank`.
+	 * Flags as read for `flagCacheHost`, the top-level frame's hostname, which
+	 * is all that flags depend on. A client outlives its first document when a
+	 * window's initial `about:blank` is reused for the page loaded into it (a
+	 * popup), so the cache has to follow the host rather than last forever.
 	 */
 	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
-	private flagCacheTop: string | null = null;
+	private flagCacheHost: string | null = null;
 
 	/** The members patched in this realm, keyed on the object that owns them. */
 	private slots = new _WeakMap<object, _Map<string | symbol, Slot>>();
@@ -1972,9 +1973,9 @@ return { apply, construct };
 
 	flagEnabled(flag: BooleanFlag): boolean {
 		const top = this.topUrl;
-		if (top.href !== this.flagCacheTop) {
+		if (top.hostname !== this.flagCacheHost) {
 			this.flagCache.clear();
-			this.flagCacheTop = top.href;
+			this.flagCacheHost = top.hostname;
 		}
 
 		const cached = this.flagCache.get(flag);

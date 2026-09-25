@@ -153,13 +153,15 @@ const strictAfterComment = Object.assign(
 	{ incumbencyMode: "pst" as const, timeoutMs: 10000 }
 );
 
-// siteFlags are matched against the top-level frame, and a subframe runs with
-// its top-level frame's flags whatever its own URL matches.
+// siteFlags are matched against the top-level frame's hostname, and a subframe
+// runs with its top-level frame's flags whatever its own host matches.
 const subframeInheritsTopFlags = Object.assign(
 	serverTest({
 		name: "review113-subframe-inherits-top-level-flags",
+		hostname: "top.example",
+		cleartextHosts: ["sub.example"],
 		scramjetOnly: true,
-		async start(server, port) {
+		async start(server) {
 			server.on("request", (req, res) => {
 				const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
 				if (pathname === "/") {
@@ -170,7 +172,7 @@ const subframeInheritsTopFlags = Object.assign(
 							if (event.data.error) fail(event.data.error);
 							else pass();
 						});
-					</script><iframe src="/sub"></iframe>`);
+					</script><iframe src="https://sub.example/sub"></iframe>`);
 				} else if (pathname === "/sub") {
 					res.setHeader("Content-Type", "text/html");
 					res.end('<!doctype html><script src="/sub-script.js"></script>');
@@ -178,7 +180,7 @@ const subframeInheritsTopFlags = Object.assign(
 					res.setHeader("Content-Type", "application/javascript");
 					res.end(`
 						const client = window[Symbol.for("scramjet client global")];
-						const expectedTop = "http://localhost:${port}/";
+						const expectedTop = "https://top.example/";
 						let error = null;
 						if (client.topUrl.href.split("#")[0] !== expectedTop)
 							error = "subframe's top-level URL was " + client.topUrl.href;
@@ -187,7 +189,7 @@ const subframeInheritsTopFlags = Object.assign(
 						else if (typeof window[client.config.globals.callfn] !== "function")
 							error = "subframe did not install its top-level frame's mode";
 						else if (typeof window[client.config.globals.registerrealmfn] === "function")
-							error = "subframe installed the mode its own URL matches";
+							error = "subframe installed the mode its own host matches";
 						parent.postMessage({ tag: "subframe-flags", error }, "*");
 					`);
 				} else {
@@ -200,8 +202,8 @@ const subframeInheritsTopFlags = Object.assign(
 	{
 		incumbencyMode: "none" as const,
 		incumbencySiteFlags: {
-			"^http://localhost:[0-9]+/(#|$)": "stamp" as const,
-			"/sub": "pst" as const,
+			"top.example": "stamp" as const,
+			"sub.example": "pst" as const,
 		},
 		timeoutMs: 10000,
 	}

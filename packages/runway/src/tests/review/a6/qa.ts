@@ -96,13 +96,16 @@ tests.push(
 );
 
 // ---- #9 rewriter/client incumbency mode mismatch
+// siteFlags match the top-level frame's hostname only, so a whole-host override
+// has to land the same on the rewriter and the client; the one way left for
+// them to disagree is a stale `$top` naming another host (stale-top below)
 {
 	const a = basicTest({
-		name: "rv6-qa-modemismatch-hash",
+		name: "rv6-qa-modemismatch-host",
 		js: `window.__ran = 1; assert(true);`,
 	});
 	a.incumbencySiteFlags = {
-		runway_token: "none",
+		localhost: "none",
 	};
 	a.scramjetOnly = true;
 	a.timeoutMs = 10000;
@@ -112,14 +115,16 @@ tests.push(
 		js: `assert(true);`,
 	});
 	b.incumbencySiteFlags = {
-		"nothing-matches-this": "none",
+		"*.nothing-matches-this.example": "none",
 	};
 	b.scramjetOnly = true;
 	tests.push(b);
+	// the iframe's `_top` link leaves for another host carrying the old top's
+	// `$top`, and only the new host has an override
 	const FILES: Record<string, [string, string]> = {
 		"/linkframe": [
 			H,
-			`<!doctype html><body><a id=l href="/pagec" target="_top">go</a><script>setTimeout(() => l.click(), 100)</script></body>`,
+			`<!doctype html><body><a id=l href="https://pagec.example/pagec" target="_top">go</a><script>setTimeout(() => l.click(), 100)</script></body>`,
 		],
 		"/pagec": [
 			H,
@@ -129,6 +134,8 @@ tests.push(
 	};
 	const c = serverTest({
 		name: "rv6-qa-modemismatch-stale-top",
+		hostname: "linkframe.example",
+		cleartextHosts: ["pagec.example"],
 		autoPass: false,
 		scramjetOnly: true,
 		js: `const f = document.createElement("iframe"); f.src = "/linkframe"; document.body.appendChild(f);`,
@@ -151,7 +158,7 @@ tests.push(
 		},
 	});
 	c.incumbencySiteFlags = {
-		"/pagec": "none",
+		"pagec.example": "none",
 	};
 	c.timeoutMs = 15000;
 	tests.push(c);

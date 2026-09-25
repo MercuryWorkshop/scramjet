@@ -36,9 +36,10 @@ export type URLMeta = {
 	origin: _URL;
 	base: _URL;
 	/**
-	 * The URL of the top-level frame this context belongs to, which is the one
-	 * `siteFlags` are matched against: a subframe, a worker and a script from
-	 * another site all run with the flags of the page they are part of.
+	 * The URL of the top-level frame this context belongs to, whose hostname
+	 * is what `siteFlags` are matched against: a subframe, a worker and a
+	 * script from another site all run with the flags of the page they are
+	 * part of.
 	 */
 	topUrl?: _URL;
 	topFrameName?: string;
