@@ -1,4 +1,4 @@
-import { ScramjetClient } from "@client/index";
+import { ScramjetClient, type Trap } from "@client/index";
 import { Arguments, Returns, Type } from "@client/webidl";
 import {
 	Object_getPrototypeOf,
@@ -294,9 +294,11 @@ export default function (client: ScramjetClient, self: Self) {
 	// property, and keeps its place in the window's own key order. `ctx.get()`
 	// also keeps the native's brand check and its SecurityError for a document
 	// that may not use storage.
-	client.Trap(["localStorage", "sessionStorage"], {
+	const trap: Trap<"localStorage" | "sessionStorage"> = {
 		get(ctx) {
 			return wrap(ctx.get() as Storage);
 		},
-	});
+	};
+	client.Trap("localStorage", trap);
+	client.Trap("sessionStorage", trap);
 }

@@ -433,7 +433,7 @@ export default function (client: ScramjetClient, self: Self) {
 	 * (`!self.event`) was true only until it had installed something. Every
 	 * later read answered with the first event the page ever saw. It also
 	 * invented the member on an engine that has none, which is the thing
-	 * `resolveNative` refuses to do; `Trap` skips a member this engine does not
+	 * `slotFor` refuses to do; `Trap` skips a member this engine does not
 	 * have, so that stops happening too.
 	 */
 	if (iswindow) {
