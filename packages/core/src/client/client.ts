@@ -289,8 +289,13 @@ export class ScramjetClient {
 	/** Assigned by {@link SingletonBox.registerClient}. */
 	id: string;
 
+	/**
+	 * Flags as read for `flagCacheTop`, so a repeat read skips the `siteFlags`
+	 * regexes. Keyed on the top URL rather than kept for the client's life,
+	 * which is what left a popup reading its flags for `about:blank`.
+	 */
 	private flagCache = new _Map<keyof ScramjetConfig["flags"], boolean>();
-	private cachedTopUrl: _URL | null = null;
+	private flagCacheTop: string | null = null;
 
 	/**
 	 * The members already patched in this realm, keyed on the object that owns
@@ -1658,18 +1663,8 @@ return { apply, construct };
 		return frame.name;
 	}
 
-	/**
-	 * The URL of the top-level frame this client belongs to, which its flags
-	 * are read for: the topmost scramjet-controlled window above it, or its own
-	 * when there is none. Fixed the first time it is asked for, so a frame's
-	 * flags cannot change under it when the top-level frame navigates.
-	 *
-	 * A worker, or a frame that cannot reach its parent, has only what its URL
-	 * was rewritten with (`$top`) to go on.
-	 */
+	// The URL of the top-level frame this client belongs to
 	get topUrl(): _URL {
-		if (this.cachedTopUrl) return this.cachedTopUrl;
-
 		const parent = iswindow ? this.parentFrame() : "unreachable";
 		let top: _URL | null = null;
 		if (typeof parent === "object") {
@@ -1685,16 +1680,20 @@ return { apply, construct };
 			}
 		}
 
-		this.cachedTopUrl = top ?? this.url;
-
-		return this.cachedTopUrl;
+		return top ?? this.url;
 	}
 
 	flagEnabled(flag: BooleanFlag): boolean {
+		const top = this.topUrl;
+		if (top.href !== this.flagCacheTop) {
+			this.flagCache.clear();
+			this.flagCacheTop = top.href;
+		}
+
 		const cached = this.flagCache.get(flag);
 		if (cached !== undefined) return cached;
 
-		const result = flagEnabled(flag, this.context, this.topUrl);
+		const result = flagEnabled(flag, this.context, top);
 		this.flagCache.set(flag, result);
 		return result;
 	}
