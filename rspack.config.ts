@@ -228,29 +228,43 @@ try {
 	);
 }
 
+const swcOptions = {
+	jsc: {
+		parser: {
+			syntax: "typescript",
+			// interceptors declare their IDL with decorators (@Arguments etc.)
+			decorators: true,
+		},
+		transform: {
+			// the 2022-03 standard proposal, not the legacy TS semantics
+			decoratorVersion: "2022-03",
+		},
+		target: "es2022",
+	},
+	module: {
+		type: "es6",
+		strict: false,
+		strictMode: false,
+	},
+};
+
 export const tsloader = {
 	test: /\.ts$/,
-	loader: "builtin:swc-loader",
 	exclude: ["/node_modules/"],
-	options: {
-		jsc: {
-			parser: {
-				syntax: "typescript",
-				// interceptors declare their IDL with decorators (@Arguments etc.)
-				decorators: true,
-			},
-			transform: {
-				// the 2022-03 standard proposal, not the legacy TS semantics
-				decoratorVersion: "2022-03",
-			},
-			target: "es2022",
+	// loaders run last to first: the heritage rewrite has to see the TS source,
+	// before swc lowers the decorators
+	use: [
+		{
+			loader: "builtin:swc-loader",
+			options: swcOptions,
 		},
-		module: {
-			type: "es6",
-			strict: false,
-			strictMode: false,
+		{
+			loader: resolve(
+				__dirname,
+				"packages/core/tools/intercept-heritage-loader.mjs"
+			),
 		},
-	},
+	],
 	type: "javascript/auto",
 };
 //TODO: replace this

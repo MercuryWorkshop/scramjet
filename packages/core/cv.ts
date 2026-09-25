@@ -225,6 +225,8 @@ export default definePackage(import.meta.dirname, {
 				"package.json",
 				"tsconfig*.json",
 				"../../rspack.config.ts",
+				// the heritage rewrite rspack runs over src/client (see its header)
+				"tools/intercept-heritage-loader.mjs",
 			],
 			outputs: [
 				"dist/scramjet.js",

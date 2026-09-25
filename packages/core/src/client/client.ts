@@ -4,6 +4,7 @@ import {
 	RawHeaders,
 } from "@mercuryworkshop/proxy-transports";
 import { SCRAMJETCLIENT } from "@/symbols";
+import { IFACE_NAME } from "@client/iface";
 import { QP } from "@/fetch/parse";
 import { getOwnPropertyDescriptorHandler } from "@client/helpers";
 import { createLocationProxy } from "@client/location";
@@ -1274,10 +1275,8 @@ return { apply, construct };
 	 */
 	Intercept(handler: any, checkReceiver?: (receiver: any) => void): void {
 		const foreignbaseclass = Object_getPrototypeOf(handler);
-		const globalname = foreignbaseclass.name;
-		// matched by identity, not by name: `GlobalScope` is the one heritage
-		// that resolves to the global object itself rather than to an interface
-		// on it
+		const globalname: string =
+			foreignbaseclass[IFACE_NAME] ?? foreignbaseclass.name;
 		const isglobal = foreignbaseclass === GlobalScope;
 		const classname = isglobal ? "window" : globalname;
 		const baseclass = isglobal ? this.global : this.global[classname];

@@ -21,10 +21,11 @@ function getGlobalScope(scope) {
 
 /**
  * `class extends XMLHttpRequest` in an interceptor names the real interface so
- * TypeScript resolves `super.open(...)` against lib.dom. Intercept() replaces
- * the prototype link with the snapshotted natives before anything calls
- * through it, so the global is read to establish typing, not to reach the
- * page's version of the API.
+ * TypeScript resolves `super.open(...)` against lib.dom. It reads no global at
+ * runtime: for an `Intercept()` argument the build rewrites it to
+ * `iface("XMLHttpRequest")` (tools/intercept-heritage-loader.mjs), and
+ * Intercept() replaces the prototype link with the snapshotted natives before
+ * anything calls through it.
  *
  * Only a bare identifier directly in the heritage position is exempt — a
  * member expression like `class extends globalThis.Foo` still reports.
