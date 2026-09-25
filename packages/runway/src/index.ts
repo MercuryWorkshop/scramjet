@@ -789,16 +789,14 @@ async function main() {
 	let browser: Browser | null = null;
 	if (needsHarness) {
 		// Start the harness servers
-		const { startHarness, PORT: HARNESS_PORT } = await import(
-			"./harness/scramjet/index.ts"
-		);
+		const { startHarness, PORT: HARNESS_PORT } =
+			await import("./harness/scramjet/index.ts");
 		await startHarness();
 		scramjetUrl = `http://localhost:${HARNESS_PORT}`;
 		console.log(`📡 Scramjet harness running at ${scramjetUrl}`);
 		if (needsBareHarness) {
-			const { startBareHarness, BARE_PORT } = await import(
-				"./harness/bare/index.ts"
-			);
+			const { startBareHarness, BARE_PORT } =
+				await import("./harness/bare/index.ts");
 			await startBareHarness();
 			bareUrl = `http://localhost:${BARE_PORT}`;
 			console.log(`📡 Bare harness running at ${bareUrl}`);

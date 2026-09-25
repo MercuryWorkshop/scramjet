@@ -108,9 +108,8 @@ async function main() {
 	}
 
 	// Start the harness server
-	const { startHarness, PORT: HARNESS_PORT } = await import(
-		"./harness/scramjet/index.ts"
-	);
+	const { startHarness, PORT: HARNESS_PORT } =
+		await import("./harness/scramjet/index.ts");
 	await startHarness();
 	const harnessUrl = `http://localhost:${HARNESS_PORT}`;
 	console.log(`\n📡 Harness running at ${harnessUrl}`);

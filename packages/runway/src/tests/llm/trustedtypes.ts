@@ -100,7 +100,7 @@ export default [
 	}),
 	// this can actually throw if its enabled in the csp, we dont emulate csp in scramjet
 	// https://developer.mozilla.org/en-US/docs/Web/API/TrustedTypePolicyFactory/createPolicy#exceptions
-	/* 
+	/*
 	basicTest({
 		name: "trustedtypes-policy-duplicate-name-throws",
 		js: `
