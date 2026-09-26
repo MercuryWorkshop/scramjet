@@ -10,7 +10,7 @@ import {
 } from "@mercuryworkshop/scramjet-utils";
 import { versionInfo } from "@mercuryworkshop/scramjet";
 import { cachePlugin, controller } from "..";
-import { demoSettingsStore } from "../store";
+import { demoSettingsStore, normalizeHomeUrl } from "../store";
 import homepage from "./homepage.html?raw";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
@@ -21,11 +21,16 @@ export const browserState = createState({
 
 export const Omnibox: Component = function (cx) {
 	const navigate = () => {
-		if (!browserState.url.startsWith("http")) {
-			browserState.url = `https://${browserState.url}`;
-		}
-		demoSettingsStore.homeUrl = browserState.url;
-		browserState.frame?.go(browserState.url);
+        let url: string;
+        try {
+                url = normalizeHomeUrl(browserState.url);
+        } catch (e) {
+                console.error("navigate failed:", e);
+                return;
+        }
+        browserState.url = url;
+        demoSettingsStore.homeUrl = url;
+        browserState.frame?.go(url);
 	};
 	return (
 		<form
