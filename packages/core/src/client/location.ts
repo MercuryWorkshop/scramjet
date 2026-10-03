@@ -55,6 +55,10 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 						return;
 					}
 					if (prop === "hash") {
+						// the real URL's fragment is the site's, as it was written
+						// (see `rewriteUrl`), so the native setter's own steps are
+						// the right ones - including doing nothing at all when the
+						// fragment is unchanged
 						self.location.hash = args[0];
 						Tap.dispatch(
 							client.hooks.lifecycle.navigate,
@@ -93,7 +97,7 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 	if (self.location.assign)
 		fakeLocation.assign = new Proxy(self.location.assign, {
 			apply(target, that, args) {
-				args[0] = client.rewriteUrl(args[0]);
+				args[0] = client.rewriteUrl(args[0], { navigateType: "location" });
 				Reflect_apply(target, self.location, args);
 				Tap.dispatch(
 					client.hooks.lifecycle.navigate,
@@ -115,7 +119,7 @@ export function createLocationProxy(client: ScramjetClient, self: GlobalThis) {
 	if (self.location.replace)
 		fakeLocation.replace = new Proxy(self.location.replace, {
 			apply(target, that, args) {
-				args[0] = client.rewriteUrl(args[0]);
+				args[0] = client.rewriteUrl(args[0], { navigateType: "location" });
 				Reflect_apply(target, self.location, args);
 
 				Tap.dispatch(

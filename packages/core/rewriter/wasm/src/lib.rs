@@ -73,6 +73,7 @@ fn get_js_config(config: &Object) -> Result<Config> {
 
 fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 	Ok(Flags {
+		base_literal: js::cfg::escape_js_string(&base),
 		base,
 		sourcetag: scramtag(),
 		script_id: get_str(obj, "scriptId")?,

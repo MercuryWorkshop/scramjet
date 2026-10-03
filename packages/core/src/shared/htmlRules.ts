@@ -1,9 +1,17 @@
 import { rewriteCss } from "@rewriters/css";
 import { rewriteHtml, rewriteSrcset } from "@rewriters/html";
-import { rewriteUrl, unrewriteBlob, URLMeta } from "@rewriters/url";
+import {
+	frozenBaseUrl,
+	isFragmentOnly,
+	rewriteUrl,
+	sameDocumentUrl,
+	splitFragment,
+	unrewriteBlob,
+	URLMeta,
+} from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
 import { parseDeclarativeRefresh } from "./refresh";
-import { _URL } from "./snapshot";
+import { String_toLowerCase, _URL } from "./snapshot";
 
 /**
  * The SVG elements whose `href` is a URL reference that is fetched or
@@ -37,19 +45,72 @@ export const htmlRules: {
 	) => string | null;
 }[] = [
 	{
-		fn: (value, context, meta) =>
-			rewriteUrl(value, context, meta, { navigateType: "location" }),
+		fn: (value, context, meta) => rewriteUrl(value, context, meta),
 
 		// url rewrites
 		src: ["embed", "img", "frame", "input", "track"],
-		href: ["a", "area", "image"],
+		href: ["image"],
 		data: ["object"],
 		action: ["form"],
 		formaction: ["button", "input", "textarea", "submit"],
 		poster: ["video"],
-		// `image` and `a` exist in both vocabularies; the SVG one also takes the
+		// `image` exists in both vocabularies; the SVG one also takes the
 		// legacy spelling
-		"xlink:href": ["image", "a"],
+		"xlink:href": ["image"],
+	},
+	{
+		// https://html.spec.whatwg.org/multipage/links.html#following-hyperlinks-2
+		//
+		// A fragment-only href is left as it is. The browser resolves a
+		// hyperlink's URL when it is followed, against the document's base URL
+		// *at that time*, and then compares it with the document's URL to
+		// decide whether this is a fragment navigation. Left relative, `#x`
+		// resolves against the real URL the document has right then - after
+		// any number of hash changes and `pushState`s - and so stays in the
+		// document exactly when the site's would. The real base it resolves
+		// against, if there is one, is a proxy URL as well (the `base` rule
+		// below), so it cannot resolve out of the proxy.
+		//
+		// Any other href that names this same document is sent to its real
+		// URL by `rewriteUrl`, which is as close as a URL fixed when it is
+		// written can get.
+		fn: (value, context, meta) => {
+			if (isFragmentOnly(value)) return value;
+
+			return rewriteUrl(value, context, meta, { navigateType: "link" });
+		},
+
+		href: ["a", "area"],
+		// the SVG `a` also takes the legacy spelling
+		"xlink:href": ["a"],
+	},
+	{
+		// https://html.spec.whatwg.org/multipage/semantics.html#set-the-frozen-base-url
+		//
+		// The base element's href is resolved against the document's fallback
+		// base URL - never against the document base URL it is itself setting.
+		//
+		// It is rewritten because the browser resolves against it too, for
+		// everything scramjet leaves relative - fragment-only hyperlinks above
+		// all. Left pointing at the site, `#x` would resolve to the site's real
+		// URL and navigate out of the proxy. A base that names the document
+		// itself is its real URL, so that `#x` resolved against it is still in
+		// the document. One the browser ignores - `data:`,
+		// `javascript:`, not a URL - is left as it is, for the browser to
+		// ignore it too.
+		fn: (value, context, meta) => {
+			const base = frozenBaseUrl(value, meta.origin);
+			if (!base) return value;
+
+			const [withoutFragment, fragment] = splitFragment(base.href);
+
+			return (
+				sameDocumentUrl(withoutFragment, fragment, meta) ??
+				rewriteUrl(base.href, context, meta)
+			);
+		},
+
+		href: ["base"],
 	},
 	{
 		fn: (value, context, meta, getAttr) => {
@@ -149,9 +210,13 @@ export const htmlRules: {
 	},
 	{
 		fn: (value, context, meta) => {
-			if (value === "_top" || value === "_unfencedTop")
-				return meta.topFrameName;
-			else if (value === "_parent") return meta.parentFrameName;
+			// ASCII case-insensitive keywords - `_TOP` is `_top`, and would reach
+			// the real top frame left as it is. No name means this is the frame
+			// the keyword names, and the attribute is dropped to say so
+			const keyword = String_toLowerCase(value);
+			if (keyword === "_top" || keyword === "_unfencedtop")
+				return meta.topFrameName ?? null;
+			else if (keyword === "_parent") return meta.parentFrameName ?? null;
 			else return value;
 		},
 		target: ["a", "base"],
@@ -159,8 +224,10 @@ export const htmlRules: {
 	{
 		// svg elements with an href property
 		fn: (value, context, meta) => {
-			// #id values are not rewritten
-			if (value.startsWith("#")) return value;
+			// a reference to an element in this same document, which the
+			// browser only looks up locally when the URL is fragment-only
+			if (isFragmentOnly(value)) return value;
+
 			return rewriteUrl(value, context, meta);
 		},
 		href: svgUrlReferences,
@@ -181,7 +248,11 @@ export const htmlRules: {
 
 			return (
 				value.slice(0, refresh.urlStart) +
-				rewriteUrl(refresh.url.trim(), context, meta) +
+				// the document navigating itself, so `#x` is a fragment
+				// navigation like any other
+				rewriteUrl(refresh.url.trim(), context, meta, {
+					navigateType: "location",
+				}) +
 				value.slice(refresh.urlEnd)
 			);
 		},

@@ -1,4 +1,7 @@
-import { Object_getOwnPropertyDescriptor } from "@/shared/snapshot";
+import {
+	Object_getOwnPropertyDescriptor,
+	String_toLowerCase,
+} from "@/shared/snapshot";
 import { SCRAMJETCLIENT } from "@/symbols";
 // type-only: `client.ts` imports from here, and a value import would close the
 // cycle at runtime
@@ -29,18 +32,29 @@ export function openWindowSteps(
 	target?: string,
 	features?: string
 ): Window | null {
+	// https://html.spec.whatwg.org/multipage/document-sequences.html#valid-navigable-target-name-or-keyword -
+	// the keywords are ASCII case-insensitive, so `_TOP` is `_top`, and would
+	// reach the real top frame left as it is
+	const keyword =
+		typeof target === "string" ? String_toLowerCase(target) : undefined;
+
 	// `url` defaults to the empty string, which opens about:blank - so an absent
 	// argument and an explicit "" mean the same thing and neither is a URL to
-	// rewrite. Anything else is.
-	const href = url === undefined || url === "" ? url : client.rewriteUrl(url);
+	// rewrite. Anything else is. Opened in this same window, it is this
+	// document navigating, which a fragment can keep in the document
+	const href =
+		url === undefined || url === ""
+			? url
+			: client.rewriteUrl(
+					url,
+					keyword === "_self" ? { navigateType: "location" } : undefined
+				);
 
-	if (target !== undefined && target !== null) {
-		if (target === "_top" || target === "_unfencedTop") {
-			target = client.meta.topFrameName;
-		}
-		if (target === "_parent") {
-			target = client.meta.parentFrameName;
-		}
+	if (keyword === "_top" || keyword === "_unfencedtop") {
+		// null when this is the top frame, which is then its own target
+		target = client.meta.topFrameName ?? "_self";
+	} else if (keyword === "_parent") {
+		target = client.meta.parentFrameName ?? "_self";
 	}
 
 	const realwin = nativeOpen(href, target, features);

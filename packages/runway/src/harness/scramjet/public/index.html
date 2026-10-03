@@ -63,7 +63,7 @@
 				statusEl.textContent = "Initializing controller...";
 
 				const innerTransport = new LibcurlClient({
-					wisp: "ws://localhost:4501/",
+					wisp: `ws://localhost:${Number(location.port) + 1}/`,
 				});
 				const transport = new RunwayCleartextHttpsTransport(innerTransport);
 

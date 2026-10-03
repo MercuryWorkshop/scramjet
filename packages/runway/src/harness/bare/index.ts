@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export const BARE_PORT = 4502;
+export const BARE_PORT = Number(process.env.RUNWAY_PORT_BASE ?? 4500) + 2;
 
 export async function startBareHarness() {
 	const app = express();

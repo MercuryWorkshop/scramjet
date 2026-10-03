@@ -12,7 +12,7 @@ import {
 	render,
 } from "@/shared/htmlparser";
 import { type NullArray, nullArray } from "@/shared/htmlparser/safe";
-import { URLMeta, rewriteUrl } from "@rewriters/url";
+import { URLMeta, frozenBaseUrl, rewriteUrl } from "@rewriters/url";
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { rewriteJs } from "@rewriters/js";
 import { rewriteImportMap } from "@rewriters/importmap";
@@ -25,6 +25,7 @@ import { TrackedHistoryState } from "@/fetch";
 import {
 	Error,
 	Performance_now,
+	Object_getOwnPropertyDescriptor,
 	Object_keys,
 	TextEncoder_encode,
 	Array_indexOf,
@@ -32,6 +33,7 @@ import {
 	String_startsWith,
 	String_toLowerCase,
 	_URL,
+	_WeakSet,
 } from "@/shared/snapshot";
 import { flagEnabled } from "..";
 import {
@@ -419,6 +421,68 @@ export function unrewriteHtml(
 	return render(root);
 }
 
+/**
+ * Whether `node` is an HTML element in the document's own tree - which a base
+ * element has to be to set the document's base URL.
+ *
+ * The parser records each element's namespace by the tree construction rules
+ * (integration points, `annotation-xml`'s `encoding`, foreign content broken
+ * out of). What it does not model is a `<template>`'s contents, which the
+ * browser puts in an inert fragment of their own and are its children here.
+ * Only an HTML template has them: an SVG element called `template` is an
+ * ordinary one.
+ */
+function isDocumentHtmlElement(node: Element): boolean {
+	if (node.namespace !== "html") return false;
+
+	for (
+		let at = node.parent;
+		at && at.type === ElementType.Tag;
+		at = at.parent
+	) {
+		const element = at as Element;
+		if (element.name === "template" && element.namespace === "html") {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * The metas whose base URL a base element has already set.
+ *
+ * https://html.spec.whatwg.org/multipage/urls-and-fetching.html#document-base-url -
+ * only the *first* base element with an href sets it; any later one is
+ * ignored.
+ */
+const basedMetas = new _WeakSet<URLMeta>();
+
+/**
+ * https://html.spec.whatwg.org/multipage/semantics.html#set-the-frozen-base-url -
+ * the href parsed against the document's fallback base URL, which one the
+ * browser ignores leaves in place (see `frozenBaseUrl`).
+ *
+ * Only a meta whose `base` is a plain value adopts it: that is the service
+ * worker's, describing the whole document being parsed. The client's is a
+ * getter reading the live document, which is where the base element is going
+ * - so it already answers for it once it lands, and has no setter to call.
+ */
+function adoptBaseElement(node: Element, href: string, meta: URLMeta) {
+	if (basedMetas.has(meta)) return;
+	if (!isDocumentHtmlElement(node)) return;
+
+	const desc = Object_getOwnPropertyDescriptor(meta, "base");
+	if (!desc || !desc.writable) return;
+
+	// one the browser ignores still counts as the first, and the ones after
+	// it are ignored all the same
+	basedMetas.add(meta);
+
+	const base = frozenBaseUrl(href, meta.origin);
+	if (base) meta.base = base;
+}
+
 function traverseParsedHtml(
 	node: AnyNode,
 	context: ScramjetContext,
@@ -434,7 +498,7 @@ function traverseParsedHtml(
 	const ruleAttributeNames = getRuleAttributeNames();
 
 	if (node.name === "base" && attribs.href !== undefined) {
-		meta.base = new _URL(attribs.href, meta.origin);
+		adoptBaseElement(node, attribs.href, meta);
 	}
 
 	for (let ruleIndex = 0; ruleIndex < htmlRules.length; ruleIndex++) {
@@ -682,4 +746,30 @@ export const eventAttributes = [
 	"onscrollend",
 	"onscrollsnapchange",
 	"onscrollsnapchanging",
+	"onanimationcancel",
+	"onbeforecopy",
+	"onbeforecut",
+	"onbeforepaste",
+	"oncommand",
+	// https://html.spec.whatwg.org/multipage/webappapis.html#windoweventhandlers -
+	// on a body or frameset they are the window's handlers, and run like any
+	// other
+	"onafterprint",
+	"onbeforeprint",
+	"onbeforeunload",
+	"onhashchange",
+	"onlanguagechange",
+	"onmessage",
+	"onmessageerror",
+	"onoffline",
+	"ononline",
+	"onpagehide",
+	"onpagereveal",
+	"onpageshow",
+	"onpageswap",
+	"onpopstate",
+	"onrejectionhandled",
+	"onstorage",
+	"onunhandledrejection",
+	"onunload",
 ];

@@ -66,6 +66,8 @@
 		"foreigncontext-domparser-parsefromstring-html-svg",
 		"foreigncontext-innerhtml-nested-svg",
 		"foreigncontext-outerhtml-not-inside-svg",
+		"fragment-document-referrer-excludes-fragment",
+		"fragment-self-navigation-replaces-entry",
 		"functionctor-async-flavor",
 		"functionctor-asyncgenerator-flavor",
 		"functionctor-generator-flavor",

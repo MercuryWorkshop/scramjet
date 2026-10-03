@@ -184,6 +184,84 @@ describe("Node mutation", () => {
 	});
 });
 
+/** A tree as names and namespaces, the way the browser's DOM reports them. */
+function namespaces(node: Document | Element["children"][number]): unknown {
+	if (node.type === ElementType.Root) {
+		return Array.from(node.children as ArrayLike<never>, namespaces);
+	}
+	if (node.type !== ElementType.Tag) return ["#text"];
+
+	return [
+		node.name,
+		node.namespace,
+		Array.from(node.children as ArrayLike<never>, namespaces),
+	];
+}
+
+describe("Scramjet element namespaces", () => {
+	// every expectation here is what Chrome builds for the same markup
+	it("follows integration points, annotation-xml's encoding and breakout", () => {
+		const doc = parseDocument(
+			'<math><annotation-xml><base href="/w/"></base></annotation-xml></math>' +
+				'<math><annotation-xml encoding="TEXT/HTML"><base href="/h/"></annotation-xml></math>' +
+				'<svg><template><base href="/t/"></base></template><title><base href="/st/"></title></svg>' +
+				'<math><mi><mglyph/><base href="/mi/"></mi><title><base href="/mt/"></title></math>' +
+				'<svg><p></p><base href="/after-breakout/"></svg>'
+		);
+
+		expect(namespaces(doc)).toEqual([
+			["math", "math", [["annotation-xml", "math", [["base", "math", []]]]]],
+			["math", "math", [["annotation-xml", "math", [["base", "html", []]]]]],
+			[
+				"svg",
+				"svg",
+				[
+					["template", "svg", [["base", "svg", []]]],
+					["title", "svg", [["base", "html", []]]],
+				],
+			],
+			[
+				"math",
+				"math",
+				[
+					[
+						"mi",
+						"math",
+						[
+							["mglyph", "math", []],
+							["base", "html", []],
+						],
+					],
+					["title", "math", [["base", "math", []]]],
+				],
+			],
+			["svg", "svg", []],
+			["p", "html", []],
+			["base", "html", []],
+		]);
+	});
+
+	it("breaks out on a font with color, face or size, and only then", () => {
+		expect(
+			namespaces(
+				parseDocument(
+					'<svg><font><g></g></font><font color="red"><g></g></font></svg>'
+				)
+			)
+		).toEqual([
+			["svg", "svg", [["font", "svg", [["g", "svg", []]]]]],
+			["font", "html", [["g", "html", []]]],
+		]);
+	});
+
+	it("is HTML outside foreign content, and for an element built by hand", () => {
+		expect(namespaces(parseDocument("<div><base href=x></div>"))).toEqual([
+			["div", "html", [["base", "html", []]]],
+		]);
+		expect(new Element("div").namespace).toBe("html");
+	});
+});
+
 describe("Scramjet parser options", () => {
 	const html = (markup: string, options?: ParserOptions) =>
 		render(parseDocument(markup, options));
@@ -197,10 +275,12 @@ describe("Scramjet parser options", () => {
 			startingForeignContext: "svg",
 		});
 		// SVG casing is applied, self-closing is honoured, and <script> isn't
-		// raw text in foreign content
+		// raw text in foreign content - so `<b>` is a tag, and one that breaks
+		// out of it, as it does in Chrome
 		expect(shape(svg)).toEqual([
 			["clipPath", {}, []],
-			["script", {}, [["b", {}, [["#text", "x"]]]]],
+			["script", {}, []],
+			["b", {}, [["#text", "x"]]],
 		]);
 
 		const math = parseDocument("<mrow/><x/>", {

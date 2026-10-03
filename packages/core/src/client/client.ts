@@ -10,6 +10,7 @@ import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { LifecycleHooks } from "@client/events";
 import {
+	frozenBaseUrl,
 	rewriteUrl,
 	RewriteUrlOptions,
 	unrewriteUrl,
@@ -24,7 +25,7 @@ import {
 } from "@/shared";
 import { iswindow } from "./entry";
 import { SingletonBox } from "./singletonbox";
-import { AttributeLayer } from "./attributes";
+import { AttributeLayer, HTML_NAMESPACE } from "./attributes";
 import { TextLayer } from "./text";
 import { ScramjetConfig } from "@/types";
 import { Tap } from "@/Tap";
@@ -358,12 +359,33 @@ function findBox(global: Window, seen: Window[]): SingletonBox | null {
  */
 export const GlobalScope = class {} as unknown as typeof Window;
 
+/**
+ * https://html.spec.whatwg.org/multipage/urls-and-fetching.html#matches-about:blank -
+ * a fragment is allowed on either, and a query on about:blank but not on
+ * about:srcdoc.
+ */
+function isAboutBlankOrSrcdoc(url: _URL): boolean {
+	const href = String_split(url.href, "#")[0];
+
+	return (
+		href === "about:blank" ||
+		String_startsWith(href, "about:blank?") ||
+		href === "about:srcdoc"
+	);
+}
+
 export class ScramjetClient {
 	locationProxy: any;
 	indirectEval: any;
 	private readonly creatorOrigin: string | null;
 	/** the creator's {@link originKey}, for a document that inherits it */
 	private readonly creatorOriginKey: string | null;
+	/**
+	 * The document that created this one - see {@link captureCreator} - for
+	 * its base URL, which an about:blank or srcdoc document resolves against
+	 * in place of its own URL.
+	 */
+	private readonly creator: ScramjetClient | null;
 	/** whether this document's frame sandbox forces it into an opaque origin */
 	private readonly sandboxedOrigin: boolean;
 	serviceWorker: ServiceWorkerContainer;
@@ -544,6 +566,7 @@ export class ScramjetClient {
 		const creator = this.captureCreator();
 		this.creatorOrigin = creator ? creator.siteOrigin : null;
 		this.creatorOriginKey = creator ? creator.originKey : null;
+		this.creator = creator;
 		this.sandboxedOrigin = this.captureSandboxedOrigin();
 
 		this.bare = new BareCompatibleClient(init.transport);
@@ -562,23 +585,25 @@ export class ScramjetClient {
 			get origin() {
 				return client.url;
 			},
+			/**
+			 * https://html.spec.whatwg.org/multipage/urls-and-fetching.html#document-base-url -
+			 * the frozen base URL of the first base element with an href: that
+			 * href parsed against the fallback base URL. One the browser ignores
+			 * leaves the fallback in place (see `frozenBaseUrl`).
+			 */
 			get base() {
+				const fallback = client.fallbackBaseUrl();
 				if (iswindow) {
-					const base = new client.native.Document(
-						client.global.document
-					).querySelector("base");
-					if (base) {
-						let url = base.getAttribute("href");
-						if (!url) return client.url;
-						const frag = url.indexOf("#");
-						url = url.substring(0, frag === -1 ? undefined : frag);
-						if (!url) return client.url;
-
-						return new _URL(url, client.url.origin);
-					}
+					const base = client.baseElement(client.global.document);
+					const href = base ? client.attributes.get(base, "href") : null;
+					const frozen = href === null ? null : frozenBaseUrl(href, fallback);
+					if (frozen) return frozen;
 				}
 
-				return client.url;
+				return fallback;
+			},
+			get rawUrl() {
+				return iswindow ? client.global.location.href : undefined;
 			},
 			get topFrameName() {
 				if (!iswindow)
@@ -766,6 +791,46 @@ export class ScramjetClient {
 	}
 
 	/**
+	 * https://html.spec.whatwg.org/multipage/urls-and-fetching.html#document-base-url -
+	 * the first base element with an href, in tree order, that sets
+	 * `document`'s base URL. Only an HTML one does: `base[href]` also matches
+	 * an SVG element that happens to be called `base`.
+	 */
+	baseElement(document: Document): Element | null {
+		const found = new this.native.Document(document).querySelectorAll(
+			"base[href]"
+		);
+		for (let i = 0; i < found.length; i++) {
+			const element = found[i];
+			if (new this.native.Element(element).namespaceURI === HTML_NAMESPACE) {
+				return element;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * https://html.spec.whatwg.org/multipage/urls-and-fetching.html#fallback-base-url
+	 *
+	 * The document's URL - except for an about:blank or srcdoc document, which
+	 * has no URL worth resolving against and takes its creator's base URL
+	 * instead. So `#x` in a frame the page made with `createElement` is the
+	 * *parent's* URL with that fragment, as it is natively.
+	 *
+	 * The spec keeps a copy of an about:blank document's creator's base URL
+	 * from when it was created; this reads it now, which only differs once the
+	 * creator has changed its own base since.
+	 */
+	fallbackBaseUrl(): _URL {
+		const url = this.url;
+		if (this.creator && isAboutBlankOrSrcdoc(url))
+			return this.creator.meta.base;
+
+		return url;
+	}
+
+	/**
 	 * The security origin of this client
 	 *
 	 * Since client.url.origin is null for about:blank/srcdoc, this value MUST be used when using it as a security or scope check
@@ -782,17 +847,8 @@ export class ScramjetClient {
 	 */
 	get siteOrigin(): string | null {
 		const url = this.url;
-		// Fragments preserve the document's inherited origin. Queries are also
-		// allowed for about:blank, but not for about:srcdoc.
-		// https://html.spec.whatwg.org/multipage/urls-and-fetching.html#matches-about:blank
-		const href = String_split(url.href, "#")[0];
-		if (
-			href === "about:blank" ||
-			String_startsWith(href, "about:blank?") ||
-			href === "about:srcdoc"
-		) {
-			return this.creatorOrigin;
-		}
+		// fragments preserve the document's inherited origin
+		if (isAboutBlankOrSrcdoc(url)) return this.creatorOrigin;
 
 		return url.origin;
 	}
@@ -958,12 +1014,7 @@ export class ScramjetClient {
 		if (this.sandboxedOrigin) return this.opaqueScope;
 
 		const url = this.url;
-		const href = String_split(url.href, "#")[0];
-		if (
-			href === "about:blank" ||
-			String_startsWith(href, "about:blank?") ||
-			href === "about:srcdoc"
-		) {
+		if (isAboutBlankOrSrcdoc(url)) {
 			return this.creatorOriginKey ?? this.opaqueScope;
 		}
 

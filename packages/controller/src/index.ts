@@ -11,6 +11,7 @@ import {
 	ScramjetFetchHandler,
 	ScramjetHeaders,
 	setWasm,
+	splitFragment,
 	Tap,
 	type CookieSyncOptions,
 	type FetchHooks,
@@ -20,6 +21,7 @@ import {
 	type ScramjetInterface,
 	type TrackedHistoryState,
 	Plugin,
+	unrewriteUrl,
 } from "@mercuryworkshop/scramjet";
 import { CONTROLLERFRAME } from "./symbols";
 import type {
@@ -875,6 +877,43 @@ export class Frame {
 			//@ts-expect-error TODO: fix branded types leaking into core api
 			base: new URL(location.href),
 		});
-		this.element.src = encoded;
+		this.element.src = this.sameDocument(url) ?? encoded;
+	}
+
+	/**
+	 * The real URL of the frame's document with `url`'s fragment, when `url`
+	 * is a fragment of that same document - or null.
+	 *
+	 * Going to `page#b` from `page#a` is a fragment navigation: it scrolls,
+	 * and fires `hashchange`, without reloading anything. The browser only
+	 * sees one when the frame's new URL equals its document's real URL but for
+	 * the fragment, and a rewritten URL does not - it lacks the query the
+	 * document was loaded with.
+	 */
+	private sameDocument(url: string): string | null {
+		let raw: string | undefined;
+		try {
+			raw = this.element.contentWindow?.location.href;
+		} catch {
+			return null;
+		}
+		if (!raw) return null;
+
+		let target: URL;
+		let current: URL;
+		try {
+			target = new URL(url);
+			current = new URL(unrewriteUrl(raw, this.context));
+		} catch {
+			return null;
+		}
+
+		const [withoutFragment, fragment] = splitFragment(target.href);
+		// without a fragment it loads a new document, which it has to request
+		// afresh
+		if (fragment === null) return null;
+		if (splitFragment(current.href)[0] !== withoutFragment) return null;
+
+		return splitFragment(raw)[0] + (fragment ?? "");
 	}
 }

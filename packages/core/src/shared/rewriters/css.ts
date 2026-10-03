@@ -1,4 +1,9 @@
-import { URLMeta, rewriteUrl, unrewriteUrl } from "@rewriters/url";
+import {
+	URLMeta,
+	isFragmentOnly,
+	rewriteUrl,
+	unrewriteUrl,
+} from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
 import { String } from "@/shared/snapshot";
 
@@ -35,6 +40,14 @@ function handleCss(
 			unquotedUrl: string | undefined
 		) => {
 			const url = doubleQuotedUrl ?? singleQuotedUrl ?? unquotedUrl;
+
+			// https://drafts.csswg.org/css-values-4/#local-urls - a URL whose
+			// first character is `#` is a reference to an element in the
+			// document that uses the style (an SVG gradient, clip path, mask,
+			// filter or marker). It is never resolved against a base, so a
+			// rewritten one is an external resource that never renders
+			if (isFragmentOnly(url)) return match;
+
 			const encodedUrl =
 				type === "rewrite"
 					? rewriteUrl(url.trim(), context, meta!)

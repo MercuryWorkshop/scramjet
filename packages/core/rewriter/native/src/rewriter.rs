@@ -89,6 +89,7 @@ impl NativeRewriter {
 				},
 				Flags {
 					base: cfg.base.clone(),
+					base_literal: js::cfg::escape_js_string(&cfg.base),
 					sourcetag: cfg.sourcetag.clone(),
 					script_id: String::from("0"),
 					is_module: cfg.is_module,

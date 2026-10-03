@@ -16,7 +16,7 @@ import {
 	Array_unshift,
 	Object_setPrototypeOf,
 } from "../snapshot";
-import type { Handler } from "./Parser";
+import type { Handler, Namespace, Parser } from "./Parser";
 import {
 	type NullRecord,
 	type NullArray,
@@ -123,7 +123,12 @@ export class Element extends NodeWithChildren {
 	constructor(
 		public name: string,
 		attribs: { [name: string]: string } = {},
-		children?: ArrayLike<ChildNode>
+		children?: ArrayLike<ChildNode>,
+		/**
+		 * The namespace the parser created it in. One built by hand is HTML,
+		 * which is all a caller has ever built.
+		 */
+		public namespace: Namespace = "html"
 	) {
 		super(children);
 		this.attribs = toNullRecord(attribs);
@@ -144,6 +149,13 @@ export class DomBuilder implements Partial<Handler> {
 
 	/** A data node that is still being written to. */
 	private lastNode: Text | Comment | null = null;
+
+	/** The parser feeding this, which knows each element's namespace. */
+	private parser: Parser | null = null;
+
+	onparserinit(parser: Parser): void {
+		this.parser = parser;
+	}
 
 	/**
 	 * How many elements are still open. When it is zero, everything in
@@ -170,7 +182,12 @@ export class DomBuilder implements Partial<Handler> {
 	}
 
 	onopentag(name: string, attribs: NullRecord<string>): void {
-		const element = new Element(name, attribs);
+		const element = new Element(
+			name,
+			attribs,
+			undefined,
+			this.parser?.openTagNamespace ?? "html"
+		);
 		this.addNode(element);
 		Array_push(this.tagStack, element);
 	}

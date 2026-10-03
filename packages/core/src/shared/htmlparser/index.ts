@@ -8,7 +8,12 @@ import { DomBuilder, type Document } from "./dom";
 import { Parser, type ParserOptions } from "./Parser";
 
 export * from "./dom";
-export { Parser, type Handler, type ParserOptions } from "./Parser";
+export {
+	Parser,
+	type Handler,
+	type Namespace,
+	type ParserOptions,
+} from "./Parser";
 export { render } from "./serializer";
 
 /**

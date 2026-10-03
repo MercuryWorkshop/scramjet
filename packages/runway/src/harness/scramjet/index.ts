@@ -9,8 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Resolve paths relative to the package root (runway/)
 const packageRoot = path.resolve(__dirname, "../../..");
 
-export const PORT = 4500;
-export const WISP_PORT = 4501;
+export const PORT = Number(process.env.RUNWAY_PORT_BASE ?? 4500);
+export const WISP_PORT = PORT + 1;
 
 export async function startHarness() {
 	const app = express();

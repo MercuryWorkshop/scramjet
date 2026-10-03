@@ -113,24 +113,49 @@ const voidElements = new SafeSet([
     "wbr",
 ]);
 
-const foreignContextElements = new SafeSet(["math", "svg"]);
+/**
+ * The namespace an element is created in. Scramjet: the parser decides it by
+ * the tree construction rules and records it, rather than consumers guessing
+ * it back from element names.
+ * @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
+ */
+export type Namespace = "html" | "svg" | "math";
 
 /**
- * Elements that can be used to integrate HTML content within foreign namespaces (e.g., SVG or MathML).
- *
- * Entries must use the SVG-adjusted casing (e.g. "foreignObject" not
- * "foreignobject") since they are compared against adjusted tag names.
+ * Where content stops being foreign.
+ * @see https://html.spec.whatwg.org/multipage/parsing.html#mathml-text-integration-point
+ * @see https://html.spec.whatwg.org/multipage/parsing.html#html-integration-point
  */
-const htmlIntegrationElements = new SafeSet([
-    "mi",
-    "mo",
-    "mn",
-    "ms",
-    "mtext",
-    "annotation-xml",
-    "foreignObject",
-    "desc",
-    "title",
+const enum Integration {
+    None,
+    /** start tags but `mglyph` and `malignmark`, and text, are HTML */
+    MathMLText,
+    /** start tags and text are HTML */
+    Html,
+}
+
+/** MathML text integration points, by name, in the MathML namespace. */
+const mathmlTextIntegrationPoints = new SafeSet(["mi", "mo", "mn", "ms", "mtext"]);
+
+/**
+ * HTML integration points by name, in the SVG namespace. MathML's one,
+ * `annotation-xml`, is one only for some `encoding`s. Compared against
+ * adjusted tag names, so in SVG's casing.
+ */
+const svgHtmlIntegrationPoints = new SafeSet(["foreignObject", "desc", "title"]);
+
+/**
+ * Start tags that end foreign content: open foreign elements are popped
+ * until an HTML element or an integration point is current, and the tag is
+ * an HTML element there. `font` is one too, with `color`, `face` or `size`.
+ * @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inforeign
+ */
+const foreignBreakoutTags = new SafeSet([
+    "b", "big", "blockquote", "body", "br", "center", "code", "dd", "div",
+    "dl", "dt", "em", "embed", "h1", "h2", "h3", "h4", "h5", "h6", "head",
+    "hr", "i", "img", "li", "listing", "menu", "meta", "nobr", "ol", "p",
+    "pre", "ruby", "s", "small", "span", "strong", "strike", "sub", "sup",
+    "table", "tt", "u", "ul", "var",
 ]);
 
 const svgTagNameAdjustments = new SafeMap<string, string>([
@@ -173,22 +198,16 @@ const svgTagNameAdjustments = new SafeMap<string, string>([
     ["textpath", "textPath"],
 ]);
 
-const enum ForeignContext {
-    None,
-    Svg,
-    MathML,
-}
-
-function getInitialForeignContext(
+function getContextNamespace(
     startingForeignContext: ParserOptions["startingForeignContext"],
-): ForeignContext {
+): Namespace {
     switch (startingForeignContext) {
         case "svg":
-            return ForeignContext.Svg;
+            return "svg";
         case "math":
-            return ForeignContext.MathML;
+            return "math";
         default:
-            return ForeignContext.None;
+            return "html";
     }
 }
 
@@ -321,7 +340,18 @@ export class Parser implements Callbacks {
     private attribvalue = "";
     private attribs: null | NullRecord<string> = null;
     private readonly stack: NullArray<string> = nullArray();
-    private readonly foreignContext: NullArray<ForeignContext>;
+    /** The namespace of each element on `stack`, at the same index. */
+    private readonly namespaces: NullArray<Namespace> = nullArray();
+    /** Whether each element on `stack` is an integration point. */
+    private readonly integrations: NullArray<Integration> = nullArray();
+    /**
+     * The namespace of the element markup is parsed in the context of: of
+     * the fragment's context element, standing in for the current node while
+     * nothing is open.
+     */
+    private readonly contextNamespace: Namespace;
+    /** The namespace of the tag being opened. */
+    private tagnamespace: Namespace = "html";
     private readonly cbs: Partial<Handler>;
     private readonly lowerCaseTagNames: boolean;
     private readonly lowerCaseAttributeNames: boolean;
@@ -355,9 +385,9 @@ export class Parser implements Callbacks {
         this.recognizeSelfClosing =
             options.recognizeSelfClosing ?? !this.htmlMode;
         this.tokenizer = new Tokenizer(this.options, this);
-        this.foreignContext = nullArray([
-            getInitialForeignContext(options.startingForeignContext),
-        ]);
+        this.contextNamespace = getContextNamespace(
+            options.startingForeignContext,
+        );
         this.cbs.onparserinit?.(this);
     }
 
@@ -386,9 +416,77 @@ export class Parser implements Callbacks {
         this.startIndex = endIndex;
     }
 
-    /** @internal */
+    /**
+     * Whether a start tag here is processed by the rules for foreign content:
+     * the current node is a foreign element, and not an integration point.
+     * The tokenizer asks, to know whether `<script>`, `<style>` and the
+     * others start raw text.
+     * @internal
+     */
     isInForeignContext(): boolean {
-        return this.foreignContext[0] !== ForeignContext.None;
+        if (!this.htmlMode) return false;
+        if (this.stack.length === 0) return this.contextNamespace !== "html";
+
+        return (
+            this.namespaces[0] !== "html" &&
+            this.integrations[0] === Integration.None
+        );
+    }
+
+    /**
+     * The namespace of the current node - of the context element while
+     * nothing is open. A CDATA section is one, and a self-closing tag closes,
+     * outside HTML.
+     */
+    private currentNamespace(): Namespace {
+        return this.stack.length === 0 ? this.contextNamespace : this.namespaces[0];
+    }
+
+    /**
+     * The namespace a start tag named `name` creates its element in, here.
+     * @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction-dispatcher
+     */
+    private namespaceFor(name: string): Namespace {
+        if (!this.htmlMode) return "html";
+
+        const current = this.currentNamespace();
+        const integration =
+            this.stack.length === 0 ? Integration.None : this.integrations[0];
+        const htmlRules =
+            current === "html" ||
+            integration === Integration.Html ||
+            (integration === Integration.MathMLText &&
+                name !== "mglyph" &&
+                name !== "malignmark") ||
+            (current === "math" &&
+                this.stack[0] === "annotation-xml" &&
+                name === "svg");
+
+        if (!htmlRules) return current;
+
+        return name === "svg" ? "svg" : name === "math" ? "math" : "html";
+    }
+
+    /** Whether an element named `name` in `namespace` is an integration point. */
+    private integrationOf(name: string, namespace: Namespace): Integration {
+        if (namespace === "math" && mathmlTextIntegrationPoints.has(name)) {
+            return Integration.MathMLText;
+        }
+        if (namespace === "svg" && svgHtmlIntegrationPoints.has(name)) {
+            return Integration.Html;
+        }
+
+        // `annotation-xml` is decided once its attributes are in, in
+        // `endOpenTag`
+        return Integration.None;
+    }
+
+    /**
+     * The namespace of the element the last `onopentag` was for - recorded on
+     * it by `DomBuilder`.
+     */
+    get openTagNamespace(): Namespace {
+        return this.tagnamespace;
     }
 
     /** @internal */
@@ -401,8 +499,9 @@ export class Parser implements Callbacks {
      * to specify your own additional void elements.
      * @param name Name of the pseudo selector.
      */
-    protected isVoidElement(name: string): boolean {
-        return this.htmlMode && voidElements.has(name);
+    protected isVoidElement(name: string, namespace: Namespace = "html"): boolean {
+        // only an HTML element is void: an SVG one named `base` has children
+        return this.htmlMode && namespace === "html" && voidElements.has(name);
     }
 
     /**
@@ -423,7 +522,7 @@ export class Parser implements Callbacks {
             return name;
         }
 
-        if (this.foreignContext[0] === ForeignContext.Svg) {
+        if (this.isInForeignContext() && this.currentNamespace() === "svg") {
             return svgTagNameAdjustments.get(name) ?? name;
         }
 
@@ -431,10 +530,8 @@ export class Parser implements Callbacks {
          * Closing tags for SVG elements inside HTML integration points
          * (e.g. </foreignObject> while inside its own content) need case
          * adjustment so the name matches what was pushed to the stack.
-         * `foreignContext.length > 1` means a foreign ancestor exists —
-         * the base [None] entry plus at least one pushed context.
          */
-        if (this.foreignContext.length > 1) {
+        if (Array_includes(this.namespaces, "svg")) {
             const adjusted = svgTagNameAdjustments.get(name);
             if (adjusted !== undefined && Array_includes(this.stack, adjusted)) {
                 return adjusted;
@@ -449,18 +546,60 @@ export class Parser implements Callbacks {
     }
 
     /**
+     * Read a start tag's name: lowercased, then adjusted by the namespace its
+     * element is created in - SVG's mixed casing, or the `image` → `img`
+     * alias for an HTML one.
+     */
+    private readOpenTagName(start: number, endIndex: number): string {
+        const name = this.lowerCaseTagNames
+            ? String_toLowerCase(this.getSlice(start, endIndex))
+            : this.getSlice(start, endIndex);
+
+        if (!(this.lowerCaseTagNames && this.htmlMode)) {
+            return name;
+        }
+
+        const namespace = this.namespaceFor(name);
+        if (namespace === "svg") return svgTagNameAdjustments.get(name) ?? name;
+        if (namespace === "html" && name === "image") return "img";
+
+        return name;
+    }
+
+    /**
      * @param start Start index for the current parser event.
      * @param endIndex End index for the current parser event.
      * @internal
      */
     onopentagname(start: number, endIndex: number): void {
         this.endIndex = endIndex;
-        this.emitOpenTag(this.readTagName(start, endIndex));
+        this.emitOpenTag(this.readOpenTagName(start, endIndex));
     }
 
     private emitOpenTag(name: string) {
         this.openTagStart = this.startIndex;
+
+        /*
+         * Scramjet: a start tag that breaks out of foreign content closes the
+         * foreign elements around it, and is an HTML element where that
+         * leaves off. With nothing left open, the fragment's context is the
+         * current node, and the element is HTML all the same.
+         */
+        let namespace = this.namespaceFor(name);
+        if (
+            this.htmlMode &&
+            namespace !== "html" &&
+            this.isInForeignContext() &&
+            foreignBreakoutTags.has(name)
+        ) {
+            while (this.stack.length > 0 && this.isInForeignContext()) {
+                this.popElement(true);
+            }
+            namespace = "html";
+        }
+
         this.tagname = name;
+        this.tagnamespace = namespace;
 
         /*
          * The spec ignores a second <form> when one is already open.
@@ -480,18 +619,10 @@ export class Parser implements Callbacks {
                 this.popElement(true);
             }
         }
-        if (!this.isVoidElement(name)) {
+        if (!this.isVoidElement(name, namespace)) {
             Array_unshift(this.stack, name);
-
-            if (this.htmlMode) {
-                if (name === "svg") {
-                    Array_unshift(this.foreignContext, ForeignContext.Svg);
-                } else if (name === "math") {
-                    Array_unshift(this.foreignContext, ForeignContext.MathML);
-                } else if (htmlIntegrationElements.has(name)) {
-                    Array_unshift(this.foreignContext, ForeignContext.None);
-                }
-            }
+            Array_unshift(this.namespaces, namespace);
+            Array_unshift(this.integrations, this.integrationOf(name, namespace));
         }
         this.cbs.onopentagname?.(name);
         if (this.cbs.onopentag) this.attribs = Object_create(null);
@@ -500,11 +631,60 @@ export class Parser implements Callbacks {
     private endOpenTag(isImplied: boolean) {
         this.startIndex = this.openTagStart;
 
+        /*
+         * Scramjet: `font` breaks out of foreign content too, when it has one
+         * of these attributes - known only now. Nothing has been told about
+         * the element yet but its name, so it is moved out before it is
+         * built: off the stack, the foreign elements around it closed, and
+         * back on as an HTML element.
+         */
+        if (
+            this.htmlMode &&
+            this.attribs &&
+            this.tagname === "font" &&
+            this.tagnamespace !== "html" &&
+            this.stack[0] === "font" &&
+            ("color" in this.attribs ||
+                "face" in this.attribs ||
+                "size" in this.attribs)
+        ) {
+            Array_shift(this.stack);
+            Array_shift(this.namespaces);
+            Array_shift(this.integrations);
+            while (this.stack.length > 0 && this.isInForeignContext()) {
+                this.popElement(true);
+            }
+            this.tagnamespace = "html";
+            Array_unshift(this.stack, "font");
+            Array_unshift(this.namespaces, "html");
+            Array_unshift(this.integrations, Integration.None);
+        }
+
+        // MathML's `annotation-xml` is an HTML integration point when its
+        // encoding says it holds HTML
+        if (
+            this.htmlMode &&
+            this.attribs &&
+            this.tagname === "annotation-xml" &&
+            this.tagnamespace === "math" &&
+            this.stack[0] === "annotation-xml"
+        ) {
+            const encoding = this.attribs["encoding"];
+            const lowered =
+                encoding === undefined ? "" : String_toLowerCase(encoding);
+            if (lowered === "text/html" || lowered === "application/xhtml+xml") {
+                this.integrations[0] = Integration.Html;
+            }
+        }
+
         if (this.attribs) {
             this.cbs.onopentag?.(this.tagname, this.attribs, isImplied);
             this.attribs = null;
         }
-        if (this.cbs.onclosetag && this.isVoidElement(this.tagname)) {
+        if (
+            this.cbs.onclosetag &&
+            this.isVoidElement(this.tagname, this.tagnamespace)
+        ) {
             this.cbs.onclosetag(this.tagname, true);
         }
 
@@ -546,7 +726,9 @@ export class Parser implements Callbacks {
             }
         }
 
-        if (!this.isVoidElement(name)) {
+        const closesVoid =
+            this.isVoidElement(name) && !this.isInForeignContext();
+        if (!closesVoid) {
             const pos = Array_indexOf(this.stack, name);
             if (pos !== -1) {
                 for (let index = 0; index < pos; index++) {
@@ -575,7 +757,7 @@ export class Parser implements Callbacks {
      */
     onselfclosingtag(endIndex: number): void {
         this.endIndex = endIndex;
-        if (this.recognizeSelfClosing || this.isInForeignContext()) {
+        if (this.recognizeSelfClosing || this.currentNamespace() !== "html") {
             this.closeCurrentTag(false);
 
             // Set `startIndex` for next node
@@ -594,13 +776,8 @@ export class Parser implements Callbacks {
     private popElement(implied: boolean): void {
         // biome-ignore lint/style/noNonNullAssertion: The element is guaranteed to exist.
         const element = Array_shift(this.stack)!;
-        if (
-            this.htmlMode &&
-            (foreignContextElements.has(element) ||
-                htmlIntegrationElements.has(element))
-        ) {
-            Array_shift(this.foreignContext);
-        }
+        Array_shift(this.namespaces);
+        Array_shift(this.integrations);
         this.cbs.onclosetag?.(element, implied);
     }
 
@@ -756,7 +933,7 @@ export class Parser implements Callbacks {
             this.cbs.oncdatastart?.();
             this.cbs.ontext?.(value);
             this.cbs.oncdataend?.();
-        } else if (this.isInForeignContext()) {
+        } else if (this.currentNamespace() !== "html") {
             this.cbs.ontext?.(value);
         } else {
             this.cbs.oncomment?.(`[CDATA[${value}]]`);
@@ -794,11 +971,8 @@ export class Parser implements Callbacks {
         this.endIndex = 0;
         this.cbs.onparserinit?.(this);
         this.buffers.length = 0;
-        this.foreignContext.length = 0;
-        Array_unshift(
-            this.foreignContext,
-            getInitialForeignContext(this.options.startingForeignContext),
-        );
+        this.namespaces.length = 0;
+        this.integrations.length = 0;
         this.bufferOffset = 0;
         this.writeIndex = 0;
         this.ended = false;

@@ -54,13 +54,23 @@ impl UrlRewriter for WasmUrlRewriter {
 		builder: &mut StringBuilder,
 		module: bool,
 	) -> std::result::Result<(), Box<dyn Error + Sync + Send>> {
-		let url = Url::new_with_base(url, &flags.base)
+		let url: std::string::String = Url::new_with_base(url, &flags.base)
 			.map_err(RewriterError::from)?
-			.to_string();
+			.href();
+
+		// the fragment goes after the query, as it was written, the same way
+		// `rewriteUrl` puts it - so `import "./m.js#a"` and `import("./m.js#a")`
+		// load the one module, as they do natively. A module's identity is its
+		// URL fragment and all. The serializer percent-encodes every other `#`,
+		// so the first is the delimiter
+		let (without_fragment, fragment) = match url.find('#') {
+			Some(index) => url.split_at(index),
+			None => (url.as_str(), ""),
+		};
 
 		let mut rewritten = self
 			.0
-			.call1(&JsValue::NULL, &url.into())
+			.call1(&JsValue::NULL, &without_fragment.into())
 			.map_err(RewriterError::from)?
 			.as_string()
 			.ok_or_else(|| RewriterError::not_str("url rewriter output"))?;
@@ -72,6 +82,11 @@ impl UrlRewriter for WasmUrlRewriter {
 			rewritten.push_str("?%24module=module&%24io=");
 			rewritten.push_str(&encoded_origin);
 		}
+
+		// back inside the string literal it came out of. The fragment
+		// percent-encode set covers `"`, line terminators and everything
+		// outside ASCII, but leaves `\` and `'`
+		rewritten.push_str(&js::cfg::escape_js_string(fragment));
 
 		builder.push_str(&rewritten);
 

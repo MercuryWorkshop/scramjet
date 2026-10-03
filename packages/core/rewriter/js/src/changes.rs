@@ -311,8 +311,8 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				&flags.sourcetag,
 				"*/"
 			]),
-			Ty::ImportFn => LL::replace(transforms![&cfg.importfn, "(\"", &flags.base, "\","]),
-			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(import.meta,\"", &flags.base, "\")"]),
+			Ty::ImportFn => LL::replace(transforms![&cfg.importfn, "(\"", &flags.base_literal, "\","]),
+			Ty::MetaFn => LL::replace(transforms![&cfg.metafn, "(import.meta,\"", &flags.base_literal, "\")"]),
 			Ty::CallFnPrelude => LL::replace(transforms!["(", &cfg.tempreceiverid, "="]),
 			Ty::CallFnLeft { computed, optional, optional_call, throws } => {
 				let access: &str = if computed { "[" } else { "." };

@@ -138,6 +138,12 @@ export function parseRequest(
 	const meta: URLMeta = {
 		origin: url,
 		base: url,
+		// a document is loaded at the URL it was requested with, so that is
+		// the real URL a link back into it has to match
+		rawUrl:
+			destination === "document" || destination === "iframe"
+				? request.rawUrl.href
+				: undefined,
 		topFrameName: params.topFrame,
 		parentFrameName: params.parentFrame,
 		referrerPolicy: params.referrerPolicy,
