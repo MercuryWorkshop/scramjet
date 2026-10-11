@@ -8,7 +8,8 @@ import {
 import { ScramjetConfig, ScramjetInitConfig, ScramjetDB } from "@/types";
 import { ScramjetFrame } from "@/controller/frame";
 import { MessageW2C } from "@/worker";
-import { openDB, IDBPDatabase } from "idb";
+import { IDBPDatabase } from "idb";
+import { openScramjetDB } from "@/shared/database";
 import {
 	ScramjetEvents,
 	ScramjetGlobalDownloadEvent,
@@ -139,28 +140,11 @@ export class ScramjetController extends EventTarget {
 	}
 
 	async openIDB(): Promise<IDBPDatabase<ScramjetDB>> {
-		const db = await openDB<ScramjetDB>("$scramjet", 1, {
-			upgrade(db) {
-				if (!db.objectStoreNames.contains("config")) {
-					db.createObjectStore("config");
-				}
-				if (!db.objectStoreNames.contains("cookies")) {
-					db.createObjectStore("cookies");
-				}
-				if (!db.objectStoreNames.contains("redirectTrackers")) {
-					db.createObjectStore("redirectTrackers");
-				}
-				if (!db.objectStoreNames.contains("referrerPolicies")) {
-					db.createObjectStore("referrerPolicies");
-				}
-				if (!db.objectStoreNames.contains("publicSuffixList")) {
-					db.createObjectStore("publicSuffixList");
-				}
-			},
-		});
+		const db = await openScramjetDB();
 
 		this.db = db;
 		await this.#saveConfig();
+
 		return db;
 	}
 
