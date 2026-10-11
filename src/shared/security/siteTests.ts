@@ -5,7 +5,8 @@ import type {
 	BareResponseFetch,
 } from "@mercuryworkshop/bare-mux";
 import { ScramjetDB } from "@/types";
-import { openDB, IDBPDatabase } from "idb";
+import { IDBPDatabase } from "idb";
+import { openScramjetDB } from "@/shared/database";
 
 // Cache every hour
 const CACHE_DURATION_MINUTES = 60;
@@ -17,7 +18,7 @@ const CACHE_KEY = "publicSuffixList";
  * @returns Resolves to the database connection
  */
 async function getDB(): Promise<IDBPDatabase<ScramjetDB>> {
-	return openDB<ScramjetDB>("$scramjet", 1);
+	return openScramjetDB();
 }
 
 /**
@@ -30,6 +31,7 @@ async function getCachedSuffixList(): Promise<{
 	expiry: number;
 } | null> {
 	const db = await getDB();
+
 	return (await db.get("publicSuffixList", CACHE_KEY)) || null;
 }
 

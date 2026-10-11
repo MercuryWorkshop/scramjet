@@ -5,10 +5,10 @@
 import { FakeServiceWorker } from "@/worker/fakesw";
 import { handleFetch } from "@/worker/fetch";
 import BareClient from "@mercuryworkshop/bare-mux";
-import { ScramjetConfig, ScramjetDB } from "@/types";
+import { ScramjetConfig } from "@/types";
 import { asyncSetWasm } from "@rewriters/wasm";
 import { CookieStore } from "@/shared/cookie";
-import { openDB } from "idb";
+import { openScramjetDB } from "@/shared/database";
 import { config, loadCodecs, setConfig } from "@/shared";
 import { ScramjetDownload } from "@client/events";
 export * from "./error";
@@ -56,7 +56,7 @@ export class ScramjetServiceWorker extends EventTarget {
 		this.client = new BareClient();
 
 		(async () => {
-			const db = await openDB<ScramjetDB>("$scramjet", 1);
+			const db = await openScramjetDB();
 			const cookies = await db.get("cookies", "cookies");
 			if (cookies) {
 				this.cookieStore.load(cookies);
@@ -83,7 +83,7 @@ export class ScramjetServiceWorker extends EventTarget {
 
 			if (data.scramjet$type === "cookie") {
 				this.cookieStore.setCookies([data.cookie], new URL(data.url));
-				const db = await openDB<ScramjetDB>("$scramjet", 1);
+				const db = await openScramjetDB();
 				await db.put("cookies", JSON.parse(this.cookieStore.dump()), "cookies");
 			}
 
@@ -122,7 +122,7 @@ export class ScramjetServiceWorker extends EventTarget {
 	async loadConfig() {
 		if (this.config) return;
 
-		const db = await openDB<ScramjetDB>("$scramjet", 1);
+		const db = await openScramjetDB();
 		this.config = await db.get("config", "config");
 
 		if (this.config) {

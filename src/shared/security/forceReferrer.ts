@@ -4,7 +4,8 @@ import {
 	type SiteDirective,
 	ScramjetDB,
 } from "@/types";
-import { openDB, IDBPDatabase } from "idb";
+import { IDBPDatabase } from "idb";
+import { openScramjetDB } from "@/shared/database";
 
 // Persist the redirect trackers for an hour
 const TRACKER_EXPIRY = 60 * 60 * 1000;
@@ -21,7 +22,7 @@ const SITE_HIERARCHY: Record<SiteDirective, number> = {
  * @returns Promise that resolves to the database connection
  */
 async function getDB(): Promise<IDBPDatabase<ScramjetDB>> {
-	return openDB<ScramjetDB>("$scramjet", 1);
+	return openScramjetDB();
 }
 
 /**
@@ -32,6 +33,7 @@ async function getDB(): Promise<IDBPDatabase<ScramjetDB>> {
  */
 async function getTracker(url: string): Promise<RedirectTracker | null> {
 	const db = await getDB();
+
 	return (await db.get("redirectTrackers", url)) || null;
 }
 
@@ -186,5 +188,6 @@ export async function getReferrerPolicy(
 	url: string
 ): Promise<ReferrerPolicyData | null> {
 	const db = await getDB();
+
 	return (await db.get("referrerPolicies", url)) || null;
 }
