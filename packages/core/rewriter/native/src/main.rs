@@ -1,18 +1,12 @@
 use std::{
-	env,
-	ffi::OsString,
-	fs,
-	path::PathBuf,
-	sync::Arc,
-	time::{Duration, Instant},
+	env, ffi::OsString, fs, path::PathBuf, sync::Arc, time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
 use clap::Parser;
 use js::cfg::IncumbencyMode;
 use oxc::{
-	allocator::{Allocator, StringBuilder},
-	diagnostics::NamedSource,
+	allocator::{Allocator, StringBuilder}, diagnostics::NamedSource, parser::{ParseOptions}, span::SourceType,
 };
 use rewriter::NativeRewriter;
 
@@ -98,6 +92,11 @@ pub enum Cli {
 		#[clap(flatten)]
 		config: RewriterOptions,
 	},
+	Dump {
+		file: PathBuf,
+		#[clap(flatten)]
+		config: RewriterOptions,
+	}
 }
 
 fn main() -> Result<()> {
@@ -168,6 +167,33 @@ fn main() -> Result<()> {
 			println!("iterations: {cnt}");
 			println!("total time: {duration:?}");
 			println!("avg time: {:?}", duration / cnt);
+		}
+		Cli::Dump { file, config } => {
+			let data = fs::read_to_string(file).context("failed to read file")?;
+
+			let source_type = SourceType::unambiguous()
+				.with_javascript(true)
+				.with_module(config.is_module)
+				.with_standard(true);
+			let alloc = Allocator::new();
+			let parsed = oxc::parser::Parser::new(&alloc, &data, source_type)
+				.with_options(ParseOptions {
+					allow_v8_intrinsics: true,
+					allow_return_outside_function: true,
+					..Default::default()
+				})
+				.parse();
+
+			if parsed.panicked {
+				use std::fmt::Write;
+
+				let mut errors = String::new();
+				for error in parsed.errors {
+					writeln!(errors, "{error}")?;
+				}
+				panic!("oxc panicked");
+			}
+			dbg!(&parsed.program);
 		}
 	}
 
