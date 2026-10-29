@@ -5,7 +5,7 @@ import EpoxyClient from "@mercuryworkshop/epoxy-transport";
 import { defaultConfigDev } from "@mercuryworkshop/scramjet";
 import { Controller } from "@mercuryworkshop/scramjet-controller";
 import { HttpCachePlugin } from "@mercuryworkshop/scramjet-utils";
-import { demoSettingsStore } from "./store";
+import { demoSettingsStore, getRuntimeWispUrl } from "./store";
 
 let app = document.getElementById("app")!;
 
@@ -13,7 +13,7 @@ let controller: InstanceType<typeof Controller>;
 const cachePlugin = new HttpCachePlugin();
 
 export function getTransport(): LibcurlClient | EpoxyClient {
-	const wispUrl = demoSettingsStore.wispUrl;
+	const wispUrl = getRuntimeWispUrl(demoSettingsStore.wispUrl);
 	switch (demoSettingsStore.transport) {
 		case "epoxy":
 			return new EpoxyClient({ wisp: wispUrl });

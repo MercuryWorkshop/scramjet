@@ -5,7 +5,6 @@ import {
 	type AvailableTransports,
 	demoSettingsDefaults,
 	demoSettingsStore,
-	normalizeHomeUrl,
 	normalizeMaxRequests,
 	normalizeTransport,
 	normalizeWispUrl,
@@ -16,7 +15,6 @@ const SettingsView: Component<
 	{
 		wispUrlInput: string;
 		transportInput: AvailableTransports;
-		homeUrlInput: string;
 		maxRequestsInput: string;
 		status: string;
 		error: string;
@@ -25,7 +23,6 @@ const SettingsView: Component<
 > = function () {
 	this.wispUrlInput ??= demoSettingsStore.wispUrl;
 	this.transportInput ??= demoSettingsStore.transport;
-	this.homeUrlInput ??= demoSettingsStore.homeUrl;
 	this.maxRequestsInput ??= String(demoSettingsStore.maxRequests);
 	this.status ??= "";
 	this.error ??= "";
@@ -33,7 +30,6 @@ const SettingsView: Component<
 	const syncInputsFromStore = () => {
 		this.wispUrlInput = demoSettingsStore.wispUrl;
 		this.transportInput = demoSettingsStore.transport;
-		this.homeUrlInput = demoSettingsStore.homeUrl;
 		this.maxRequestsInput = String(demoSettingsStore.maxRequests);
 	};
 
@@ -44,19 +40,16 @@ const SettingsView: Component<
 		try {
 			const nextWispUrl = normalizeWispUrl(this.wispUrlInput);
 			const nextTransport = normalizeTransport(this.transportInput);
-			const nextHomeUrl = normalizeHomeUrl(this.homeUrlInput);
 			const nextMaxRequests = normalizeMaxRequests(this.maxRequestsInput);
 			const wispChanged = nextWispUrl !== demoSettingsStore.wispUrl;
 			const transportChanged = nextTransport !== demoSettingsStore.transport;
 
 			demoSettingsStore.wispUrl = nextWispUrl;
 			demoSettingsStore.transport = nextTransport;
-			demoSettingsStore.homeUrl = nextHomeUrl;
 			demoSettingsStore.maxRequests = nextMaxRequests;
 
 			this.wispUrlInput = nextWispUrl;
 			this.transportInput = nextTransport;
-			this.homeUrlInput = nextHomeUrl;
 			this.maxRequestsInput = String(nextMaxRequests);
 
 			if (wispChanged || transportChanged) {
@@ -78,7 +71,6 @@ const SettingsView: Component<
 		this.status = "Resetting settings...";
 		this.wispUrlInput = demoSettingsDefaults.wispUrl;
 		this.transportInput = demoSettingsDefaults.transport;
-		this.homeUrlInput = demoSettingsDefaults.homeUrl;
 		this.maxRequestsInput = String(demoSettingsDefaults.maxRequests);
 		await applySettings();
 	};
@@ -86,10 +78,10 @@ const SettingsView: Component<
 	return (
 		<div class="settings-panel">
 			<div class="settings-header">
-				<h2>Demo Settings</h2>
+				<h2>Proxy settings</h2>
 				<p>
-					Update runtime settings without rebuilding the demo. Wisp changes
-					apply to future requests only.
+					Adjust the connection and request capture. Transport changes apply
+					to future requests.
 				</p>
 			</div>
 
@@ -103,7 +95,7 @@ const SettingsView: Component<
 						this.wispUrlInput = (e.target as HTMLInputElement).value;
 					}}
 				/>
-				<span class="hint">Example: ws://localhost:4142/</span>
+				<span class="hint">Example: /wisp/ for the same-origin WebSocket proxy.</span>
 			</label>
 
 			<label class="field">
@@ -121,21 +113,6 @@ const SettingsView: Component<
 				</select>
 				<span class="hint">
 					Transport client used to dispatch outbound requests over Wisp.
-				</span>
-			</label>
-
-			<label class="field">
-				<span class="label">Home page URL</span>
-				<input
-					type="text"
-					value={use(this.homeUrlInput)}
-					spellcheck={false}
-					on:input={(e: InputEvent) => {
-						this.homeUrlInput = (e.target as HTMLInputElement).value;
-					}}
-				/>
-				<span class="hint">
-					Used as the default browser URL and can be pushed into the omnibox.
 				</span>
 			</label>
 

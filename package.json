@@ -1,7 +1,7 @@
 {
-	"name": "scramjet-root",
+	"name": "tcms-proxy",
 	"version": "1.0.0",
-	"description": "",
+	"description": "TCMs Proxy browser interface built on Scramjet.",
 	"type": "module",
 	"keywords": [],
 	"author": "Mercury Workshop",

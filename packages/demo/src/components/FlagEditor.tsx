@@ -93,12 +93,12 @@ const FlagEditor: Component<
 					this.isOpen = !this.isOpen;
 				}}
 			>
-				{use(this.isOpen).map((open) => (open ? "▼" : "▶"))} Flag Editor
+				{use(this.isOpen).map((open) => (open ? "▼" : "▶"))} Proxy controls
 			</button>
 			{use(this.isOpen).andThen(
 				<div class="editor-panel">
 					<div class="header">
-						<h3>Scramjet Feature Flags</h3>
+						<h3>Advanced proxy controls</h3>
 						<div class="header-actions">
 							<button class="cache-bust-button" on:click={bustCache}>
 								Bust Cache
@@ -180,19 +180,24 @@ FlagEditor.style = css`
 	}
 
 	:scope.inline .toggle-button {
-		padding: 0.35em 0.7em;
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
-		border-radius: 0;
-		font-size: 0.8em;
+		width: auto;
+		min-height: 32px;
+		padding: 0 10px;
+		border: 1px solid #2b3741;
+		border-radius: 8px;
+		background: transparent;
+		color: #aab6bf;
+		font-size: 11px;
 		line-height: 1.2;
-		min-height: 28px;
 		display: inline-flex;
 		align-items: center;
+		white-space: nowrap;
 	}
 
 	:scope.inline .toggle-button:hover {
-		background: #222;
+		border-color: #46535e;
+		background: #18212a;
+		color: #edf2f5;
 	}
 
 	.toggle-button:hover {

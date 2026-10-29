@@ -35,12 +35,12 @@ const DEFAULT_FILES: PlaygroundFile[] = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Scramjet Playground</title>
+    <title>TCMs Proxy Playground</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <main>
-      <h1>Scramjet Playground</h1>
+      <h1>TCMs Proxy Playground</h1>
       <p>Edit files on the left, then reload the preview.</p>
       <button id="btn">Click me</button>
       <pre id="out"></pre>
@@ -81,7 +81,7 @@ button {
 const button = document.getElementById("btn");
 if (button && out) {
   button.addEventListener("click", () => {
-    out.textContent = "Hello from fakeorigin assets served via Scramjet request hook.";
+    out.textContent = "Hello from a sandboxed TCMs Proxy playground asset.";
   });
 }
 `,

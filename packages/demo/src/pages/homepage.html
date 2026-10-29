@@ -3,166 +3,1348 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Scramjet Demo</title>
+		<meta name="theme-color" content="#f3f5f6" />
+		<title>TCMs Proxy</title>
 		<style>
 			:root {
-				color-scheme: dark;
-			}
-			* {
-				box-sizing: border-box;
-			}
-			body {
-				margin: 0;
-				min-height: 100vh;
+				color-scheme: light;
 				font-family:
+					Inter,
+					ui-sans-serif,
 					system-ui,
 					-apple-system,
 					"Segoe UI",
-					Roboto,
-					"Helvetica Neue",
-					Arial,
 					sans-serif;
-				background: #0f0f0f;
-				color: #e5e7eb;
-				display: grid;
-				place-items: start center;
-				padding: 30px 18px;
+				font-synthesis: none;
+				text-rendering: optimizeLegibility;
+				--ink: #202a32;
+				--muted: #74818b;
+				--line: #dfe5e8;
+				--paper: #ffffff;
+				--page: #f3f5f6;
+				--accent: #cf8150;
+				--accent-dark: #a85e32;
 			}
-			.sheet {
-				width: min(760px, 100%);
-				/*border: 1px solid #222;
-        background: #111;
-		*/
-				padding: 26px 28px;
+
+			* {
+				box-sizing: border-box;
 			}
-			h1 {
-				margin: 0 0 8px;
-				font-size: 1.55rem;
-				font-weight: 650;
-				letter-spacing: 0.005em;
+
+			html,
+			body {
+				min-height: 100%;
 			}
-			.meta {
-				color: #9ca3af;
-				font-size: 0.78rem;
-				margin: 0 0 20px;
-			}
-			.section {
-				margin: 0 0 18px;
-			}
-			.label {
-				display: block;
-				margin-bottom: 6px;
-				color: #e5e7eb;
-				font-size: 1.1rem;
-				font-weight: 630;
-				letter-spacing: 0.01em;
-				text-transform: none;
-			}
-			p {
+
+			body {
 				margin: 0;
-				color: #c7c7c7;
-				line-height: 1.62;
-				font-size: 0.94rem;
-				max-width: 70ch;
+				background: var(--page);
+				color: var(--ink);
+				font-size: 14px;
 			}
-			code {
-				font-family: "SF Mono", Menlo, Consolas, monospace;
-				color: #e5e7eb;
-				background: #181818;
-				border: 1px solid #2a2a2a;
-				padding: 1px 5px;
+
+			button,
+			input,
+			select {
+				font: inherit;
 			}
-			a {
+
+			button {
 				color: inherit;
-				text-decoration: none;
 			}
-			a:hover {
-				text-decoration: underline;
+
+			.page-frame {
+				width: min(1180px, 100%);
+				min-height: 100vh;
+				margin: 0 auto;
+				padding: 24px clamp(20px, 5vw, 68px) 28px;
+			}
+
+			.page-topline {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 18px;
+				min-height: 42px;
+				margin-bottom: 30px;
+			}
+
+			.home-brand {
+				display: flex;
+				align-items: center;
+				gap: 11px;
+			}
+
+			.brand-mark {
+				display: grid;
+				width: 36px;
+				height: 36px;
+				place-items: center;
+				border-radius: 10px;
+				background: #252d33;
+				color: #f5b482;
+				font-size: 12px;
+				font-weight: 800;
+				letter-spacing: -0.08em;
+			}
+
+			.brand-copy {
+				display: flex;
+				flex-direction: column;
+				gap: 2px;
+			}
+
+			.brand-copy strong {
+				font-size: 14px;
+				font-weight: 720;
+				letter-spacing: -0.025em;
+			}
+
+			.brand-copy small {
+				color: #849099;
+				font-size: 9px;
+				font-weight: 700;
+				letter-spacing: 0.12em;
+			}
+
+			.ready-note {
+				display: flex;
+				align-items: center;
+				gap: 9px;
+				color: #66747e;
+				font-size: 12px;
+			}
+
+			.ready-dot {
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				background: #4d9a70;
+				box-shadow: 0 0 0 3px #dcebe2;
+			}
+
+			.hero {
+				display: flex;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: 32px;
+				margin-bottom: 21px;
+			}
+
+			.eyebrow,
+			.section-kicker {
+				margin: 0 0 9px;
+				color: var(--accent-dark);
+				font-size: 10px;
+				font-weight: 750;
+				letter-spacing: 0.15em;
+				text-transform: uppercase;
+			}
+
+			h1 {
+				margin: 0;
+				font-size: clamp(32px, 4vw, 44px);
+				font-weight: 680;
+				letter-spacing: -0.055em;
+				line-height: 1.02;
+			}
+
+			.hero-copy {
+				margin: 11px 0 0;
+				color: #697781;
+				font-size: 14px;
+				line-height: 1.55;
+			}
+
+			.hero-aside {
+				max-width: 240px;
+				padding: 3px 0 2px 16px;
+				border-left: 2px solid #d9b49b;
+				color: #65737d;
+				font-size: 12px;
+				line-height: 1.6;
+			}
+
+			.hero-aside strong {
+				display: block;
+				margin-bottom: 4px;
+				color: #313b42;
+				font-size: 11px;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+			}
+
+			.search-panel {
+				display: flex;
+				align-items: center;
+				gap: 9px;
+				min-height: 64px;
+				margin-bottom: 30px;
+				padding: 8px;
+				border: 1px solid #e0e5e8;
+				border-radius: 13px;
+				background: var(--paper);
+				box-shadow: 0 7px 22px rgb(27 39 47 / 5%);
+			}
+
+			.search-input-wrap {
+				display: flex;
+				align-items: center;
+				flex: 1;
+				min-width: 100px;
+				gap: 11px;
+				padding: 0 12px;
+			}
+
+			.search-icon {
+				width: 19px;
+				height: 19px;
+				flex: 0 0 auto;
+				fill: none;
+				stroke: #89959d;
+				stroke-width: 1.7;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+
+			.search-input {
+				width: 100%;
+				min-width: 0;
+				padding: 11px 0;
+				border: 0;
+				outline: 0;
+				background: transparent;
+				color: #28333b;
+				font-size: 15px;
+			}
+
+			.search-input::placeholder {
+				color: #9aa4aa;
+			}
+
+			.engine-control {
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				gap: 4px;
+				min-width: 125px;
+				padding: 4px 12px;
+				border-left: 1px solid #e7ebed;
+			}
+
+			.engine-control span {
+				color: #8a969e;
+				font-size: 9px;
+				font-weight: 700;
+				letter-spacing: 0.1em;
+			}
+
+			.engine-control select {
+				width: 100%;
+				padding: 0 18px 0 0;
+				appearance: none;
+				border: 0;
+				outline: 0;
+				background: transparent;
+				color: #29343b;
+				font-size: 13px;
+				font-weight: 680;
+				cursor: pointer;
+			}
+
+			.engine-control option {
+				background: #fff;
+				color: #29343b;
+			}
+
+			.engine-select-box {
+				position: relative;
+			}
+
+			.engine-select-box > svg {
+				position: absolute;
+				top: 2px;
+				right: 0;
+				width: 14px;
+				height: 14px;
+				fill: none;
+				stroke: #7e8a92;
+				stroke-width: 1.7;
+				pointer-events: none;
+			}
+
+			.search-submit,
+			.add-shortcut,
+			.dialog-save {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				min-height: 46px;
+				padding: 0 17px;
+				border: 1px solid #c77a4b;
+				border-radius: 9px;
+				background: var(--accent);
+				color: #fff;
+				font-size: 13px;
+				font-weight: 720;
+				cursor: pointer;
+				transition:
+					background 150ms ease,
+					border-color 150ms ease,
+					transform 150ms ease;
+			}
+
+			.search-submit:hover,
+			.add-shortcut:hover,
+			.dialog-save:hover {
+				border-color: #b86b40;
+				background: #bd7145;
+			}
+
+			.search-submit:active,
+			.add-shortcut:active,
+			.dialog-save:active {
+				transform: translateY(1px);
+			}
+
+			.search-submit svg,
+			.add-shortcut svg {
+				width: 16px;
+				height: 16px;
+				fill: none;
+				stroke: currentColor;
+				stroke-width: 1.8;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+
+			.content-section {
+				margin: 0 0 29px;
+			}
+
+			.section-head {
+				display: flex;
+				align-items: flex-end;
+				justify-content: space-between;
+				gap: 18px;
+				margin-bottom: 13px;
+				padding-bottom: 11px;
+				border-bottom: 1px solid var(--line);
+			}
+
+			.section-kicker {
+				margin-bottom: 5px;
+				font-size: 9px;
+			}
+
+			h2 {
+				margin: 0;
+				font-size: 20px;
+				font-weight: 690;
+				letter-spacing: -0.04em;
+			}
+
+			h2 span {
+				color: #89949b;
+				font-size: 12px;
+				font-weight: 500;
+				letter-spacing: 0;
+			}
+
+			.add-shortcut {
+				min-height: 35px;
+				padding: 0 12px;
+				border-color: #d9dfe2;
+				background: #fff;
+				color: #37434b;
+				font-size: 12px;
+			}
+
+			.add-shortcut:hover {
+				border-color: #c8d1d5;
+				background: #f9fafb;
+			}
+
+			.add-shortcut svg {
+				width: 14px;
+				height: 14px;
+				color: var(--accent-dark);
+			}
+
+			.shortcut-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+				gap: 10px;
+			}
+
+			.shortcut-card {
+				display: flex;
+				align-items: center;
+				min-width: 0;
+				gap: 11px;
+				padding: 10px;
+				border: 1px solid #e1e6e8;
+				border-radius: 11px;
+				background: #fff;
+				transition:
+					border-color 150ms ease,
+					box-shadow 150ms ease,
+					transform 150ms ease;
+			}
+
+			.shortcut-card:hover {
+				transform: translateY(-1px);
+				border-color: #cfd9dd;
+				box-shadow: 0 5px 15px rgb(27 39 47 / 6%);
+			}
+
+			.shortcut-open {
+				display: flex;
+				align-items: center;
+				flex: 1;
+				min-width: 0;
+				gap: 10px;
+				padding: 0;
+				border: 0;
+				background: transparent;
+				text-align: left;
+				cursor: pointer;
+			}
+
+			.shortcut-initial {
+				display: grid;
+				width: 34px;
+				height: 34px;
+				flex: 0 0 auto;
+				place-items: center;
+				border: 1px solid #e4d4c8;
+				border-radius: 9px;
+				background: #fbf3ed;
+				color: #a45f36;
+				font-size: 13px;
+				font-weight: 750;
+			}
+
+			.shortcut-details {
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+				gap: 4px;
+			}
+
+			.shortcut-name {
+				overflow: hidden;
+				color: #29343b;
+				font-size: 12px;
+				font-weight: 680;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.shortcut-domain {
+				overflow: hidden;
+				color: #8a969e;
+				font-size: 10px;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.shortcut-actions {
+				display: flex;
+				align-items: center;
+				gap: 3px;
+			}
+
+			.shortcut-action {
+				display: grid;
+				width: 28px;
+				height: 28px;
+				place-items: center;
+				border: 0;
+				border-radius: 7px;
+				background: transparent;
+				color: #85919a;
+				font-size: 11px;
+				cursor: pointer;
+			}
+
+			.shortcut-action:hover {
+				background: #f0f3f4;
+				color: #34424b;
+			}
+
+			.shortcut-remove {
+				font-size: 17px;
+				line-height: 1;
+			}
+
+			.empty-state {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				min-height: 56px;
+				padding: 10px 13px;
+				border: 1px dashed #d7dfe3;
+				border-radius: 10px;
+				color: #7b8891;
+				font-size: 12px;
+			}
+
+			.empty-state[hidden] {
+				display: none;
+			}
+
+			.empty-symbol {
+				display: grid;
+				width: 30px;
+				height: 30px;
+				flex: 0 0 auto;
+				place-items: center;
+				border-radius: 8px;
+				background: #f8eade;
+				color: #a45f36;
+				font-size: 17px;
+			}
+
+			.games-head-note {
+				max-width: 280px;
+				color: #87939a;
+				font-size: 11px;
+				line-height: 1.5;
+				text-align: right;
+			}
+
+			.game-grid {
+				display: grid;
+				grid-template-columns: repeat(5, minmax(0, 1fr));
+				gap: 11px;
+			}
+
+			.game-card {
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+				padding: 7px;
+				border: 1px solid #e0e5e8;
+				border-radius: 12px;
+				background: #fff;
+				text-align: left;
+				cursor: pointer;
+				transition:
+					transform 150ms ease,
+					border-color 150ms ease,
+					box-shadow 150ms ease;
+			}
+
+			.game-card:hover {
+				transform: translateY(-2px);
+				border-color: #cbd5d9;
+				box-shadow: 0 7px 18px rgb(27 39 47 / 8%);
+			}
+
+			.game-art {
+				display: block;
+				width: 100%;
+				height: 88px;
+				overflow: hidden;
+				border-radius: 8px;
+				background: #e8ecee;
+			}
+
+			.game-art svg {
+				display: block;
+				width: 100%;
+				height: 100%;
+			}
+
+			.game-card-copy {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 6px;
+				padding: 10px 4px 3px;
+			}
+
+			.game-card-copy span {
+				overflow: hidden;
+				color: #2b353c;
+				font-size: 12px;
+				font-weight: 700;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.game-card-copy small {
+				flex: 0 0 auto;
+				color: #9aa4aa;
+				font-size: 10px;
+			}
+
+			.home-footer {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+				padding-top: 17px;
+				border-top: 1px solid var(--line);
+				color: #89959c;
+				font-size: 10px;
+			}
+
+			.home-footer strong {
+				color: #63717a;
+				font-weight: 680;
+			}
+
+			dialog {
+				width: min(410px, calc(100vw - 32px));
+				padding: 0;
+				border: 1px solid #dfe5e8;
+				border-radius: 15px;
+				background: #fff;
+				color: var(--ink);
+				box-shadow: 0 20px 70px rgb(16 28 36 / 22%);
+			}
+
+			dialog::backdrop {
+				background: rgb(23 32 38 / 36%);
+				backdrop-filter: blur(2px);
+			}
+
+			.shortcut-form {
+				padding: 22px;
+			}
+
+			.dialog-heading {
+				display: flex;
+				align-items: flex-start;
+				justify-content: space-between;
+				gap: 14px;
+				margin-bottom: 18px;
+			}
+
+			.dialog-heading h3 {
+				margin: 0 0 4px;
+				font-size: 19px;
+				letter-spacing: -0.04em;
+			}
+
+			.dialog-heading p {
+				margin: 0;
+				color: #7d8991;
+				font-size: 12px;
+				line-height: 1.5;
+			}
+
+			.dialog-close {
+				display: grid;
+				width: 30px;
+				height: 30px;
+				flex: 0 0 auto;
+				place-items: center;
+				border: 0;
+				border-radius: 8px;
+				background: #f2f4f5;
+				color: #707d85;
+				font-size: 18px;
+				cursor: pointer;
+			}
+
+			.field-label {
+				display: flex;
+				flex-direction: column;
+				gap: 7px;
+				margin-bottom: 14px;
+				color: #4f5c64;
+				font-size: 11px;
+				font-weight: 680;
+			}
+
+			.field-label input {
+				width: 100%;
+				min-height: 42px;
+				padding: 0 11px;
+				border: 1px solid #dbe2e5;
+				border-radius: 8px;
+				outline: 0;
+				background: #fbfcfc;
+				color: #28343b;
+				font-size: 13px;
+			}
+
+			.field-label input:focus {
+				border-color: #cf8150;
+				box-shadow: 0 0 0 3px rgb(207 129 80 / 13%);
+			}
+
+			.form-error {
+				min-height: 18px;
+				margin: -4px 0 9px;
+				color: #b2463b;
+				font-size: 11px;
+			}
+
+			.dialog-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: 8px;
+				margin-top: 10px;
+			}
+
+			.dialog-cancel {
+				min-height: 38px;
+				padding: 0 13px;
+				border: 1px solid #dce2e5;
+				border-radius: 8px;
+				background: #fff;
+				color: #526069;
+				font-size: 12px;
+				font-weight: 650;
+				cursor: pointer;
+			}
+
+			.dialog-save {
+				min-height: 38px;
+				padding: 0 14px;
+				font-size: 12px;
+			}
+
+			@media (max-width: 860px) {
+				.page-frame {
+					padding-inline: 25px;
+				}
+
+				.game-grid {
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+				}
+			}
+
+			@media (max-width: 580px) {
+				.page-frame {
+					padding: 18px 16px 22px;
+				}
+
+				.page-topline {
+					margin-bottom: 25px;
+				}
+
+				.hero {
+					align-items: flex-start;
+					margin-bottom: 18px;
+				}
+
+				.hero-aside {
+					display: none;
+				}
+
+				h1 {
+					font-size: 35px;
+				}
+
+				.search-panel {
+					flex-wrap: wrap;
+					gap: 6px;
+					padding: 7px;
+				}
+
+				.search-input-wrap {
+					flex-basis: 100%;
+					min-height: 44px;
+				}
+
+				.engine-control {
+					flex: 1;
+					min-width: 110px;
+					min-height: 40px;
+					border-left: 0;
+				}
+
+				.search-submit {
+					min-height: 40px;
+				}
+
+				.section-head {
+					align-items: flex-start;
+				}
+
+				h2 {
+					font-size: 18px;
+				}
+
+				h2 span {
+					display: block;
+					margin-top: 3px;
+				}
+
+				.games-head-note {
+					display: none;
+				}
+
+				.game-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				.game-art {
+					height: 82px;
+				}
+
+				.home-footer {
+					align-items: flex-start;
+					flex-direction: column;
+					gap: 7px;
+				}
 			}
 		</style>
 	</head>
 	<body>
-		<main class="sheet">
-			<h1>Welcome to Scramjet!</h1>
-			<p class="meta">
-				Version {{SCRAMJET_VERSION}} |
-				<a
-					href="https://github.com/MercuryWorkshop/scramjet/commit/{{SCRAMJET_BUILD}}"
-					target="_blank"
-					>Build {{SCRAMJET_BUILD}}</a
+		<div class="page-frame">
+			<header class="page-topline">
+				<div class="home-brand">
+					<span class="brand-mark" aria-hidden="true">TC</span>
+					<span class="brand-copy">
+						<strong>TCMs Proxy</strong>
+						<small>YOUR PLACE TO START</small>
+					</span>
+				</div>
+				<div class="ready-note">
+					<span class="ready-dot" aria-hidden="true"></span>
+					<span>Ready when you are</span>
+				</div>
+			</header>
+
+			<main>
+				<section class="hero" aria-labelledby="welcome-title">
+					<div>
+						<p class="eyebrow">A little space for the open web</p>
+						<h1 id="welcome-title">Where to<br />next?</h1>
+						<p class="hero-copy">
+							Search the web, jump to a favorite, or take a quick break.
+						</p>
+					</div>
+					<aside class="hero-aside">
+						<strong>Your browser, your choice</strong>
+						Choose the search engine that feels right. Your shortcuts stay on
+						this device.
+					</aside>
+				</section>
+
+				<form class="search-panel" id="home-search">
+					<div class="search-input-wrap">
+						<svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+							<circle cx="10.8" cy="10.8" r="6.3" />
+							<path d="m15.5 15.5 4.2 4.2" />
+						</svg>
+						<input
+							class="search-input"
+							id="home-query"
+							type="text"
+							placeholder="Search or paste a website address"
+							autocomplete="off"
+							spellcheck="false"
+							aria-label="Search or paste a website address"
+						/>
+					</div>
+					<label class="engine-control" for="home-engine">
+						<span>SEARCH ENGINE</span>
+						<div class="engine-select-box">
+							<select id="home-engine" aria-label="Search engine">
+								<option value="google">Google</option>
+								<option value="bing">Bing</option>
+								<option value="duckduckgo">DuckDuckGo</option>
+								<option value="brave">Brave</option>
+							</select>
+							<svg viewBox="0 0 16 16" aria-hidden="true">
+								<path d="m4 6 4 4 4-4" />
+							</svg>
+						</div>
+					</label>
+					<button class="search-submit" type="submit">
+						Search
+						<svg viewBox="0 0 20 20" aria-hidden="true">
+							<path d="M3.5 10h12M10 4.5l5.5 5.5-5.5 5.5" />
+						</svg>
+					</button>
+				</form>
+
+				<section class="content-section" aria-labelledby="shortcuts-title">
+					<div class="section-head">
+						<div>
+							<p class="section-kicker">Your saved sites</p>
+							<h2 id="shortcuts-title">
+								My shortcuts <span>— made by you</span>
+							</h2>
+						</div>
+						<button class="add-shortcut" id="add-shortcut" type="button">
+							<svg viewBox="0 0 20 20" aria-hidden="true">
+								<path d="M10 4v12M4 10h12" />
+							</svg>
+							Add shortcut
+						</button>
+					</div>
+					<div class="shortcut-grid" id="shortcut-list"></div>
+					<div class="empty-state" id="shortcuts-empty">
+						<span class="empty-symbol" aria-hidden="true">+</span>
+						<span>
+							Nothing here yet. Add your favorite sites and they’ll be ready
+							here next time.
+						</span>
+					</div>
+				</section>
+
+				<section class="content-section" aria-labelledby="games-title">
+					<div class="section-head">
+						<div>
+							<p class="section-kicker">Quick picks</p>
+							<h2 id="games-title">
+								Unblocked Stuff <span>— games in your browser</span>
+							</h2>
+						</div>
+						<p class="games-head-note">
+							A few familiar favorites, with a quick preview before you jump in.
+						</p>
+					</div>
+
+					<div class="game-grid" id="game-grid">
+						<button
+							class="game-card"
+							type="button"
+							data-url="https://eaglercraft.com/"
+							aria-label="Open Eaglercraft"
+						>
+							<span class="game-art" aria-hidden="true">
+								<svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMid slice">
+									<rect width="240" height="100" fill="#b9d8e7" />
+									<circle cx="193" cy="24" r="13" fill="#f1d59a" />
+									<path
+										d="M0 61 42 44l32 18 35-23 43 25 39-21 49 19v38H0z"
+										fill="#779c82"
+									/>
+									<path d="M0 76h240v24H0z" fill="#6aa36d" />
+									<path d="M21 72h37v28H21z" fill="#936b4d" />
+									<path d="M21 66h37v9H21z" fill="#4f824f" />
+									<path d="M108 72h42v28h-42z" fill="#8a674c" />
+									<path d="M108 65h42v10h-42z" fill="#568b54" />
+									<path d="M123 81h11v19h-11z" fill="#4d4036" />
+									<path d="M169 79h12v12h-12z" fill="#bdd08a" />
+									<path d="M174 72h3v9h-3z" fill="#edf1d4" />
+								</svg>
+							</span>
+							<span class="game-card-copy"
+								><span>Eaglercraft</span><small>↗</small></span
+							>
+						</button>
+
+						<button
+							class="game-card"
+							type="button"
+							data-url="https://slopegame.io/"
+							aria-label="Open Slope"
+						>
+							<span class="game-art" aria-hidden="true">
+								<svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMid slice">
+									<rect width="240" height="100" fill="#242536" />
+									<path
+										d="M0 20h240M0 43h240M0 66h240M0 89h240M40 0v100M88 0v100M136 0v100M184 0v100"
+										stroke="#37394c"
+										stroke-width="1"
+									/>
+									<path
+										d="M0 94 51 82 107 65 167 45 240 20v80H0z"
+										fill="#7776a2"
+									/>
+									<path
+										d="m61 84 10-4M117 67l11-4M178 47l12-4"
+										stroke="#d2c9dc"
+										stroke-width="2"
+										stroke-linecap="round"
+									/>
+									<circle cx="78" cy="73" r="10" fill="#f2b96f" />
+									<circle cx="74" cy="69" r="2.2" fill="#fff0cb" />
+									<path d="m202 30 9-7 9 7v12h-18z" fill="#d55e61" />
+								</svg>
+							</span>
+							<span class="game-card-copy"
+								><span>Slope</span><small>↗</small></span
+							>
+						</button>
+
+						<button
+							class="game-card"
+							type="button"
+							data-url="https://1v1.lol/"
+							aria-label="Open 1v1.LOL"
+						>
+							<span class="game-art" aria-hidden="true">
+								<svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMid slice">
+									<rect width="240" height="100" fill="#e8ece8" />
+									<path d="M0 74h240" stroke="#c8d1cc" stroke-width="2" />
+									<path
+										d="M18 74V42h44v32M25 42V27h31v15M171 74V35h47v39M180 35V20h29v15"
+										fill="#b7c5bb"
+										stroke="#81958a"
+										stroke-width="2"
+									/>
+									<path
+										d="M40 52v22M194 46v28"
+										stroke="#71847a"
+										stroke-width="2"
+									/>
+									<circle cx="118" cy="47" r="16" fill="#d17855" />
+									<circle
+										cx="118"
+										cy="47"
+										r="7"
+										fill="none"
+										stroke="#fff3e8"
+										stroke-width="2"
+									/>
+									<path
+										d="M118 22v10M118 62v10M93 47h10M133 47h10"
+										stroke="#586c63"
+										stroke-width="2"
+									/>
+								</svg>
+							</span>
+							<span class="game-card-copy"
+								><span>1v1.LOL</span><small>↗</small></span
+							>
+						</button>
+
+						<button
+							class="game-card"
+							type="button"
+							data-url="https://run3.io/"
+							aria-label="Open Run 3"
+						>
+							<span class="game-art" aria-hidden="true">
+								<svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMid slice">
+									<rect width="240" height="100" fill="#202c3b" />
+									<circle cx="35" cy="20" r="1.5" fill="#dce8e8" />
+									<circle cx="75" cy="33" r="1.4" fill="#c3d5dc" />
+									<circle cx="191" cy="18" r="1.5" fill="#dce8e8" />
+									<circle cx="218" cy="54" r="1.2" fill="#c3d5dc" />
+									<path d="M0 83h240" stroke="#506378" stroke-width="2" />
+									<path
+										d="M18 82 74 63l50 19 50-18 48 18v18H18z"
+										fill="#627b8c"
+									/>
+									<path
+										d="M70 63h8v8h-8zM119 79h8v8h-8zM170 62h8v8h-8z"
+										fill="#d6d0a1"
+									/>
+									<circle cx="105" cy="52" r="7" fill="#e7b36c" />
+									<path
+										d="M105 59v12m0-7-7 5m7-5 7 4m-7 3-5 7m5-7 6 7"
+										stroke="#e7b36c"
+										stroke-width="3"
+										stroke-linecap="round"
+									/>
+								</svg>
+							</span>
+							<span class="game-card-copy"
+								><span>Run 3</span><small>↗</small></span
+							>
+						</button>
+
+						<button
+							class="game-card"
+							type="button"
+							data-url="https://orteil.dashnet.org/cookieclicker/"
+							aria-label="Open Cookie Clicker"
+						>
+							<span class="game-art" aria-hidden="true">
+								<svg viewBox="0 0 240 100" preserveAspectRatio="xMidYMid slice">
+									<rect width="240" height="100" fill="#efe4d2" />
+									<path d="M0 77h240" stroke="#dfd0b9" stroke-width="2" />
+									<circle cx="119" cy="49" r="33" fill="#bb7a48" />
+									<circle cx="119" cy="49" r="27" fill="#d2955e" />
+									<circle cx="103" cy="39" r="4" fill="#684631" />
+									<circle cx="129" cy="33" r="3.5" fill="#684631" />
+									<circle cx="137" cy="55" r="4.2" fill="#684631" />
+									<circle cx="113" cy="61" r="3.2" fill="#684631" />
+									<circle cx="98" cy="54" r="2.8" fill="#684631" />
+									<path
+										d="M30 34h27M35 42h17M180 34h30M186 42h20"
+										stroke="#d8b990"
+										stroke-width="2"
+										stroke-linecap="round"
+									/>
+								</svg>
+							</span>
+							<span class="game-card-copy"
+								><span>Cookie Clicker</span><small>↗</small></span
+							>
+						</button>
+					</div>
+				</section>
+			</main>
+
+			<footer class="home-footer">
+				<span
+					><strong>TCMs Proxy</strong> · a cleaner place to start browsing</span
 				>
-				| Updated {{SCRAMJET_DATE_PRETTY}}
-			</p>
+				<span>Third-party sites may be unavailable on some networks.</span>
+			</footer>
+		</div>
 
-			<section class="section">
-				<p>
-					<a href="https://github.com/MercuryWorkshop/scramjet" target="_blank"
-						><strong>Scramjet</strong></a
+		<dialog id="shortcut-dialog" aria-labelledby="dialog-title">
+			<form class="shortcut-form" id="shortcut-form">
+				<div class="dialog-heading">
+					<div>
+						<h3 id="dialog-title">Add a shortcut</h3>
+						<p>Give a site a name you’ll recognize. You can change it later.</p>
+					</div>
+					<button
+						class="dialog-close"
+						id="close-dialog"
+						type="button"
+						aria-label="Close dialog"
 					>
-					is an experimental <strong>interception-based web proxy</strong>,
-					designed to evade internet censorship and bypass arbitrary browser
-					restrictions.<br /><br />
-					Scramjet allows you to sandbox arbitrary web content, bypass CORS
-					restrictions on loading websites, and instrument and debug websites
-					inside the browser itself. This is accomplished through a combination
-					of interception, rewriting, and sandboxing techniques. You can learn
-					more about the technical details
-					<a
-						href="https://developer.puter.com/blog/how-I-ported-the-web-to-the-web/"
-						target="_blank"
-						><strong>here</strong></a
-					>.<br /><br />
-					If you're interested in contributing to scramjet, or want to build
-					your own web proxy or application using it, you should check out the
-					<a href="https://github.com/MercuryWorkshop/scramjet" target="_blank"
-						><strong>GitHub repository</strong></a
-					>.<br /><br />
-					This website is a demo of scramjet's capabilities, letting you browse
-					the web proxied through scramjet, inspect how scramjet rewrites
-					requests and responses, and see how scramjet handles your custom
-					content in the playground.
-				</p>
-			</section>
+						×
+					</button>
+				</div>
+				<label class="field-label" for="shortcut-name">
+					Shortcut name
+					<input
+						id="shortcut-name"
+						name="shortcut-name"
+						type="text"
+						maxlength="32"
+						required
+						placeholder="e.g. Study notes"
+					/>
+				</label>
+				<label class="field-label" for="shortcut-url">
+					Website address
+					<input
+						id="shortcut-url"
+						name="shortcut-url"
+						type="text"
+						required
+						placeholder="example.com"
+					/>
+				</label>
+				<p class="form-error" id="shortcut-error" role="status"></p>
+				<div class="dialog-actions">
+					<button class="dialog-cancel" id="cancel-dialog" type="button">
+						Cancel
+					</button>
+					<button class="dialog-save" type="submit">Save shortcut</button>
+				</div>
+			</form>
+		</dialog>
 
-			<section class="section">
-				<span class="label">Browser</span>
-				<p>
-					Try entering a URL in the box above to browse the web proxied through
-					scramjet.<br />
-					All traffic sent through scramjet is
-					<strong>fully end-to-end encrypted</strong> with TLS, powered by
-					<a href="https://github.com/ading2210/libcurl.js" target="_blank"
-						><strong>libcurl.js</strong></a
-					>
-					and the
-					<a
-						href="https://github.com/MercuryWorkshop/wisp-protocol"
-						target="_blank"
-						><strong>wisp protocol</strong></a
-					>.
-				</p>
-			</section>
+		<script>
+			(() => {
+				const channel = "tcms-proxy-home";
+				const supportedEngines = ["google", "bing", "duckduckgo", "brave"];
+				let shortcuts = [];
+				let editingId = null;
 
-			<section class="section">
-				<span class="label">Requests</span>
-				<p>
-					You can inspect all the requests sent through scramjet, and what
-					transformations are applied in the requests tab.<br />
-					Note that requests will not be captured until you first click on the
-					requests tab.
-				</p>
-			</section>
+				const send = (type, payload = {}) => {
+					window.parent.postMessage({ channel, type, ...payload }, "*");
+				};
 
-			<section class="section">
-				<span class="label">Playground</span>
-				<p>
-					The playground lets you write your own html/css/js snippets which will
-					be run inside the scramjet sandbox. Your files are "served" by
-					scramjet from a fake origin, which can be configured to be any URL.
-					Notice that if you add a <code>console.log(location.href)</code> in
-					your code, the page will really be running on the fake origin.
-				</p>
-			</section>
-		</main>
+				const normalizeShortcutUrl = (value) => {
+					const trimmed = value.trim();
+					if (!trimmed) return null;
+					const withProtocol = /^[a-z][a-z\d+\-.]*:\/\//i.test(trimmed)
+						? trimmed
+						: `https://${trimmed}`;
+					try {
+						const parsed = new URL(withProtocol);
+						if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+							return null;
+						}
+						return parsed.href;
+					} catch {
+						return null;
+					}
+				};
+
+				const setDialogError = (message) => {
+					document.getElementById("shortcut-error").textContent = message;
+				};
+
+				const renderShortcuts = () => {
+					const list = document.getElementById("shortcut-list");
+					const empty = document.getElementById("shortcuts-empty");
+					list.replaceChildren();
+					empty.hidden = shortcuts.length > 0;
+
+					for (const shortcut of shortcuts) {
+						const card = document.createElement("article");
+						card.className = "shortcut-card";
+
+						const openButton = document.createElement("button");
+						openButton.type = "button";
+						openButton.className = "shortcut-open";
+						openButton.setAttribute("aria-label", `Open ${shortcut.name}`);
+						openButton.addEventListener("click", () =>
+							send("navigate", { url: shortcut.url }),
+						);
+
+						const initial = document.createElement("span");
+						initial.className = "shortcut-initial";
+						initial.setAttribute("aria-hidden", "true");
+						initial.textContent = shortcut.name.slice(0, 1).toUpperCase();
+
+						const details = document.createElement("span");
+						details.className = "shortcut-details";
+						const name = document.createElement("span");
+						name.className = "shortcut-name";
+						name.textContent = shortcut.name;
+						const domain = document.createElement("span");
+						domain.className = "shortcut-domain";
+						try {
+							domain.textContent = new URL(shortcut.url).hostname.replace(
+								/^www\./,
+								"",
+							);
+						} catch {
+							domain.textContent = shortcut.url;
+						}
+						details.append(name, domain);
+						openButton.append(initial, details);
+
+						const actions = document.createElement("div");
+						actions.className = "shortcut-actions";
+
+						const edit = document.createElement("button");
+						edit.type = "button";
+						edit.className = "shortcut-action";
+						edit.textContent = "Edit";
+						edit.setAttribute("aria-label", `Edit ${shortcut.name}`);
+						edit.addEventListener("click", () => openEditDialog(shortcut));
+
+						const remove = document.createElement("button");
+						remove.type = "button";
+						remove.className = "shortcut-action shortcut-remove";
+						remove.textContent = "×";
+						remove.setAttribute("aria-label", `Remove ${shortcut.name}`);
+						remove.addEventListener("click", () => {
+							shortcuts = shortcuts.filter((item) => item.id !== shortcut.id);
+							renderShortcuts();
+							send("save-shortcuts", { shortcuts });
+						});
+
+						actions.append(edit, remove);
+						card.append(openButton, actions);
+						list.append(card);
+					}
+				};
+
+				const dialog = document.getElementById("shortcut-dialog");
+				const form = document.getElementById("shortcut-form");
+				const nameField = document.getElementById("shortcut-name");
+				const urlField = document.getElementById("shortcut-url");
+				const openAddDialog = () => {
+					editingId = null;
+					document.getElementById("dialog-title").textContent =
+						"Add a shortcut";
+					nameField.value = "";
+					urlField.value = "";
+					setDialogError("");
+					dialog.showModal();
+					nameField.focus();
+				};
+
+				const openEditDialog = (shortcut) => {
+					editingId = shortcut.id;
+					document.getElementById("dialog-title").textContent = "Edit shortcut";
+					nameField.value = shortcut.name;
+					urlField.value = shortcut.url;
+					setDialogError("");
+					dialog.showModal();
+					nameField.focus();
+				};
+
+				document
+					.getElementById("add-shortcut")
+					.addEventListener("click", openAddDialog);
+				document
+					.getElementById("close-dialog")
+					.addEventListener("click", () => dialog.close());
+				document
+					.getElementById("cancel-dialog")
+					.addEventListener("click", () => dialog.close());
+
+				form.addEventListener("submit", (event) => {
+					event.preventDefault();
+					const name = nameField.value.trim().slice(0, 32);
+					const url = normalizeShortcutUrl(urlField.value.slice(0, 2048));
+					if (!name) {
+						setDialogError("Please add a name for this shortcut.");
+						return;
+					}
+					if (!url) {
+						setDialogError("Enter a valid website address (http or https).");
+						return;
+					}
+
+					const next = {
+						id:
+							editingId ||
+							`shortcut-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+						name,
+						url,
+					};
+					if (editingId) {
+						shortcuts = shortcuts.map((item) =>
+							item.id === editingId ? next : item,
+						);
+					} else {
+						if (shortcuts.length >= 24) {
+							setDialogError("You can save up to 24 shortcuts.");
+							return;
+						}
+						shortcuts = [...shortcuts, next];
+					}
+					renderShortcuts();
+					send("save-shortcuts", { shortcuts });
+					dialog.close();
+				});
+
+				document
+					.getElementById("home-search")
+					.addEventListener("submit", (event) => {
+						event.preventDefault();
+						const query = document.getElementById("home-query").value.trim();
+						if (query) send("search", { query });
+					});
+
+				document
+					.getElementById("home-engine")
+					.addEventListener("change", (event) => {
+						const engine = event.currentTarget.value;
+						if (supportedEngines.includes(engine))
+							send("search-engine", { engine });
+					});
+
+				document
+					.getElementById("game-grid")
+					.addEventListener("click", (event) => {
+						const card = event.target.closest("button[data-url]");
+						if (card) send("navigate", { url: card.dataset.url });
+					});
+
+				window.addEventListener("message", (event) => {
+					if (
+						event.source !== window.parent ||
+						event.data?.channel !== channel ||
+						event.data?.type !== "state"
+					)
+						return;
+					const engine = supportedEngines.includes(event.data.searchEngine)
+						? event.data.searchEngine
+						: "google";
+					document.getElementById("home-engine").value = engine;
+					shortcuts = Array.isArray(event.data.shortcuts)
+						? event.data.shortcuts
+						: [];
+					renderShortcuts();
+				});
+			})();
+		</script>
 	</body>
 </html>

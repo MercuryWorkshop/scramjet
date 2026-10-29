@@ -1,58 +1,34 @@
-<h1 align="center">Scramjet</h1>
-<div align="center">
-  <img src="assets/scramjet.png" height="200" />
-</div>
+# TCMs Proxy
 
-<div align="center">
-  <a href="https://www.npmjs.com/package/@mercuryworkshop/scramjet"><img src="https://img.shields.io/npm/v/@mercuryworkshop/scramjet.svg?maxAge=3600" alt="npm version" /></a>
-  <img src="https://img.shields.io/github/issues/MercuryWorkshop/scramjet?style=flat&color=orange" />
-  <img src="https://img.shields.io/github/stars/MercuryWorkshop/scramjet?style=flat&color=orange" />
-</div>
+TCMs Proxy is a browser-style interface built on [Scramjet](https://github.com/MercuryWorkshop/scramjet). It gives the proxy a custom start page with a search bar, personal shortcuts, and a small games directory while keeping Scramjet's browser, request-inspection, and playground tools available.
 
----
+## Start page
 
-Scramjet is an experimental interception-based web proxy designed to evade internet censorship and bypass arbitrary browser restrictions.<br><br>
-Scramjet allows you to sandbox arbitrary web content, bypass CORS restrictions on loading websites, and instrument and debug websites inside the browser itself. This is accomplished through a combination of interception, rewriting, and sandboxing techniques. You can learn more about the technical details <a href="https://developer.puter.com/blog/how-I-ported-the-web-to-the-web/"><strong>here</strong></a>.<br><br>
+- Switch searches between Google, Bing, DuckDuckGo, and Brave.
+- Add, edit, and remove your own shortcuts. They are saved in this browser on this device.
+- Browse quick previews for Eaglercraft, Slope, 1v1.LOL, Run 3, and Cookie Clicker.
 
-## Supported Sites
+Third-party sites are not operated by TCMs Proxy, and availability can vary by network. Follow the rules that apply to the network you are using.
 
-Some of the popular websites that Scramjet supports include:
+## About Scramjet
 
-- [Google](https://google.com)
-- [Youtube](https://youtube.com)
-- [Instagram](https://instagram.com)
-- [ChatGPT](https://chatgpt.com)
-- [Reddit](https://reddit.com)
-- [Twitter](https://twitter.com)
-- [Discord](https://discord.com)
-- [Spotify](https://spotify.com)
-- [GeForce NOW](https://play.geforcenow.com/)
-- [now.gg](https://now.gg)
+Scramjet is an experimental interception-based web proxy designed to sandbox web content and rewrite browser requests. TCMs Proxy uses Scramjet as its underlying engine; see the [Scramjet repository](https://github.com/MercuryWorkshop/scramjet) for technical details and upstream development. This project retains the upstream AGPL-3.0-only license.
 
 ## Development
 
-### Dependencies
+### Requirements
 
-- Recent versions of `node.js` and `pnpm`
-- `rustup`
-- `wasm-bindgen`
-- [Binaryen's `wasm-opt`](https://github.com/WebAssembly/binaryen)
-- [this `wasm-snip` fork](https://github.com/r58Playz/wasm-snip)
+- Recent versions of Node.js and `pnpm`
+- `rustup`, `wasm-bindgen`, Binaryen's `wasm-opt`, and the project's `wasm-snip` fork to rebuild the WebAssembly rewriter
 
-#### Building
-
-- Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
-- Install the dependencies with `pnpm i`
-- Change directories with `cd packages/core`
-- Build the rewriter with `pnpm rewriter:build`
-- Build Scramjet with `pnpm build`
-
-### Running Scramjet Locally
-
-You can run the Scramjet dev server when running this command at the root
+### Install and run
 
 ```sh
+pnpm install
+cd packages/core
+pnpm rewriter:build
+cd ../..
 pnpm dev
 ```
 
-The demo page for scramjet should now be running at <http://localhost:4141> and should rebuild upon a file being changed (excluding the rewriter).
+The local interface runs at <http://localhost:4141>. The development server also starts the Wisp WebSocket service used by the proxy. The rewriter build uses the toolchain in `packages/core/rewriter/wasm/build.sh`; the main Rspack build is configured in `rspack.config.ts`.

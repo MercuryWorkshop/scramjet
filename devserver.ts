@@ -34,7 +34,7 @@ const WISP_PORT = process.env.WISP_PORT || 4142;
 if (process.env.VITE_WISP_URL) {
 	process.env.VITE_WISP_URL = normalizeWebsocketUrl(process.env.VITE_WISP_URL);
 } else {
-	process.env.VITE_WISP_URL = `ws://localhost:${WISP_PORT}/`;
+	process.env.VITE_WISP_URL = "/wisp/";
 }
 
 const wispserver = http.createServer((req, res) => {
@@ -54,8 +54,10 @@ const server = await createServer({
 	configFile: "./packages/demo/vite.config.ts",
 	root: "./packages/demo",
 	server: {
+		host: "0.0.0.0",
 		port: Number(DEMO_PORT),
 		strictPort: true,
+		allowedHosts: true,
 	},
 });
 
@@ -70,7 +72,7 @@ const note = (text: string) => chalk.hex("#CDB4DB")(text);
 const connector = chalk.hex("#8D99AE").dim("@");
 
 const lines = [
-	black()(`${highlight("SCRAMJET DEV SERVER")}`),
+	black()(`${highlight("TCMS PROXY DEV SERVER")}`),
 	black()(
 		`${accent("demo")} ${connector} ${urlColor(
 			`http://localhost:${DEMO_PORT}/`
@@ -81,7 +83,7 @@ const lines = [
 			process.env.VITE_WISP_URL ?? ""
 		)}`
 	),
-	black()(chalk.dim(`[${branch}] ${commit} scramjet/${version}`)),
+	black()(chalk.dim(`[${branch}] ${commit} TCMs Proxy/${version}`)),
 ];
 
 runRspack(rspackConfig);
