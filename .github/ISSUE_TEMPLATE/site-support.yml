@@ -1,0 +1,68 @@
+name: Site Support
+description: Report a site support issue with Scramjet
+labels: ["site support"]
+title: "[site support]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting this bug report, please search existing issues and make sure it's unique.
+        If you ignore this text, and create this one, you will be permanently banned from
+        interacting with the project.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Can be copied from scramjet://about or through the web console with `$scramjet.versionInfo.version`
+    validations:
+      required: true
+  - type: input
+    id: Build
+    attributes:
+      label: Build
+      description: Can be copied from scramjet://about or through the web console with `$scramjet.versionInfo.build`
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Have you tested that this is not an upstream issue or an issue with your configuration?
+      options:
+        - label: I have tried reproducing this issue in the Scramjet Demo it could not be reproduced there
+  - type: input
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description (in one line) of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to Reproduce?
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: A clear and concise description of what actually happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here. If applicable, add screenshots to help explain your problem.
