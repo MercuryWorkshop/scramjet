@@ -7,7 +7,7 @@ export default [
 			await navigate("https://www.google.com/");
 
 			// Wait for the search box to be visible
-			const search = frame.locator("textarea[title='Search']").first();
+			const search = frame.locator("textarea[aria-label='Search']").first();
 			await search.waitFor({ state: "visible", timeout: 30000 });
 		},
 	}),
