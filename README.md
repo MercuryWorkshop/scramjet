@@ -14,6 +14,10 @@
 Scramjet is an experimental interception-based web proxy designed to evade internet censorship and bypass arbitrary browser restrictions.<br><br>
 Scramjet allows you to sandbox arbitrary web content, bypass CORS restrictions on loading websites, and instrument and debug websites inside the browser itself. This is accomplished through a combination of interception, rewriting, and sandboxing techniques. You can learn more about the technical details <a href="https://developer.puter.com/blog/how-I-ported-the-web-to-the-web/"><strong>here</strong></a>.<br><br>
 
+<div align="center">
+ <a href="https://github.com/MercuryWorkshop/scramjet/wiki">Documentation</a> | <a href="https://scramjet.mercurywork.shop">Playground</a> | <a href="https://discord.gg/tmApqGqfX2">Discord</a>
+</div>
+
 ## Supported Sites
 
 Some of the popular websites that Scramjet supports include:
