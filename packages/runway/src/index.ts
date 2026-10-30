@@ -29,13 +29,11 @@ function ghaError(message: string, file?: string, line?: number) {
 }
 
 function ghaGroup(name: string) {
-	if (!isGitHubActions) return;
-	console.log(`::group::${name}`);
+	return isGitHubActions ? `::group::${name}` : name;
 }
 
 function ghaEndGroup() {
-	if (!isGitHubActions) return;
-	console.log("::endgroup::");
+	return isGitHubActions ? "::endgroup::" : null;
 }
 
 type TestResult = {
@@ -1027,12 +1025,12 @@ async function main() {
 						ghaGroup(`Test: ${test.name} ... 💥 error (${duration}ms)`),
 						finalResult.message ? `     ${finalResult.message}` : null,
 						ghaEndGroup(),
-						ghaError(
-							`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
-						),
 					]
 						.filter(Boolean)
 						.join("\n")
+				);
+				ghaError(
+					`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
 				);
 				if (!test.directFn) {
 					needsReload = !fastMode; // Reload after error unless fast mode is reusing harnesses
