@@ -216,6 +216,9 @@ importers:
       '@mercuryworkshop/libcurl-transport':
         specifier: 'catalog:'
         version: 2.0.5
+      '@mercuryworkshop/proxy-transports':
+        specifier: 'catalog:'
+        version: 1.0.2
       '@mercuryworkshop/scramjet':
         specifier: workspace:*
         version: link:../core
@@ -285,6 +288,10 @@ importers:
         version: 8.18.1
 
   packages/utils:
+    dependencies:
+      '@mercuryworkshop/proxy-transports':
+        specifier: '*'
+        version: 1.0.2
     devDependencies:
       '@mercuryworkshop/scramjet':
         specifier: workspace:*

@@ -74,5 +74,4 @@ export * from "./types";
 export * from "./Tap";
 export * from "./shared";
 export * from "./fetch";
-export { BareResponse } from "@mercuryworkshop/proxy-transports";
 export * from "./client";

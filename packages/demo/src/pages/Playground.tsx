@@ -1,13 +1,15 @@
 import { css, type Component } from "dreamland/core";
-import type { Frame } from "@mercuryworkshop/scramjet-controller";
 import {
-	BareResponse,
+  BareResponse,
+} from "@mercuryworkshop/proxy-transports";
+import {
 	Plugin,
 	rewriteUrl,
 	ScramjetFetchHandler,
 	ScramjetHeaders,
 	type ScramjetFetchRequest,
 } from "@mercuryworkshop/scramjet";
+import type { Frame } from "@mercuryworkshop/scramjet-controller";
 import { cachePlugin, controller } from "..";
 import Monaco from "../components/Monaco";
 

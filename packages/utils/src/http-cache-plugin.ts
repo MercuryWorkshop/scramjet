@@ -44,7 +44,9 @@
 // come later.
 
 import {
-	BareResponse,
+  BareResponse
+} from "@mercuryworkshop/proxy-transports";
+import {
 	type ScramjetFetchRequest,
 	type ScramjetHeaders,
 } from "@mercuryworkshop/scramjet";

@@ -29,7 +29,8 @@
 	},
 	"peerDependencies": {
 		"@mercuryworkshop/scramjet": "*",
-		"@mercuryworkshop/scramjet-controller": "*"
+		"@mercuryworkshop/scramjet-controller": "*",
+		"@mercuryworkshop/proxy-transports": "*"
 	},
 	"devDependencies": {
 		"@mercuryworkshop/scramjet": "workspace:*",

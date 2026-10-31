@@ -15,6 +15,7 @@
 		"@mercuryworkshop/scramjet-controller": "workspace:*",
 		"@mercuryworkshop/scramjet-utils": "workspace:*",
 		"@mercuryworkshop/scramjet": "workspace:*",
+		"@mercuryworkshop/proxy-transports": "catalog:",
 		"@mercuryworkshop/libcurl-transport": "catalog:",
 		"@mercuryworkshop/epoxy-transport": "catalog:",
 		"dreamland": "^0.1.3",
