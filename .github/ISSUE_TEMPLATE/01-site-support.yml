@@ -1,7 +1,7 @@
-name: Spec Divergence
-description: Report behavior in Scramjet that diverges from a web specification
-labels: ["spec divergence"]
-title: "[spec divergence]: "
+name: Site Support
+description: Report a site support issue with Scramjet
+labels: ["site support"]
+title: "[site support] "
 body:
   - type: markdown
     attributes:
@@ -27,54 +27,42 @@ body:
     attributes:
       label: Have you tested that this is not an upstream issue or an issue with your configuration?
       options:
-        - label: I have tried reproducing this issue in the Scramjet Demo and it could be reproduced there
-        - label: I have confirmed this behavior does not occur in the same browser without Scramjet
+        - label: I have tried reproducing this issue in the Scramjet Demo it could not be reproduced there
   - type: input
     id: description
     attributes:
       label: Description
-      description: A clear and concise description (in one line) of the divergence.
-    validations:
-      required: true
-  - type: input
-    id: api
-    attributes:
-      label: Affected API
-      description: The web API, interface, or feature that diverges (e.g. `Location.prototype.assign`, `document.cookie`)
-    validations:
-      required: true
-  - type: input
-    id: spec
-    attributes:
-      label: Spec reference
-      description: A link to the relevant section of the specification (WHATWG, W3C, ECMAScript, etc.)
-      placeholder: https://html.spec.whatwg.org/multipage/...
+      description: A clear and concise description (in one line) of what the bug is.
     validations:
       required: true
   - type: textarea
     id: repro
     attributes:
       label: How to Reproduce?
-      description: Steps or a minimal code snippet that demonstrates the divergence
-      render: js
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
     validations:
       required: true
   - type: textarea
     id: actual
     attributes:
       label: Actual behavior
-      description: What Scramjet actually does
+      description: A clear and concise description of what actually happened
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
       label: Expected behavior
-      description: What the spec says should happen
+      description: A clear and concise description of what you expected to happen
     validations:
       required: true
   - type: textarea
     id: additional
     attributes:
       label: Additional context
-      description: Add any other context about the problem here, such as which browsers you tested in or relevant WPT tests.
+      description: Add any other context about the problem here. If applicable, add screenshots to help explain your problem.
