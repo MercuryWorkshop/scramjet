@@ -16,6 +16,7 @@ on:
 
 env:
   WASM_BINDGEN_VERSION: "0.2.105"
+  NODE_VERSION: "24"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -165,7 +166,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: Install pnpm dependencies
@@ -261,7 +262,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: Install dependencies
@@ -297,7 +298,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: Install dependencies
@@ -419,7 +420,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ env.NODE_VERSION }}
           registry-url: "https://registry.npmjs.org"
 
       - name: Get artifacts (scramjet/core)
@@ -457,23 +458,23 @@ jobs:
 
       - name: Publish Scramjet
         if: needs.version-check.outputs.scramjet_version_changed == 'true'
-        run: pnpm publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.scramjet_tag_arg }}
+        run: pnpm stage publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.scramjet_tag_arg }}
 
       - name: Publish Scramjet Controller
         if: needs.version-check.outputs.controller_version_changed == 'true'
-        run: pnpm publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.controller_tag_arg }}
+        run: pnpm stage publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.controller_tag_arg }}
 
       - name: Publish Scramjet Utils
         if: needs.version-check.outputs.utils_version_changed == 'true'
-        run: pnpm publish mercuryworkshop-scramjet-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.utils_tag_arg }}
+        run: pnpm stage publish mercuryworkshop-scramjet-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.utils_tag_arg }}
 
       - name: Publish Proxy Bootstrap
         if: needs.version-check.outputs.bootstrap_version_changed == 'true'
-        run: pnpm publish mercuryworkshop-proxy-bootstrap-${{ needs.version-check.outputs.bootstrap_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.bootstrap_tag_arg }}
+        run: pnpm stage publish mercuryworkshop-proxy-bootstrap-${{ needs.version-check.outputs.bootstrap_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.bootstrap_tag_arg }}
 
       - name: Publish create-proxy-app
         if: needs.version-check.outputs.create_proxy_app_version_changed == 'true'
-        run: pnpm publish create-proxy-app-${{ needs.version-check.outputs.create_proxy_app_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.create_proxy_app_tag_arg }}
+        run: pnpm stage publish create-proxy-app-${{ needs.version-check.outputs.create_proxy_app_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.create_proxy_app_tag_arg }}
 
   frontend:
     name: Build Frontend
@@ -493,7 +494,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: Install dependencies

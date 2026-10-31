@@ -6,7 +6,7 @@
 	"keywords": [],
 	"author": "Mercury Workshop",
 	"license": "AGPL-3.0-only",
-	"packageManager": "pnpm@10.12.1",
+	"packageManager": "pnpm@12.17.0",
 	"scripts": {
 		"dev": "node --no-warnings=ExperimentalWarning devserver.ts",
 		"dev:debug": "DEBUG=1 node --no-warnings=ExperimentalWarning devserver.ts",
