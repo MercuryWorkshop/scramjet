@@ -1,11 +1,13 @@
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import type { CONTROLLERFRAME } from "./symbols";
 import type { Frame } from ".";
+import type { ChunkedStream } from "./streamfallback";
 export type BodyType =
 	| string
 	| ArrayBuffer
 	| Blob
-	| ReadableStream<Uint8Array<ArrayBufferLike>>;
+	| ReadableStream<Uint8Array<ArrayBufferLike>>
+	| ChunkedStream;
 
 export type TransferRequest = {
 	rawUrl: string;
