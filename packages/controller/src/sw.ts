@@ -3,10 +3,14 @@
 import { RpcHelper } from "@mercuryworkshop/rpc";
 import type { Controllerbound, SWbound } from "./types";
 import type { RawHeaders } from "@mercuryworkshop/proxy-transports";
+import { DEFAULT_PREFIX } from "./prefix";
 
 function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
 }
+
+/** How long a request waits for its controller to register with a fresh instance. */
+const REVIVE_TIMEOUT = 5000;
 
 const cookieResolvers: Record<string, (value: void) => void> = {};
 addEventListener("message", (e) => {
@@ -154,19 +158,91 @@ addEventListener("message", (e) => {
 	if (existing !== -1) {
 		tabs.splice(existing, 1);
 	}
-	tabs.push(new ControllerReference(init.prefix, init.id, e.ports[0]));
+	const tab = new ControllerReference(init.prefix, init.id, e.ports[0]);
+	tabs.push(tab);
+
+	for (const waiter of waiters.filter((w) =>
+		w.pathname.startsWith(tab.prefix)
+	)) {
+		waiters.splice(waiters.indexOf(waiter), 1);
+		waiter.resolve(tab);
+	}
 });
+
+type Waiter = {
+	pathname: string;
+	resolve: (tab: ControllerReference | undefined) => void;
+};
+
+/**
+ * Requests routed before their controller registered with this instance. Browsers stop idle
+ * service workers and start a fresh instance for the next event, which knows no `tabs`
+ * until each controller registers again.
+ */
+const waiters: Waiter[] = [];
+
+function findTab(pathname: string): ControllerReference | undefined {
+	return tabs.find((tab) => pathname.startsWith(tab.prefix));
+}
+
+let revived = false;
+
+/**
+ * Asks every client to register its controller with this instance, once per instance.
+ * Clients already registered, listed in the message, ignore it.
+ */
+async function reviveClients() {
+	if (revived) return;
+	revived = true;
+	for (const client of await clients.matchAll()) {
+		client.postMessage({
+			$controller$swrevive: { registered: tabs.map((tab) => tab.id) },
+		});
+	}
+}
+
+/**
+ * The controller for a path, waiting for it to register if this instance doesn't know it
+ * yet. Resolves undefined if none registers in time.
+ */
+function waitForTab(
+	pathname: string
+): Promise<ControllerReference | undefined> {
+	const tab = findTab(pathname);
+	if (tab) return Promise.resolve(tab);
+
+	return new Promise((resolve) => {
+		const waiter: Waiter = { pathname, resolve };
+		waiters.push(waiter);
+		// Ask now rather than waiting for the startup broadcast below.
+		reviveClients();
+		setTimeout(() => {
+			const index = waiters.indexOf(waiter);
+			if (index === -1) return;
+			waiters.splice(index, 1);
+			resolve(undefined);
+		}, REVIVE_TIMEOUT);
+	});
+}
 
 export function shouldRoute(event: FetchEvent): boolean {
 	const url = new URL(event.request.url);
-	const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix));
-	return tab !== undefined;
+	if (findTab(url.pathname)) return true;
+	// A fresh instance knows no controllers until they register again, so the request that
+	// woke it would otherwise fall through to the network. Claim anything under the default
+	// prefix; route() waits for its controller. (A custom prefix can't be known here.)
+	return (
+		url.origin === location.origin && url.pathname.startsWith(DEFAULT_PREFIX)
+	);
 }
 
 export async function route(event: FetchEvent): Promise<Response> {
+	const url = new URL(event.request.url);
+	const tab = await waitForTab(url.pathname);
+	// No controller claimed it, so handle it as if it had never been routed.
+	if (!tab) return fetch(event.request);
+
 	try {
-		const url = new URL(event.request.url);
-		const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix))!;
 		const client = await clients.get(event.clientId);
 
 		const rawheaders: RawHeaders = [...event.request.headers];
@@ -220,12 +296,8 @@ addEventListener("activate", (event: ExtendableEvent) => {
 
 // the only way to know if a service worker has suddenly died is if this code runs again
 // notify all clients to send over their messageports again
-setTimeout(async () => {
+setTimeout(() => {
 	console.log("service worker activated, notifying clients to revive");
-	for (const client of await clients.matchAll()) {
-		client.postMessage({
-			$controller$swrevive: {},
-		});
-	}
+	reviveClients();
 	// short delay is apparently needed
 }, 100);
