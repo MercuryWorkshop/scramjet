@@ -14,8 +14,8 @@ overrides:
 catalog:
   "@mercuryworkshop/wisp-js": 0.4.1
   "@mercuryworkshop/proxy-transports": 1.0.2
-  "@mercuryworkshop/libcurl-transport": 2.0.5
-  "@mercuryworkshop/epoxy-transport": 3.0.1
+  "@mercuryworkshop/libcurl-transport": 2.0.6
+  "@mercuryworkshop/epoxy-transport": 3.0.2
   htmlparser2: 12.0.0
 
 patchedDependencies:
