@@ -20,6 +20,10 @@
 		".": {
 			"types": "./dist/types/typesEntry.d.ts",
 			"default": "./dist/controller-external.mjs"
+		},
+		"./path": {
+			"types": "./lib/index.d.ts",
+			"default": "./lib/index.cjs"
 		}
 	},
 	"peerDependencies": {
