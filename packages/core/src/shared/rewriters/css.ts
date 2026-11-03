@@ -2,12 +2,31 @@ import { URLMeta, rewriteUrl, unrewriteUrl } from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
 import { String } from "@/shared/snapshot";
 
+export function fixOverflow(css: string): string {
+    return css.replace(
+        /(\bbody\s*\{[^{}]*?\boverflow-y\s*:\s*)scroll\b/gi,
+        "$1auto"
+    );
+}
+
 export function rewriteCss(
 	css: string,
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	return handleCss("rewrite", css, context, meta);
+  const rewritten = handleCss("rewrite", css, context, meta);
+
+  const hostname = meta.origin.hostname.toLowerCase();
+
+  if (
+      hostname !== "www.youtube.com" &&
+      hostname !== "youtube.com" &&
+      hostname !== "m.youtube.com"
+  ) {
+      return rewritten;
+  }
+
+  return fixOverflow(rewritten);
 }
 
 export function unrewriteCss(css: string, context: ScramjetContext) {
