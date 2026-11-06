@@ -17,7 +17,8 @@
 		"format": "prettier --write .",
 		"lint": "eslint ./src/",
 		"lint:fix": "eslint ./src/ --fix",
-		"prepack": "RELEASE=1 npm run rewriter:build && npm run build && cp ../../README.md ./README.md"
+		"prepack": "RELEASE=1 npm run rewriter:build && npm run build && cp ../../README.md ./README.md",
+		"postpack": "rm -rf ./README.md"
 	},
 	"exports": {
 		".": {
