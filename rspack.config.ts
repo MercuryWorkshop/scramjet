@@ -1,11 +1,9 @@
 import { readFileSync, writeFileSync, chmodSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-import { exec, execSync } from "node:child_process";
-const execAsync = promisify(exec);
-import { promisify } from "node:util";
+import { execSync } from "node:child_process";
 import { defineConfig } from "@rspack/cli";
 import {
 	rspack,
@@ -18,11 +16,15 @@ import {
 } from "@rspack/core";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { TsCheckerRspackPlugin } from "ts-checker-rspack-plugin";
+import { getPluginHooks } from "ts-checker-rspack-plugin/lib/plugin-hooks.js";
+import type { TsCheckerRspackPluginOptions } from "ts-checker-rspack-plugin/lib/plugin-options.js";
+import { replaceTscAliasPaths } from "tsc-alias";
+import { merge } from "rspack-merge";
 if (!process.env.CI) {
 	try {
 		writeFileSync(
 			".git/hooks/pre-commit",
-			"pnpm format\ngit update-index --again"
+			"pnpm format\ngit update-index --again",
 		);
 		chmodSync(".git/hooks/pre-commit", 0o755);
 	} catch {}
@@ -33,8 +35,8 @@ function nodeExternals(
 	callback: (
 		err?: Error,
 		result?: ExternalItemValue,
-		type?: ExternalsType
-	) => void
+		type?: ExternalsType,
+	) => void,
 ) {
 	if (!/^(\.|\/)/.test(request || "")) {
 		return callback(undefined, request);
@@ -67,7 +69,7 @@ function extractRuntimeExportNames(source: string): string[] {
 	// so match any `<ident>.d(<ident>, { ... })` shape.
 	const defMatches = [
 		...source.matchAll(
-			/\b[A-Za-z_$][\w$]*\.d\([A-Za-z_$][\w$]*,\s*\{([\s\S]*?)\}\)/g
+			/\b[A-Za-z_$][\w$]*\.d\([A-Za-z_$][\w$]*,\s*\{([\s\S]*?)\}\)/g,
 		),
 	];
 	if (defMatches.length > 0) {
@@ -128,7 +130,7 @@ class ExternalStubPlugin {
 				source = readFileSync(bundlePath, "utf-8");
 			} catch (e: any) {
 				console.error(
-					`ExternalStubPlugin: cannot read ${bundlePath}: ${e.message}`
+					`ExternalStubPlugin: cannot read ${bundlePath}: ${e.message}`,
 				);
 				return;
 			}
@@ -136,7 +138,7 @@ class ExternalStubPlugin {
 			const names = extractRuntimeExportNames(source);
 			if (names.length === 0) {
 				console.warn(
-					`ExternalStubPlugin: no exports discovered in ${bundlePath}; stub not written`
+					`ExternalStubPlugin: no exports discovered in ${bundlePath}; stub not written`,
 				);
 				return;
 			}
@@ -144,77 +146,67 @@ class ExternalStubPlugin {
 			const stub = renderExternalStub(names, this.globalName);
 			writeFileSync(stubPath, stub);
 			console.log(
-				`ExternalStubPlugin: wrote ${this.stubFilename} (${names.length} exports → globalThis.${this.globalName})`
+				`ExternalStubPlugin: wrote ${this.stubFilename} (${names.length} exports → globalThis.${this.globalName})`,
 			);
 		});
 	}
 }
 
-// Custom plugin to generate TypeScript declarations
-class TypeScriptDeclarationsPlugin {
-	dir: string;
-	tsconfigName: string;
-	useAlias: boolean;
-	tempDir: string;
+/**
+ * Creates a type-checker plugin for `dir` that both type-checks the package
+ * and emits its declaration files using its `tsconfig.types.json`. Uses the
+ * checker's build mode with `write-dts`, so only `.d.ts` (and `.tsbuildinfo`)
+ * files are written to disk.
+ */
+const createTypeChecker = (
+	dir: string,
+	options: Pick<TsCheckerRspackPluginOptions, "issue"> = {},
+) =>
+	new TsCheckerRspackPlugin({
+		typescript: {
+			configFile: join(dir, "tsconfig.types.json"),
+			build: true,
+			mode: "write-dts",
+		},
+		...options,
+	});
 
-	constructor(
-		dir: string,
-		tempDir: string,
-		tsconfigName: string = "tsconfig.types.json",
-		useAlias: boolean = true
-	) {
-		this.dir = dir;
-		this.tempDir = tempDir;
-		this.tsconfigName = tsconfigName;
-		this.useAlias = useAlias;
+/**
+ * The checker plugin doesn't rewrite TS path aliases in emitted declarations,
+ * so chain `tsc-alias` after it. This runs once the checker reports issues
+ * (i.e. after each declaration emit), with a guard for watch mode reruns.
+ */
+class TscAliasRewritePlugin {
+	busy = false;
+	rerun = false;
+	configFile: string;
+
+	constructor(configFile: string) {
+		this.configFile = configFile;
 	}
 
 	apply(compiler: WebpackCompiler) {
-		compiler.hooks.afterEmit.tap("TypeScriptDeclarationsPlugin", () => {
-			(async () => {
-				try {
-					console.log(`Generating TypeScript declarations for ${this.dir}...`);
-					try {
-						const { stdout, stderr } = await execAsync(
-							`pnpm exec tsc --project ${this.tsconfigName}`,
-							{ cwd: this.dir }
-						);
-						if (stdout) console.log(stdout);
-						if (stderr && !stderr.includes("TS")) console.error(stderr);
-					} catch (tscError: any) {
-						// tsc exits with error code if there are TS errors, but still generates files
-						// Only log if it's not a TypeScript compilation error
-						if (tscError.code !== 2) {
-							throw tscError;
-						}
-						// if (tscError.stdout) console.log(tscError.stdout);
-						// if (tscError.stderr) console.warn(tscError.stderr);
-					}
-
-					if (this.useAlias) {
-						const aliasResult = await execAsync(
-							`pnpm exec tsc-alias --project ${this.tsconfigName}`,
-							{ cwd: this.dir }
-						);
-						if (aliasResult.stdout) console.log(aliasResult.stdout);
-						if (aliasResult.stderr) console.error(aliasResult.stderr);
-					}
-
-					try {
-						await execAsync(`rm -rf ${this.tempDir}`, { cwd: this.dir });
-					} catch (e) {}
-
-					console.log(
-						`TypeScript declarations generated successfully for ${this.dir}`
-					);
-				} catch (error: any) {
-					console.error(
-						`Error generating TypeScript declarations for ${this.dir}:`,
-						error.message
-					);
-				}
-			})();
+		getPluginHooks(compiler).issues.tap("TscAliasRewritePlugin", () => {
+			this.schedule();
+			return [];
 		});
+	}
+
+	private schedule() {
+		if (this.busy) {
+			this.rerun = true;
+			return;
+		}
+		this.busy = true;
+		replaceTscAliasPaths({ configFile: this.configFile })
+			.catch((e) => console.error(`TscAliasRewritePlugin: ${e.message}`))
+			.finally(() => {
+				this.busy = false;
+				if (this.rerun) {
+					this.rerun = false;
+					this.schedule();
+				}
+			});
 	}
 }
 
@@ -249,31 +241,6 @@ export const tsloader = {
 	},
 	type: "javascript/auto",
 };
-//TODO: replace this
-function deepmerge<T extends any>(target: T, source: Partial<T>): T {
-	// this whole function is a hack, ignore all of the type errors
-	//@ts-ignore this whole function is a hack
-	const output = { ...target };
-	if (isObject(target) && isObject(source)) {
-		Object.keys(source).forEach((key) => {
-			//@ts-ignore this whole function is a hack
-			if (isObject(source[key])) {
-				//@ts-ignore this whole function is a hack
-				if (!(key in target)) Object.assign(output, { [key]: source[key] });
-				//@ts-ignore this whole function is a hack
-				else output[key] = deepmerge(target[key], source[key]);
-			} else {
-				//@ts-ignore this whole function is a hack
-				Object.assign(output, { [key]: source[key] });
-			}
-		});
-	}
-	return output;
-}
-
-function isObject(item: any): item is Record<string, unknown> {
-	return item && typeof item === "object" && !Array.isArray(item);
-}
 const rsDoctorPlugin = process.env.DEBUG
 	? new RsdoctorRspackPlugin({
 			supports: {
@@ -309,9 +276,7 @@ const createGenericConfig = (options: Partial<RspackOptions>) => {
 			],
 		},
 	};
-	return defineConfig(
-		deepmerge<RspackOptions>(def as unknown as RspackOptions, options)
-	);
+	return defineConfig(merge<RspackOptions>(def as RspackOptions, options));
 };
 
 type ScramjetBuildConfig = {
@@ -337,11 +302,6 @@ const createScramjetConfig = (options: ScramjetBuildConfig) => {
 		},
 		output,
 		plugins: [
-			// new TsCheckerRspackPlugin({
-			// 	typescript: {
-			// 		configFile: resolve(scramjetdir, "tsconfig.json"),
-			// 	},
-			// }),
 			new rspack.ProvidePlugin({
 				dbg: [join(scramjetdir, "src/log.ts"), "default"],
 			}),
@@ -357,7 +317,7 @@ const createScramjetConfig = (options: ScramjetBuildConfig) => {
 						const hash = JSON.stringify(
 							execSync("git rev-parse --short HEAD", {
 								encoding: "utf-8",
-							}).replace(/\r?\n|\r/g, "")
+							}).replace(/\r?\n|\r/g, ""),
 						);
 
 						return hash;
@@ -383,7 +343,7 @@ const createScramjetConfig = (options: ScramjetBuildConfig) => {
 };
 
 const sjpackagemeta = JSON.parse(
-	await readFile(join(scramjetdir, "package.json"), "utf-8")
+	await readFile(join(scramjetdir, "package.json"), "utf-8"),
 );
 // IIFE build that does NOT bundle the wasm, exposes global $scramjet
 const iifeConfig = createScramjetConfig({
@@ -431,6 +391,36 @@ const iifeBundledConfig = createScramjetConfig({
 	},
 });
 
+// Type-checking / declaration issues for core that are known to pre-date the
+// migration to ts-checker-rspack-plugin (the old shell-out-to-tsc plugin
+// silently swallowed these). Remove entries as the underlying errors get fixed.
+const knownCoreIssues: Pick<TsCheckerRspackPluginOptions, "issue"> = {
+	issue: {
+		exclude: [
+			{ severity: "error", file: "src/client/client.ts", code: "TS2339" },
+			{ severity: "error", file: "src/client/shared/wrap.ts", code: "TS2740" },
+			{ severity: "error", file: "src/fetch/headers.ts", code: "TS2352" },
+			{ severity: "error", file: "src/fetch/index.ts", code: "TS2305" },
+			{ severity: "error", file: "src/shared/mime.ts", code: "TS2345" },
+			{ severity: "error", file: "src/shared/rewriters/js.ts", code: "TS2339" },
+			{ severity: "error", file: "src/shared/rewriters/js.ts", code: "TS2345" },
+			{
+				severity: "error",
+				file: "src/shared/rewriters/url.ts",
+				code: "TS2322",
+			},
+		],
+	},
+};
+
+// Type-check core and emit its declarations via the checker plugin, chained
+// with tsc-alias to resolve path aliases in the generated .d.ts files.
+// Attached only to this build to avoid running a checker worker per config.
+iifeConfig.plugins!.push(
+	createTypeChecker(scramjetdir, knownCoreIssues),
+	new TscAliasRewritePlugin(join(scramjetdir, "tsconfig.types.json")),
+);
+
 // no wasm bundled, esmodule
 const moduleConfig = createScramjetConfig({
 	name: "scramjet-esmodule",
@@ -460,7 +450,7 @@ moduleConfig.plugins!.push(
 		stubFilename: "scramjet-external.mjs",
 		globalName: "$scramjet",
 		outputDir: join(scramjetdir, "dist"),
-	})
+	}),
 );
 
 // wasm bundled, esmodule
@@ -486,40 +476,9 @@ const moduleBundledConfig = createScramjetConfig({
 	},
 });
 
-// Type generation configuration
-const typeGenConfig = defineConfig({
-	context: scramjetdir,
-	entry: {
-		index: "./src/index.ts",
-	},
-	output: {
-		path: join(scramjetdir, "dist/temp-types-build"),
-		filename: "[name].js",
-	},
-	plugins: [
-		new TypeScriptDeclarationsPlugin(
-			scramjetdir,
-			"dist/temp-types-build",
-			"tsconfig.types.json",
-			true
-		),
-	],
-	resolve: {
-		extensions: [".ts", ".js"],
-		alias: {
-			"@rewriters": join(scramjetdir, "src/shared/rewriters"),
-			"@client": join(scramjetdir, "src/client"),
-			"@": join(scramjetdir, "src"),
-		},
-	},
-	module: {
-		rules: [tsloader],
-	},
-});
-
 // Load WASM for rewriter
 const controllermeta = JSON.parse(
-	await readFile(join(controllerdir, "package.json"), "utf-8")
+	await readFile(join(controllerdir, "package.json"), "utf-8"),
 );
 const controllerVersionDefines = new rspack.DefinePlugin({
 	SCRAMJET_EXPECTED_VERSION: JSON.stringify(sjpackagemeta.version),
@@ -552,12 +511,7 @@ const controllerConfig = createGenericConfig({
 			globalName: "$scramjetController",
 			outputDir: join(controllerdir, "dist"),
 		}),
-		new TypeScriptDeclarationsPlugin(
-			controllerdir,
-			"dist/temp-types-build",
-			"tsconfig.types.json",
-			false
-		),
+		createTypeChecker(controllerdir),
 	],
 });
 
@@ -582,15 +536,7 @@ const utilsIifeConfig = createGenericConfig({
 		},
 	},
 	target: "web",
-	plugins: [
-		utilsVersionDefines,
-		new TypeScriptDeclarationsPlugin(
-			utilsdir,
-			"dist/temp-types-build",
-			"tsconfig.types.json",
-			false
-		),
-	],
+	plugins: [utilsVersionDefines, createTypeChecker(utilsdir)],
 });
 
 const utilsModuleConfig = createGenericConfig({
@@ -609,15 +555,7 @@ const utilsModuleConfig = createGenericConfig({
 		outputModule: true,
 	},
 	target: "web",
-	plugins: [
-		utilsVersionDefines,
-		new TypeScriptDeclarationsPlugin(
-			utilsdir,
-			"dist/temp-types-build",
-			"tsconfig.types.json",
-			false
-		),
-	],
+	plugins: [utilsVersionDefines],
 });
 
 const bootstrapConfig = createGenericConfig({
@@ -644,14 +582,7 @@ const bootstrapConfig = createGenericConfig({
 			},
 		},
 	},
-	plugins: [
-		new TypeScriptDeclarationsPlugin(
-			bootstrapdir,
-			"dist/temp-types-build",
-			"tsconfig.types.json",
-			false
-		),
-	],
+	plugins: [createTypeChecker(bootstrapdir)],
 });
 
 const bootstrapStaticConfig = createGenericConfig({
@@ -702,7 +633,6 @@ export default [
 	iifeBundledConfig,
 	moduleConfig,
 	moduleBundledConfig,
-	typeGenConfig,
 	controllerConfig,
 	utilsIifeConfig,
 	utilsModuleConfig,

@@ -119,7 +119,7 @@ export function setupAlwaysLastBubble(
 					callListener(e);
 				} else {
 					// we know what the last listener is. run this to inject after it
-					lastlistener.injectafter = (e) => {
+					lastlistener.injectafter = (e: any) => {
 						callListener(e);
 					};
 				}

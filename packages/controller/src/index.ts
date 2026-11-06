@@ -210,7 +210,7 @@ type ControllerInit = {
 };
 
 type FrameOptions = {
-	plugins: ManagedPlugin[];
+	plugins?: ManagedPlugin[];
 };
 
 export class Controller {
