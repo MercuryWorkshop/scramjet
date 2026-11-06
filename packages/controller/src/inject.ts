@@ -196,7 +196,7 @@ export function load(init: Init) {
 	if (!("WASM" in self)) {
 		throw new Error("WASM not found in global scope!");
 	}
-	const wasm = Uint8Array.from(atob(self.WASM), (c) => c.charCodeAt(0));
+	const wasm = Uint8Array.from(atob(self.WASM as string), (c) => c.charCodeAt(0));
 	delete (self as any).WASM;
 	setWasm(wasm);
 

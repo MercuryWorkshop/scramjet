@@ -33,9 +33,7 @@ import type {
 } from "./types";
 import { assertRuntimeScramjetVersion } from "./version";
 
-export { VERSION } from "./version";
-export { assertRuntimeScramjetVersion } from "./version";
-
+export { versionInfo } from "./version";
 export type Config = {
 	prefix: string;
 	scramjetPath: string;
@@ -275,7 +273,7 @@ export class Controller {
 			const frame = this.frames.find((f) => path.startsWith(f.prefix));
 			if (!frame) throw new Error("No frame found for request");
 			try {
-				// doesn't actually *load* every request, but hold up requests until the promise finishes
+				// doesn't actually *load* every request, but hold u requests until the promise finishes
 				await this.loadSavedCookies();
 
 				if (path === frame.prefix + this.config.virtualWasmPath) {
@@ -819,9 +817,11 @@ export class Frame {
 		this.plugins = options.plugins ?? [];
 		for (const plugin of this.plugins) {
 			for (const dependency of plugin.dependencies) {
+				//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 				const dependencyPlugin = this.plugins.find(
 					(p) => p.name === dependency
 				);
+				//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 				if (!dependencyPlugin) {
 					throw new Error(
 						`Dependency ${dependency} not found for plugin ${plugin.name}`
@@ -833,6 +833,7 @@ export class Frame {
 	}
 
 	getPlugin<T extends ManagedPlugin>(name: string): T {
+		//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 		const plugin = this.plugins.find((p) => p.name === name) as T;
 		if (!plugin) {
 			throw new Error(`Plugin ${name} not found`);
@@ -854,9 +855,9 @@ export class Frame {
 
 	go(url: string) {
 		const encoded = rewriteUrl(url, this.context, {
-			//@ts-expect-error
+			//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 			origin: new URL(location.href),
-			//@ts-expect-error
+			//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 			base: new URL(location.href),
 		});
 		this.element.src = encoded;

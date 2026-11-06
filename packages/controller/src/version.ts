@@ -1,7 +1,15 @@
-declare const SCRAMJET_EXPECTED_VERSION: string;
-declare const CONTROLLER_VERSION: string;
+import { versionInfo as scramjetVersionInfo } from "@mercuryworkshop/scramjet";
 
-export const VERSION = CONTROLLER_VERSION;
+declare const SCRAMJET_EXPECTED_VERSION: string;
+declare const VERSION: string;
+declare const COMMITHASH: string;
+declare const BUILDDATE: string;
+
+export const versionInfo = {
+	version: VERSION,
+	build: COMMITHASH,
+	date: BUILDDATE,
+};
 
 function assertVersionMatch(
 	packageName: string,
@@ -16,7 +24,7 @@ function assertVersionMatch(
 }
 
 export function assertRuntimeScramjetVersion() {
-	if (typeof $scramjet === "undefined") {
+	if (typeof scramjetVersionInfo === "undefined") {
 		throw new Error(
 			"@mercuryworkshop/scramjet is not loaded. Load scramjet before the controller."
 		);
@@ -25,6 +33,6 @@ export function assertRuntimeScramjetVersion() {
 	assertVersionMatch(
 		"@mercuryworkshop/scramjet",
 		SCRAMJET_EXPECTED_VERSION,
-		$scramjet.versionInfo.version
+		scramjetVersionInfo.version
 	);
 }
