@@ -563,6 +563,7 @@ const bootstrapmeta = JSON.parse(
 );
 const bootstrapConfig = createGenericConfig(bootstrapmeta, {
 	name: "scramjet-bootstrap",
+	dependencies: ["scramjet-controller"],
 	entry: {
 		server: join(bootstrapdir, "src/server.ts"),
 		client: join(bootstrapdir, "src/client.ts"),
@@ -590,6 +591,7 @@ const bootstrapConfig = createGenericConfig(bootstrapmeta, {
 
 const bootstrapStaticConfig = createGenericConfig(bootstrapmeta, {
 	name: "scramjet-bootstrap-static",
+	dependencies: ["scramjet-controller"],
 	entry: {
 		static: join(bootstrapdir, "src/static.ts"),
 	},
@@ -604,7 +606,7 @@ const createproxyappdir = join(__dirname, "packages/create-proxy-app");
 const createproxyappmeta = JSON.parse(
 	await readFile(join(createproxyappdir, "package.json"), "utf-8"),
 );
-const createProxyAppConfig = createGenericConfig(createproxyappdir, {
+const createProxyAppConfig = createGenericConfig(createproxyappmeta, {
 	name: "create-proxy-app",
 	entry: {
 		index: join(createproxyappdir, "src/index.ts"),
