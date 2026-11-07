@@ -563,6 +563,7 @@ const bootstrapmeta = JSON.parse(
 );
 const bootstrapConfig = createGenericConfig(bootstrapmeta, {
 	name: "scramjet-bootstrap",
+	dependencies: ["scramjet-controller"],
 	entry: {
 		server: join(bootstrapdir, "src/server.ts"),
 		client: join(bootstrapdir, "src/client.ts"),
