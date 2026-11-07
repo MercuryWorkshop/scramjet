@@ -817,13 +817,13 @@ export class Frame {
 		this.plugins = options.plugins ?? [];
 		for (const plugin of this.plugins) {
 			for (const dependency of plugin.dependencies) {
-				//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 				const dependencyPlugin = this.plugins.find(
+					//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 					(p) => p.name === dependency
 				);
-				//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 				if (!dependencyPlugin) {
 					throw new Error(
+						//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 						`Dependency ${dependency} not found for plugin ${plugin.name}`
 					);
 				}
