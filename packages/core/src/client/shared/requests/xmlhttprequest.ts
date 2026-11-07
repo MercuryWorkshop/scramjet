@@ -148,7 +148,9 @@ export default function (client: ScramjetClient, self: Self) {
 		apply(ctx) {
 			const header = ctx.fn.call(ctx.this, ctx.args[0]) as string | null;
 			if (!header) return header;
-			if (ctx.args[0].toLowerCase() === "link") {
+			// same as setAttribute: the header name is stringified by the platform, so it may
+			// arrive as a non-string and .toLowerCase() would throw
+			if (String(ctx.args[0]).toLowerCase() === "link") {
 				ctx.return(unrewriteLinkHeader(header, client.context));
 			}
 		},

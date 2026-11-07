@@ -292,6 +292,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 			let [name, value] = ctx.args;
 			const tagName = ctx.this.tagName.toLowerCase();
 
+			// setAttribute() stringifies its arguments, so callers are free to pass a non-string
+			// name (e.g. setAttribute(123, "x")). Coerce it the same way the DOM does, otherwise
+			// name.toLowerCase() below throws and takes the whole page down.
+			name = String(name);
+			ctx.args[0] = name;
 			if (value != null) value = String(value);
 			ctx.args[1] = value;
 
