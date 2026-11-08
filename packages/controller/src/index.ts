@@ -818,12 +818,10 @@ export class Frame {
 		for (const plugin of this.plugins) {
 			for (const dependency of plugin.dependencies) {
 				const dependencyPlugin = this.plugins.find(
-					//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 					(p) => p.name === dependency
 				);
 				if (!dependencyPlugin) {
 					throw new Error(
-						//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 						`Dependency ${dependency} not found for plugin ${plugin.name}`
 					);
 				}
@@ -833,7 +831,6 @@ export class Frame {
 	}
 
 	getPlugin<T extends ManagedPlugin>(name: string): T {
-		//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 		const plugin = this.plugins.find((p) => p.name === name) as T;
 		if (!plugin) {
 			throw new Error(`Plugin ${name} not found`);
@@ -855,9 +852,9 @@ export class Frame {
 
 	go(url: string) {
 		const encoded = rewriteUrl(url, this.context, {
-			//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
+			//@ts-expect-error TODO: fix branded types leaking into core api
 			origin: new URL(location.href),
-			//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
+			//@ts-expect-error TODO: fix branded types leaking into core api
 			base: new URL(location.href),
 		});
 		this.element.src = encoded;

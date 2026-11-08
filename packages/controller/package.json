@@ -13,7 +13,7 @@
 		"directory": "packages/controller"
 	},
 	"scripts": {
-		"build": "cd ../.. && rspack build --mode production --config-name scramjet-esmodule --config-name scramjet-controller",
+		"build": "cd ../.. && rspack build --mode production --config-name scramjet-iife --config-name scramjet-controller",
 		"prepack": "pnpm build"
 	},
 	"exports": {

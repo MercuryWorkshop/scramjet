@@ -482,7 +482,7 @@ const controllerVersionDefines = new rspack.DefinePlugin({
 
 const controllerConfig = createGenericConfig(controllermeta, {
 	name: "scramjet-controller",
-	dependencies: ["scramjet-esmodule"],
+	dependencies: ["scramjet-iife"],
 	entry: {
 		api: join(controllerdir, "src/index.ts"),
 		inject: join(controllerdir, "src/inject.ts"),
@@ -521,7 +521,7 @@ const utilsVersionDefines = new rspack.DefinePlugin({
 
 const utilsIifeConfig = createGenericConfig(utilsmeta, {
 	name: "scramjet-utils-iife",
-	dependencies: ["scramjet-esmodule", "scramjet-controller"],
+	dependencies: ["scramjet-iife", "scramjet-controller"],
 	entry: {
 		main: join(utilsdir, "src/index.ts"),
 	},
@@ -540,7 +540,7 @@ const utilsIifeConfig = createGenericConfig(utilsmeta, {
 
 const utilsModuleConfig = createGenericConfig(utilsmeta, {
 	name: "scramjet-utils-esmodule",
-	dependencies: ["scramjet-esmodule", "scramjet-controller"],
+	dependencies: ["scramjet-iife", "scramjet-controller"],
 	entry: {
 		main: join(utilsdir, "src/index.ts"),
 	},

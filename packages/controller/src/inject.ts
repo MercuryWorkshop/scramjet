@@ -304,7 +304,6 @@ class ExecutionContextWrapper {
 					currentwin = currentwin.parent.window;
 					continue;
 				}
-				//@ts-ignore dumb hack, fix later (this fails in ci due to types not being available first build)
 				const currentFrame = currentclient.descriptors.get(
 					"window.frameElement",
 					currentwin
