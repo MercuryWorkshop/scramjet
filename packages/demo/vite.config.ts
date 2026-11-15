@@ -1,4 +1,6 @@
 import { viteStaticCopy } from "vite-plugin-static-copy";
+import { scramjetPath } from "@mercuryworkshop/scramjet/path";
+import { controllerPath } from "@mercuryworkshop/scramjet-controller/path"
 
 export default {
 	plugins: [
@@ -6,11 +8,11 @@ export default {
 			structured: false,
 			targets: [
 				{
-					src: "node_modules/@mercuryworkshop/scramjet/dist/*",
+					src: scramjetPath,
 					dest: "scramjet",
 				},
 				{
-					src: "node_modules/@mercuryworkshop/scramjet-controller/dist/*",
+					src: controllerPath,
 					dest: "controller",
 				},
 			],
