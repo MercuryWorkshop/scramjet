@@ -2,6 +2,10 @@ name: CI
 
 on:
   push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
     paths-ignore: &ci_ignore_paths
       - ".zed/**"
       - ".vscode/**"
@@ -23,134 +27,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  version-check:
-    name: Check Version
+  release-info:
+    name: Resolve Release Target
     runs-on: ubuntu-latest
     outputs:
-      scramjet_version_changed: ${{ steps.check-scramjet.outputs.version_changed }}
-      scramjet_new_version: ${{ steps.check-scramjet.outputs.new_version }}
-      scramjet_tag_arg: ${{ steps.check-scramjet.outputs.tag_arg }}
-      controller_version_changed: ${{ steps.check-scramjet-controller.outputs.version_changed }}
-      controller_new_version: ${{ steps.check-scramjet-controller.outputs.new_version }}
-      controller_tag_arg: ${{ steps.check-scramjet-controller.outputs.tag_arg }}
-      utils_version_changed: ${{ steps.check-scramjet-utils.outputs.version_changed }}
-      utils_new_version: ${{ steps.check-scramjet-utils.outputs.new_version }}
-      utils_tag_arg: ${{ steps.check-scramjet-utils.outputs.tag_arg }}
-      bootstrap_version_changed: ${{ steps.check-bootstrap.outputs.version_changed }}
-      bootstrap_new_version: ${{ steps.check-bootstrap.outputs.new_version }}
-      bootstrap_tag_arg: ${{ steps.check-bootstrap.outputs.tag_arg }}
-      create_proxy_app_version_changed: ${{ steps.check-create-proxy-app.outputs.version_changed }}
-      create_proxy_app_new_version: ${{ steps.check-create-proxy-app.outputs.new_version }}
-      create_proxy_app_tag_arg: ${{ steps.check-create-proxy-app.outputs.tag_arg }}
+      is_tag: ${{ steps.resolve.outputs.is_tag }}
+      package: ${{ steps.resolve.outputs.package }}
+      version: ${{ steps.resolve.outputs.version }}
+      tag_arg: ${{ steps.resolve.outputs.tag_arg }}
+      artifact_name: ${{ steps.resolve.outputs.artifact_name }}
+      tgz_prefix: ${{ steps.resolve.outputs.tgz_prefix }}
+      release_name: ${{ steps.resolve.outputs.release_name }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Check the version (scramjet/core)
-        id: check-scramjet
+      - name: Resolve package from tag
+        id: resolve
         run: |
-          CURRENT_VERSION=$(jq -r .version packages/core/package.json)
-          echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet versions --json | jq -r '.[-1]' || echo "0.0.0")
-          echo "Latest NPM version: $LATEST_VERSION"
-
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
-          then
-            echo "Version changed"
-            echo "version_changed=true" >> "$GITHUB_OUTPUT"
-            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-            TAG_ARG=""
-            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
-            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version not changed"
-            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            echo "Not a tag push; nothing to release"
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-      - name: Check the version (scramjet/controller)
-        id: check-scramjet-controller
-        run: |
-          CURRENT_VERSION=$(jq -r .version packages/controller/package.json)
-          echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet-controller versions --json | jq -r '.[-1]' || echo "0.0.0")
-          echo "Latest NPM version: $LATEST_VERSION"
+          REF="${GITHUB_REF_NAME#v}"
 
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
-          then
-            echo "Version changed"
-            echo "version_changed=true" >> "$GITHUB_OUTPUT"
-            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-            TAG_ARG=""
-            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
-            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version not changed"
-            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          case "$REF" in
+            *-create-proxy-app)
+              PKG=create-proxy-app; DIR=packages/create-proxy-app; ARTIFACT=create-proxy-app-package; TGZ_PREFIX=create-proxy-app- ;;
+            *-controller)
+              PKG=controller; DIR=packages/controller; ARTIFACT=scramjet-controller-package; TGZ_PREFIX=mercuryworkshop-scramjet-controller- ;;
+            *-utils)
+              PKG=utils; DIR=packages/utils; ARTIFACT=scramjet-utils-package; TGZ_PREFIX=mercuryworkshop-scramjet-utils- ;;
+            *-bootstrap)
+              PKG=bootstrap; DIR=packages/bootstrap; ARTIFACT=proxy-bootstrap-package; TGZ_PREFIX=mercuryworkshop-proxy-bootstrap- ;;
+            *)
+              PKG=core; DIR=packages/core; ARTIFACT=scramjet-package; TGZ_PREFIX=mercuryworkshop-scramjet- ;;
+          esac
+
+          VERSION=$(jq -r .version "$DIR/package.json")
+          echo "Tag: $GITHUB_REF_NAME, package: $PKG, version: $VERSION"
+
+          if [ "$REF" != "$VERSION" ] && [[ "$REF" != "$VERSION"-* ]]; then
+            echo "Tag version does not match $DIR/package.json version ($VERSION)" >&2
+            exit 1
           fi
 
-      - name: Check the version (scramjet/utils)
-        id: check-scramjet-utils
-        run: |
-          CURRENT_VERSION=$(jq -r .version packages/utils/package.json)
-          echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/scramjet-utils versions --json | jq -r '.[-1]' || echo "0.0.0")
-          echo "Latest NPM version: $LATEST_VERSION"
+          TAG_ARG=""
+          if [[ "$VERSION" == *-* ]]; then PRE="${VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
 
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
-          then
-            echo "Version changed"
-            echo "version_changed=true" >> "$GITHUB_OUTPUT"
-            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-            TAG_ARG=""
-            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
-            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version not changed"
-            echo "version_changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check the version (proxy-bootstrap)
-        id: check-bootstrap
-        run: |
-          CURRENT_VERSION=$(jq -r .version packages/bootstrap/package.json)
-          echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view @mercuryworkshop/proxy-bootstrap versions --json | jq -r '.[-1]' || echo "0.0.0")
-          echo "Latest NPM version: $LATEST_VERSION"
-
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
-          then
-            echo "Version changed"
-            echo "version_changed=true" >> "$GITHUB_OUTPUT"
-            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-            TAG_ARG=""
-            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
-            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version not changed"
-            echo "version_changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check the version (create-proxy-app)
-        id: check-create-proxy-app
-        run: |
-          CURRENT_VERSION=$(jq -r .version packages/create-proxy-app/package.json)
-          echo "Current version: $CURRENT_VERSION"
-          LATEST_VERSION=$(npm view create-proxy-app versions --json | jq -r '.[-1]' || echo "0.0.0")
-          echo "Latest NPM version: $LATEST_VERSION"
-
-          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ];
-          then
-            echo "Version changed"
-            echo "version_changed=true" >> "$GITHUB_OUTPUT"
-            echo "new_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-            TAG_ARG=""
-            if [[ "$CURRENT_VERSION" == *-* ]]; then PRE="${CURRENT_VERSION#*-}"; TAG_ARG="--tag ${PRE%%[.+]*}"; fi
-            echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
-          else
-            echo "Version not changed"
-            echo "version_changed=false" >> "$GITHUB_OUTPUT"
-          fi
+          echo "is_tag=true" >> "$GITHUB_OUTPUT"
+          echo "package=$PKG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$ARTIFACT" >> "$GITHUB_OUTPUT"
+          echo "tgz_prefix=$TGZ_PREFIX" >> "$GITHUB_OUTPUT"
+          echo "release_name=$REF" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build Scramjet
@@ -349,12 +283,13 @@ jobs:
   upload:
     name: Upload release
     runs-on: ubuntu-latest
-    needs: [version-check, build, package-validation, tests, rewritertests]
+    needs: [release-info, build, package-validation, tests, rewritertests]
     permissions: write-all
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || needs.release-info.outputs.is_tag == 'true'
 
     steps:
       - name: Delete old release and tag
+        if: github.ref == 'refs/heads/main'
         uses: dev-drprasad/delete-tag-and-release@v1.1
         with:
           delete_release: true
@@ -362,54 +297,54 @@ jobs:
           github_token: ${{ github.token }}
 
       - name: Get artifacts
+        if: github.ref == 'refs/heads/main'
         uses: actions/download-artifact@v4
         with:
           name: scramjet-package
           path: .
 
       - name: Get artifacts
+        if: github.ref == 'refs/heads/main'
         uses: actions/download-artifact@v4
         with:
           name: scramjet-controller-package
           path: .
 
       - name: Release unstable build to GitHub
+        if: github.ref == 'refs/heads/main'
         uses: ncipollo/release-action@v1
         with:
           name: Continuous Build
           tag: latest
           commit: main
           body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-*.tgz,mercuryworkshop-scramjet-controller-*.tgz"
+          artifacts: "mercuryworkshop-scramjet-*.tgz,mercuryworkshop-scramjet-controller-*.tgz,mercuryworkshop-scramjet-utils-*.tgz"
           prerelease: true
 
-      - name: Release tagged version to GitHub (scramjet/core)
-        if: needs.version-check.outputs.scramjet_version_changed == 'true'
-        uses: ncipollo/release-action@v1
+      - name: Get artifacts (tagged package)
+        if: needs.release-info.outputs.is_tag == 'true'
+        uses: actions/download-artifact@v4
         with:
-          name: "${{ needs.version-check.outputs.scramjet_new_version }}"
-          tag: "v${{ needs.version-check.outputs.scramjet_new_version }}"
-          commit: main
-          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-*.tgz"
+          name: ${{ needs.release-info.outputs.artifact_name }}
+          path: .
 
-      - name: Release tagged version to GitHub (scramjet/controller)
-        if: needs.version-check.outputs.controller_version_changed == 'true'
+      - name: Release tagged version to GitHub
+        if: needs.release-info.outputs.is_tag == 'true'
         uses: ncipollo/release-action@v1
         with:
-          name: "${{ needs.version-check.outputs.controller_new_version }}-controller"
-          tag: "v${{ needs.version-check.outputs.controller_new_version }}-controller"
-          commit: main
-          body: "${{ github.event.head_commit.url }} ${{ github.event.head_commit.message }}"
-          artifacts: "mercuryworkshop-scramjet-controller-*.tgz"
-          makeLatest: false
+          name: "${{ needs.release-info.outputs.release_name }}"
+          tag: "${{ github.ref_name }}"
+          body: "Release ${{ needs.release-info.outputs.release_name }} ([${{ needs.release-info.outputs.release_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }}))"
+          artifacts: "${{ needs.release-info.outputs.tgz_prefix }}${{ needs.release-info.outputs.version }}.tgz"
+          makeLatest: ${{ needs.release-info.outputs.package == 'core' }}
+          draft: true
 
   publish:
     name: Publish Scramjet to NPM
     runs-on: ubuntu-latest
-    needs: [version-check, build, package-validation, tests, rewritertests]
+    needs: [release-info, build, package-validation, tests, rewritertests]
     permissions: write-all
-    if: ${{ (github.ref == 'refs/heads/main') && (needs.version-check.outputs.scramjet_version_changed == 'true' || needs.version-check.outputs.controller_version_changed == 'true' || needs.version-check.outputs.bootstrap_version_changed == 'true' || needs.version-check.outputs.create_proxy_app_version_changed == 'true' || needs.version-check.outputs.utils_version_changed == 'true') }}
+    if: needs.release-info.outputs.is_tag == 'true'
 
     steps:
       - name: Setup pnpm
@@ -423,58 +358,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: "https://registry.npmjs.org"
 
-      - name: Get artifacts (scramjet/core)
+      - name: Get artifacts
         uses: actions/download-artifact@v4
         with:
-          name: scramjet-package
+          name: ${{ needs.release-info.outputs.artifact_name }}
           path: .
 
-      - name: Get artifacts (scramjet/controller)
-        uses: actions/download-artifact@v4
-        with:
-          name: scramjet-controller-package
-          path: .
-
-      - name: Get artifacts (scramjet/utils)
-        if: needs.version-check.outputs.utils_version_changed == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: scramjet-utils-package
-          path: .
-
-      - name: Get artifacts (proxy-bootstrap)
-        if: needs.version-check.outputs.bootstrap_version_changed == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: proxy-bootstrap-package
-          path: .
-
-      - name: Get artifacts (create-proxy-app)
-        if: needs.version-check.outputs.create_proxy_app_version_changed == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: create-proxy-app-package
-          path: .
-
-      - name: Publish Scramjet
-        if: needs.version-check.outputs.scramjet_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-scramjet-${{ needs.version-check.outputs.scramjet_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.scramjet_tag_arg }}
-
-      - name: Publish Scramjet Controller
-        if: needs.version-check.outputs.controller_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-scramjet-controller-${{ needs.version-check.outputs.controller_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.controller_tag_arg }}
-
-      - name: Publish Scramjet Utils
-        if: needs.version-check.outputs.utils_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-scramjet-utils-${{ needs.version-check.outputs.utils_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.utils_tag_arg }}
-
-      - name: Publish Proxy Bootstrap
-        if: needs.version-check.outputs.bootstrap_version_changed == 'true'
-        run: pnpm stage publish mercuryworkshop-proxy-bootstrap-${{ needs.version-check.outputs.bootstrap_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.bootstrap_tag_arg }}
-
-      - name: Publish create-proxy-app
-        if: needs.version-check.outputs.create_proxy_app_version_changed == 'true'
-        run: pnpm stage publish create-proxy-app-${{ needs.version-check.outputs.create_proxy_app_new_version }}.tgz --access public --provenance ${{ needs.version-check.outputs.create_proxy_app_tag_arg }}
+      - name: Publish to NPM
+        run: pnpm stage publish ${{ needs.release-info.outputs.tgz_prefix }}${{ needs.release-info.outputs.version }}.tgz --access public --provenance ${{ needs.release-info.outputs.tag_arg }}
 
   frontend:
     name: Build Frontend
