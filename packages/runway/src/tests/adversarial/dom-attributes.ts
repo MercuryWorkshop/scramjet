@@ -187,10 +187,8 @@ export default [
 		`,
 	}),
 	basicTest({
-		// KNOWN FAILURE: the integrity IDL attribute reads back empty even though
-		// the content attribute is kept. Worth noting the deeper problem it hints
-		// at: the attribute survives into the DOM while the script body is
-		// rewritten, so a real subresource-integrity hash can no longer match.
+		// the live attribute is blanked, so the body the proxy rewrote still
+		// loads; the page reads its own digest back. See `tests/integrity.ts`
 		name: "domattr-integrity-property",
 		js: `
 			const s = document.createElement("script");

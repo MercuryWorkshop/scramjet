@@ -55,9 +55,10 @@ describe("render DOM parsed with htmlparser2", () => {
 			);
 		});
 
-		it('should shorten the "checked" attribute when it contains the value "checked"', () => {
+		// an empty value is written `=""`, as the browser's own serializer does
+		it('should write the "checked" attribute with an empty value', () => {
 			const markup = "<input checked/>";
-			expect(html(markup)).toStrictEqual("<input checked>");
+			expect(html(markup)).toStrictEqual('<input checked="">');
 		});
 
 		it('should not shorten the "name" attribute when it contains the value "name"', () => {
@@ -65,9 +66,9 @@ describe("render DOM parsed with htmlparser2", () => {
 			expect(html(markup)).toStrictEqual('<input name="name">');
 		});
 
-		it('should not append ="" to attributes with no value', () => {
+		it('should append ="" to attributes with no value', () => {
 			const markup = "<div dropdown-toggle>";
-			expect(html(markup)).toStrictEqual("<div dropdown-toggle></div>");
+			expect(html(markup)).toStrictEqual('<div dropdown-toggle=""></div>');
 		});
 
 		it("should render comments correctly", () => {
@@ -146,7 +147,7 @@ describe("render DOM parsed with htmlparser2", () => {
 
 		it("should render HTML content in SVG foreignObject in HTML mode", () => {
 			const markup =
-				'<svg><foreignObject requiredFeatures=""><img src="test.png" viewbox>text<svg viewBox="0 0 8 8"><circle r="3"/></svg></foreignObject></svg>';
+				'<svg><foreignObject requiredFeatures=""><img src="test.png" viewbox="">text<svg viewBox="0 0 8 8"><circle r="3"/></svg></foreignObject></svg>';
 			expect(html(markup)).toStrictEqual(markup);
 		});
 

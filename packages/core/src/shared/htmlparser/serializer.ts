@@ -302,10 +302,10 @@ function formatAttributes(
 		}
 
 		if (index > 0) output += " ";
-		output +=
-			!xmlMode && normalizedValue === ""
-				? key
-				: `${key}="${encode(normalizedValue)}"`;
+		// always quoted, even when empty: the page reads this back through
+		// `outerHTML`, and the HTML serializer writes `name=""`
+		// https://html.spec.whatwg.org/multipage/parsing.html#serialising-html-fragments
+		output += `${key}="${encode(normalizedValue)}"`;
 	}
 
 	return output;

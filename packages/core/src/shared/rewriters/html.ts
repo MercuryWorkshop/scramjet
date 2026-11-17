@@ -560,6 +560,11 @@ function traverseParsedHtml(
 		String_toLowerCase(attribs.type) === "importmap" &&
 		hasText
 	) {
+		// the page reads its own map back, and the client resolves `import()`
+		// against it - both from the source, not the rewritten map
+		attribs[SCRIPT_SOURCE_ATTRIBUTE] = bytesToBase64(
+			TextEncoder_encode(text.data)
+		);
 		try {
 			text.data = rewriteImportMap(text.data, context, meta);
 		} catch (e) {

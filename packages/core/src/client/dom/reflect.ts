@@ -481,9 +481,13 @@ export default function (client: ScramjetClient, self: Self) {
 	/**
 	 * After a write through the stand-in's list, carry its value over to the
 	 * iframe it stands in for - through the ordinary write path, so the rule
-	 * strips it from the live frame and the mirror records it.
+	 * strips it from the live frame and the mirror records it. A link's
+	 * `relList` runs the change steps a write to `rel` would have.
 	 */
 	const syncSandbox = (list: DOMTokenList) => {
+		const link = client.box.linkRelLists.get(list);
+		if (link) attrs.changed(link, "rel", attrs.get(link, "rel"));
+
 		const element = client.box.sandboxLists.get(list);
 		if (!element) return;
 
@@ -692,6 +696,43 @@ export default function (client: ScramjetClient, self: Self) {
 			void super.rel;
 
 			set(this, "integrity", value);
+		}
+
+		// `rel` and `as` decide whether the link's integrity is blanked - a fetch
+		// preload's is not - so a write to either has to reach the attribute
+		// layer, whose change steps re-run the rule
+		@Type("DOMString")
+		get rel(): string {
+			return super.rel;
+		}
+
+		@Type("DOMString")
+		set rel(value: string) {
+			void super.rel;
+
+			set(this, "rel", value);
+		}
+
+		@Type("DOMString")
+		get as(): string {
+			return super.as;
+		}
+
+		@Type("DOMString")
+		set as(value: string) {
+			void super.rel;
+
+			set(this, "as", value);
+		}
+
+		// [SameObject, PutForwards=value]: noted, so a write through it is seen
+		// by the token list interceptor below
+		@Type("DOMTokenList")
+		get relList(): DOMTokenList {
+			const list = super.relList;
+			client.box.linkRelLists.set(list, this);
+
+			return list;
 		}
 
 		// the IDL name is `imageSrcset`; the content attribute is `imagesrcset`.

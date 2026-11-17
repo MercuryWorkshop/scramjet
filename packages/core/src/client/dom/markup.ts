@@ -18,6 +18,7 @@ import { Arguments, Returns, Type } from "@client/webidl";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { ForeignContext } from "@/shared/rewriters/html";
 import { isHtmlMimeType } from "@/shared/mime";
+import { mirroredAttributeName } from "@client/attributes";
 import { Array_indexOf, String, String_toLowerCase } from "@/shared/snapshot";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
@@ -383,6 +384,124 @@ export default function (client: ScramjetClient, _self: Self) {
 				super.getHTML(options),
 				foreignContextForElement(client, super.host)
 			);
+		}
+	});
+
+	const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+
+	/**
+	 * Give `copy`, a structural copy of `original`, the attributes and raw text
+	 * the page sees on `original` - the ones `getAttribute`, `attributes` and
+	 * `textContent` answer with - walking both trees in step, template contents
+	 * included.
+	 */
+	const restoreCopy = (original: Node, copy: Node) => {
+		const nOriginal = new client.native.Node(original);
+		const type = nOriginal.nodeType;
+
+		if (type === 1) {
+			const nCopy = new client.native.Element(copy);
+			const visible = client.attributes.nodes(original as Element);
+			const map = new client.native.NamedNodeMap(nCopy.attributes);
+			while (map.length > 0) nCopy.removeAttributeNode(map.item(0));
+			for (let i = 0; i < visible.length; i++) {
+				const attr = new client.native.Attr(visible[i]);
+				const held = client.attributes.attrName(visible[i]);
+				const name = mirroredAttributeName(held) || held;
+				const value = client.attributes.visibleValue(visible[i]);
+				// a null-namespace attribute can have a colon in its name - the HTML
+				// parser makes them - which `setAttributeNS` would take for a prefix
+				if (attr.namespaceURI === null) nCopy.setAttribute(name, value);
+				else nCopy.setAttributeNS(attr.namespaceURI, name, value);
+			}
+		} else if (type === 3 || type === 4) {
+			const parent = nOriginal.parentNode;
+			if (
+				parent &&
+				new client.native.Node(parent).nodeType === 1 &&
+				text.kind(parent as Element) !== null
+			) {
+				new client.native.CharacterData(copy).data = text.data(
+					original as CharacterData
+				);
+			}
+		}
+
+		let a = nOriginal.firstChild;
+		let b = new client.native.Node(copy).firstChild;
+		while (a && b) {
+			restoreCopy(a, b);
+			a = new client.native.Node(a).nextSibling;
+			b = new client.native.Node(b).nextSibling;
+		}
+
+		if (
+			type === 1 &&
+			new client.native.Element(original).namespaceURI === HTML_NAMESPACE &&
+			new client.native.Element(original).localName === "template"
+		) {
+			restoreCopy(
+				new client.native.HTMLTemplateElement(original).content,
+				new client.native.HTMLTemplateElement(copy).content
+			);
+		}
+	};
+
+	/**
+	 * A copy of `root` holding what the page wrote, in a document with no
+	 * browsing context - so nothing in it loads, and no custom element in it
+	 * is constructed - or null for a node with nothing to restore.
+	 */
+	const restoredCopy = (root: Node): Node | null => {
+		const nRoot = new client.native.Node(root);
+		const type = nRoot.nodeType;
+		if (type !== 1 && type !== 3 && type !== 4 && type !== 9 && type !== 11) {
+			return null;
+		}
+
+		let copy: Node;
+		if (type === 9) {
+			// a document's clone is one with no browsing context already
+			copy = nRoot.cloneNode(true);
+		} else {
+			const owner = nRoot.ownerDocument;
+			const inert: Document = new client.native.DOMImplementation(
+				new client.native.Document(owner).implementation
+			).createHTMLDocument("");
+			const nInert = new client.native.Document(inert);
+			if (type === 11) {
+				// a shadow root cannot be imported, but serializes as its
+				// children, the same as any fragment
+				copy = nInert.createDocumentFragment();
+				const nCopy = new client.native.Node(copy);
+				for (
+					let child = nRoot.firstChild;
+					child;
+					child = new client.native.Node(child).nextSibling
+				) {
+					nCopy.appendChild(nInert.importNode(child, true));
+				}
+			} else {
+				copy = nInert.importNode(root, true);
+			}
+		}
+
+		restoreCopy(root, copy);
+
+		return copy;
+	};
+
+	client.Intercept(class extends XMLSerializer {
+		// the document holds rewritten attributes and scripts, and the mirrors
+		// beside them, all of which the native would serialize as they are
+		@Arguments("Node")
+		@Returns("DOMString")
+		serializeToString(root: Node): string {
+			// the native first, for its own brand and argument checks
+			const serialized = super.serializeToString(root);
+			const copy = restoredCopy(root);
+
+			return copy === null ? serialized : super.serializeToString(copy);
 		}
 	});
 

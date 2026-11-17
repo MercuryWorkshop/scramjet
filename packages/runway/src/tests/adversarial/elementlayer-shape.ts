@@ -147,7 +147,7 @@ const MEMBERS: Members = {
 		"contentDocument",
 		"getSVGDocument",
 	],
-	HTMLLinkElement: ["href", "integrity", "imageSrcset"],
+	HTMLLinkElement: ["href", "integrity", "rel", "as", "relList", "imageSrcset"],
 	HTMLFormElement: ["action", "target"],
 	HTMLInputElement: ["src", "formAction"],
 	HTMLButtonElement: ["formAction"],

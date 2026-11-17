@@ -26,6 +26,11 @@ const SEC_HEADERS = new _Set([
 	"content-security-policy-report-only",
 	"expect-ct",
 	"feature-policy",
+	// the proxy blanks every `integrity` it passes to the browser, so under a
+	// policy that demands one nothing would load - scramjet's own scripts first
+	// https://w3c.github.io/webappsec-subresource-integrity/#integrity-policy-section
+	"integrity-policy",
+	"integrity-policy-report-only",
 	"origin-isolation",
 	"strict-transport-security",
 	"upgrade-insecure-requests",

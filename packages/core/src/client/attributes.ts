@@ -365,6 +365,16 @@ export class AttributeLayer {
 			if (content !== null) this.set(element, "content", content);
 		}
 
+		// whether a link's integrity is blanked depends on whether it is a fetch
+		// preload, which the page may say before or after it sets the digest
+		if (
+			(qualifiedName === "rel" || qualifiedName === "as") &&
+			this.localName(element) === "link"
+		) {
+			const integrity = this.get(element, "integrity");
+			if (integrity !== null) this.set(element, "integrity", integrity);
+		}
+
 		// A script's block type controls whether its child text is code, data, or
 		// an import map. When either legacy type attribute changes, re-derive the
 		// live text from the saved source before a later child change can prepare

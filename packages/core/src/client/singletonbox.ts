@@ -85,6 +85,12 @@ export class SingletonBox {
 	sandboxStandIns: _WeakMap<Element, Element> = new _WeakMap();
 	/** The iframe each stand-in's token list belongs to. */
 	sandboxLists: _WeakMap<DOMTokenList, Element> = new _WeakMap();
+	/**
+	 * The link each handed-out `relList` belongs to. A write through one changes
+	 * `rel` without going through the attribute layer, and `rel` decides
+	 * whether the link's integrity is blanked (`shared/htmlRules`).
+	 */
+	linkRelLists: _WeakMap<DOMTokenList, Element> = new _WeakMap();
 
 	/**
 	 * The element each inline style declaration (and typed OM map) belongs to,

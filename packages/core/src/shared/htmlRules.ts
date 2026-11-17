@@ -11,7 +11,12 @@ import {
 } from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
 import { parseDeclarativeRefresh } from "./refresh";
-import { String_toLowerCase, _URL } from "./snapshot";
+import {
+	_URL,
+	String_charCodeAt,
+	String_substring,
+	String_toLowerCase,
+} from "./snapshot";
 
 /**
  * The SVG elements whose `href` is a URL reference that is fetched or
@@ -34,6 +39,37 @@ const svgUrlReferences = [
 	"pattern",
 	"filter",
 ];
+
+/** Whether `rel`, an ordered set of ASCII-whitespace-separated tokens, holds `token`. */
+function hasRelToken(rel: string, token: string): boolean {
+	rel = String_toLowerCase(rel);
+	let start = 0;
+	for (let i = 0; i <= rel.length; i++) {
+		const c = i < rel.length ? String_charCodeAt(rel, i) : 0x20;
+		if (c === 0x20 || c === 0x09 || c === 0x0a || c === 0x0c || c === 0x0d) {
+			if (i > start && String_substring(rel, start, i) === token) return true;
+			start = i + 1;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Whether a link is a `fetch` preload - one whose body, like `fetch()`'s, is
+ * served to the page as-is.
+ */
+export function isFetchPreload(getAttr: (name: string) => string | null) {
+	const rel = getAttr("rel");
+	const as = getAttr("as");
+
+	return (
+		rel !== null &&
+		as !== null &&
+		hasRelToken(rel, "preload") &&
+		String_toLowerCase(as) === "fetch"
+	);
+}
 
 export const htmlRules: {
 	[key: string]: "*" | string[] | ((...any: any[]) => string | null);
@@ -161,7 +197,19 @@ export const htmlRules: {
 		src: ["video", "audio", "source"],
 	},
 	{
-		fn: () => "",
+		// https://w3c.github.io/webappsec-subresource-integrity/ - never
+		// enforced. The body the browser sees is the rewritten one, which no
+		// digest the page computed can match, so the live attribute is blanked
+		// (not removed, so `[integrity]` still matches in a stylesheet) and the
+		// resource loads whatever its digest.
+		//
+		// A `fetch` preload keeps its digest: its body is not rewritten, and the
+		// `fetch()` it is for keeps its own `integrity`, which the browser only
+		// matches to a preload holding the same one - blanking this one would
+		// fetch everything twice. `client/attributes` re-runs this when `rel` or
+		// `as` changes, so the order they are set in does not matter
+		fn: (value, _context, _meta, getAttr) =>
+			isFetchPreload(getAttr) ? value : "",
 
 		integrity: ["script", "link"],
 	},

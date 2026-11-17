@@ -11,7 +11,9 @@ import {
 	Object_create,
 	Reflect_apply,
 	Reflect_get,
+	String,
 	String_startsWith,
+	_URL,
 	drain,
 } from "@/shared/snapshot";
 
@@ -99,8 +101,15 @@ export default function (client: ScramjetClient, self: Self) {
 	const readInit = <T>(
 		init: T,
 		keys: readonly string[]
-	): { init: T; members: Record<string, unknown> } => {
+	): {
+		init: T;
+		members: Record<string, unknown>;
+		seen: Record<string, unknown>;
+	} => {
 		const members: Record<string, unknown> = Object_create(null);
+		// every other member, as the native read it - so it can be looked at
+		// afterwards without running a getter a second time
+		const seen: Record<string, unknown> = Object_create(null);
 
 		// undefined and null are the empty dictionary and anything else that is
 		// not an object is the native's TypeError to raise, so neither has a
@@ -109,7 +118,7 @@ export default function (client: ScramjetClient, self: Self) {
 			init === null ||
 			(typeof init !== "object" && typeof init !== "function")
 		) {
-			return { init, members };
+			return { init, members, seen };
 		}
 
 		for (const key of drain(keys)) {
@@ -125,13 +134,16 @@ export default function (client: ScramjetClient, self: Self) {
 		}
 
 		const view = new Proxy(init as object, {
-			get: (target, key) =>
-				key in members
-					? members[key as string]
-					: Reflect_get(target, key, target),
+			get: (target, key) => {
+				if (key in members) return members[key as string];
+				const value = Reflect_get(target, key, target);
+				if (typeof key === "string") seen[key] = value;
+
+				return value;
+			},
 		});
 
-		return { init: view as T, members };
+		return { init: view as T, members, seen };
 	};
 
 	/**
@@ -183,13 +195,64 @@ export default function (client: ScramjetClient, self: Self) {
 		);
 	};
 
+	/**
+	 * Whether the browser would have refused this fetch for carrying integrity
+	 * metadata into a response it cannot read.
+	 *
+	 * A `no-cors` fetch of another origin gets an opaque response, and one with
+	 * a digest to check is a network error - no digest is ever checked against
+	 * an opaque body. Proxied, every fetch is same-origin and nothing is
+	 * opaque, so the browser lets it through; the refusal has to be made here.
+	 * It needs no digest: it is the mode, the origin and whether there is
+	 * integrity metadata at all. A same-origin fetch that is redirected to
+	 * another origin is not caught.
+	 *
+	 * `input` is the rewritten request or URL; `members` and `seen` are what
+	 * {@link readInit} read.
+	 *
+	 * https://fetch.spec.whatwg.org/#main-fetch
+	 */
+	const isOpaqueWithIntegrity = (
+		input: RequestInfo,
+		members: Record<string, unknown>,
+		seen: Record<string, unknown>
+	): boolean => {
+		let mode: unknown = members.mode ?? seen.mode;
+		let integrity: unknown = seen.integrity;
+		let url: string;
+		if (typeof input === "string") {
+			url = input;
+		} else {
+			const n = new client.native.Request(input);
+			url = n.url;
+			if (mode === undefined) mode = n.mode;
+			if (integrity === undefined) integrity = n.integrity;
+		}
+
+		// a member that is an object went through `ToString`, which is page code
+		// the native has already run once - it is not run again to find out
+		// what it said
+		if (mode !== "no-cors") return false;
+		if (typeof integrity === "object" || typeof integrity === "function") {
+			return false;
+		}
+		if (integrity === undefined || String(integrity) === "") return false;
+
+		const target = new _URL(client.unrewriteUrl(url));
+		if (target.protocol !== "http:" && target.protocol !== "https:") {
+			return false;
+		}
+
+		return target.origin !== client.url.origin;
+	};
+
 	client.Intercept(class extends GlobalScope {
 		// RequestInfo is the Fetch typedef `(Request or USVString)`.
 		// https://fetch.spec.whatwg.org/#requestinfo
 		@Arguments("(Request or USVString)", "optional RequestInit")
 		@Returns("Promise<Response>")
 		static async fetch(input: RequestInfo, requestInit?: RequestInit) {
-			const { init, members } = readInit(
+			const { init, members, seen } = readInit(
 				requestInit,
 				typeof input === "string" ? URL_INIT_MEMBERS : HEADERS_INIT_MEMBER
 			);
@@ -201,6 +264,10 @@ export default function (client: ScramjetClient, self: Self) {
 			// through `this` rather than a saved global, so the native's own
 			// receiver check still sees what the page called it on
 			const response = await new client.native.window(this).fetch(input, init);
+
+			if (isOpaqueWithIntegrity(input, members, seen)) {
+				throw client.errors.typeError({ detail: "Failed to fetch" });
+			}
 			client.box.taggedResponses.add(response);
 
 			return response;

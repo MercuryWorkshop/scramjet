@@ -288,8 +288,10 @@ export default [
 		`,
 	}),
 	serverTest({
+		// integrity is never enforced: natively the checked import is refused
 		name: "elementlayer-review112-import-map-integrity",
 		autoPass: true,
+		scramjetOnly: true,
 		js: `
 			const checked = location.origin + "/review112-integrity.js?checked";
 			const map = document.createElement("script");
@@ -300,10 +302,8 @@ export default [
 			document.head.append(map);
 			const control = await import("/review112-integrity.js?control");
 			assertEqual(control.default, 112, "the module loads without integrity metadata");
-			let rejected = false;
-			try { await import("/review112-integrity.js?checked"); }
-			catch { rejected = true; }
-			assertEqual(rejected, true, "import map integrity rejects a module with the wrong digest");
+			const unchecked = await import("/review112-integrity.js?checked");
+			assertEqual(unchecked.default, 112, "a module with the wrong digest loads all the same");
 		`,
 		start: async (server) => {
 			server.on("request", (req, res) => {

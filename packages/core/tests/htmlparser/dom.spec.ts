@@ -61,7 +61,7 @@ describe("Index", () => {
 				],
 			],
 		]);
-		expect(render(dom)).toBe("<a foo><b><c><!--?foo-->Yay!</c></b></a>");
+		expect(render(dom)).toBe('<a foo=""><b><c><!--?foo-->Yay!</c></b></a>');
 	});
 
 	it("parseDocument in foreign content", () => {
