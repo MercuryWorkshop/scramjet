@@ -127,7 +127,8 @@ pub(crate) enum RewriteType<'alloc: 'data, 'data> {
 	Replace {
 		text: &'alloc str,
 	},
-	Delete,
+	/// `;` in place of a whole statement
+	EmptyStatement,
 }
 
 #[derive(Debug)]
@@ -357,7 +358,7 @@ impl<'alloc: 'data, 'data> RewriteType<'alloc, 'data> {
 			Self::Semicolon => smallvec![change!(span!(start), Semicolon)],
 			Self::OptionalLink { opener } => smallvec![change!(span, Replace { text: opener })],
 			Self::Replace { text } => smallvec![change!(span, Replace { text })],
-			Self::Delete => smallvec![change!(span, Delete)],
+			Self::EmptyStatement => smallvec![change!(span, Replace { text: ";" })],
 		}
 	}
 }

@@ -452,6 +452,7 @@ impl Ord for JsChange<'_, '_> {
 				(Ty::Semicolon, _) => Ordering::Less,
 				(_, Ty::Semicolon) => Ordering::Greater,
 				(Ty::CleanFunction { .. }, _) => Ordering::Less,
+				(_, Ty::CleanFunction { .. }) => Ordering::Greater,
 				(Ty::ScramErrFn { .. }, _) => Ordering::Less,
 				(_, Ty::ScramErrFn { .. }) => Ordering::Greater,
 				(Ty::WrapFnRight { .. }, _) => Ordering::Less,

@@ -469,6 +469,25 @@ where
 		}
 	}
 
+	/// `expression` is an arrow function's `=> x` body, which is a statement
+	/// list only in the AST: its one statement is an expression in the source,
+	/// and a `;` in front of it would not parse.
+	fn function_body(&mut self, it: &FunctionBody<'data>, expression: bool) {
+		// tag function for use in sourcemaps
+		if self.flags.do_sourcemaps {
+			self.jschanges
+				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
+		}
+
+		if expression {
+			for stmt in &it.statements {
+				self.visit_statement(stmt);
+			}
+		} else {
+			walk::walk_function_body(self, it);
+		}
+	}
+
 	fn handle_for_of_in(&mut self, left: &ForStatementLeft<'data>, right: &Expression<'data>, body: &Statement<'data>) {
     	let mut restids: Vec<Atom<'data>> = Vec::new();
 		let mut location_assigned: bool = false;
@@ -509,6 +528,11 @@ where
 			declare_local_location = false;
 		}
 
+		walk::walk_expression(self, &right);
+		walk::walk_statement(self, &body);
+
+		// after the body's own rewrites, so that the brace closing a wrapped body lands past whatever the body's
+		// last expression closes with at the same offset
 		if location_assigned || restids.len() > 0 {
 			match &body {
 				Statement::BlockStatement(b) => {
@@ -541,8 +565,6 @@ where
 				}
 			}
 		}
-		walk::walk_expression(self, &right);
-		walk::walk_statement(self, &body);
 	}
 }
 
@@ -623,8 +645,10 @@ where
 
 	#[coverage_checked(DebuggerStatement)]
 	fn visit_debugger_statement(&mut self, it: &DebuggerStatement) {
-		// delete debugger statements entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
-		self.jschanges.add(rewrite!(it.span, Delete));
+		// take debugger statements out entirely. some sites will spam debugger as an anti-debugging measure, and we don't want that!
+		// an empty statement is left in its place: it may be the whole body of an `if`, or all that separates the
+		// lines around it
+		self.jschanges.add(rewrite!(it.span, EmptyStatement));
 	}
 
 	// we can't overwrite window.eval in the normal way because that would make everything an
@@ -918,7 +942,8 @@ where
 		it: &oxc::ast::ast::ArrowFunctionExpression<'data>,
 	) {
 		if !self.flags.destructure_rewrites {
-			walk::walk_arrow_function_expression(self, it);
+			self.visit_formal_parameters(&it.params);
+			self.function_body(&it.body, it.expression);
 			return;
 		}
 
@@ -933,7 +958,7 @@ where
 			);
 		}
 
-		self.visit_function_body(&it.body);
+		self.function_body(&it.body, it.expression);
 		if let Some(stmt) = &it.body.statements.get(0) {
 			self.jschanges.add(rewrite!(
 				stmt.span(),
@@ -1000,14 +1025,7 @@ where
 
 	#[coverage_checked(FunctionBody)]
 	fn visit_function_body(&mut self, it: &FunctionBody<'data>) {
-		// tag function for use in sourcemaps
-
-		if self.flags.do_sourcemaps {
-			self.jschanges
-				.add(rewrite!(Span::new(it.span.start, it.span.start), SourceTag));
-		}
-
-		walk::walk_function_body(self, it);
+		self.function_body(it, false);
 	}
 
 	#[coverage_checked(UnaryExpression)]
