@@ -1084,6 +1084,35 @@ where
 		}
 	}
 
+	/// A rewrite can make an expression statement open with a token that
+	/// continues the line before it - `($r=a,...)` for `a.b()`,
+	/// `((t)=>...)(x)` for `location = x` - so where the statement before
+	/// it relied on ASI, the two would run together into a call:
+	///
+	/// ```js
+	/// a = 1
+	/// location = 2 // -> 1((t)=>...)(2)
+	/// ```
+	///
+	/// Every statement in a list whose start got rewritten is given a `;` of its
+	/// own. Only a list needs it: a statement anywhere else - `if (x) s`,
+	/// `l: s` - follows a token nothing can continue, and an empty statement
+	/// would take its place as the body there.
+	fn visit_statements(&mut self, it: &oxc::allocator::Vec<'data, Statement<'data>>) {
+		for stmt in it {
+			let Statement::ExpressionStatement(e) = stmt else {
+				self.visit_statement(stmt);
+				continue;
+			};
+
+			let mark = self.jschanges.mark();
+			self.visit_statement(stmt);
+			if self.jschanges.rewrites_at_since(mark, e.span.start) {
+				self.jschanges.add(rewrite!(e.span, Semicolon));
+			}
+		}
+	}
+
 	#[coverage_checked(AssignmentExpression)]
 	fn visit_assignment_expression(&mut self, it: &AssignmentExpression<'data>) {
 		match &it.left {

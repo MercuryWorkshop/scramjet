@@ -101,6 +101,11 @@ impl<'alloc, 'data, T: Transform<'data>> Transformer<'alloc, 'data, T> {
 		self.inner.is_empty()
 	}
 
+	/// the changes added so far, in the order they were added
+	pub fn changes(&self) -> &[T] {
+		&self.inner
+	}
+
 	pub fn perform(
 		&mut self,
 		js: &'data str,

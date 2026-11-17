@@ -141,6 +141,8 @@ pub enum JsChangeType<'alloc: 'data, 'data> {
 		semi: bool,
 		replace: bool,
 	},
+	/// insert `;`
+	Semicolon,
 
 	/// replace span with text
 	Replace {
@@ -412,6 +414,7 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 					LL::insert(vec)
 				}
 			}
+			Ty::Semicolon => LL::insert(transforms![";"]),
 			Ty::ClosingBrace { semi, replace } => {
 				let vec = if semi {
 					transforms!["};"]
@@ -443,6 +446,11 @@ impl Ord for JsChange<'_, '_> {
 
 		match self.span.start.cmp(&other.span.start) {
 			Ordering::Equal => match (&self.ty, &other.ty) {
+				// a statement separator belongs to the boundary itself, ahead of
+				// anything the statement after it opens with
+				(Ty::Semicolon, Ty::Semicolon) => Ordering::Equal,
+				(Ty::Semicolon, _) => Ordering::Less,
+				(_, Ty::Semicolon) => Ordering::Greater,
 				(Ty::CleanFunction { .. }, _) => Ordering::Less,
 				(Ty::ScramErrFn { .. }, _) => Ordering::Less,
 				(_, Ty::ScramErrFn { .. }) => Ordering::Greater,
@@ -480,6 +488,19 @@ impl<'alloc: 'data, 'data> JsChanges<'alloc, 'data> {
 	#[inline]
 	pub fn add(&mut self, rewrite: Rewrite<'alloc, 'data>) {
 		self.inner.add(rewrite.into_inner());
+	}
+
+	/// a mark to pass to [`Self::rewrites_at_since`]
+	#[inline]
+	pub fn mark(&self) -> usize {
+		self.inner.changes().len()
+	}
+
+	/// whether a change added after `mark` rewrites the source starting at `pos`
+	pub fn rewrites_at_since(&self, mark: usize, pos: u32) -> bool {
+		self.inner.changes()[mark..]
+			.iter()
+			.any(|c| c.span.start == pos)
 	}
 
 	#[inline]
