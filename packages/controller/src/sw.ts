@@ -28,14 +28,14 @@ addEventListener("message", (e) => {
 	) {
 		const { port, prefix } = e.data.$sw$initRemoteTransport;
 
-		const relevantcontroller = tabs.find((tab) =>
-			new URL(prefix).pathname.startsWith(tab.prefix)
-		);
-		if (!relevantcontroller) {
-			console.error("No relevant controller found for transport init");
-			return;
-		}
-		relevantcontroller.rpc.call("initRemoteTransport", port, [port]);
+		const pending = findTabForPath(new URL(prefix).pathname).then((tab) => {
+			if (!tab) {
+				console.error("No relevant controller found for transport init");
+				return;
+			}
+			tab.rpc.call("initRemoteTransport", port, [port]);
+		});
+		(e as ExtendableMessageEvent).waitUntil(pending);
 	}
 });
 
@@ -141,7 +141,17 @@ class ControllerReference {
 	}
 }
 
+// tab registrations only live in memory, so they vanish whenever the browser
+// stops this worker. routing therefore keys off the static prefix in the url,
+// and a request for a tab we don't know about asks the owning page to
+// reconnect and waits for it instead of falling through to the network.
+export const config = {
+	prefix: "/~/sj/",
+	reviveTimeout: 10000,
+};
+
 const tabs: ControllerReference[] = [];
+const tabWaiters = new Map<string, Array<(tab: ControllerReference) => void>>();
 
 addEventListener("message", (e) => {
 	if (!e.data) return;
@@ -154,19 +164,83 @@ addEventListener("message", (e) => {
 	if (existing !== -1) {
 		tabs.splice(existing, 1);
 	}
-	tabs.push(new ControllerReference(init.prefix, init.id, e.ports[0]));
+	const tab = new ControllerReference(init.prefix, init.id, e.ports[0]);
+	tabs.push(tab);
+
+	const waiters = tabWaiters.get(init.id);
+	if (waiters) {
+		tabWaiters.delete(init.id);
+		for (const resolve of waiters) resolve(tab);
+	}
 });
+
+function tabIdFromPath(pathname: string): string | null {
+	if (!pathname.startsWith(config.prefix)) return null;
+	const id = pathname.slice(config.prefix.length).split("/")[0];
+	return id || null;
+}
+
+function findTabForPath(
+	pathname: string
+): Promise<ControllerReference | undefined> {
+	const tab = tabs.find((tab) => pathname.startsWith(tab.prefix));
+	if (tab) return Promise.resolve(tab);
+
+	const id = tabIdFromPath(pathname);
+	if (!id) return Promise.resolve(undefined);
+
+	return new Promise((resolve) => {
+		let waiters = tabWaiters.get(id);
+		const first = !waiters;
+		if (!waiters) {
+			waiters = [];
+			tabWaiters.set(id, waiters);
+		}
+
+		const timeout = setTimeout(() => {
+			const list = tabWaiters.get(id);
+			if (list) {
+				const idx = list.indexOf(onTab);
+				if (idx !== -1) list.splice(idx, 1);
+				if (list.length === 0) tabWaiters.delete(id);
+			}
+			resolve(undefined);
+		}, config.reviveTimeout);
+		const onTab = (tab: ControllerReference) => {
+			clearTimeout(timeout);
+			resolve(tab);
+		};
+		waiters.push(onTab);
+
+		if (first) requestRevive(id);
+	});
+}
+
+async function requestRevive(id: string) {
+	const all = await self.clients.matchAll({ includeUncontrolled: true });
+	for (const client of all) {
+		client.postMessage({
+			$controller$swrevive: { id },
+		});
+	}
+}
 
 export function shouldRoute(event: FetchEvent): boolean {
 	const url = new URL(event.request.url);
-	const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix));
-	return tab !== undefined;
+	if (tabIdFromPath(url.pathname)) return true;
+	return tabs.some((tab) => url.pathname.startsWith(tab.prefix));
 }
 
 export async function route(event: FetchEvent): Promise<Response> {
 	try {
 		const url = new URL(event.request.url);
-		const tab = tabs.find((tab) => url.pathname.startsWith(tab.prefix))!;
+		const tab = await findTabForPath(url.pathname);
+		if (!tab) {
+			return new Response(
+				"Proxy controller for this page is gone; reload the proxy page.",
+				{ status: 503, headers: { "content-type": "text/plain" } }
+			);
+		}
 		const client = await clients.get(event.clientId);
 
 		const rawheaders: RawHeaders = [...event.request.headers];
@@ -217,15 +291,3 @@ addEventListener("install", () => {
 addEventListener("activate", (event: ExtendableEvent) => {
 	event.waitUntil(clients.claim());
 });
-
-// the only way to know if a service worker has suddenly died is if this code runs again
-// notify all clients to send over their messageports again
-setTimeout(async () => {
-	console.log("service worker activated, notifying clients to revive");
-	for (const client of await clients.matchAll()) {
-		client.postMessage({
-			$controller$swrevive: {},
-		});
-	}
-	// short delay is apparently needed
-}, 100);

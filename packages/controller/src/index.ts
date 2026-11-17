@@ -226,7 +226,6 @@ export class Controller {
 	cookieJar = new CookieJar();
 	frames: Frame[] = [];
 	serviceWorkerController: ServiceWorker;
-	guardServiceWorkerRevive = true;
 
 	private ready: Promise<void>;
 	private readyResolve!: () => void;
@@ -271,9 +270,6 @@ export class Controller {
 	private methods: MethodsDefinition<Controllerbound> = {
 		ready: async () => {
 			this.readyResolve();
-			setTimeout(() => {
-				this.guardServiceWorkerRevive = false;
-			}, 5000);
 		},
 		request: async (data) => {
 			const path = new URL(data.rawUrl).pathname;
@@ -518,11 +514,11 @@ export class Controller {
 				return;
 			}
 
-			if (e.data.$controller$swrevive) {
-				// if we just spawned the service worker, it will send this even though it's not actually dead
-				// TODO: pretty jank, fix at some point
-				if (this.guardServiceWorkerRevive) {
-					return;
+			const revive = e.data?.$controller$swrevive;
+			if (revive && typeof revive === "object") {
+				if (revive.id !== undefined && revive.id !== this.id) return;
+				if (e.source instanceof ServiceWorker) {
+					this.serviceWorkerController = e.source;
 				}
 				this.setupMessagePort();
 			}
