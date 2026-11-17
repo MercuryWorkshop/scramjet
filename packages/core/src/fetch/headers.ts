@@ -14,6 +14,7 @@ import {
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import { _URL, _Set } from "@/shared/snapshot";
 import { createReferrerString } from "./util";
+import { isFetchPreload } from "@/shared/htmlRules";
 
 /**
  * Headers for security policy features that haven't been emulated yet
@@ -50,14 +51,87 @@ const SEC_HEADERS = new _Set([
  */
 const URL_HEADERS = new _Set(["location", "content-location", "referer"]);
 
+/**
+ * Split `value` at each `separator` outside a `<URI-Reference>` and outside a
+ * quoted-string.
+ * https://www.rfc-editor.org/rfc/rfc8288#section-3
+ */
+function splitLinkHeader(value: string, separator: string): string[] {
+	const parts: string[] = [];
+	let start = 0;
+	let inUri = false;
+	let inQuote = false;
+	for (let i = 0; i < value.length; i++) {
+		const c = value[i];
+		if (inQuote) {
+			if (c === "\\") i++;
+			else if (c === '"') inQuote = false;
+		} else if (inUri) {
+			if (c === ">") inUri = false;
+		} else if (c === '"') {
+			inQuote = true;
+		} else if (c === "<") {
+			inUri = true;
+		} else if (c === separator) {
+			parts.push(value.substring(start, i));
+			start = i + 1;
+		}
+	}
+	parts.push(value.substring(start));
+
+	return parts;
+}
+
+function linkParamValue(value: string): string {
+	value = value.trim();
+	if (
+		value.length >= 2 &&
+		value[0] === '"' &&
+		value[value.length - 1] === '"'
+	) {
+		return value.slice(1, -1).replace(/\\(.)/g, "$1");
+	}
+
+	return value;
+}
+
 function rewriteLinkHeader(
 	link: string,
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	return link.replace(/<([^>]+)>/gi, (_match, p1) => {
-		return `<${rewriteUrl(p1, context, meta)}>`;
-	});
+	return splitLinkHeader(link, ",")
+		.map((linkValue) => {
+			const [target, ...rawParams] = splitLinkHeader(linkValue, ";");
+			const params = rawParams.map((param) => {
+				const eq = param.indexOf("=");
+				const name = (eq === -1 ? param : param.substring(0, eq))
+					.trim()
+					.toLowerCase();
+				const value =
+					eq === -1 ? null : linkParamValue(param.substring(eq + 1));
+
+				return { raw: param, name, value };
+			});
+			const getParam = (name: string) =>
+				params.find((param) => param.name === name)?.value ?? null;
+
+			// a preload's digest is checked against the body the browser gets,
+			// which is the rewritten one - so it goes, as an element's `integrity`
+			// does in htmlRules, except on a `fetch` preload whose body is as-is
+			const keepIntegrity = isFetchPreload(getParam);
+
+			return [
+				target.replace(
+					/<([^>]+)>/,
+					(_match, url) => `<${rewriteUrl(url, context, meta)}>`
+				),
+				...params
+					.filter((param) => keepIntegrity || param.name !== "integrity")
+					.map((param) => param.raw),
+			].join(";");
+		})
+		.join(",");
 }
 
 export function attachCarriedHeaders(

@@ -135,9 +135,13 @@ function sriTest(props: {
 					const own = props.testIntegrity
 						? ` integrity="${digest("sha384", test)}" crossorigin="anonymous"`
 						: "";
+					const headers: Record<string, string> = {};
+					for (const [name, value] of Object.entries(props.headers ?? {})) {
+						headers[name] = fill(value, port);
+					}
 					res.writeHead(200, {
 						"Content-Type": "text/html; charset=utf-8",
-						...props.headers,
+						...headers,
 					});
 					res.end(
 						fill(
@@ -454,6 +458,29 @@ export default [
 			C("sheet", [color("c-lh"), ...view(document.getElementById("lhc"))]);
 			await arec("modulepreload", async () => (await import("/r/lh.mjs")).default);
 			C("ran", ran());
+			await arec("header", async () => (await fetch(location.href)).headers.get("link"));
+		`,
+	}),
+
+	// discord.com: a cross-origin stylesheet preloaded by the header with its
+	// digest, and `crossorigin` on both, so the element takes the preload
+	sriTest({
+		name: "integrity-link-header-cors-style",
+		headers: {
+			Link: [
+				`<@@xo@@>; rel=preconnect; crossorigin`,
+				`<@@xo@@/r/lhx.css>; rel=preload; as=style; crossorigin; integrity="@@sha384:/r/lhx.css@@"`,
+				`<@@xo@@/r/lhx-pf.json>; rel=preload; as=fetch; crossorigin; integrity="@@sha384:/r/lhx-pf.json@@"`,
+			].join(", "),
+		},
+		body: `
+			<link id="lhx" href="@@xo@@/r/lhx.css" rel="stylesheet" type="text/css" integrity="@@sha384:/r/lhx.css@@" crossorigin="anonymous"/>
+		`,
+		js: `
+			await loaded();
+			await tick(200);
+			C("sheet", [color("c-lhx"), ...view(document.getElementById("lhx"))]);
+			await arec("fetch preload", async () => (await fetch(XO + "/r/lhx-pf.json", { integrity: await sri("/r/lhx-pf.json") })).json());
 			await arec("header", async () => (await fetch(location.href)).headers.get("link"));
 		`,
 	}),
