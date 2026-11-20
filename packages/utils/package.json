@@ -1,6 +1,6 @@
 {
 	"name": "@mercuryworkshop/scramjet-utils",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Utilities for Scramjet proxy integrations",
 	"type": "module",
 	"packageManager": "pnpm@10.12.1",
