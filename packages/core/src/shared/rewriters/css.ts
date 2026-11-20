@@ -53,27 +53,29 @@ function handleCss(
 					? rewriteUrl(url.trim(), context, meta!)
 					: unrewriteUrl(url.trim(), context);
 
-			return match.replace(url, encodedUrl);
+			// a callback - see the @import rewrite below
+			return match.replace(url, () => encodedUrl);
 		}
 	);
 	css = css.replace(Atruleregex, (match, importStatement: string) => {
-		return match.replace(
-			importStatement,
-			importStatement.replace(
-				/^(url\(['"]?|['"]|)(.+?)(['"]|['"]?\)|)$/gm,
-				(match: string, firstQuote: string, url: string, endQuote: string) => {
-					if (firstQuote.startsWith("url")) {
-						return match;
-					}
-					const encodedUrl =
-						type === "rewrite"
-							? rewriteUrl(url.trim(), context, meta!)
-							: unrewriteUrl(url.trim(), context);
-
-					return `${firstQuote}${encodedUrl}${endQuote}`;
+		const rewritten = importStatement.replace(
+			/^(url\(['"]?|['"]|)(.+?)(['"]|['"]?\)|)$/gm,
+			(match: string, firstQuote: string, url: string, endQuote: string) => {
+				if (firstQuote.startsWith("url")) {
+					return match;
 				}
-			)
+				const encodedUrl =
+					type === "rewrite"
+						? rewriteUrl(url.trim(), context, meta!)
+						: unrewriteUrl(url.trim(), context);
+
+				return `${firstQuote}${encodedUrl}${endQuote}`;
+			}
 		);
+
+		// a callback, not the string: a fragment is not percent-encoded, and
+		// `$` in it would be read as a replacement pattern
+		return match.replace(importStatement, () => rewritten);
 	});
 
 	return css;

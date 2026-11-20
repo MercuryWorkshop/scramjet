@@ -135,6 +135,11 @@ export class SingletonBox {
 	wrappedEvents: _WeakMap<Event, Event> = new _WeakMap();
 	// the reverse: the real event behind each stand-in event.ts hands out
 	standIns: _WeakMap<Event, Event> = new _WeakMap();
+	// the members each stand-in answers differently from its real event, as
+	// getters run on the real one. Box-wide: a stand-in one realm made reaches
+	// another realm's `Event.prototype` as easily as its own
+	standInViews: _WeakMap<Event, Record<string | symbol, () => any>> =
+		new _WeakMap();
 	// fake events that scramjet synthesized
 	trustedEvents: _WeakSet<Event> = new _WeakSet();
 	// the page's function behind each wrapper event.ts puts in an `on*` slot

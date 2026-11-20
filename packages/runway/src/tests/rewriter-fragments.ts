@@ -165,13 +165,35 @@ export default [
 				);
 			assertEqual(hist("#x"), raw + "#x", "a fragment");
 			assertEqual(hist("?q=1"), raw, "the same URL");
-			// a new URL keeps the parameters the document was requested with
+			// a new URL is the document's own request, not its loader's
 			assertEqual(
 				hist("/deep/route?a=b#c"),
 				prefix +
 					encodeURIComponent("https://example.com/deep/route?a=b") +
-					"?%24io=https%3A%2F%2Fother.test#c",
+					"?%24io=https%3A%2F%2Fexample.com#c",
 				"another URL"
+			);
+
+			// nothing about how the document was requested carries over, so
+			// a link to the new URL rendered before the push still matches it
+			const framed = rewriteHistoryUrl(
+				new URL("/deep/route", "https://example.com/page?q=1"),
+				context,
+				{
+					...meta(),
+					rawUrl:
+						prefix +
+						encodeURIComponent("https://example.com/page?q=1") +
+						"?%24io=https%3A%2F%2Fother.test&%24iframe=1&%24pf=p" +
+						"&%24rfs=https%3A%2F%2Fother.test%2F&%24fs=cross-site",
+				}
+			);
+			assertEqual(
+				framed,
+				prefix +
+					encodeURIComponent("https://example.com/deep/route") +
+					"?%24io=https%3A%2F%2Fexample.com",
+				"a frame, redirected there"
 			);
 		},
 	}),
@@ -226,6 +248,33 @@ export default [
 				"a{fill:url(" + rewriteUrl("sprite.svg#g", context, meta()) + ")}",
 				"a URL that is not fragment-only is still rewritten"
 			);
+		},
+	}),
+
+	directTest({
+		name: "rewriter-fragment-css-dollar",
+		fn: ({ assertEqual }) => {
+			// a fragment is kept as written, `$` and all, and is not read as a
+			// replacement pattern on its way back into the stylesheet
+			for (const [css, url, around] of [
+				[
+					'a{filter:url("/i.svg#fx$$")}',
+					"/i.svg#fx$$",
+					['a{filter:url("', '")}'],
+				],
+				[
+					"a{background:url(/a.png#x$'y)}",
+					"/a.png#x$'y",
+					["a{background:url(", ")}"],
+				],
+				['@import "/s.css#a$&b";', "/s.css#a$&b", ['@import "', '";']],
+			] as const) {
+				assertEqual(
+					rewriteCss(css, context, meta()),
+					around[0] + rewriteUrl(url, context, meta()) + around[1],
+					css
+				);
+			}
 		},
 	}),
 ] as Test[];

@@ -84,6 +84,7 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 		capture_errors: get_bool(obj, "captureErrors")?,
 		disable_computed_wrap: get_bool(obj, "disableComputedWrap")?,
 		destructure_rewrites: get_bool(obj, "destructureRewrites")?,
+		handler_prelude: get_str(obj, "handlerPrelude").unwrap_or_default(),
 
 		incumbency: get_incumbency(obj, "incumbency")?,
 

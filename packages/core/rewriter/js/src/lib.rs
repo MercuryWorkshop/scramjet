@@ -312,7 +312,9 @@ impl Rewriter {
 		let prelude = if js.is_empty() {
 			String::new()
 		} else {
-			build_prelude(&config, &visitor.flags, &sourcemap)
+			let mut prelude = build_prelude(&config, &visitor.flags, &sourcemap);
+			prelude.push_str(&visitor.flags.handler_prelude);
+			prelude
 		};
 		let js: Vec<'alloc, u8> = if prelude.is_empty() {
 			changed.source

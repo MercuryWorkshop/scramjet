@@ -41,7 +41,8 @@ function rewriteJsWasm(
 	context: ScramjetContext,
 	meta: URLMeta,
 	isModule: boolean,
-	inlineSourcemap: boolean
+	inlineSourcemap: boolean,
+	handlerPrelude = ""
 ): RewriterResult {
 	const [rewriter, ret] = getRewriter(context, meta);
 
@@ -57,6 +58,7 @@ function rewriteJsWasm(
 	// the module's imports are the document's or worker's requests: its own
 	// origin, not that of a <base> it may have, nor of the module itself
 	flagsobj["initiatorOrigin"] = meta.initiatorOrigin ?? meta.origin.origin;
+	flagsobj["handlerPrelude"] = handlerPrelude;
 
 	try {
 		let out: JsRewriterOutput;
@@ -125,10 +127,20 @@ export function rewriteJs(
 	 * with it - the map goes in the script's prelude, and the script hands it
 	 * to its client itself when it runs.
 	 */
-	client?: ScramjetClient
+	client?: ScramjetClient,
+	/** see {@link eventHandlerPrelude} */
+	handlerPrelude = ""
 ): string | Uint8Array {
 	try {
-		const res = rewriteJsWasm(js, url, context, meta, isModule, !client);
+		const res = rewriteJsWasm(
+			js,
+			url,
+			context,
+			meta,
+			isModule,
+			!client,
+			handlerPrelude
+		);
 
 		if (client && flagEnabled("sourcemaps", context)) {
 			registerRewrites(client, res.map, res.tag);

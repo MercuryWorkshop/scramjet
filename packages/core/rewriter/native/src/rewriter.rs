@@ -99,6 +99,7 @@ impl NativeRewriter {
 					inline_sourcemap: cfg.inline_sourcemap,
 					disable_computed_wrap: cfg.disable_computed_wrap,
 					destructure_rewrites: cfg.destructure_rewrites,
+					handler_prelude: String::new(),
 
 					incumbency: cfg.incumbency,
 

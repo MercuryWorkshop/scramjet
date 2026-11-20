@@ -30,7 +30,11 @@
 
 import type { ScramjetClient } from "@client/index";
 import { htmlRules } from "@/shared/htmlRules";
-import { SCRIPT_SOURCE_ATTRIBUTE, eventAttributes } from "@rewriters/html";
+import {
+	SCRIPT_SOURCE_ATTRIBUTE,
+	eventAttributes,
+	eventHandlerPrelude,
+} from "@rewriters/html";
 import { rewriteJs } from "@rewriters/js";
 import {
 	_Map,
@@ -305,6 +309,10 @@ export class AttributeLayer {
 		// rewrites it. a page writing one through `setAttribute` has to reach the
 		// same rewriter, or the handler runs against the real globals
 		if (Array_indexOf(eventAttributes, name) !== -1) {
+			const prelude = this.isHtml(element)
+				? eventHandlerPrelude(client.context, tag, name)
+				: "";
+
 			return (value) =>
 				rewriteJs(
 					value,
@@ -312,7 +320,8 @@ export class AttributeLayer {
 					client.context,
 					client.meta,
 					false,
-					client
+					client,
+					prelude
 				) as string;
 		}
 

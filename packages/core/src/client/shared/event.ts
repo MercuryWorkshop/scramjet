@@ -1,11 +1,12 @@
 import { iswindow } from "@client/entry";
 import { Arguments, Returns } from "@client/webidl";
-import { ScramjetClient } from "@client/index";
+import { ScramjetClient, type Trap } from "@client/index";
 import {
 	readAddEventListenerOptions,
 	readEventListenerOptions,
 } from "@client/helpers";
 import {
+	Object_defineProperty,
 	Object_getOwnPropertyDescriptor,
 	Object_getOwnPropertyNames,
 	Object_hasOwn,
@@ -144,8 +145,10 @@ export default function (client: ScramjetClient, self: Self) {
 	 * already get is the only place the answer can change.
 	 */
 	const trustedProps = {
-		isTrusted() {
-			return true;
+		isTrusted(this: Event) {
+			// until the page dispatches it itself, which makes any event
+			// untrusted - see the `dispatchEvent` trap below
+			return client.box.trustedEvents.has(this);
 		},
 	};
 
@@ -153,89 +156,125 @@ export default function (client: ScramjetClient, self: Self) {
 	 * The stand-in handed to listeners for one dispatched event.
 	 *
 	 * One per event, not one per listener - see `box.wrappedEvents`.
+	 *
+	 * A proxy over the real event, which fails every platform brand check it
+	 * reaches. The members of the interfaces a stand-in can be an instance of
+	 * accept it in place of the real event, all but two (see `acceptStandIns`
+	 * below). So a method read off it is the page-visible one, the same object
+	 * `Event.prototype` has, and calling it with the stand-in as `this` is
+	 * fine.
 	 */
 	const wrapEvent = (realEvent: Event, props: object): Event => {
 		const existing = client.box.wrappedEvents.get(realEvent);
 		if (existing) return existing;
 
-		// one wrapper per underlying function, so `e.stopPropagation` is the same
-		// object on every read as it is natively
-		const methods = new _WeakMap<object, any>();
-
 		const wrapped = new Proxy(realEvent, {
-			get(target, prop, reciever) {
+			get(target, prop) {
 				// own only: `props` is an object literal, so an `in` test also
 				// answers to `constructor`, `toString` and every other
 				// `Object.prototype` member, and would call them as rewriters
-				if (Object_hasOwn(props, prop)) return props[prop].call(target);
-
-				const value = Reflect_get(target, prop);
-
-				// a bare proxy fails the brand check on every method and getter
-				// ("Illegal invocation"), so anything callable has to be handed
-				// over with the receiver corrected back to the real event.
-				// `constructor` is the exception: it is the one function-valued
-				// interface member nobody invokes against a receiver, and a page
-				// comparing `e.constructor === MessageEvent` would otherwise be
-				// comparing against the wrapper
-				if (typeof value === "function" && prop !== "constructor") {
-					const cached = methods.get(value);
-					if (cached) return cached;
-
-					const wrappedfn = new Proxy(value, {
-						apply(target, that, args) {
-							if (that === reciever) {
-								return Reflect_apply(target, realEvent, args);
-							}
-
-							return Reflect_apply(target, that, args);
-						},
-					});
-					methods.set(value, wrappedfn);
-
-					return wrappedfn;
+				if (Object_hasOwn(props, prop)) {
+					return Reflect_apply(props[prop], target, []);
 				}
 
-				return value;
+				// with the real event as the receiver, so an accessor runs its
+				// native half on the object it belongs to
+				return Reflect_get(target, prop);
 			},
 		});
 
 		client.box.wrappedEvents.set(realEvent, wrapped);
 		client.box.standIns.set(wrapped, realEvent);
+		client.box.standInViews.set(wrapped, props as any);
 
 		return wrapped;
+	};
+
+	/** What {@link standInFor} answers for an event the page must never see. */
+	const DROP = {};
+
+	/**
+	 * What the page is handed in place of `event`: the stand-in for it, the
+	 * event itself when it needs none, or {@link DROP}.
+	 */
+	const standInFor = (event: any): any => {
+		const existing = event && client.box.wrappedEvents.get(event);
+		if (existing) {
+			// an event that already has a stand-in, dispatched again: the page
+			// re-dispatching one it was handed. It is the same object natively,
+			// and the page's view of it has not changed
+			return existing;
+		}
+
+		if (event && event.isTrusted) {
+			// we only need to handle events dispatched from the browser
+			const type = event.type;
+			if (!Object_hasOwn(handlers, type)) return event;
+
+			const handler = handlers[type];
+			// if init returns false, we skip the event, and it never dispatches
+			// to listeners
+			if (handler.init && Reflect_apply(handler.init, event, []) === false) {
+				return DROP;
+			}
+
+			return wrapEvent(event, handler.props);
+		}
+
+		if (event && client.box.trustedEvents.has(event)) {
+			// one scramjet dispatched standing in for the platform. It is
+			// deliberately *not* run through `handlers`: a fake WebSocket's
+			// `message` is not a postMessage envelope, and unwrapping it as one
+			// would hand the page `$scramjet$data`
+			return wrapEvent(event, trustedProps);
+		}
+
+		return event;
 	};
 
 	function wraplistener(listener: (...args: any) => any) {
 		return new Proxy(listener, {
 			apply(target, that, args) {
-				const realEvent: Event = args[0];
+				const event = standInFor(args[0]);
+				if (event === DROP) return;
+				args[0] = event;
 
-				// we only need to handle events dispatched from the browser
-				if (realEvent && realEvent.isTrusted) {
-					const type = realEvent.type;
-
-					if (Object_hasOwn(handlers, type)) {
-						const handler = handlers[type];
-
-						// if init returns false, we skip the event, and it never
-						// dispatches to listeners
-						if (handler.init && handler.init.call(realEvent) === false) return;
-
-						args[0] = wrapEvent(realEvent, handler.props);
-					}
-				} else if (realEvent && client.box.trustedEvents.has(realEvent)) {
-					// one scramjet dispatched standing in for the platform. It
-					// is deliberately *not* run through `handlers`: a fake
-					// WebSocket's `message` is not a postMessage envelope, and
-					// unwrapping it as one would hand the page `$scramjet$data`
-					args[0] = wrapEvent(realEvent, trustedProps);
-				}
-
-				const rv = Reflect_apply(target, that, args);
-
-				return rv;
+				return Reflect_apply(target, that, args);
 			},
+		});
+	}
+
+	/**
+	 * The same, for an event handler content attribute - which the browser
+	 * compiles and calls itself, with the real event, so it gets no listener
+	 * wrapper. Its rewritten body calls this first, and returns on the
+	 * function itself; see `eventHandlerPrelude` in `rewriters/html.ts`.
+	 * Anything that is not an event - `onerror`'s message string - comes back
+	 * as it went in.
+	 */
+	if (iswindow) {
+		const standin = function (event: any): any {
+			// the page can call this too, with anything at all. Only a real
+			// event goes on: `standInFor` trusts what it is handed to be one,
+			// and a made-up object answering `isTrusted` with true would be
+			// handed the views meant for the browser's events - `source`
+			// resolving a client id it chose to that client's window. Brand
+			// checked through the saved native, so nothing on the object runs
+			try {
+				void new client.native.Event(event).type;
+			} catch {
+				return event;
+			}
+
+			const result = standInFor(event);
+
+			return result === DROP ? standin : result;
+		};
+		Object_defineProperty(self, client.config.globals.standinfn, {
+			value: standin,
+			writable: false,
+			configurable: false,
+			enumerable: false,
 		});
 	}
 
@@ -414,6 +453,153 @@ export default function (client: ScramjetClient, self: Self) {
 			return super.removeEventListener(type, callback, { capture });
 		}
 	});
+
+	/**
+	 * Every member of an interface a stand-in can be an instance of, made to
+	 * accept the stand-in wherever it takes the real event.
+	 *
+	 * A stand-in is a proxy, and a platform member called on one - with `.call`,
+	 * or through an assignment like `e.returnValue = false`, which runs the
+	 * setter with the proxy as its receiver - throws "Illegal invocation". So:
+	 *
+	 *   - a getter answers what the same property read off the stand-in does:
+	 *     `MessageEvent.prototype.data`'s getter, called on one, is its `data`,
+	 *     as it is natively. It runs on the real event and goes on down the
+	 *     member's layers from here, rather than reading the property back off
+	 *     the stand-in, which would run every layer outside this one twice
+	 *   - a setter and a method run on the real event
+	 *   - `dispatchEvent` dispatches the real event, which the listener wrapper
+	 *     then hands back out as the same stand-in
+	 *
+	 * Checked per call against `box.standIns`, so an event that has no stand-in
+	 * - nearly all of them - is untouched but for the lookup. The view itself
+	 * stays on the stand-in and nowhere else: scramjet's own listeners, and the
+	 * embedder's, read the real events natively and must keep seeing the real
+	 * values.
+	 *
+	 * Two are left out, and throw called on a stand-in: `Event.prototype`'s
+	 * own getters (see below), and `isTrusted`, which is [LegacyUnforgeable] -
+	 * a non-configurable accessor on each instance, so its getter cannot be
+	 * replaced.
+	 */
+	const standInInterfaces = [
+		"Event",
+		// the types `handlers` rewrites
+		"MessageEvent",
+		"StorageEvent",
+		"HashChangeEvent",
+		// and the ones scramjet dispatches through `client.dispatchEvent`
+		"CloseEvent",
+	];
+
+	// every one of these only looks the receiver up, in maps keyed by
+	// scramjet's own stand-ins, and swaps it for the real event - nothing is
+	// read off it or called on it
+	const getter = (key: string | symbol): Trap<any>["get"] =>
+		function (ctx) {
+			// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+			const real = client.box.standIns.get(ctx.this);
+			if (real) {
+				// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+				const view = client.box.standInViews.get(ctx.this);
+				if (view && Object_hasOwn(view, key)) {
+					return Reflect_apply(view[key], real, []);
+				}
+
+				ctx.this = real;
+			}
+
+			return ctx.get();
+		};
+	const setter: Trap<any>["set"] = (ctx, value) => {
+		// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+		const real = client.box.standIns.get(ctx.this);
+		if (real) ctx.this = real;
+
+		ctx.set(value);
+	};
+
+	const acceptStandIns = (
+		proto: object,
+		key: string | symbol,
+		name: string,
+		getters: boolean
+	) => {
+		const descriptor = Object_getOwnPropertyDescriptor(proto, key);
+		if (!descriptor) return;
+
+		if (descriptor.get || descriptor.set) {
+			const trap: Trap<any> = {};
+			if (getters && descriptor.get) trap.get = getter(key);
+			if (descriptor.set) trap.set = setter;
+			if (trap.get || trap.set)
+				client.RawTrap(proto, key as string, trap, name);
+
+			return;
+		}
+
+		if (typeof descriptor.value !== "function") return;
+
+		client.RawProxy(
+			proto,
+			key as string,
+			{
+				apply(ctx) {
+					// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+					const real = client.box.standIns.get(ctx.this as Event);
+					if (real) ctx.this = real;
+				},
+			},
+			name
+		);
+	};
+
+	for (const iface of drain(standInInterfaces)) {
+		const ctor = self[iface];
+		if (typeof ctor !== "function") continue;
+
+		const proto = ctor.prototype;
+		for (const key of drain(Object_getOwnPropertyNames(proto))) {
+			if (key === "constructor") continue;
+
+			// not `Event.prototype`'s getters: every event on the page reads
+			// through them - `e.type`, `e.target` - where the rest are read about
+			// once per event of their own type. A layer on them costs every one
+			// of those reads about 100ns, to serve a getter taken off the
+			// prototype and called on a stand-in, which nothing but a test does.
+			// A stand-in read the usual way already runs them on the real event
+			acceptStandIns(
+				proto,
+				key,
+				`${iface}.prototype.${key}`,
+				iface !== "Event"
+			);
+		}
+	}
+
+	client.RawProxy(
+		self.EventTarget.prototype,
+		"dispatchEvent",
+		{
+			apply(ctx) {
+				// eslint-disable-next-line scramjet-core/no-poisoned-ctx-value
+				const real = client.box.standIns.get(ctx.args[0] as Event);
+				if (!real) return;
+
+				ctx.args[0] = real;
+				// untrusted for its listeners - unless the dispatch throws,
+				// because it is still in flight, which leaves it as it was
+				const trusted = client.box.trustedEvents.delete(real);
+				try {
+					ctx.call();
+				} catch (err) {
+					if (trusted) client.box.trustedEvents.add(real);
+					throw err;
+				}
+			},
+		},
+		"EventTarget.prototype.dispatchEvent"
+	);
 
 	/**
 	 * https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-window-event

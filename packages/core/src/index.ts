@@ -29,6 +29,7 @@ export const defaultConfig: ScramjetConfig = {
 		metafn: "$scramjet$meta",
 		pushsourcemapfn: "$scramjet$pushsourcemap",
 		registerrealmfn: "$scramjet$registerrealm",
+		standinfn: "$scramjet$standin",
 		trysetfn: "$scramjet$tryset",
 		templocid: "$scramjet$temploc",
 		tempreceiverid: "$scramjet$tempreceiver",

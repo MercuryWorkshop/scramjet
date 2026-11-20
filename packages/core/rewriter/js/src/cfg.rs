@@ -111,6 +111,10 @@ pub struct Flags {
 	pub inline_sourcemap: bool,
 	pub disable_computed_wrap: bool,
 	pub destructure_rewrites: bool,
+	/// a statement to run first in an event handler content attribute's body,
+	/// after its directives like the rest of the prelude. Empty for anything
+	/// that is not one
+	pub handler_prelude: String,
 
 	pub incumbency: IncumbencyMode,
 

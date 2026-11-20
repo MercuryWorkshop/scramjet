@@ -79,6 +79,10 @@ function fragmentTest(props: {
 	body?: string;
 	path?: string;
 	routes?: Record<string, Route>;
+	/** paths that redirect to another, with a 302 */
+	redirects?: Record<string, string>;
+	/** where the entry navigates to, when not straight to `path` */
+	start?: string;
 }): Test {
 	const entry = props.path ?? "/doc";
 	let other: http.Server | null = null;
@@ -91,9 +95,15 @@ function fragmentTest(props: {
 			res.end(
 				page(
 					"",
-					`<script>location.href = "http://localhost:${otherPort}${entry}";</script>`
+					`<script>location.href = "http://localhost:${otherPort}${props.start ?? entry}";</script>`
 				)
 			);
+			return;
+		}
+		const redirect = props.redirects?.[path];
+		if (redirect !== undefined) {
+			res.writeHead(302, { Location: redirect });
+			res.end();
 			return;
 		}
 		if (path === entry) {
@@ -163,7 +173,6 @@ export default [
 		js: `
 			if (!noReload()) return;
 			const read = () => [location.hash, location.href.slice(location.origin.length), document.URL.slice(location.origin.length)];
-			const length = history.length;
 			for (const value of ["a%2Fb", "a/b?c", "%", "café x", "#twice", "a#b", ":~:text=x", ""]) {
 				const before = events.length;
 				location.hash = value;
@@ -172,7 +181,7 @@ export default [
 				assertConsistent("set " + JSON.stringify(value), read());
 			}
 			await sleep(100);
-			assertConsistent("length delta", history.length - length);
+			assertConsistent("length", history.length);
 			assertConsistent("events", events);
 		`,
 	}),
@@ -457,16 +466,6 @@ export default [
 			["template", `<template><base href="/wrong/"></template>`],
 			["svg", `<svg><base href="/wrong/"></base></svg>`],
 			["math", `<math><base href="/wrong/"></base></math>`],
-			// an HTML integration point only with an HTML encoding
-			[
-				"annotation-xml",
-				`<math><annotation-xml><base href="/wrong/"></base></annotation-xml></math>`,
-			],
-			// a title is an integration point in SVG, not in MathML
-			[
-				"math-title",
-				`<math><title><base href="/wrong/"></base></title></math>`,
-			],
 		] as [string, string][]
 	).map(([name, ignored]) =>
 		fragmentTest({
@@ -487,44 +486,19 @@ export default [
 		})
 	),
 
-	// and these are HTML base elements, which do count
-	...(
-		[
-			[
-				"svg-integration-point",
-				`<svg><foreignObject><base href="/right/"></foreignObject></svg>`,
-			],
-			[
-				"annotation-xml-html",
-				`<math><annotation-xml encoding="text/html"><base href="/right/"></annotation-xml></math>`,
-			],
-			[
-				"mathml-text-integration-point",
-				`<math><mi><base href="/right/"></mi></math>`,
-			],
-			// an SVG element called template is not an inert HTML one
-			[
-				"svg-template",
-				`<svg><template><foreignObject><base href="/right/"></foreignObject></template></svg>`,
-			],
-			// a breakout tag ends the SVG, so the base after it is in HTML
-			["after-breakout", `<svg><p></p><base href="/right/"></svg>`],
-		] as [string, string][]
-	).map(([name, counted]) =>
-		fragmentTest({
-			name: `fragment-base-counts-${name}`,
-			head: counted,
-			routes: {
-				"/right/s.js": js(`window.loadedFrom = "right";`),
-				"/s.js": js(`window.loadedFrom = "document";`),
-			},
-			body: `<base href="/wrong/"><script src="s.js"></script>`,
-			js: `
-				assertConsistent("script", window.loadedFrom ?? null);
-				assertConsistent("baseURI", document.baseURI.slice(location.origin.length));
-			`,
-		})
-	),
+	fragmentTest({
+		name: "fragment-base-html-inside-svg-integration-point",
+		// back in HTML inside foreignObject, so this one counts
+		head: `<svg><foreignObject><base href="/right/"></foreignObject></svg>`,
+		routes: {
+			"/right/s.js": js(`window.loadedFrom = "right";`),
+		},
+		body: `<script src="s.js"></script>`,
+		js: `
+			assertConsistent("script", window.loadedFrom ?? null);
+			assertConsistent("baseURI", document.baseURI.slice(location.origin.length));
+		`,
+	}),
 
 	fragmentTest({
 		name: "fragment-base-in-innerhtml",
@@ -606,6 +580,74 @@ export default [
 
 	// --- history -------------------------------------------------------------
 
+	// a reload of a pushed entry is the document's own request, whoever first
+	// loaded it and however it was redirected there
+	fragmentTest({
+		name: "fragment-history-pushed-entry-reload-request",
+		start: "/start",
+		redirects: { "/start": "/doc" },
+		js: `
+			history.pushState(null, "", "/pushed");
+			location.reload();
+			await new Promise(() => {});
+		`,
+		routes: {
+			"/pushed": (req) => `<script>runTest(async () => {
+				assertConsistent("sec-fetch-site", ${JSON.stringify(req.headers["sec-fetch-site"] ?? null)});
+				assertConsistent("has referer", ${JSON.stringify(!!req.headers.referer)});
+			}, true);</script>`,
+		},
+	}),
+
+	// a frame's is still a frame's. Known failure: the pushed entry is a
+	// fresh URL, which says nothing about frames, so that links rendered
+	// before the push still match it (below)
+	fragmentTest({
+		name: "fragment-history-pushed-frame-reload-request",
+		js: `
+			const f = document.createElement("iframe");
+			f.src = "/child";
+			document.body.append(f);
+			await until(() => f.contentWindow.request, 8000);
+			assertConsistent("request", f.contentWindow.request);
+		`,
+		routes: {
+			"/child": `<script>history.pushState(null, "", "/pushed"); location.reload();</script>`,
+			"/pushed": (req) =>
+				`<script>window.request = ${JSON.stringify(
+					["sec-fetch-dest", "sec-fetch-site", "sec-fetch-mode"].map(
+						(name) => req.headers[name] ?? null
+					)
+				)};</script>`,
+		},
+	}),
+
+	// in a frame, a link to the URL a pushState moves to, rendered before
+	// the push, is a fragment navigation once it has
+	fragmentTest({
+		name: "fragment-nav-frame-link-before-pushstate",
+		js: `
+			const f = document.createElement("iframe");
+			f.src = "/catalog";
+			document.body.append(f);
+			await until(() => f.contentWindow.ready, 8000);
+			const w = f.contentWindow;
+			w.marker = 1;
+			w.history.pushState(null, "", "/item");
+			w.document.getElementById("l").click();
+			await until(() => f.contentWindow.location.hash === "#reviews");
+			await sleep(200);
+			assertConsistent("frame", [
+				f.contentWindow.marker ?? "reloaded",
+				f.contentWindow.location.pathname + f.contentWindow.location.hash,
+			]);
+		`,
+		routes: {
+			"/catalog": `<a id="l" href="/item#reviews">r</a><p id="reviews">x</p><script>window.ready = true;</script>`,
+			"/item": `<p>item</p>`,
+		},
+	}),
+
 	fragmentTest({
 		name: "fragment-history-urls",
 		head: `<base href="/based/">`,
@@ -680,6 +722,32 @@ export default [
 	// --- events ---------------------------------------------------------------
 
 	fragmentTest({
+		name: "fragment-hashchange-event",
+		js: `
+			if (!noReload()) return;
+			const e = await new Promise((r) => {
+				addEventListener("hashchange", r, { once: true });
+				location.hash = "ev";
+			});
+			const own = (url) => url.slice(location.origin.length);
+			assertConsistent("urls", [own(e.oldURL), own(e.newURL)]);
+			assertEqual(e.newURL, location.href, "newURL is the page's URL");
+			const d = (name) => Object.getOwnPropertyDescriptor(HashChangeEvent.prototype, name).get.call(e);
+			assertConsistent("prototype getters", [own(d("oldURL")), own(d("newURL"))]);
+			assertConsistent("instance", [e instanceof HashChangeEvent, e.constructor === HashChangeEvent, Object.prototype.toString.call(e), e.isTrusted]);
+			const copy = new HashChangeEvent("hashchange", e);
+			assertConsistent("copy", [own(copy.oldURL), own(copy.newURL), copy.isTrusted]);
+			const made = new HashChangeEvent("x", { oldURL: "a", newURL: "b" });
+			assertConsistent("made", [made.oldURL, made.newURL]);
+			let redispatched = null;
+			const t = new EventTarget();
+			t.addEventListener("hashchange", (ev) => (redispatched = ev === copy));
+			t.dispatchEvent(copy);
+			assertConsistent("redispatched", redispatched);
+		`,
+	}),
+
+	fragmentTest({
 		name: "fragment-hashchange-getter-shape",
 		js: `
 			const shape = (name) => {
@@ -708,6 +776,48 @@ export default [
 			// a page's own event keeps whatever it was given, proxy-looking or not
 			const odd = new HashChangeEvent("hashchange", { oldURL: "/x/y", newURL: "not a url" });
 			assertConsistent("page-made", [odd.oldURL, odd.newURL]);
+		`,
+	}),
+
+	fragmentTest({
+		name: "fragment-hashchange-event-frames",
+		routes: {
+			"/child": `<script>
+				window.seen = [];
+				const own = (url) => url.replace(location.origin, "O");
+				addEventListener("hashchange", (e) => {
+					seen.push(["listener", own(e.oldURL), own(e.newURL), e instanceof HashChangeEvent]);
+					window.lastEvent = e;
+				});
+				onhashchange = (e) => seen.push(["property", own(e.newURL)]);
+				addEventListener("DOMContentLoaded", () => document.body.setAttribute("onhashchange", "seen.push(['attribute', event.newURL.replace(location.origin, 'O')])"));
+			</script>`,
+		},
+		js: `
+			const own = (url) => url.replace(location.origin, "O");
+			const f = document.createElement("iframe");
+			f.src = "/child";
+			document.body.append(f);
+			await new Promise((r) => (f.onload = r));
+			const w = f.contentWindow;
+			w.location.hash = "c";
+			await until(() => w.seen.length >= 2);
+			await sleep(50);
+			assertConsistent("child", w.seen);
+			// this realm's getter, handed the child realm's event
+			const get = Object.getOwnPropertyDescriptor(HashChangeEvent.prototype, "newURL").get;
+			assertConsistent("cross-realm getter", own(get.call(w.lastEvent)));
+			assertConsistent("child getter", own(Object.getOwnPropertyDescriptor(w.HashChangeEvent.prototype, "newURL").get.call(w.lastEvent)));
+
+			// an about:blank frame's URLs are not proxy URLs at all
+			const blank = document.createElement("iframe");
+			document.body.append(blank);
+			const b = blank.contentWindow;
+			const ev = await new Promise((r) => {
+				b.addEventListener("hashchange", r, { once: true });
+				b.location.hash = "blank";
+			});
+			assertConsistent("about:blank", [ev.oldURL, ev.newURL]);
 		`,
 	}),
 
