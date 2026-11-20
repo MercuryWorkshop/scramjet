@@ -339,6 +339,26 @@ type ScramjetBuildConfig = {
 	extraConfig?: Partial<RspackOptions>;
 	name: string;
 };
+const COMMITHASH = (() => {
+	try {
+		return execSync("git rev-parse --short HEAD", {
+			encoding: "utf-8",
+		}).replace(/\r?\n|\r/g, "");
+	} catch {
+		return "unknown";
+	}
+})();
+const BUILDDATE = new Date().toISOString();
+
+/** `VERSION`, `COMMITHASH` and `BUILDDATE`, for a package's own `versionInfo`. */
+function buildInfoDefines(version: string) {
+	return new rspack.DefinePlugin({
+		VERSION: JSON.stringify(version),
+		COMMITHASH: JSON.stringify(COMMITHASH),
+		BUILDDATE: JSON.stringify(BUILDDATE),
+	});
+}
+
 // Common configuration options for scramjet builds
 const createScramjetConfig = (options: ScramjetBuildConfig) => {
 	const { entry, output, rewriterWasm, extraConfig = {}, name } = options;
@@ -366,27 +386,7 @@ const createScramjetConfig = (options: ScramjetBuildConfig) => {
 			new rspack.DefinePlugin({
 				REWRITERWASM: rewriterWasm,
 			}),
-			new rspack.DefinePlugin({
-				VERSION: JSON.stringify(sjpackagemeta.version),
-			}),
-			new rspack.DefinePlugin({
-				COMMITHASH: (() => {
-					try {
-						const hash = JSON.stringify(
-							execSync("git rev-parse --short HEAD", {
-								encoding: "utf-8",
-							}).replace(/\r?\n|\r/g, "")
-						);
-
-						return hash;
-					} catch {
-						return JSON.stringify("unknown");
-					}
-				})(),
-			}),
-			new rspack.DefinePlugin({
-				BUILDDATE: JSON.stringify(new Date().toISOString()),
-			}),
+			buildInfoDefines(sjpackagemeta.version),
 		],
 		target: "webworker",
 		ignoreWarnings: [
@@ -552,7 +552,7 @@ const controllerVersionDefines = new rspack.DefinePlugin({
 
 const controllerConfig = createGenericConfig({
 	name: "scramjet-controller",
-	dependencies: ["scramjet-esmodule"],
+	dependencies: ["scramjet-iife"],
 	entry: {
 		api: join(controllerdir, "src/index.ts"),
 		inject: join(controllerdir, "src/inject.ts"),
@@ -580,6 +580,7 @@ const controllerConfig = createGenericConfig({
 	target: "web",
 	plugins: [
 		controllerVersionDefines,
+		buildInfoDefines(controllermeta.version),
 		new ExternalStubPlugin({
 			bundleFilename: "controller.api.js",
 			stubFilename: "controller-external.mjs",
@@ -595,6 +596,9 @@ const controllerConfig = createGenericConfig({
 	],
 });
 
+const utilsmeta = JSON.parse(
+	await readFile(join(utilsdir, "package.json"), "utf-8")
+);
 const utilsVersionDefines = new rspack.DefinePlugin({
 	SCRAMJET_EXPECTED_VERSION: JSON.stringify(sjpackagemeta.version),
 	CONTROLLER_EXPECTED_VERSION: JSON.stringify(controllermeta.version),
@@ -602,7 +606,7 @@ const utilsVersionDefines = new rspack.DefinePlugin({
 
 const utilsIifeConfig = createGenericConfig({
 	name: "scramjet-utils-iife",
-	dependencies: ["scramjet-esmodule", "scramjet-controller"],
+	dependencies: ["scramjet-iife", "scramjet-controller"],
 	entry: {
 		main: join(utilsdir, "src/index.ts"),
 	},
@@ -618,6 +622,7 @@ const utilsIifeConfig = createGenericConfig({
 	target: "web",
 	plugins: [
 		utilsVersionDefines,
+		buildInfoDefines(utilsmeta.version),
 		new TypeScriptDeclarationsPlugin(
 			utilsdir,
 			"dist/temp-types-build",
@@ -629,7 +634,7 @@ const utilsIifeConfig = createGenericConfig({
 
 const utilsModuleConfig = createGenericConfig({
 	name: "scramjet-utils-esmodule",
-	dependencies: ["scramjet-esmodule", "scramjet-controller"],
+	dependencies: ["scramjet-iife", "scramjet-controller"],
 	entry: {
 		main: join(utilsdir, "src/index.ts"),
 	},
@@ -645,6 +650,7 @@ const utilsModuleConfig = createGenericConfig({
 	target: "web",
 	plugins: [
 		utilsVersionDefines,
+		buildInfoDefines(utilsmeta.version),
 		new TypeScriptDeclarationsPlugin(
 			utilsdir,
 			"dist/temp-types-build",
@@ -656,6 +662,7 @@ const utilsModuleConfig = createGenericConfig({
 
 const bootstrapConfig = createGenericConfig({
 	name: "scramjet-bootstrap",
+	dependencies: ["scramjet-controller"],
 	entry: {
 		server: join(bootstrapdir, "src/server.ts"),
 		client: join(bootstrapdir, "src/client.ts"),
@@ -690,6 +697,7 @@ const bootstrapConfig = createGenericConfig({
 
 const bootstrapStaticConfig = createGenericConfig({
 	name: "scramjet-bootstrap-static",
+	dependencies: ["scramjet-controller"],
 	entry: {
 		static: join(bootstrapdir, "src/static.ts"),
 	},

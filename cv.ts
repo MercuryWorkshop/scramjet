@@ -12,22 +12,24 @@ const PUBLISHED = [
 
 async function pack(ctx: TaskContext) {
 	const publish = ctx.args.includes("--publish");
-	// the npm readme is the repo readme
-	await fs.copyFile(
-		join(ctx.dir, "README.md"),
-		join(ctx.dir, "packages/core/README.md")
-	);
-	for (const pkg of PUBLISHED) {
-		const cwd = join(ctx.dir, "packages", pkg);
-		ctx.log(`${publish ? "publishing" : "packing"} ${pkg}`);
-		const extra = ctx.args.filter((a) => a !== "--publish");
-		if (publish) {
-			await ctx.sh({
-				cwd,
-			})`pnpm publish --access public --no-git-checks ${extra}`;
-		} else {
-			await ctx.sh({ cwd })`pnpm pack`;
+	// the npm readme is the repo readme, copied in for the pack only
+	const readme = join(ctx.dir, "packages/core/README.md");
+	await fs.copyFile(join(ctx.dir, "README.md"), readme);
+	try {
+		for (const pkg of PUBLISHED) {
+			const cwd = join(ctx.dir, "packages", pkg);
+			ctx.log(`${publish ? "publishing" : "packing"} ${pkg}`);
+			const extra = ctx.args.filter((a) => a !== "--publish");
+			if (publish) {
+				await ctx.sh({
+					cwd,
+				})`pnpm publish --access public --no-git-checks ${extra}`;
+			} else {
+				await ctx.sh({ cwd })`pnpm pack`;
+			}
 		}
+	} finally {
+		await fs.rm(readme, { force: true });
 	}
 }
 

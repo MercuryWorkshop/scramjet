@@ -7,6 +7,7 @@ export default definePackage(import.meta.dirname, {
 	tasks: {
 		build: {
 			desc: "bundle proxy-bootstrap",
+			deps: ["controller:build"],
 			inputs: [
 				"src/**",
 				"package.json",
