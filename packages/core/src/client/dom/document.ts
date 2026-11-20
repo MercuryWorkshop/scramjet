@@ -9,7 +9,7 @@ import {
 	String_toLowerCase,
 	_URL,
 } from "@/shared/snapshot";
-import { createReferrerString } from "@/fetch/util";
+import { SCRAMJETCLIENT } from "@/symbols";
 import { openWindowSteps } from "@client/helpers";
 import { Arguments, Returns, Type } from "@client/webidl";
 import { rewriteAttributeSelectors } from "@client/selectors";
@@ -241,18 +241,29 @@ export default function (client: ScramjetClient, self: Self) {
 		get referrer(): string {
 			// a document with no browsing context has no referrer, whatever the
 			// live one's history says
-			if (!super.defaultView) return "";
+			const view = super.defaultView;
+			if (!view) return "";
 
-			if (!client.history) return "";
-			if (client.history.length < 2) return "";
-			const lastState = client.history[client.history.length - 2];
-			const referrerURL = new _URL(lastState.url);
+			// the proxy worked it out when it served the document, and the
+			// document may be another frame's
+			const owner: ScramjetClient | undefined = (view as any)[SCRAMJETCLIENT];
+			const served = (owner ?? client).documentReferrer;
+			if (served !== undefined) return served;
 
-			return createReferrerString(
-				referrerURL,
-				client.url,
-				lastState.refererPolicy
-			);
+			// one it never served - an initial about:blank, a srcdoc, one that
+			// was written - has the browser's, which points into the proxy
+			const native = super.referrer;
+			if (String_startsWith(native, client.context.prefix.href)) {
+				return client.unrewriteUrl(native);
+			}
+			// or is only the proxy's origin, as a srcdoc's is. the document it
+			// came from is the one this one inherited its origin from
+			if (native === client.context.prefix.origin + "/") {
+				const origin = (owner ?? client).siteOrigin;
+				return origin && origin !== "null" ? origin + "/" : "";
+			}
+
+			return "";
 		}
 	});
 

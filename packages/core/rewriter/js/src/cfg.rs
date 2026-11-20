@@ -113,4 +113,9 @@ pub struct Flags {
 	pub destructure_rewrites: bool,
 
 	pub incumbency: IncumbencyMode,
+
+	/// the origin of the document or worker whose requests the module's
+	/// imports are, which neither a `<base>` nor the module's own origin
+	/// changes. Empty to take `base`'s
+	pub initiator_origin: String,
 }

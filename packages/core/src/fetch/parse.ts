@@ -1,10 +1,15 @@
-import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
+import {
+	Object_entries,
+	Object_keys,
+	_Set,
+	_URL,
+	Error,
+} from "@/shared/snapshot";
 import { unrewriteUrl, URLMeta } from "@rewriters/url";
 import {
 	ScramjetFetchHandler,
 	ScramjetFetchParsed,
 	ScramjetFetchRequest,
-	ScramjetFetchTrackedClient,
 } from ".";
 
 export const QP = {
@@ -18,6 +23,7 @@ export const QP = {
 	credentials: "$cred",
 	destination: "$dest",
 	initiatorOrigin: "$io",
+	referrerOrigin: "$ro",
 	fetchSite: "$fs",
 	crossSiteRedirect: "$csr",
 	fakeDataURL: "$fakedataurl",
@@ -76,6 +82,52 @@ function isUnmarkedModule(
 	return request.rawDestination === "script" && request.mode === "cors";
 }
 
+/** What a document or worker loads makes its requests as that document or worker. */
+const ENVIRONMENT_DESTINATIONS = new _Set<RequestDestination>([
+	"document",
+	"iframe",
+	"frame",
+	"object",
+	"embed",
+	"fencedframe" as RequestDestination,
+	"worker",
+	"sharedworker",
+	"serviceworker" as RequestDestination,
+]);
+
+/**
+ * The origin of the environment a subresource's own requests are made by - the
+ * stylesheet's fonts are the document's - or undefined for a response that is
+ * an environment itself, a document or a worker, whose requests are its own.
+ *
+ * The one it was loaded with, carried in its `$io`, and failing that the
+ * client that asked for it: an import map's prefix mapping builds URLs that
+ * carry no query at all.
+ */
+function subresourceInitiator(
+	request: ScramjetFetchRequest,
+	params: QueryParams,
+	destination: RequestDestination,
+	handler: ScramjetFetchHandler
+): string | undefined {
+	if (ENVIRONMENT_DESTINATIONS.has(destination)) return undefined;
+	if (params.initiatorOrigin) return params.initiatorOrigin;
+
+	const client = request.rawClientUrl;
+	if (!client || !client.href.startsWith(handler.context.prefix.href)) {
+		return undefined;
+	}
+	try {
+		const url = new _URL(unrewriteUrl(client, handler.context));
+		if (url.protocol === "http:" || url.protocol === "https:")
+			return url.origin;
+	} catch {
+		// not a URL of the site's
+	}
+
+	return undefined;
+}
+
 export function parseRequest(
 	request: ScramjetFetchRequest,
 	handler: ScramjetFetchHandler
@@ -100,16 +152,6 @@ export function parseRequest(
 
 	for (const [key, value] of Object_entries(extras)) {
 		url.searchParams.set(key, value);
-	}
-
-	const clientId = request.clientId;
-	let trackedClient: ScramjetFetchTrackedClient | undefined;
-	if (clientId) {
-		trackedClient = handler.trackedClients.get(clientId);
-		if (!trackedClient) {
-			trackedClient = new ScramjetFetchTrackedClient(clientId);
-			handler.trackedClients.set(clientId, trackedClient);
-		}
 	}
 
 	const referrerSourceUrl =
@@ -146,20 +188,25 @@ export function parseRequest(
 				: undefined,
 		topFrameName: params.topFrame,
 		parentFrameName: params.parentFrame,
-		referrerPolicy: params.referrerPolicy,
+		initiatorOrigin: subresourceInitiator(
+			request,
+			params,
+			destination,
+			handler
+		),
 	};
 
 	const parsed: ScramjetFetchParsed = {
 		meta,
 		url,
 		isModule: params.isModule === "module" || isUnmarkedModule(request, params),
-		referrerPolicy: params.referrerPolicy,
 		referrerSourceUrl,
-		trackedClient,
+		initialReferrerPolicy: params.referrerPolicy,
 		hadExtraParams,
 		crossSiteRedirect: params.crossSiteRedirect === "1",
 		fetchSiteState,
 		fetchInitiatorOrigin: params.initiatorOrigin || undefined,
+		fetchReferrerOrigin: params.referrerOrigin || undefined,
 		// TODO: should really just be a boolean
 		fetchCredentialsInclude: params.credentials === "include",
 		fetchMode,

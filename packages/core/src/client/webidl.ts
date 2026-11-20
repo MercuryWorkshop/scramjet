@@ -42,6 +42,7 @@ import {
 	Number_isFinite,
 	Number_isNaN,
 	Object_keys,
+	Object_create,
 	Object_getOwnPropertyDescriptor,
 	Object_defineProperty,
 	Reflect_ownKeys,
@@ -140,7 +141,30 @@ export interface IDLPrimitives {
  * at install time rather than passing the value through unchecked.
  */
 export const IDL_ENUM_VALUES: Record<string, readonly string[]> = {
+	RequestCache: [
+		"default",
+		"no-store",
+		"reload",
+		"no-cache",
+		"force-cache",
+		"only-if-cached",
+	],
 	RequestCredentials: ["omit", "same-origin", "include"],
+	RequestDuplex: ["half"],
+	RequestMode: ["navigate", "same-origin", "no-cors", "cors"],
+	RequestPriority: ["high", "low", "auto"],
+	RequestRedirect: ["follow", "error", "manual"],
+	ReferrerPolicy: [
+		"",
+		"no-referrer",
+		"no-referrer-when-downgrade",
+		"same-origin",
+		"origin",
+		"strict-origin",
+		"origin-when-cross-origin",
+		"strict-origin-when-cross-origin",
+		"unsafe-url",
+	],
 	WorkerType: ["classic", "module"],
 	CookieSameSite: ["strict", "lax", "none"],
 };
@@ -1176,10 +1200,23 @@ function compileIDLUnion(box: IDLBrandChecker, inner: string): IDLCoerce {
 	const members = splitIDLUnionMembers(inner);
 	const interfaces: string[] = [];
 	let fallback: IDLCoerce | undefined;
+	let sequence: IDLCoerce | undefined;
+	let record: IDLCoerce | undefined;
 
 	for (const member of drain(members)) {
 		const raw = member.trim();
 		const name = stripIDLExtendedAttributes(raw);
+
+		// https://webidl.spec.whatwg.org/#es-union - an object with an
+		// @@iterator takes the sequence member, any other object the record
+		if (name.startsWith("sequence<") && name.endsWith(">") && !sequence) {
+			sequence = compileIDLType(box, name.slice(9, -1));
+			continue;
+		}
+		if (name.startsWith("record<") && name.endsWith(">") && !record) {
+			record = compileIDLType(box, name);
+			continue;
+		}
 
 		if (Array_includes(IDL_STRING_TYPES, name)) {
 			// two string members can't be told apart, so give up
@@ -1201,6 +1238,32 @@ function compileIDLUnion(box: IDLBrandChecker, inner: string): IDLCoerce {
 		// a dictionary, enum, sequence, numeric or unknown member — the spec's
 		// disambiguation rules for those need more type information than we have
 		return idlPassthrough;
+	}
+
+	if (sequence || record) {
+		// with a string member too, what is not an object is that, and
+		// otherwise it is no member at all
+		const item = sequence;
+		const other = record;
+		const primitive = fallback;
+
+		return (value) => {
+			if (idlIsObject(value)) {
+				for (let i = 0; i < interfaces.length; i++) {
+					if (box.instanceof(value, interfaces[i])) return value;
+				}
+				if (item) {
+					const method = (value as any)[Symbol_iterator];
+					if (method !== undefined && method !== null) {
+						return coerceIDLSequenceFrom(value, method, item);
+					}
+				}
+				if (other) return other(value);
+			}
+			if (primitive) return primitive(value);
+
+			return idlReject();
+		};
 	}
 
 	if (!fallback) return idlPassthrough;
@@ -1463,7 +1526,23 @@ function coerceIDLSequence(value: unknown, item: IDLCoerce): unknown[] {
 	try {
 		if (!idlIsObject(value)) idlReject();
 
-		const method = (value as any)[Symbol_iterator];
+		return coerceIDLSequenceFrom(value, (value as any)[Symbol_iterator], item);
+	} catch (err) {
+		idlRejectInner(err);
+	}
+}
+
+/**
+ * A sequence out of `value` with the `@@iterator` already read off it - which
+ * a union reads once, to choose its sequence member, and then iterates with.
+ * https://webidl.spec.whatwg.org/#create-sequence-from-iterable
+ */
+function coerceIDLSequenceFrom(
+	value: unknown,
+	method: unknown,
+	item: IDLCoerce
+): unknown[] {
+	try {
 		if (typeof method !== "function") idlReject();
 
 		const iterator = Reflect_apply(method, value, []) as any;
@@ -1504,7 +1583,9 @@ function coerceIDLRecord(
 		if (!idlIsObject(value)) idlReject();
 
 		const keys = Reflect_ownKeys(value as object);
-		const out: Record<string, unknown> = {};
+		// an ordered map, not an object: nothing is inherited, so a native
+		// converting it again finds the entries and nothing of the page's
+		const out: Record<string, unknown> = Object_create(null);
 
 		for (let i = 0; i < keys.length; i++) {
 			// https://webidl.spec.whatwg.org/#es-record
@@ -1764,7 +1845,10 @@ export function idlDictionary(
 	value: unknown,
 	name: string
 ): Record<string, unknown> {
-	if (value === undefined || value === null) return {};
+	// every member of an undefined or null dictionary is absent, and is not
+	// looked up on Object.prototype either
+	// https://webidl.spec.whatwg.org/#js-dictionary
+	if (value === undefined || value === null) return Object_create(null);
 
 	if (typeof value !== "object" && typeof value !== "function") {
 		throw new TypeError(`The provided value is not of type '${name}'.`);
@@ -1881,14 +1965,62 @@ export function dictionaryReader<
 	members: M,
 	inherited?: P
 ): (value: unknown) => IDLDictionaryOf<P & M> {
-	const keys = sortedIDLMemberNames(inherited ?? {});
+	return compileDictionaryReader(name, members, inherited ?? {}, {
+		ctors: {},
+		instanceof: () => false,
+	}) as (value: unknown) => IDLDictionaryOf<P & M>;
+}
+
+/**
+ * One member of a {@link dictionaryReaderOf}: its IDL, as for
+ * {@link dictionaryReader}, or the conversion itself, for a type written out
+ * by hand - a union the generic conversion cannot tell apart, a nested
+ * dictionary. A conversion is handed the member as read, and never undefined.
+ */
+export type IDLMember = string | ((value: unknown) => unknown);
+
+/**
+ * {@link dictionaryReader} for a dictionary that is handed on to the native
+ * once converted, rather than consumed here: its members may be interfaces,
+ * brand-checked through `box`, or conversions of their own. Untyped, since a
+ * member's type is only known at run time.
+ *
+ * What it returns has no prototype, and only the members that were present,
+ * so a native converting it again finds nothing of the page's - not even on
+ * `Object.prototype`, where an absent member would otherwise be looked up.
+ */
+export function dictionaryReaderOf(
+	name: string,
+	members: Record<string, IDLMember>,
+	box: IDLBrandChecker
+): (value: unknown) => Record<string, unknown> {
+	return compileDictionaryReader(name, members, {}, box);
+}
+
+function compileDictionaryReader(
+	name: string,
+	members: Record<string, IDLMember>,
+	inherited: Record<string, IDLMember>,
+	box: IDLBrandChecker
+): (value: unknown) => Record<string, unknown> {
+	const keys = sortedIDLMemberNames(inherited);
 	const own = sortedIDLMemberNames(members);
 	for (const key of drain(own)) keys[keys.length] = key;
-	const all: Record<string, string> = { ...inherited, ...members };
+	const all: Record<string, IDLMember> = { ...inherited, ...members };
 
 	const compiled: CompiledMember[] = [];
 	for (const key of drain(keys)) {
-		const raw = String_trim(all[key]);
+		const member = all[key];
+		if (typeof member === "function") {
+			compiled[compiled.length] = {
+				key,
+				fallback: null,
+				required: false,
+				coerce: member,
+			};
+			continue;
+		}
+		const raw = String_trim(member);
 
 		let declaration = raw;
 		let required = false;
@@ -1922,10 +2054,7 @@ export function dictionaryReader<
 				? (value) => (value === null ? null : idlEnum(value, values, bare))
 				: (value) => idlEnum(value, values, bare);
 		} else {
-			const compile = compileIDLType(
-				{ ctors: {}, instanceof: () => false },
-				type
-			);
+			const compile = compileIDLType(box, type);
 			// the shared coercers signal a rejection by throwing a sentinel,
 			// which is right for an argument list that can fall through to the
 			// native and wrong here, where there is nothing to fall through to
@@ -1949,7 +2078,7 @@ export function dictionaryReader<
 
 	return (value: unknown) => {
 		const dict = idlDictionary(value, name);
-		const out: Record<string, unknown> = {};
+		const out: Record<string, unknown> = Object_create(null);
 
 		for (let i = 0; i < compiled.length; i++) {
 			const member = compiled[i];
@@ -1968,7 +2097,7 @@ export function dictionaryReader<
 			out[member.key] = member.coerce(raw);
 		}
 
-		return out as IDLDictionaryOf<P & M>;
+		return out;
 	};
 }
 
@@ -1996,7 +2125,7 @@ export function idlConverter(
 }
 
 /** One dictionary's own member names, in the order WebIDL converts them. */
-function sortedIDLMemberNames(members: Record<string, string>): string[] {
+function sortedIDLMemberNames(members: Record<string, IDLMember>): string[] {
 	const keys = Object_keys(members);
 
 	// insertion sort rather than `Array.prototype.sort`: this runs at module

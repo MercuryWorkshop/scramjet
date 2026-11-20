@@ -21,7 +21,6 @@ import { htmlRules } from "@/shared/htmlRules";
 import { base64Decode, bytesToBase64 } from "@/shared/util";
 import { Tap } from "@/Tap";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
-import { TrackedHistoryState } from "@/fetch";
 import {
 	Error,
 	Performance_now,
@@ -119,7 +118,11 @@ export type HtmlContext = {
 	// `DOMParser`'s HTML parser has scripting disabled, which changes how it
 	// treats `noscript` content.
 	scriptingEnabled?: boolean;
-	history?: TrackedHistoryState[];
+	/**
+	 * document.referrer for the document being rewritten, when it is one the
+	 * proxy served. Documents it never saw, like srcdoc, have none.
+	 */
+	referrer?: string;
 };
 
 export class IncrementalHtmlRewriter {

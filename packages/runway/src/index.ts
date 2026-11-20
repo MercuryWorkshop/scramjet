@@ -28,6 +28,7 @@ function ghaError(message: string, file?: string, line?: number) {
 	console.log(`::error ${params}::${message.replace(/\n/g, "%0A")}`);
 }
 
+/** The heading for a group of output lines, opening a group under GitHub Actions. */
 function ghaGroup(name: string) {
 	return isGitHubActions ? `::group::${name}` : name;
 }

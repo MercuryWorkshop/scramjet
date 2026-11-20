@@ -51,18 +51,18 @@ export function incumbentClient(client: ScramjetClient): ScramjetClient | null {
 
 /**
  * How many frames an `Intercept` member's body sits above its caller: the body
- * itself, `invoke`, `attemptToCallHandler` and the proxy's `apply` - and the
- * trampoline, with `debugTrampolines` on.
+ * itself, the slot's body and dispatch, `invoke`, the proxy's `apply` - and
+ * the trampoline, with `debugTrampolines` on.
  */
 export const interceptDepth = (client: ScramjetClient) =>
-	client.flagEnabled("debugTrampolines") ? 5 : 4;
+	client.flagEnabled("debugTrampolines") ? 9 : 8;
 
 /**
- * The same for a `client.Proxy` handler: the handler, the proxy's `apply`, and
- * the trampoline between them with `debugTrampolines` on.
+ * The same for a `client.Proxy` handler: the handler, the slot's dispatch and
+ * layer, and the proxy's `apply` - plus its debug trampoline when enabled.
  */
 const proxyDepth = (client: ScramjetClient) =>
-	client.flagEnabled("debugTrampolines") ? 3 : 2;
+	client.flagEnabled("debugTrampolines") ? 6 : 5;
 
 /**
  * The incumbent for the member whose body called this, `depth` frames above

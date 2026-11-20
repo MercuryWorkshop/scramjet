@@ -27,7 +27,6 @@ import {
 export type NavigationType = "user" | "link" | "location";
 
 export type RewriteUrlOptions = {
-	referrerPolicy?: string;
 	isModule?: boolean;
 	navigateType?: NavigationType;
 	topFrame?: string;
@@ -52,7 +51,14 @@ export type URLMeta = {
 	rawUrl?: string;
 	topFrameName?: string;
 	parentFrameName?: string;
-	referrerPolicy?: string;
+	/**
+	 * The origin of the document or worker the requests made from here are
+	 * that environment's own requests, when it is not `origin`'s: a stylesheet
+	 * or module, whose fonts and imports are fetched by the document that
+	 * loaded it. It is their Origin, SameSite context and Sec-Fetch-Site, where
+	 * `origin` - the stylesheet's - is still their referrer's.
+	 */
+	initiatorOrigin?: string;
 };
 
 /**
@@ -132,6 +138,9 @@ export function frozenBaseUrl(
 
 	return url;
 }
+
+/** Longer referrers are cut down to their origin, as Chrome does. */
+export const MAX_REFERRER_LENGTH = 4096;
 
 function tryCanParseURL(url: string, origin?: string | URL): _URL | null {
 	try {
@@ -294,9 +303,6 @@ export function rewriteUrl(
 
 		const paramsInit = new _URLSearchParams();
 
-		const referrerPolicy =
-			!options?.isModule && (options?.referrerPolicy ?? meta.referrerPolicy);
-		if (referrerPolicy) paramsInit.set(QP.referrerPolicy, referrerPolicy);
 		if (options?.isModule) paramsInit.set(QP.isModule, "module");
 		if (options?.topFrame) paramsInit.set(QP.topFrame, options.topFrame);
 		if (options?.parentFrame)
@@ -310,8 +316,16 @@ export function rewriteUrl(
 
 		// specific tracking for sec-fetch-site
 		// don't send for the top level controller calling it in go()
-		if (meta.origin.origin !== context.prefix.origin) {
-			paramsInit.set(QP.initiatorOrigin, meta.origin.origin);
+		const source = meta.origin.origin;
+		const initiator = meta.initiatorOrigin ?? source;
+		if (initiator !== context.prefix.origin) {
+			paramsInit.set(QP.initiatorOrigin, initiator);
+		}
+		// the referrer's origin, where that is not the initiator's, for when the
+		// browser hands over nothing but the proxy's. not on a module, whose
+		// URL has to be the same whichever module imports it
+		if (!options?.isModule && source !== initiator) {
+			paramsInit.set(QP.referrerOrigin, source);
 		}
 
 		let paramstring = "";

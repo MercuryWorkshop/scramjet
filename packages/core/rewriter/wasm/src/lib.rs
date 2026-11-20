@@ -86,6 +86,8 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 		destructure_rewrites: get_bool(obj, "destructureRewrites")?,
 
 		incumbency: get_incumbency(obj, "incumbency")?,
+
+		initiator_origin: get_str(obj, "initiatorOrigin")?,
 	})
 }
 

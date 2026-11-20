@@ -101,6 +101,8 @@ impl NativeRewriter {
 					destructure_rewrites: cfg.destructure_rewrites,
 
 					incumbency: cfg.incumbency,
+
+					initiator_origin: String::new(),
 				},
 				&rewriter
 			)

@@ -29,11 +29,7 @@ import { AttributeLayer, HTML_NAMESPACE } from "./attributes";
 import { TextLayer } from "./text";
 import { ScramjetConfig } from "@/types";
 import { Tap } from "@/Tap";
-import {
-	type CookieSyncEntry,
-	type CookieSyncOptions,
-	TrackedHistoryState,
-} from "@/fetch";
+import { type CookieSyncEntry, type CookieSyncOptions } from "@/fetch";
 import { AnyFunction } from "@/types";
 import {
 	AsyncFunction_prototype,
@@ -107,7 +103,8 @@ export type ScramjetClientInit = {
 	shouldBlockMessageEvent?: (ev: MessageEvent) => boolean;
 	hookSubcontext: (self: Self, frame?: HTMLIFrameElement) => ScramjetClient;
 	initHeaders: RawHeaders;
-	history: TrackedHistoryState[];
+	/** document.referrer, for a document the proxy served. */
+	referrer?: string;
 };
 
 export type ProxyCtx<
@@ -408,7 +405,12 @@ export class ScramjetClient {
 
 	initHeaders: ScramjetHeaders;
 
-	history: TrackedHistoryState[];
+	/**
+	 * document.referrer as the proxy worked it out when it served the
+	 * document. Unset for one it never served (an initial about:blank, a
+	 * srcdoc, a worker), whose referrer the browser keeps.
+	 */
+	documentReferrer?: string;
 
 	/** Assigned by {@link SingletonBox.registerClient}. */
 	id: string;
@@ -556,7 +558,7 @@ export class ScramjetClient {
 		this.context = init.context;
 		if (init.initHeaders)
 			this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
-		this.history = init.history;
+		this.documentReferrer = init.referrer;
 		this.context.hooks = {
 			rewriter: this.hooks.rewriter,
 		};
@@ -624,34 +626,6 @@ export class ScramjetClient {
 
 				return parent.frameName();
 			},
-			get referrerPolicy(): string | undefined {
-				if (client.initHeaders && client.initHeaders.has("referrer-policy")) {
-					return client.initHeaders.get("referrer-policy");
-				}
-				if (!iswindow) return "";
-				// TODO: need to nullify the actual meta tag so it still sends unsafe-url
-				const nDoc = new client.native.Document(client.global.document);
-				// only the last match counts, so look for it list by list from the
-				// back. Indexed, and not `drain`: a NodeList is a live platform
-				// collection, and spreading it ran the page-replaceable
-				// iteration protocol over what decides the referrer policy
-				let last: Element | undefined;
-				for (const selector of drain([
-					"meta[http-equiv='referrer-policy']",
-					"meta[name='referrer-policy']",
-					"meta[name='referrer']",
-				])) {
-					const list = nDoc.querySelectorAll(selector);
-					last = list[list.length - 1];
-					if (last) break;
-				}
-				if (last) {
-					const nLast = new client.native.HTMLMetaElement(last);
-					return nLast.getAttribute("content");
-				}
-
-				return "";
-			},
 		};
 		this.locationProxy = createLocationProxy(this, global);
 
@@ -661,11 +635,11 @@ export class ScramjetClient {
 	/** Apply document injection init when a client was already installed (e.g. early contentWindow). */
 	syncDocumentInit(init: {
 		initHeaders: RawHeaders;
-		history: TrackedHistoryState[];
+		referrer?: string;
 		cookies?: string;
 	}) {
 		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
-		this.history = init.history;
+		this.documentReferrer = init.referrer;
 		if (init.cookies !== undefined) {
 			this.context.cookieJar.load(init.cookies);
 		}

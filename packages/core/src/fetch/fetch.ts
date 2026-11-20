@@ -11,25 +11,33 @@ import {
 	ScramjetFetchResponse,
 } from ".";
 import { rewriteUrl, unrewriteBlob, unrewriteUrl } from "@rewriters/url";
-import { QP, parseRequest } from "./parse";
+import {
+	QP,
+	type QueryParamKey,
+	parseQueryParams,
+	parseRequest,
+} from "./parse";
 import { ScramjetHeaders } from "@/shared";
 import { isDocument, isRedirect, normalizeContentType } from "./util";
 import { rewriteBody } from "./body";
 import { Tap } from "@/Tap";
 import {
 	computeFetchSite,
+	determineReferrer,
+	resolveFetchInitiatorUrl,
 	rewriteRequestHeaders,
 	attachCarriedHeaders,
 	rewriteResponseHeaders,
 	worstFetchSite,
 } from "./headers";
-import { _URL, URL_revokeObjectURL } from "@/shared/snapshot";
+import { Object_keys, _URL, URL_revokeObjectURL } from "@/shared/snapshot";
 
 export async function doHandleFetch(
 	handler: ScramjetFetchHandler,
 	request: ScramjetFetchRequest
 ): Promise<ScramjetFetchResponse> {
 	const parsed = parseRequest(request, handler);
+	parsed.referrer = determineReferrer(handler, request, parsed);
 
 	if (isBlobOrDataUrl(parsed.url)) {
 		return handleBlobOrDataUrlFetch(handler, request, parsed);
@@ -50,10 +58,25 @@ export async function doHandleFetch(
 	}
 
 	if (parsed.hadExtraParams && isDocument(parsed)) {
-		const location = rewriteUrl(parsed.url, handler.context, parsed.meta);
-		if (location !== request.rawUrl.href) {
+		// the same navigation over again, with the form's fields folded into the
+		// URL. its parameters are the ones it came with, not ones worked out
+		// from this document, which is only the destination; and the browser
+		// follows it with the referrer it sent here, which this hop has already
+		// made sense of and the next could not - the fields took the place of
+		// whatever the page stamped on the form's URL
+		const location = new _URL(
+			rewriteUrl(parsed.url, handler.context, parsed.meta)
+		);
+		location.search = "";
+		const { params } = parseQueryParams(request.rawUrl.searchParams);
+		for (const key of Object_keys(params) as QueryParamKey[]) {
+			location.searchParams.set(QP[key], params[key]!);
+		}
+		location.searchParams.set(QP.referrerSource, parsed.referrer ?? "");
+
+		if (location.href !== request.rawUrl.href) {
 			const responseHeaders = new ScramjetHeaders();
-			responseHeaders.set("location", location);
+			responseHeaders.set("location", location.href);
 			return {
 				body: "",
 				headers: responseHeaders,
@@ -71,16 +94,6 @@ export async function doHandleFetch(
 	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a ScramjetHeaders object
 	await handleCookies(handler, request, parsed, response.rawHeaders);
 
-	if (isDocument(parsed)) {
-		// for document.referer
-		parsed.trackedClient?.history.push({
-			url: parsed.url.href,
-			refererPolicy: ScramjetHeaders.fromRawHeaders(response.rawHeaders).get(
-				"referrer-policy"
-			),
-		});
-	}
-
 	const responseHeaders = await rewriteResponseHeaders(
 		handler,
 		request,
@@ -90,30 +103,14 @@ export async function doHandleFetch(
 
 	if (isRedirect(response)) {
 		const location = new _URL(responseHeaders.get("location"));
-		const referer = newheaders.get("Referer");
 
-		// Compute the page (initiator) URL once. The initiator never changes
-		// through a redirect chain, so prefer the propagated `sj$io` value if
-		// the chain has already started; otherwise fall back to rawClientUrl
-		// or rawReferrer (which point at the page for the *first* hop).
-		let initiatorOriginUrl: URL | undefined;
-		if (parsed.fetchInitiatorOrigin) {
-			try {
-				initiatorOriginUrl = new _URL(parsed.fetchInitiatorOrigin);
-			} catch {
-				initiatorOriginUrl = undefined;
-			}
-		}
-		if (!initiatorOriginUrl) {
-			const rawClient =
-				request.rawClientUrl ||
-				(request.rawReferrer ? new _URL(request.rawReferrer) : undefined);
-			initiatorOriginUrl =
-				rawClient &&
-				rawClient.pathname.startsWith(handler.context.prefix.pathname)
-					? new _URL(unrewriteUrl(rawClient, handler.context))
-					: undefined;
-		}
+		// the initiator never changes through a redirect chain, and is handed on
+		// as `$io` for the hops where the browser no longer says who it was
+		const initiatorOriginUrl = resolveFetchInitiatorUrl(
+			request,
+			parsed,
+			handler
+		);
 
 		// Cross-site redirect poisoning (SameSite): if this hop was cross-site, or a
 		// previous hop already was, propagate the flag so the final destination
@@ -138,8 +135,18 @@ export async function doHandleFetch(
 			}
 		}
 
-		location.searchParams.set(QP.referrerSource, referer ?? "");
+		// the browser follows the redirect with the whole referrer, since in the
+		// proxy's URL space it has not left the origin. hand on the one this hop
+		// actually sent, which is all the next hop may start from
+		location.searchParams.set(QP.referrerSource, parsed.referrer ?? "");
+		if (isDocument(parsed)) {
+			location.searchParams.set(
+				QP.referrerPolicy,
+				parsed.initialReferrerPolicy ?? request.rawReferrerPolicy ?? ""
+			);
+		}
 		if (crossSiteRedirect) location.searchParams.set(QP.crossSiteRedirect, "1");
+
 		if (propagatedFetchSite)
 			location.searchParams.set(QP.fetchSite, propagatedFetchSite);
 		if (initiatorOriginUrl)

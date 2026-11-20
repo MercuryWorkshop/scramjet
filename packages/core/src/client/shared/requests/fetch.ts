@@ -2,25 +2,25 @@ import { GlobalScope, ScramjetClient } from "@client/index";
 import {
 	Arguments,
 	Constructor,
-	idlDOMString,
+	dictionaryReaderOf,
+	idlConverter,
+	type IDLMember,
 	Returns,
 	Type,
 } from "@client/webidl";
 import { carriedHeaderName, uncarriedHeaderName } from "@/shared/headers";
+import { iswindow } from "@client/entry";
+import type { NativeErrorSite } from "@client/nativeerror";
 import {
+	Array_isArray,
+	Object_assign,
 	Object_create,
 	Reflect_apply,
 	Reflect_get,
-	String,
 	String_startsWith,
+	Symbol_iterator,
 	_URL,
-	drain,
 } from "@/shared/snapshot";
-
-/** The init members a string-input `fetch()` / `new Request()` reads, sorted. */
-const URL_INIT_MEMBERS = ["credentials", "headers", "mode"] as const;
-/** The only one anything else has to look at. */
-const HEADERS_INIT_MEMBER = ["headers"] as const;
 
 /**
  * Capture the page's intended `init.mode` / `init.credentials` and forward
@@ -30,13 +30,13 @@ const HEADERS_INIT_MEMBER = ["headers"] as const;
  * `event.request.credentials` from the SW are derived against the rewritten
  * same-origin URL and don't reflect the page's actual intent.
  *
- * Takes the members as {@link readInit} read them, not the page's object.
+ * Takes the init as {@link readRequestInit} converted it, not the page's.
  */
-function rewriteUrlOptionsForFetch(members: Record<string, unknown>) {
+function rewriteUrlOptionsForFetch(init: Record<string, unknown>) {
 	return {
 		// `fetch()` and `new Request()` both default mode to "cors" per spec.
-		mode: (members.mode as string | undefined) ?? "cors",
-		credentials: members.credentials === "include" ? "include" : undefined,
+		mode: (init.mode as string | undefined) ?? "cors",
+		credentials: init.credentials === "include" ? "include" : undefined,
 	};
 }
 
@@ -80,8 +80,29 @@ export default function (client: ScramjetClient, self: Self) {
 			: init;
 
 	/**
-	 * A `RequestInit` / `ResponseInit` with the members named by `keys` read
-	 * exactly once, and a tagged `headers` swapped for the corrected view.
+	 * A `RequestInit.referrer`, parsed, as the native constructor should see it.
+	 *
+	 * The native parses it against the proxy's URL and turns anything not
+	 * same-origin with the proxy into `about:client`, so the site's URL has to
+	 * be judged against the site's origin here and handed over as the proxy's.
+	 * The service worker reads it back off the request.
+	 *
+	 * https://fetch.spec.whatwg.org/#dom-request (the `referrer` steps)
+	 */
+	const referrerFor = (parsed: URL): string => {
+		if (parsed.protocol === "about:" && parsed.pathname === "client") {
+			return "about:client";
+		}
+		// against the document's origin, which is opaque in a sandboxed frame
+		// and so the same as no URL's
+		if (parsed.origin !== client.originKey) return "about:client";
+
+		return client.rewriteUrl(parsed.href);
+	};
+
+	/**
+	 * A `ResponseInit` with `headers` read exactly once, and a tagged one
+	 * swapped for the corrected view.
 	 *
 	 * The native converts the whole dictionary itself, so reading a member here
 	 * and then handing the page's object on runs that member's getter twice.
@@ -90,27 +111,15 @@ export default function (client: ScramjetClient, self: Self) {
 	 * `statusText` from `Response.prototype`, which an own-property copy drops,
 	 * leaving a 200 OK.
 	 *
-	 * So the native is handed a view that answers the members read here from
-	 * what they read as, and sends every other `[[Get]]` to the page's object
-	 * with the page's object as the receiver, which is what keeps a platform
-	 * getter's brand check passing. `mode` and `credentials` go through
-	 * `ToString` here too, so the native converts a primitive and runs no page
-	 * code a second time. What this cannot keep is WebIDL's lexicographic
-	 * order: these members are read before the native reads the rest.
+	 * So the native is handed a view that answers `headers` from what it read
+	 * as, and sends every other `[[Get]]` to the page's object with the page's
+	 * object as the receiver, which is what keeps a platform getter's brand
+	 * check passing. The view is not a proxy *of* the page's object: a frozen
+	 * one's members could then only ever read as they are, and a proxy that
+	 * answers otherwise throws. What this cannot keep is WebIDL's lexicographic
+	 * order: `headers` is read before the native reads the rest.
 	 */
-	const readInit = <T>(
-		init: T,
-		keys: readonly string[]
-	): {
-		init: T;
-		members: Record<string, unknown>;
-		seen: Record<string, unknown>;
-	} => {
-		const members: Record<string, unknown> = Object_create(null);
-		// every other member, as the native read it - so it can be looked at
-		// afterwards without running a getter a second time
-		const seen: Record<string, unknown> = Object_create(null);
-
+	const readResponseInit = <T>(init: T): T => {
 		// undefined and null are the empty dictionary and anything else that is
 		// not an object is the native's TypeError to raise, so neither has a
 		// member to read
@@ -118,53 +127,205 @@ export default function (client: ScramjetClient, self: Self) {
 			init === null ||
 			(typeof init !== "object" && typeof init !== "function")
 		) {
-			return { init, members, seen };
+			return init;
 		}
 
-		for (const key of drain(keys)) {
-			members[key] = (init as Record<string, unknown>)[key];
+		let headers = (init as Record<string, unknown>).headers;
+		if (client.box.taggedHeaders.has(headers as Headers)) {
+			headers = toNativeHeaders(headers as Headers);
 		}
 
-		if (members.mode !== undefined) members.mode = idlDOMString(members.mode);
-		if (members.credentials !== undefined) {
-			members.credentials = idlDOMString(members.credentials);
-		}
-		if (client.box.taggedHeaders.has(members.headers as Headers)) {
-			members.headers = toNativeHeaders(members.headers as Headers);
-		}
+		return new Proxy(Object_create(null), {
+			get: (_, key) =>
+				key === "headers" ? headers : Reflect_get(init as object, key, init),
+		}) as T;
+	};
 
-		const view = new Proxy(init as object, {
-			get: (target, key) => {
-				if (key in members) return members[key as string];
-				const value = Reflect_get(target, key, target);
-				if (typeof key === "string") seen[key] = value;
+	const convertHeadersInit = idlConverter(
+		"(sequence<sequence<ByteString>> or record<ByteString, ByteString>)",
+		"Failed to read the 'headers' property from 'RequestInit': The provided value is not of type '(record<ByteString, ByteString> or sequence<sequence<ByteString>>)'."
+	);
 
-				return value;
-			},
-		});
+	/**
+	 * `items` as an iterable the native iterates without looking anything up
+	 * on a prototype: its `@@iterator`, the iterator's `next` and every result
+	 * are its own properties, where an array's are `Array.prototype`'s and
+	 * `%ArrayIteratorPrototype%`'s, which are the page's to replace.
+	 */
+	const ownIterable = (items: unknown[]): object => {
+		const iterable = Object_create(null);
+		iterable[Symbol_iterator] = () => {
+			let i = 0;
+			const iterator = Object_create(null);
+			iterator.next = () => {
+				const result = Object_create(null);
+				result.done = i >= items.length;
+				result.value = result.done ? undefined : items[i++];
 
-		return { init: view as T, members, seen };
+				return result;
+			};
+
+			return iterator;
+		};
+
+		return iterable;
 	};
 
 	/**
-	 * A Request whose URL is the site's rather than the proxy's, rebuilt against
-	 * the proxy URL.
+	 * A `HeadersInit`, in a form the native reads without running anything of
+	 * the page's: entries in a sequence of {@link ownIterable}s - a Headers
+	 * read through the native, a tagged one as its corrected view - or a
+	 * record with no prototype, for the native to fill the request from entry
+	 * by entry, under its own guard and with its own errors.
+	 */
+	const convertHeaders = (value: unknown): unknown => {
+		// read now and through the native, where the native would fill the
+		// request from it now: a later member's getter can still change it, or
+		// the `@@iterator` it would be read with
+		const headers = client.box.taggedHeaders.has(value as Headers)
+			? toNativeHeaders(value as Headers)
+			: client.box.instanceof(value, "Headers")
+				? (value as Headers)
+				: null;
+		if (headers) {
+			const pairs: object[] = [];
+			new client.native.Headers(headers).forEach((v: string, k: string) => {
+				pairs[pairs.length] = ownIterable([k, v]);
+			});
+
+			return ownIterable(pairs);
+		}
+
+		const converted = convertHeadersInit(value) as
+			| string[][]
+			| Record<string, string>;
+		if (Array_isArray(converted)) {
+			const pairs: object[] = [];
+			for (let i = 0; i < converted.length; i++) {
+				pairs[i] = ownIterable(converted[i]);
+			}
+
+			return ownIterable(pairs);
+		}
+
+		return converted;
+	};
+
+	/**
+	 * `RequestInit`, member by member: the members Chrome converts, its
+	 * partials included. `privateToken` is a dictionary of its own that is
+	 * handed on as it is, for the native to convert.
+	 * https://fetch.spec.whatwg.org/#requestinit
+	 *
+	 * `targetAddressSpace` is an enum whose values are the native's to know.
+	 * It is only converted to a string here - and being the last member read,
+	 * its value is checked where it would be, with nothing left to read after.
+	 */
+	const REQUEST_INIT: Record<string, IDLMember> = Object_assign(
+		Object_create(null),
+		{
+			adAuctionHeaders: "boolean",
+			attributionReporting: dictionaryReaderOf(
+				"AttributionReportingRequestOptions",
+				{
+					eventSourceEligible: "required boolean",
+					triggerEligible: "required boolean",
+				},
+				client.box
+			),
+			// Chrome's is `any`, converted by the constructor steps rather
+			// than here: a string's `toString` runs after every member is read
+			body: "any",
+			browsingTopics: "boolean",
+			cache: "RequestCache",
+			credentials: "RequestCredentials",
+			duplex: "RequestDuplex",
+			headers: convertHeaders,
+			integrity: "DOMString",
+			keepalive: "boolean",
+			method: "ByteString",
+			mode: "RequestMode",
+			priority: "RequestPriority",
+			privateToken: "any",
+			redirect: "RequestRedirect",
+			referrer: "USVString",
+			referrerPolicy: "ReferrerPolicy",
+			sharedStorageWritable: "boolean",
+			signal: "AbortSignal?",
+			targetAddressSpace: "DOMString",
+		}
+	);
+
+	const requestInitReader = dictionaryReaderOf(
+		"RequestInit",
+		REQUEST_INIT,
+		client.box
+	);
+	const readRequestInit = (
+		value: unknown,
+		site: NativeErrorSite
+	): Record<string, unknown> => {
+		const init = requestInitReader(value);
+		// resolved once the whole dictionary has been converted, as the
+		// constructor steps do: a later member can still have moved <base>
+		if (typeof init.referrer === "string" && init.referrer !== "") {
+			let parsed: URL;
+			try {
+				parsed = new _URL(init.referrer, client.meta.base);
+			} catch {
+				throw client.errors.typeError({
+					...site,
+					detail: `Referrer '${init.referrer}' is not a valid URL.`,
+				});
+			}
+			init.referrer = referrerFor(parsed);
+		}
+
+		return init;
+	};
+
+	/**
+	 * The proxy URL a Request whose URL is the site's rather than the proxy's
+	 * has to be rebuilt at, or null for one that is fine as it is.
 	 *
 	 * Anything built through our own constructor is already rewritten, but not
 	 * every Request comes from there: a `cache.keys()` entry is keyed by the real
 	 * URL by design, and one handed over from another realm never passed through
 	 * us at all. Fetching either as-is goes straight at the origin and fails.
 	 */
-	const rewriteRequestObject = async (request: Request): Promise<Request> => {
-		const n = new client.native.Request(request);
+	const proxyUrlFor = (n: Request): string | null => {
 		const url: string = n.url;
 
-		if (String_startsWith(url, client.context.prefix.href)) return request;
+		if (String_startsWith(url, client.context.prefix.href)) return null;
 		if (!String_startsWith(url, "http:") && !String_startsWith(url, "https:")) {
-			return request;
+			return null;
 		}
 		// a disturbed body is the native's to refuse, with its own TypeError
-		if (n.bodyUsed) return request;
+		if (n.bodyUsed) return null;
+
+		return client.rewriteUrl(url, {
+			mode: n.mode === "navigate" ? "cors" : n.mode,
+			credentials: n.credentials === "include" ? "include" : undefined,
+		});
+	};
+
+	/**
+	 * `request` - read through the native, as `n` - at another URL.
+	 *
+	 * Or `request` itself when its signal has already been aborted and the
+	 * init leaves it in place, for the native to reject with the reason before
+	 * reading any of the body - which an open stream would otherwise never
+	 * finish giving up.
+	 */
+	const copyRequest = async (
+		request: Request,
+		n: Request,
+		url: string,
+		signalReplaced: boolean
+	): Promise<Request> => {
+		if (!signalReplaced && new client.native.AbortSignal(n.signal).aborted) {
+			return request;
+		}
 
 		const init: RequestInit = {
 			method: n.method,
@@ -186,13 +347,7 @@ export default function (client: ScramjetClient, self: Self) {
 		// Firefox does not support at all
 		if (n.body !== null) init.body = await n.blob();
 
-		return new nativeGlobal.Request(
-			client.rewriteUrl(url, {
-				mode: n.mode === "navigate" ? "cors" : n.mode,
-				credentials: n.credentials === "include" ? "include" : undefined,
-			}),
-			init
-		);
+		return new nativeGlobal.Request(url, init);
 	};
 
 	/**
@@ -207,36 +362,29 @@ export default function (client: ScramjetClient, self: Self) {
 	 * integrity metadata at all. A same-origin fetch that is redirected to
 	 * another origin is not caught.
 	 *
-	 * `input` is the rewritten request or URL; `members` and `seen` are what
-	 * {@link readInit} read.
+	 * `request` is what the native was handed, and `init` the init as
+	 * {@link readRequestInit} converted it.
 	 *
 	 * https://fetch.spec.whatwg.org/#main-fetch
 	 */
 	const isOpaqueWithIntegrity = (
-		input: RequestInfo,
-		members: Record<string, unknown>,
-		seen: Record<string, unknown>
+		request: RequestInfo,
+		init: Record<string, unknown>
 	): boolean => {
-		let mode: unknown = members.mode ?? seen.mode;
-		let integrity: unknown = seen.integrity;
+		let mode = init.mode as string | undefined;
+		let integrity = init.integrity as string | undefined;
 		let url: string;
-		if (typeof input === "string") {
-			url = input;
+		if (typeof request === "string") {
+			url = request;
+			mode ??= "cors";
 		} else {
-			const n = new client.native.Request(input);
+			const n = new client.native.Request(request);
 			url = n.url;
-			if (mode === undefined) mode = n.mode;
-			if (integrity === undefined) integrity = n.integrity;
+			mode ??= n.mode;
+			integrity ??= n.integrity;
 		}
 
-		// a member that is an object went through `ToString`, which is page code
-		// the native has already run once - it is not run again to find out
-		// what it said
-		if (mode !== "no-cors") return false;
-		if (typeof integrity === "object" || typeof integrity === "function") {
-			return false;
-		}
-		if (integrity === undefined || String(integrity) === "") return false;
+		if (mode !== "no-cors" || !integrity) return false;
 
 		const target = new _URL(client.unrewriteUrl(url));
 		if (target.protocol !== "http:" && target.protocol !== "https:") {
@@ -252,20 +400,29 @@ export default function (client: ScramjetClient, self: Self) {
 		@Arguments("(Request or USVString)", "optional RequestInit")
 		@Returns("Promise<Response>")
 		static async fetch(input: RequestInfo, requestInit?: RequestInit) {
-			const { init, members, seen } = readInit(
-				requestInit,
-				typeof input === "string" ? URL_INIT_MEMBERS : HEADERS_INIT_MEMBER
-			);
-			input =
-				typeof input === "string"
-					? client.rewriteUrl(input, rewriteUrlOptionsForFetch(members))
-					: await rewriteRequestObject(input);
-
+			const init = readRequestInit(requestInit, {
+				execute: "fetch",
+				on: iswindow ? "Window" : "WorkerGlobalScope",
+			});
 			// through `this` rather than a saved global, so the native's own
 			// receiver check still sees what the page called it on
-			const response = await new client.native.window(this).fetch(input, init);
+			const nativeThis = new client.native.window(this);
 
-			if (isOpaqueWithIntegrity(input, members, seen)) {
+			let request: RequestInfo;
+			if (typeof input === "string") {
+				request = client.rewriteUrl(input, rewriteUrlOptionsForFetch(init));
+			} else {
+				const n = new client.native.Request(input);
+				const url = proxyUrlFor(n);
+				request =
+					url === null
+						? input
+						: await copyRequest(input, n, url, init.signal !== undefined);
+			}
+
+			const response: Response = await nativeThis.fetch(request, init);
+
+			if (isOpaqueWithIntegrity(request, init)) {
 				throw client.errors.typeError({ detail: "Failed to fetch" });
 			}
 			client.box.taggedResponses.add(response);
@@ -277,14 +434,12 @@ export default function (client: ScramjetClient, self: Self) {
 	client.Intercept(class extends Request {
 		@Constructor("(Request or USVString)", "optional RequestInit")
 		static konstructor(input: RequestInfo, requestInit?: RequestInit) {
-			const { init, members } = readInit(
-				requestInit,
-				typeof input === "string" ? URL_INIT_MEMBERS : HEADERS_INIT_MEMBER
-			);
+			const init = readRequestInit(requestInit, { construct: "Request" });
 			if (typeof input === "string") {
-				input = client.rewriteUrl(input, rewriteUrlOptionsForFetch(members));
+				input = client.rewriteUrl(input, rewriteUrlOptionsForFetch(init));
 			}
 
+			// converted already, so the native reads nothing of the page's
 			return new this(input, init);
 		}
 
@@ -299,11 +454,22 @@ export default function (client: ScramjetClient, self: Self) {
 				? client.unrewriteUrl(url)
 				: url;
 		}
+
+		// the referrer init was handed to the native as a proxy URL, and one
+		// that is not (`about:client`, or none) is the same for the site
+		@Type("USVString")
+		get referrer() {
+			const referrer = super.referrer;
+
+			return String_startsWith(referrer, client.context.prefix.href)
+				? client.unrewriteUrl(referrer)
+				: referrer;
+		}
 	});
 	client.Intercept(class extends Response {
 		@Constructor("optional BodyInit?", "optional ResponseInit")
 		static konstructor(body?: BodyInit | null, responseInit?: ResponseInit) {
-			return new this(body, readInit(responseInit, HEADERS_INIT_MEMBER).init);
+			return new this(body, readResponseInit(responseInit));
 		}
 
 		@Type("USVString")

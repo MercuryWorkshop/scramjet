@@ -15,6 +15,7 @@ import {
 	rewriteWorkers,
 } from "@/shared";
 import { sniffEncoding } from "@/shared/sniffEncoding";
+import { documentReferrer } from "./headers";
 import {
 	TextDecoder_decode,
 	_TextDecoder,
@@ -44,8 +45,7 @@ export async function rewriteBody(
 					inline: true,
 					source: parsed.url.href,
 					headers: response.rawHeaders,
-					// reasonably confident that a document fetch is impossible without a client
-					history: parsed.trackedClient!.history,
+					referrer: documentReferrer(parsed),
 				});
 			} else {
 				return response.body;

@@ -239,7 +239,7 @@ export const htmlRules: {
 					base: new _URL(meta.origin.origin),
 					topFrameName: meta.topFrameName,
 					parentFrameName: meta.parentFrameName,
-					referrerPolicy: meta.referrerPolicy,
+					initiatorOrigin: meta.initiatorOrigin,
 				},
 				{
 					loadScripts: true,

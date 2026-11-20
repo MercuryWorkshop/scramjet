@@ -1,7 +1,8 @@
 import { isHtmlMimeType, ScramjetHeaders } from "@/shared";
 import { BareResponse } from "@mercuryworkshop/proxy-transports";
 import { ScramjetFetchParsed } from ".";
-import { _URL } from "@/shared/snapshot";
+import { _Set, _URL } from "@/shared/snapshot";
+import { MAX_REFERRER_LENGTH } from "@rewriters/url";
 
 export function normalizeContentType(
 	parsed: ScramjetFetchParsed,
@@ -24,59 +25,74 @@ export function isDocument(parsed: ScramjetFetchParsed) {
 	return parsed.destination === "document" || parsed.destination === "iframe";
 }
 
+const REFERRER_POLICIES = new _Set([
+	"no-referrer",
+	"no-referrer-when-downgrade",
+	"same-origin",
+	"origin",
+	"strict-origin",
+	"origin-when-cross-origin",
+	"strict-origin-when-cross-origin",
+	"unsafe-url",
+]);
+
+/** The policy a request falls back to when nothing sets one. */
+export const DEFAULT_REFERRER_POLICY = "strict-origin-when-cross-origin";
+
+/**
+ * The Referer a request for `resource` sends when it comes from `source`
+ * under `policy`, or "" for none.
+ *
+ * https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+ * with Chrome's reading of it: a downgrade is going from https to anything
+ * that is not https, rather than to something not potentially trustworthy.
+ */
 export function createReferrerString(
-	clientUrl: URL,
+	source: URL,
 	resource: URL,
-	policy: string | null
+	policy: string | null | undefined
 ): string {
-	policy ||= "strict-origin-when-cross-origin";
-	const originIsHttps = clientUrl.protocol === "https:";
-	const destIsHttps = resource.protocol === "https:";
+	// only http(s) URLs are ever sent: about:, blob: and data: are dropped
+	if (source.protocol !== "http:" && source.protocol !== "https:") return "";
+	if (!policy || !REFERRER_POLICIES.has(policy)) {
+		policy = DEFAULT_REFERRER_POLICY;
+	}
 
-	const isPotentialDowngrade = originIsHttps && !destIsHttps;
+	const stripped = new _URL(source.href);
+	stripped.username = "";
+	stripped.password = "";
+	stripped.hash = "";
 
-	const isSameOrigin =
-		clientUrl.protocol === resource.protocol &&
-		clientUrl.host === resource.host;
+	const origin = stripped.origin + "/";
+	let full = stripped.href;
+	if (full.length > MAX_REFERRER_LENGTH) full = origin;
 
-	const referrerOrigin = clientUrl.origin;
-
-	const referrerUrl = new _URL(clientUrl.href);
-	referrerUrl.hash = "";
-	const referrerUrlString = referrerUrl.href;
+	const isDowngrade =
+		stripped.protocol === "https:" &&
+		resource.protocol !== "https:" &&
+		resource.protocol !== "wss:";
+	// blob: URLs carry the origin they were made in, data: URLs an opaque one
+	const isSameOrigin = stripped.origin === resource.origin;
 
 	switch (policy) {
 		case "no-referrer":
 			return "";
-
 		case "no-referrer-when-downgrade":
-			if (isPotentialDowngrade) return "";
-			return referrerUrlString;
-
+			return isDowngrade ? "" : full;
 		case "same-origin":
-			if (isSameOrigin) return referrerUrlString;
-			return "";
-
+			return isSameOrigin ? full : "";
 		case "origin":
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
+			return origin;
 		case "strict-origin":
-			if (isPotentialDowngrade) return "";
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
+			return isDowngrade ? "" : origin;
 		case "origin-when-cross-origin":
-			if (isSameOrigin) return referrerUrlString;
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
+			return isSameOrigin ? full : origin;
 		case "strict-origin-when-cross-origin":
-			if (isSameOrigin) return referrerUrlString;
-			if (isPotentialDowngrade) return "";
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
+			if (isSameOrigin) return full;
+			return isDowngrade ? "" : origin;
 		case "unsafe-url":
-			return referrerUrlString;
-
-		default:
-			return "";
+			return full;
 	}
+
+	return "";
 }

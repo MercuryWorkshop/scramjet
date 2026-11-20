@@ -77,10 +77,17 @@ impl UrlRewriter for WasmUrlRewriter {
 
 		if module {
 			// TODO: keep this in sync with QP.isModule or find a way to make this use the real rewriteUrl function
-			let origin = Url::new(&flags.base).map_err(RewriterError::from)?.origin();
-			let encoded_origin: String = encode_uri_component(&origin).into();
+			// `$io` as `rewriteUrl` stamps it on a module: the document's or
+			// worker's origin, whichever module imports it, so a module's URL
+			// is the same from every importer and from the import map
+			let initiator = if flags.initiator_origin.is_empty() {
+				Url::new(&flags.base).map_err(RewriterError::from)?.origin()
+			} else {
+				flags.initiator_origin.clone()
+			};
+			let encoded_initiator: String = encode_uri_component(&initiator).into();
 			rewritten.push_str("?%24module=module&%24io=");
-			rewritten.push_str(&encoded_origin);
+			rewritten.push_str(&encoded_initiator);
 		}
 
 		// back inside the string literal it came out of. The fragment

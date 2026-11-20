@@ -10,11 +10,18 @@ import { ScramjetHeaders } from "@/shared/headers";
 import { HtmlRewriterHooks, ScramjetContext } from "@/shared";
 import { Tap, TapInstance } from "@/Tap";
 import { doHandleFetch } from "./fetch";
-import { _URL, _Map } from "@/shared/snapshot";
+import { _URL } from "@/shared/snapshot";
 
 export interface ScramjetFetchRequest {
 	rawUrl: URL;
 	rawReferrer: string | null;
+	/**
+	 * The request's referrer policy as the browser resolved it: the one the
+	 * request asked for (a `referrerpolicy` attribute, `fetch()`'s option, a
+	 * redirect's Referrer-Policy header) or its client's. Documents keep the
+	 * policy their site gave them, so this is the site's.
+	 */
+	rawReferrerPolicy?: ReferrerPolicy;
 	// use parsed.destination instead
 	rawDestination: RequestDestination;
 	mode: RequestMode;
@@ -34,7 +41,19 @@ export interface ScramjetFetchRequest {
 export interface ScramjetFetchParsed {
 	url: _URL;
 	clientUrl?: _URL;
+	/**
+	 * The referrer a redirect handed on, already cut down by the policy of
+	 * every hop before this one (null for none). Absent on a first request.
+	 */
 	referrerSourceUrl?: _URL | null;
+	/**
+	 * The referrer policy a navigation started out with, handed on through its
+	 * redirects: Chrome puts the Referer of the last hop through it for
+	 * document.referrer.
+	 */
+	initialReferrerPolicy?: string;
+	/** The Referer header this request is sent with, or null for none. */
+	referrer?: string | null;
 	hadExtraParams: boolean;
 	crossSiteRedirect: boolean;
 
@@ -44,6 +63,8 @@ export interface ScramjetFetchParsed {
 	// origin of the page that initialized the request
 	// specifically for tracking Sec-Fetch-Site, don't use for anything else, it will diverge from clientUrl in some cases
 	fetchInitiatorOrigin?: string;
+	/** The `$ro` the request was stamped with, see `URLMeta.initiatorOrigin`. */
+	fetchReferrerOrigin?: string;
 
 	// was the request made with credentials=include?
 	fetchCredentialsInclude?: boolean;
@@ -60,8 +81,6 @@ export interface ScramjetFetchParsed {
 	meta: URLMeta;
 	isModule: boolean;
 	isFakeDataURL: boolean;
-	referrerPolicy?: string;
-	trackedClient?: ScramjetFetchTrackedClient;
 }
 
 export interface ScramjetFetchResponse {
@@ -94,21 +113,10 @@ export type FetchHandlerInit = {
 	fetchBlobUrl(blobUrl: string): Promise<BareResponse>;
 };
 
-export type TrackedHistoryState = {
-	url: string;
-	refererPolicy?: string;
-};
-export class ScramjetFetchTrackedClient {
-	history: TrackedHistoryState[] = [];
-	constructor(public clientId: string) {}
-}
-
 export class ScramjetFetchHandler extends EventTarget {
 	public client: BareCompatibleClient;
 	public crossOriginIsolated: boolean = false;
 	public context: ScramjetContext;
-
-	public trackedClients: _Map<string, ScramjetFetchTrackedClient> = new _Map();
 
 	public hooks: {
 		rewriter: {

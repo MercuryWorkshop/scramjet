@@ -250,6 +250,7 @@ export async function route(event: FetchEvent): Promise<Response> {
 			{
 				rawUrl: event.request.url,
 				rawReferrer: event.request.referrer,
+				rawReferrerPolicy: event.request.referrerPolicy,
 				destination: event.request.destination,
 				mode: event.request.mode,
 				referrer: event.request.referrer,

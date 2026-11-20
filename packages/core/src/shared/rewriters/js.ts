@@ -54,6 +54,9 @@ function rewriteJsWasm(
 	flagsobj["incumbency"] = incumbencyMode(context);
 	flagsobj["inlineSourcemap"] = inlineSourcemap;
 	flagsobj["scriptId"] = genScriptId();
+	// the module's imports are the document's or worker's requests: its own
+	// origin, not that of a <base> it may have, nor of the module itself
+	flagsobj["initiatorOrigin"] = meta.initiatorOrigin ?? meta.origin.origin;
 
 	try {
 		let out: JsRewriterOutput;
