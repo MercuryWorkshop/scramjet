@@ -15,6 +15,7 @@
 
 import { ScramjetClient } from "@client/index";
 import { Arguments, Returns, Type } from "@client/webidl";
+import { nodeClient, trustedString } from "@client/trustedtypes";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { ForeignContext } from "@/shared/rewriters/html";
 import { isHtmlMimeType } from "@/shared/mime";
@@ -168,7 +169,15 @@ export default function (client: ScramjetClient, _self: Self) {
 			// serialize the whole subtree for nothing
 			void super.tagName;
 
-			const html = String(value);
+			// The response's Trusted Types requirement is checked against what
+			// the PAGE wrote, before any rewriting -- a rewritten string is not
+			// the string the policy was asked about.
+			const html = trustedString(
+				nodeClient(client, this),
+				value,
+				"TrustedHTML",
+				"Element innerHTML"
+			);
 
 			// a script or a style is a raw text element: its "markup" is never
 			// parsed as markup, it is the element's source

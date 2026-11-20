@@ -26,6 +26,7 @@ import { ScramjetClient } from "@client/index";
 import { Arguments, Returns, Type, idlUSVString } from "@client/webidl";
 import { frozenBaseUrl, unrewriteUrl } from "@rewriters/url";
 import { XLINK_NAMESPACE } from "@client/attributes";
+import { nodeClient, trustedString } from "@client/trustedtypes";
 import {
 	String,
 	String_startsWith,
@@ -645,9 +646,19 @@ export default function (client: ScramjetClient, self: Self) {
 			return reflectURL(this, "src");
 		}
 
-		@Type("USVString")
+		@Type("(TrustedScriptURL or USVString)")
 		set src(value: string) {
 			void super.type;
+
+			// As with innerHTML: a response's Trusted Types requirement is about
+			// the value the PAGE assigned, so it is checked before the URL is
+			// rewritten.
+			value = trustedString(
+				nodeClient(client, this),
+				value,
+				"TrustedScriptURL",
+				"HTMLScriptElement src"
+			);
 
 			set(this, "src", value);
 		}
@@ -889,6 +900,27 @@ export default function (client: ScramjetClient, self: Self) {
 			void super.dateTime;
 
 			set(this, "cite", value);
+		}
+	});
+
+	// --- metadata -----------------------------------------------------------
+	// Both pragmas the rewriter touches leave what the page wrote in the mirror:
+	// a refresh's content is rewritten, and a content security policy's is
+	// moved off the element so the pragma never runs.
+	// https://html.spec.whatwg.org/multipage/semantics.html#dom-meta-content
+	client.Intercept(class extends HTMLMetaElement {
+		@Type("DOMString")
+		get content(): string {
+			void super.content;
+
+			return reflect(this, "content");
+		}
+
+		@Type("DOMString")
+		set content(value: string) {
+			void super.content;
+
+			set(this, "content", value);
 		}
 	});
 

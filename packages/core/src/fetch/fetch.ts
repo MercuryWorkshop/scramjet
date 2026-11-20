@@ -31,6 +31,13 @@ import {
 	worstFetchSite,
 } from "./headers";
 import { Object_keys, _URL, URL_revokeObjectURL } from "@/shared/snapshot";
+import {
+	acceptClientHints,
+	hintsReachable,
+	isTopLevelNavigation,
+	needsCriticalRestart,
+	readyClientHints,
+} from "./clienthints";
 
 export async function doHandleFetch(
 	handler: ScramjetFetchHandler,
@@ -86,10 +93,40 @@ export async function doHandleFetch(
 		}
 	}
 
-	const newheaders = rewriteRequestHeaders(request, handler, parsed);
+	// Before the headers are composed, not after: a hint that is not resolved
+	// yet is a hint that silently does not get sent, on whichever request
+	// happens to be first -- which on a challenge page is the one that decides
+	// what the rest of the journey looks like.
+	await readyClientHints();
+	let newheaders = rewriteRequestHeaders(request, handler, parsed);
 
 	let responseBody: BodyType;
-	const response = await doNetworkFetch(handler, request, parsed, newheaders);
+	let response = await doNetworkFetch(handler, request, parsed, newheaders);
+
+	// Only a top-level navigation's `Accept-CH` is kept, and only one fetched
+	// with GET or HEAD is restarted over `Critical-CH` - Chrome restarts
+	// nothing else, and a body could not be sent again anyway: its stream has
+	// been read. Once, and only once: the server is saying it cannot act on
+	// the request it was given, so the response is dropped and the request
+	// reissued with the hints it named. A Cloudflare managed challenge answers
+	// its first navigation this way.
+	if (isTopLevelNavigation(parsed) && hintsReachable(parsed.url)) {
+		const first = ScramjetHeaders.fromRawHeaders(response.rawHeaders);
+		acceptClientHints(parsed.url, first);
+		if (
+			(request.method === "GET" || request.method === "HEAD") &&
+			needsCriticalRestart(first, newheaders)
+		) {
+			// what the dropped response set is sent with its retry
+			await handleCookies(handler, request, parsed, response.rawHeaders);
+			newheaders = rewriteRequestHeaders(request, handler, parsed);
+			response = await doNetworkFetch(handler, request, parsed, newheaders);
+			acceptClientHints(
+				parsed.url,
+				ScramjetHeaders.fromRawHeaders(response.rawHeaders)
+			);
+		}
+	}
 
 	// set-cookie needs to take the raw headers. after this, we can flatten the headers into a ScramjetHeaders object
 	await handleCookies(handler, request, parsed, response.rawHeaders);
@@ -152,6 +189,8 @@ export async function doHandleFetch(
 		if (initiatorOriginUrl)
 			location.searchParams.set(QP.initiatorOrigin, initiatorOriginUrl.origin);
 		if (parsed.isModule) location.searchParams.set(QP.isModule, "module");
+		// a frame is still a frame after its redirect
+		if (parsed.isIframe) location.searchParams.set(QP.isIframe, "1");
 
 		responseHeaders.set("location", location.href);
 	}

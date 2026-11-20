@@ -294,7 +294,11 @@ export const htmlRules: {
 		// when `http-equiv` changes, so the order the two are set in does not
 		// matter
 		fn: (value, context, meta, getAttr) => {
-			if (getAttr("http-equiv")?.toLowerCase() !== "refresh") return value;
+			const equiv = getAttr("http-equiv")?.toLowerCase();
+			// a policy is the client's to enforce: the browser would apply it to
+			// the proxy's URLs, so it stays in the mirror alone
+			if (equiv === "content-security-policy") return null;
+			if (equiv !== "refresh") return value;
 
 			const refresh = parseDeclarativeRefresh(value);
 			if (!refresh || refresh.url === null || refresh.url.length === 0) {

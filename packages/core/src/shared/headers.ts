@@ -48,6 +48,106 @@ export function uncarriedHeaderName(name: string): string | null {
 	return String_substring(name, CARRIED_HEADER_PREFIX.length);
 }
 
+/**
+ * Chrome's request header order, measured rather than taken from a document.
+ *
+ * Taken by asking a server to report the order it actually received -- the raw
+ * header list, not the lowercased and sorted view a request object exposes --
+ * for a GET and for a POST, direct and proxied, against the same endpoint.
+ * Comparing a proxied fetch against a direct navigation does not work: those
+ * differ in a browser too. Chromium's order is identical across runs.
+ */
+const CHROME_REQUEST_ORDER = [
+	"sec-ch-ua-platform",
+	"accept-language",
+	"sec-ch-ua",
+	"content-type",
+	"sec-ch-ua-mobile",
+	"user-agent",
+	"accept",
+	"origin",
+	"sec-fetch-site",
+	"sec-fetch-mode",
+	"sec-fetch-user",
+	"sec-fetch-dest",
+	"referer",
+	"accept-encoding",
+	"cookie",
+	// Last on everything Chrome sends it on -- navigation and subresource,
+	// GET and POST, after `accept-encoding` and after `cookie`.
+	"priority",
+];
+
+/**
+ * The same order for a request with no `content-type`.
+ *
+ * Chrome's order is not one sequence. It depends on WHICH headers are present:
+ * with a `content-type` the order runs `sec-ch-ua content-type sec-ch-ua-mobile
+ * User-Agent`, and without one the last two swap to `User-Agent
+ * sec-ch-ua-mobile`. Measured both ways, three runs each, identical every time
+ * -- so it is a shape and not noise, and one table cannot hold it.
+ */
+const CHROME_REQUEST_ORDER_NO_BODY = CHROME_REQUEST_ORDER.map((h) => h)
+	.filter((h) => h !== "user-agent")
+	.flatMap((h) => (h === "sec-ch-ua-mobile" ? ["user-agent", h] : [h]));
+
+/**
+ * Chrome's order on a NAVIGATION, which is a third sequence again.
+ *
+ * The two tables above were both measured from a fetch, and the comment that
+ * used to sit here said a request carrying `upgrade-insecure-requests`,
+ * `sec-fetch-user` or `priority` -- all three ride on a navigation and on
+ * nothing else -- might well order differently, and that the way to find out
+ * was to measure it rather than reason about it.
+ *
+ * Measured on a real navigation: it does. The three
+ * client hints lead, grouped, where a fetch splits them around
+ * `accept-language`; `upgrade-insecure-requests` sits between
+ * `accept-language` and `content-type`; and `origin` moves up to just after
+ * `user-agent` instead of following `accept`.
+ *
+ *   fetch       sec-ch-ua-platform accept-language sec-ch-ua content-type
+ *               sec-ch-ua-mobile user-agent accept origin sec-fetch-*
+ *               referer accept-encoding cookie
+ *   navigation  sec-ch-ua sec-ch-ua-mobile sec-ch-ua-platform accept-language
+ *               upgrade-insecure-requests content-type user-agent origin accept
+ *               sec-fetch-* referer accept-encoding cookie
+ *
+ * Unlike the fetch case ONE table covers both methods here: the GET and the
+ * form POST of the same page, taken in the same run, put every header they
+ * share in the same place, and `content-type` and `origin` simply appear at
+ * fixed points in that sequence when the POST adds them. Taken with a fetch in
+ * the same run as a control, which reproduced the table above header for
+ * header -- so this is the navigation differing and not the old measurement
+ * having drifted.
+ *
+ * `host`, `connection`, `content-length` and `cache-control` are in the
+ * capture and not in the table: they are framing the transport adds, and over
+ * HTTP/2 -- which is what the target speaks -- the first three are
+ * pseudo-headers that do not sit in this list at all.
+ */
+const CHROME_NAVIGATION_ORDER = [
+	"sec-ch-ua",
+	"sec-ch-ua-mobile",
+	"sec-ch-ua-platform",
+	"accept-language",
+	"upgrade-insecure-requests",
+	"content-type",
+	"user-agent",
+	"origin",
+	"accept",
+	"sec-fetch-site",
+	"sec-fetch-mode",
+	"sec-fetch-user",
+	"sec-fetch-dest",
+	"referer",
+	"accept-encoding",
+	"cookie",
+	// Last on everything Chrome sends it on -- navigation and subresource,
+	// GET and POST, after `accept-encoding` and after `cookie`.
+	"priority",
+];
+
 export class ScramjetHeaders {
 	headers = {};
 
@@ -77,13 +177,53 @@ export class ScramjetHeaders {
 		return key.toLowerCase() in this.headers;
 	}
 
+	/**
+	 * The request headers, in the order a browser sends them.
+	 *
+	 * Header order is a fingerprint, and Cloudflare reads it. Insertion order
+	 * is whatever the rewriting happened to do and is not Chrome's -- measured
+	 * against Chromium 155, same request, same server:
+	 *
+	 *   Chromium  sec-ch-ua-platform Accept-Language sec-ch-ua User-Agent
+	 *             sec-ch-ua-mobile Accept Sec-Fetch-* Referer Accept-Encoding
+	 *   before    accept accept-language sec-ch-ua sec-ch-ua-mobile
+	 *             sec-ch-ua-platform user-agent origin referer Sec-Fetch-*
+	 *             accept-encoding
+	 *
+	 * Stable across runs on both sides, so it is a shape and not noise. One
+	 * order covers GET and POST: the headers only a POST has -- `content-type`,
+	 * `origin`, `cookie` -- sit at fixed points in the same sequence, which is
+	 * what makes a single rank table right rather than a coincidence.
+	 *
+	 * Anything not listed keeps its insertion order, after everything listed.
+	 * The list is what was measured; inventing positions for the rest would be
+	 * guessing at a fingerprint, which is how you get a third order that
+	 * matches nothing.
+	 *
+	 * Only requests: this is the single place an outgoing header list is made
+	 * (`fetch.ts`), and a response's order belongs to the server.
+	 */
 	toRawHeaders(): RawHeaders {
-		const raw: RawHeaders = [];
+		// `upgrade-insecure-requests` is the discriminator because Chrome puts
+		// it on navigations and on nothing else, which is exactly the split the
+		// tables disagree over. Reading it off the headers keeps the ordering
+		// decided by the same thing everywhere `toRawHeaders` is called,
+		// rather than by whether a caller remembered to say which kind of
+		// request it had.
+		const order =
+			"upgrade-insecure-requests" in this.headers
+				? CHROME_NAVIGATION_ORDER
+				: "content-type" in this.headers
+					? CHROME_REQUEST_ORDER
+					: CHROME_REQUEST_ORDER_NO_BODY;
+		const known: RawHeaders = [];
+		const rest: RawHeaders = [];
 		for (const k in this.headers) {
-			raw.push([k, this.headers[k]]);
+			(order.indexOf(k) === -1 ? rest : known).push([k, this.headers[k]]);
 		}
+		known.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
 
-		return raw;
+		return [...known, ...rest];
 	}
 
 	toNativeHeaders(): Headers {
@@ -98,12 +238,20 @@ export class ScramjetHeaders {
 	static fromRawHeaders(raw: RawHeaders): ScramjetHeaders {
 		const h = new ScramjetHeaders();
 		for (const [k, v] of raw) {
-			if (h.has(k)) {
-				// console.debug(
-				// 	`Duplicate header "${k}" found in raw headers, overwriting previous value.`
-				// );
+			// two Content-Security-Policy fields are two policies, and two
+			// Accept-CH fields one list: each is read from the joined value.
+			// Any other repeat is left to the last, as it always was
+			const lk = k.toLowerCase();
+			if (
+				lk === "content-security-policy" ||
+				lk === "content-security-policy-report-only" ||
+				lk === "accept-ch" ||
+				lk === "critical-ch"
+			) {
+				h.append(k, v);
+			} else {
+				h.set(k, v);
 			}
-			h.set(k, v);
 		}
 
 		return h;

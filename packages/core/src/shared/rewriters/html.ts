@@ -2,7 +2,6 @@ import {
 	type AnyNode,
 	type CDATA,
 	type ChildNode,
-	Comment,
 	type Document,
 	DomBuilder,
 	Element,
@@ -569,17 +568,6 @@ function traverseParsedHtml(
 				module
 			) as string;
 		}
-	}
-
-	if (node.name === "meta" && attribs["http-equiv"] !== undefined) {
-		if (
-			String_toLowerCase(attribs["http-equiv"]) === "content-security-policy"
-		) {
-			// just delete it. this needs to be emulated eventually but like
-			return new Comment(attribs.content);
-		}
-		// a refresh's content is rewritten - and mirrored - by its rule in
-		// `htmlRules`, the same one a script's write goes through
 	}
 
 	traverseChildren(node, context, meta);

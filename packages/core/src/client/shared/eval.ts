@@ -1,6 +1,8 @@
 import { rewriteJs } from "@rewriters/js";
 import { ScramjetClient } from "@client/index";
-import { Object_defineProperty, String } from "@/shared/snapshot";
+import { Object_defineProperty } from "@/shared/snapshot";
+import { isTrustedScript, trustedEvalString } from "@client/trustedtypes";
+import { assertEvalAllowed } from "@client/csp";
 
 export default function (client: ScramjetClient, self: Self) {
 	// used for proxying *direct eval*
@@ -9,8 +11,9 @@ export default function (client: ScramjetClient, self: Self) {
 		value: function (js: any) {
 			// if eval is called on anything other than a string, we should just return it unchanged
 			// the one exception is TrustedScript, which can just be stringified and rewritten
-			if (client.box.instanceof(js, "TrustedScript")) js = String(js);
-			if (typeof js !== "string") return js;
+			if (typeof js !== "string" && !isTrustedScript(client, js)) return js;
+			js = trustedEvalString(client, js);
+			assertEvalAllowed(client);
 
 			const rewritten = rewriteJs(
 				js,
@@ -35,8 +38,9 @@ export function createIndirectEval(client: ScramjetClient) {
 			let js = args[0];
 			// > If the argument of eval() is not a string, eval() returns the argument unchanged
 			// the one exception is TrustedScript, which can just be stringified and rewritten
-			if (client.box.instanceof(js, "TrustedScript")) js = String(js);
-			if (typeof js !== "string") return js;
+			if (typeof js !== "string" && !isTrustedScript(client, js)) return js;
+			js = trustedEvalString(client, js);
+			assertEvalAllowed(client);
 
 			return indirection(
 				rewriteJs(

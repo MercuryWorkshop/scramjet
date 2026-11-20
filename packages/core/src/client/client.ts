@@ -561,6 +561,9 @@ export class ScramjetClient {
 		this.context = init.context;
 		if (init.initHeaders)
 			this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+		// the content security policy is this document's response's, not the
+		// one a client hooked early started out with
+		this.box.cspStates.delete(this);
 		this.documentReferrer = init.referrer;
 		this.context.hooks = {
 			rewriter: this.hooks.rewriter,
@@ -649,6 +652,9 @@ export class ScramjetClient {
 		cookies?: string;
 	}) {
 		this.initHeaders = ScramjetHeaders.fromRawHeaders(init.initHeaders);
+		// the content security policy is this document's response's, not the
+		// one a client hooked early started out with
+		this.box.cspStates.delete(this);
 		this.documentReferrer = init.referrer;
 		if (init.cookies !== undefined) {
 			this.context.cookieJar.load(init.cookies);

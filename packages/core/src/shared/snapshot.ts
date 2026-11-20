@@ -142,6 +142,17 @@ export const AsyncFunction_prototype = globalThis.Object.getPrototypeOf(
 	async function () {}
 );
 export const ArrayBuffer_isView = globalThis.ArrayBuffer.isView;
+/**
+ * The browser's UA client hints, in whichever realm this is - a service worker
+ * has them too. Absent outside Chromium, and outside a browser.
+ */
+export const Navigator_userAgentData = (
+	globalThis.navigator as Navigator & {
+		userAgentData?: {
+			getHighEntropyValues(hints: string[]): Promise<Record<string, unknown>>;
+		};
+	}
+)?.userAgentData;
 export const WebAssembly_Module = globalThis.WebAssembly.Module;
 // taken before page code runs: `self` is [Replaceable] on a window, so a page
 // can shadow it. the Location itself is [LegacyUnforgeable]. undefined outside
