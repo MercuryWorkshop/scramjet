@@ -245,6 +245,35 @@ export async function route(event: FetchEvent): Promise<Response> {
 
 		const rawheaders: RawHeaders = [...event.request.headers];
 
+		// The body as BYTES, so the transport knows how long it is.
+		//
+		// `event.request.body` is a ReadableStream whatever the page passed --
+		// a service worker sees every body that way, even the string an XHR
+		// sent -- and a transport handed a stream cannot say how many bytes are
+		// coming. epoxy therefore framed it as `transfer-encoding: chunked` on
+		// HTTP/1.1 and with no length at all on HTTP/2, where Chromium sends
+		// `content-length` on every POST that is not an explicit
+		// `duplex: "half"` upload, third in the framing block:
+		//
+		//     Host, Connection, Content-Length, Cache-Control, sec-ch-ua, ...
+		//
+		// The fix cannot be to copy the header across: `content-length` is a
+		// forbidden header name in fetch, so the shim can never read the one
+		// the page sent. It does not have to -- reading the body gives the same
+		// number, and a transport given bytes rather than a stream frames the
+		// length itself.
+		//
+		// The cost is that an upload is no longer streamed. That is also what
+		// Chromium does for every body except a `duplex: "half"` stream, which
+		// a service worker cannot distinguish anyway.
+		//
+		// `null` stays `null`. A bodyless GET handed a zero-length buffer is
+		// not the same request -- the transport then sends a body on something
+		// that must not have one, and epoxy refuses the very first GET.
+		const requestBody = event.request.body
+			? await event.request.arrayBuffer()
+			: null;
+
 		const response = await tab.rpc.call(
 			"request",
 			{
@@ -255,17 +284,16 @@ export async function route(event: FetchEvent): Promise<Response> {
 				mode: event.request.mode,
 				referrer: event.request.referrer,
 				method: event.request.method,
-				body: event.request.body,
+				body: requestBody,
 				cache: event.request.cache,
 				forceCrossOriginIsolated: false,
 				initialHeaders: rawheaders,
 				rawClientUrl: client ? client.url : undefined,
 				clientId: event.clientId || event.resultingClientId,
 			},
-			event.request.body instanceof ReadableStream ||
-				// @ts-expect-error the types for fetchevent are messed up
-				event.request.body instanceof ArrayBuffer
-				? [event.request.body]
+			requestBody instanceof ReadableStream ||
+				requestBody instanceof ArrayBuffer
+				? [requestBody]
 				: undefined
 		);
 
@@ -276,12 +304,23 @@ export async function route(event: FetchEvent): Promise<Response> {
 		});
 	} catch (e) {
 		console.error("Service Worker error:", e);
-		return new Response(
-			"Internal Service Worker Error: " + (e as Error).message,
-			{
-				status: 500,
-			}
-		);
+		// A network error, not a 500. When a request cannot be made at all --
+		// DNS does not resolve, the handshake dies, the transport is gone -- a
+		// browser produces no response and the fetch rejects. Answering with a
+		// status turns "could not reach the server" into "the server said
+		// something", which is a thing no browser does and a difference the
+		// page can read.
+		//
+		// Cloudflare's challenge reads exactly this. It probes
+		// `brunhild.challenges.cloudflare.com`, which resolves nowhere for
+		// anyone, and records HOW the request failed: a direct load reports
+		// `fetch_error`, where answering from here reported `http_error:500`.
+		// The probe exists to be failed; what it grades is the shape of the
+		// failure.
+		//
+		// The error is still logged above, so an internal bug stays as visible
+		// to whoever is debugging as it ever was -- just not to the page.
+		return Response.error();
 	}
 }
 

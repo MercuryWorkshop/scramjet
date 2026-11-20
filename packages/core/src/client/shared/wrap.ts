@@ -2,7 +2,13 @@ import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 // import { argdbg } from "@client/shared/err";
-import { Object_defineProperty } from "@/shared/snapshot";
+import {
+	Object_defineProperty,
+	Object_getOwnPropertyDescriptor,
+	Reflect_ownKeys,
+	drain,
+	String_startsWith,
+} from "@/shared/snapshot";
 
 export function createWrapFn(client: ScramjetClient, self: GlobalThis) {
 	let wrappedParent: Window | null = null;
@@ -191,4 +197,69 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		writable: false,
 		configurable: false,
 	});
+
+	// Hide the shim's own globals from key enumeration.
+	//
+	// They are defined non-enumerable, so `Object.keys` and `for-in` already
+	// miss them -- but `getOwnPropertyNames` and `Reflect.ownKeys` report
+	// non-enumerable properties too, and walking the global is the first thing
+	// a fingerprinter does. A page reading
+	// `Object.getOwnPropertyNames(window)` got `$scramjet`,
+	// `$scramjetController`, `$scramjet$rewrite` and the rest back by name,
+	// and `Object.prototype` handed over `$scramjet__location` and its
+	// siblings -- none of which exist on any browser.
+	//
+	// `$scramjet` prefixes every one of them, and a page that has its own is
+	// already broken under a proxy that claims the name. The one symbol on the
+	// global, the client's own, goes the same way
+	const isShimKey = (k: unknown) =>
+		k === SCRAMJETCLIENT ||
+		(typeof k === "string" && String_startsWith(k, "$scramjet"));
+	// they are only ever defined on the global and on Object.prototype, and
+	// every other object's keys are the page's own, whatever they are called
+	const objectPrototype = self.Object.prototype;
+	const carriesShimKeys = (target: unknown) =>
+		target === self || target === objectPrototype;
+	const filtered = {
+		apply(ctx) {
+			if (!carriesShimKeys(ctx.args[0])) return;
+			// the browser's own array, compacted in place: it stays of the
+			// page's realm, and nothing of the page's runs to make another
+			const keys = ctx.call() as (string | symbol)[];
+			let kept = 0;
+			for (let i = 0; i < keys.length; i++) {
+				if (!isShimKey(keys[i])) keys[kept++] = keys[i];
+			}
+			keys.length = kept;
+
+			return ctx.return(keys);
+		},
+	};
+
+	client.Proxy("Object.getOwnPropertyNames", filtered);
+	client.Proxy("Object.getOwnPropertySymbols", filtered);
+	client.Proxy("Reflect.ownKeys", filtered);
+
+	client.Proxy("Object.getOwnPropertyDescriptors", {
+		apply(ctx) {
+			if (!carriesShimKeys(ctx.args[0])) return;
+			const descs = ctx.call() as Record<string | symbol, unknown>;
+			for (const k of drain(Reflect_ownKeys(descs))) {
+				if (isShimKey(k)) delete descs[k];
+			}
+
+			return ctx.return(descs);
+		},
+	});
+
+	// the bundles' own globals, `$scramjet` and `$scramjetController`, are
+	// ordinary assignments, so enumerable: `Object.keys(window)` and for-in
+	// would list them
+	for (const k of drain(Reflect_ownKeys(self))) {
+		if (typeof k !== "string" || !isShimKey(k)) continue;
+		const descriptor = Object_getOwnPropertyDescriptor(self, k);
+		if (descriptor?.enumerable && descriptor.configurable) {
+			Object_defineProperty(self, k, { enumerable: false });
+		}
+	}
 }

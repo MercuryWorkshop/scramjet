@@ -202,6 +202,14 @@ export const Array_shift = Function_prototype_call.bind(
 export const Array_unshift = Function_prototype_call.bind(
 	globalThis.Array.prototype.unshift
 ) as <T>(array: ArrayOf<T>, ...items: T[]) => number;
+export const Array_splice = Function_prototype_call.bind(
+	globalThis.Array.prototype.splice
+) as <T>(
+	array: ArrayOf<T>,
+	start: number,
+	deleteCount: number,
+	...items: T[]
+) => T[];
 export const Array_includes = Function_prototype_call.bind(
 	globalThis.Array.prototype.includes
 ) as <T>(array: ArrayOf<T>, search: unknown, from?: number) => boolean;

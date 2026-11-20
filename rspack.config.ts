@@ -563,7 +563,17 @@ const controllerConfig = createGenericConfig({
 		path: join(controllerdir, "dist"),
 		iife: true,
 		library: {
-			type: "var",
+			// `self`, not `var`. A top-level `var` creates a NON-CONFIGURABLE
+			// property on the global, so `$scramjetController` could never be
+			// made non-enumerable afterwards and a plain `for (const k in
+			// window)` in the guest handed it straight back -- the one name
+			// that survived every attempt to hide it.
+			//
+			// An ordinary assignment is configurable, which is what lets
+			// `wrap.ts` hide it. `self` rather than `window` because this same
+			// config builds the service worker entry, where `window` does not
+			// exist.
+			type: "self",
 			name: "$scramjetController",
 		},
 	},
