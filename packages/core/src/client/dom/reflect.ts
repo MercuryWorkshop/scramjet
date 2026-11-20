@@ -812,6 +812,20 @@ export default function (client: ScramjetClient, self: Self) {
 
 			set(this, "formaction", value);
 		}
+
+		@Type("DOMString")
+		get formTarget(): string {
+			void super.type;
+
+			return reflect(this, "formtarget");
+		}
+
+		@Type("DOMString")
+		set formTarget(value: string) {
+			void super.type;
+
+			set(this, "formtarget", value);
+		}
 	});
 
 	client.Intercept(class extends HTMLButtonElement {
@@ -827,6 +841,20 @@ export default function (client: ScramjetClient, self: Self) {
 			void super.type;
 
 			set(this, "formaction", value);
+		}
+
+		@Type("DOMString")
+		get formTarget(): string {
+			void super.type;
+
+			return reflect(this, "formtarget");
+		}
+
+		@Type("DOMString")
+		set formTarget(value: string) {
+			void super.type;
+
+			set(this, "formtarget", value);
 		}
 	});
 

@@ -203,13 +203,6 @@ export function load(init: Init) {
 	new ExecutionContextWrapper(globalThis, init);
 }
 
-function createFrameId() {
-	return `${Array(8)
-		.fill(0)
-		.map(() => Math.floor(Math.random() * 36).toString(36))
-		.join("")}`;
-}
-
 class ExecutionContextWrapper {
 	client!: ScramjetClient;
 	cookieJar: CookieJar;
@@ -290,9 +283,6 @@ class ExecutionContextWrapper {
 
 	injectScramjet() {
 		const frame = this.global.frameElement as HTMLIFrameElement | null;
-		if (frame && !frame.name) {
-			window.name = frame.name = createFrameId();
-		}
 		let controllerFrame = frame?.[CONTROLLERFRAME];
 		let isTopLevel = true;
 		if (!controllerFrame) {

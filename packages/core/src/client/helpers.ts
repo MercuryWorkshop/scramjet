@@ -1,12 +1,42 @@
 import {
+	Crypto_getRandomValues,
+	Number_toString,
 	Object_getOwnPropertyDescriptor,
+	String_startsWith,
 	String_toLowerCase,
+	_Uint8Array,
 } from "@/shared/snapshot";
 import { SCRAMJETCLIENT } from "@/symbols";
 // type-only: `client.ts` imports from here, and a value import would close the
 // cycle at runtime
 import type { ScramjetClient } from "./client";
 import { dictionaryReader } from "./webidl";
+
+const GENERATED_NAME_PREFIX = "scramjet-frame-";
+
+/**
+ * A name for the emulated top-level's frame when it has none, so that targets
+ * below it can reach it - random, since a browser resolves a name to the first
+ * frame in the embedder that has it, and two tabs must not share one.
+ */
+export function generatedFrameName(): string {
+	const bytes = new _Uint8Array(16);
+	Crypto_getRandomValues(bytes);
+	let name = GENERATED_NAME_PREFIX;
+	for (let i = 0; i < bytes.length; i++) {
+		name += Number_toString(bytes[i] % 36, 36);
+	}
+
+	return name;
+}
+
+/** Whether `name` is one {@link generatedFrameName} made, which the page never set. */
+export function isGeneratedFrameName(name: string): boolean {
+	return (
+		name.length === GENERATED_NAME_PREFIX.length + 16 &&
+		String_startsWith(name, GENERATED_NAME_PREFIX)
+	);
+}
 
 export function getOwnPropertyDescriptorHandler(target, prop) {
 	const realDescriptor = Object_getOwnPropertyDescriptor(target, prop);

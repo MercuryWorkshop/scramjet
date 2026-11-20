@@ -260,14 +260,21 @@ export const htmlRules: {
 		fn: (value, context, meta) => {
 			// ASCII case-insensitive keywords - `_TOP` is `_top`, and would reach
 			// the real top frame left as it is. No name means this is the frame
-			// the keyword names, and the attribute is dropped to say so
+			// the keyword names: `_self`, not a missing target, which would let
+			// the form's or the base element's take over.
+			//
+			// The service worker only knows the names a request carried, and a
+			// document it serves may name none: it writes `_self` there too,
+			// which stays in the frame, and the client puts the real target in
+			// place when the link or form is used (see `dom/targets.ts`)
 			const keyword = String_toLowerCase(value);
 			if (keyword === "_top" || keyword === "_unfencedtop")
-				return meta.topFrameName ?? null;
-			else if (keyword === "_parent") return meta.parentFrameName ?? null;
+				return meta.topFrameName ?? "_self";
+			else if (keyword === "_parent") return meta.parentFrameName ?? "_self";
 			else return value;
 		},
-		target: ["a", "base"],
+		target: ["a", "area", "base", "form"],
+		formtarget: ["button", "input"],
 	},
 	{
 		// svg elements with an href property

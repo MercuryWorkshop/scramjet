@@ -5,7 +5,10 @@ import {
 } from "@mercuryworkshop/proxy-transports";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { IFACE_NAME } from "@client/iface";
-import { getOwnPropertyDescriptorHandler } from "@client/helpers";
+import {
+	generatedFrameName,
+	getOwnPropertyDescriptorHandler,
+} from "@client/helpers";
 import { createLocationProxy } from "@client/location";
 import { createWrapFn } from "@client/shared/wrap";
 import { LifecycleHooks } from "@client/events";
@@ -607,24 +610,31 @@ export class ScramjetClient {
 			get rawUrl() {
 				return iswindow ? client.global.location.href : undefined;
 			},
+			/**
+			 * What `_top` has to say to reach this tree's top-level: the real
+			 * name of the emulated top-level, whose real parent is the embedder,
+			 * so the keyword itself would leave the proxy. In a real top-level
+			 * tree, a popup's, the keyword already means the right one, and in
+			 * that top-level itself it is the document.
+			 */
 			get topFrameName() {
 				if (!iswindow)
 					throw new Error("topFrameName was called from a worker?");
-				if (client.parentFrame() === "top") return null;
+				const top = client.topmostClient();
+				if (top.isEmulatedTop) return top.frameName();
 
-				return client.topmostClient().frameName();
+				return top === client ? null : "_top";
 			},
+			/**
+			 * What `_parent` has to say: the emulated top-level's own name in
+			 * the emulated top-level, which is its own parent as far as the page
+			 * knows, and the keyword itself anywhere below it.
+			 */
 			get parentFrameName() {
 				if (!iswindow)
 					throw new Error("parentFrameName was called from a worker?");
 
-				const parent = client.parentFrame();
-				if (parent === "top" || parent === "unreachable") return null;
-				// a parent outside the sandbox is the embedder, and the frame it
-				// made for us is the one targets name
-				if (parent === "foreign") return client.frameName();
-
-				return parent.frameName();
+				return client.isEmulatedTop ? client.frameName() : "_parent";
 			},
 		};
 		this.locationProxy = createLocationProxy(this, global);
@@ -1934,22 +1944,27 @@ return { apply, construct };
 	}
 
 	/**
-	 * The name of the frame element holding this window, which is what the
-	 * page's `_top` and `_parent` targets are rewritten to. Null when there is
-	 * no frame element to be seen.
+	 * Whether this window is the emulated top-level: the site's top document,
+	 * really a frame in an embedder scramjet does not control - a
+	 * `ScramjetFrame`, or a tab in the browser UI.
 	 */
-	frameName(): string | null {
-		const frame = new this.native.window(this.global).frameElement;
-		if (!frame) return null;
-		if (!frame.name) {
-			dbg.error(
-				"YOU NEED TO USE `new ScramjetFrame()`! DIRECT IFRAMES WILL NOT WORK"
-			);
+	get isEmulatedTop(): boolean {
+		if (!iswindow) return false;
+		const parent = this.parentFrame();
 
-			return null;
-		}
+		return parent === "foreign" || parent === "unreachable";
+	}
 
-		return frame.name;
+	/**
+	 * The real name of this window, which a target has to say to reach it -
+	 * one scramjet makes up when it has none. The page never sees that one
+	 * (see `dom/name.ts`), and the page's own name replaces it when it sets one.
+	 */
+	frameName(): string {
+		const nWin = new this.native.window(this.global);
+		if (!nWin.name) nWin.name = generatedFrameName();
+
+		return nWin.name;
 	}
 
 	flagEnabled(flag: BooleanFlag): boolean {

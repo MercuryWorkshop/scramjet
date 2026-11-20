@@ -43,6 +43,7 @@ const MIRRORED_NAMES = [
 	"srcdoc",
 	"style",
 	"target",
+	"formtarget",
 	"content",
 ];
 
