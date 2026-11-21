@@ -264,6 +264,9 @@ importers:
       '@mercuryworkshop/proxy-transports':
         specifier: 'catalog:'
         version: 1.0.2
+      semver:
+        specifier: ^7.7.3
+        version: 7.7.3
     devDependencies:
       '@mercuryworkshop/rpc':
         specifier: workspace:*
@@ -271,6 +274,9 @@ importers:
       '@mercuryworkshop/scramjet':
         specifier: workspace:*
         version: link:../core
+      '@types/semver':
+        specifier: ^7.8.0
+        version: 7.8.0
       '@types/serviceworker':
         specifier: ^0.0.197
         version: 0.0.197
@@ -451,6 +457,9 @@ importers:
       '@mercuryworkshop/proxy-transports':
         specifier: '*'
         version: 1.0.2
+      semver:
+        specifier: ^7.7.3
+        version: 7.7.3
     devDependencies:
       '@mercuryworkshop/scramjet':
         specifier: workspace:*
@@ -458,6 +467,9 @@ importers:
       '@mercuryworkshop/scramjet-controller':
         specifier: workspace:*
         version: link:../controller
+      '@types/semver':
+        specifier: ^7.8.0
+        version: 7.8.0
       '@types/serviceworker':
         specifier: ^0.0.197
         version: 0.0.197
@@ -1191,6 +1203,9 @@ packages:
 
   '@types/retry@0.12.2':
     resolution: {integrity: sha512-XISRgDJ2Tc5q4TRqvgJtzsRkFYNJzZrhTdtMoGVBttwzzQJkPnS3WWTFc7kuDRoPtPakl+T+OfdEUjYJj7Jbow==}
+
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
 
   '@types/send@0.17.6':
     resolution: {integrity: sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og==}
@@ -4362,6 +4377,8 @@ snapshots:
   '@types/range-parser@1.2.7': {}
 
   '@types/retry@0.12.2': {}
+
+  '@types/semver@7.8.0': {}
 
   '@types/send@0.17.6':
     dependencies:
