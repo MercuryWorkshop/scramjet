@@ -28,6 +28,17 @@ function isCompatible(expected: string, actual: string): boolean {
 	return e.major === a.major && e.minor === a.minor;
 }
 
+// describe the range of versions isCompatible accepts, e.g. 2.0.x for 2.0.67
+function expectedRange(expected: string): string {
+	const e = parse(expected);
+	if (!e) return expected;
+
+	// prerelease versions have to match exactly
+	if (e.prerelease.length > 0) return e.version;
+
+	return `${e.major}.${e.minor}.x`;
+}
+
 function assertVersionCompatible(
 	packageName: string,
 	expected: string,
@@ -35,7 +46,7 @@ function assertVersionCompatible(
 ) {
 	if (!isCompatible(expected, actual)) {
 		throw new Error(
-			`${packageName} version mismatch: this build expects ${expected}, but the loaded runtime is ${actual}`
+			`${packageName} version mismatch: this build expects ${expectedRange(expected)}, but the loaded runtime is ${actual}`
 		);
 	}
 }
