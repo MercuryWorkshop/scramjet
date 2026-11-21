@@ -5,11 +5,20 @@ import type { AddressInfo } from "node:net";
 import { serverTest } from "../../../testcommon.ts";
 
 const M = "/home/velzie/.cache/sjreview/scratch-a7/media/";
-const red = fs.readFileSync(M + "red.png");
-const blue = fs.readFileSync(M + "blue.png");
-const video = fs.readFileSync(M + "v.webm");
-const audio = fs.readFileSync(M + "a.webm");
-const font = fs.readFileSync(M + "f.ttf");
+// the fixtures lived in a local scratch dir; without them the tests fail
+// instead of the whole suite failing to load
+const read = (f: string) => {
+	try {
+		return fs.readFileSync(M + f);
+	} catch {
+		return Buffer.alloc(0);
+	}
+};
+const red = read("red.png");
+const blue = read("blue.png");
+const video = read("v.webm");
+const audio = read("a.webm");
+const font = read("f.ttf");
 const okScript = "window.__intOk = 1;";
 const okCss = ".intok{width:7px}";
 const sri = (s: string) =>

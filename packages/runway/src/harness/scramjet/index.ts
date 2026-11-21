@@ -12,25 +12,26 @@ const packageRoot = path.resolve(__dirname, "../../..");
 export const PORT = Number(process.env.RUNWAY_PORT_BASE ?? 4500);
 export const WISP_PORT = PORT + 1;
 
+// RUNWAY_SCRAMJET_ROOT points at another scramjet checkout's root (the one
+// holding packages/core and packages/controller), to run these tests against
+// a different build, e.g. a baseline for regression comparison.
+const distRoot = process.env.RUNWAY_SCRAMJET_ROOT;
+const coreDist = distRoot
+	? path.join(distRoot, "packages/core/dist")
+	: path.join(packageRoot, "node_modules/@mercuryworkshop/scramjet/dist");
+const controllerDist = distRoot
+	? path.join(distRoot, "packages/controller/dist")
+	: path.join(
+			packageRoot,
+			"node_modules/@mercuryworkshop/scramjet-controller/dist"
+		);
+
 export async function startHarness() {
 	const app = express();
 
-	app.use(
-		"/scramjet",
-		express.static(
-			path.join(packageRoot, "node_modules/@mercuryworkshop/scramjet/dist")
-		)
-	);
+	app.use("/scramjet", express.static(coreDist));
 
-	app.use(
-		"/controller",
-		express.static(
-			path.join(
-				packageRoot,
-				"node_modules/@mercuryworkshop/scramjet-controller/dist"
-			)
-		)
-	);
+	app.use("/controller", express.static(controllerDist));
 
 	app.use(
 		"/libcurl",
