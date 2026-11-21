@@ -45,8 +45,12 @@ import { rewriteImportMap } from "@rewriters/importmap";
 import { base64Decode, bytesToBase64 } from "@/shared/util";
 import {
 	_WeakMap,
+	String_endsWith,
+	String_slice,
+	String_startsWith,
 	String_substring,
 	String_toLowerCase,
+	String_trim,
 	TextEncoder_encode,
 } from "@/shared/snapshot";
 
@@ -66,6 +70,13 @@ export type RawTextKind = "script" | "style";
 type InsertionCommit = { done(): void; undo(): void };
 
 /** The text primitives, bound to one client - `client.text`, built in its constructor. */
+/** Whether a stylesheet chunk ends between rules: nothing, or a closing `}`. */
+function endsAtRule(text: string): boolean {
+	const trimmed = String_trim(text);
+
+	return trimmed === "" || String_endsWith(trimmed, "}");
+}
+
 export class TextLayer {
 	/**
 	 * The import maps the document has registered, in registration order, and
@@ -324,6 +335,13 @@ export class TextLayer {
 			return;
 		}
 
+		if (
+			this.kind(element) === "style" &&
+			this.syncStyleByNode(children, rewrite)
+		) {
+			return;
+		}
+
 		let text = "";
 		for (let i = 0; i < children.length; i++) text += this.data(children[i]);
 
@@ -345,6 +363,48 @@ export class TextLayer {
 		if (children.length > 0 && this.rawData(children[0]) !== rewritten) {
 			this.writeData(children[0], rewritten);
 		}
+	}
+
+	/**
+	 * A stylesheet's children rewritten one by one, rather than folded into
+	 * the first: a sheet needs no single program, and folding re-rewrote the
+	 * whole sheet on every rule CSS-in-JS appended. Only taken when every
+	 * node ends at a rule boundary, so no `url(...)` can straddle two of them.
+	 * A node whose text only grew (`appendData`) has just the new part
+	 * rewritten. False when it doesn't apply, for `sync` to fold instead.
+	 */
+	private syncStyleByNode(
+		children: CharacterData[],
+		rewrite: (text: string) => string
+	): boolean {
+		const texts: string[] = [];
+		for (let i = 0; i < children.length; i++) {
+			const text = this.data(children[i]);
+			if (!endsAtRule(text)) return false;
+			texts[i] = text;
+		}
+
+		const memo = this.client.box.styleTextRewrites;
+		for (let i = 0; i < children.length; i++) {
+			const text = texts[i];
+			const last = memo.get(children[i]);
+			let rewritten: string;
+			if (last && last[0] === text) {
+				rewritten = last[1];
+			} else if (last && String_startsWith(text, last[0])) {
+				rewritten = last[1] + rewrite(String_slice(text, last[0].length));
+			} else {
+				rewritten = rewrite(text);
+			}
+			memo.set(children[i], [text, rewritten]);
+			// the document holds the rewritten text now; reads come from here
+			this.sources.set(children[i], text);
+			if (this.rawData(children[i]) !== rewritten) {
+				this.writeData(children[i], rewritten);
+			}
+		}
+
+		return true;
 	}
 
 	/**

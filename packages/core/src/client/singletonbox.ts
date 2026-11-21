@@ -128,6 +128,12 @@ export class SingletonBox {
 	 */
 	elementSources: _WeakMap<Element, string> = new _WeakMap();
 	characterDataSources: _WeakMap<CharacterData, string> = new _WeakMap();
+	/**
+	 * A stylesheet text node's last source and what it was rewritten to, so
+	 * that growing a `<style>` (a node per rule, or `appendData` onto one)
+	 * rewrites only what was added rather than the whole sheet each time.
+	 */
+	styleTextRewrites: _WeakMap<CharacterData, [string, string]> = new _WeakMap();
 
 	/**
 	 * The element each `SVGAnimatedString` handed out for an `href` belongs to.
