@@ -6,6 +6,10 @@ on:
       - "**"
     tags:
       - "v*"
+      - "controller-v*"
+      - "utils-v*"
+      - "bootstrap-v*"
+      - "create-proxy-app-v*"
     paths-ignore: &ci_ignore_paths
       - ".zed/**"
       - ".vscode/**"
@@ -46,32 +50,33 @@ jobs:
       - name: Resolve package from tag
         id: resolve
         run: |
-          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
             echo "Not a tag push; nothing to release"
             echo "is_tag=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          REF="${GITHUB_REF_NAME#v}"
-
-          case "$REF" in
-            *-create-proxy-app)
-              PKG=create-proxy-app; DIR=packages/create-proxy-app; ARTIFACT=create-proxy-app-package; TGZ_PREFIX=create-proxy-app- ;;
-            *-controller)
-              PKG=controller; DIR=packages/controller; ARTIFACT=scramjet-controller-package; TGZ_PREFIX=mercuryworkshop-scramjet-controller- ;;
-            *-utils)
-              PKG=utils; DIR=packages/utils; ARTIFACT=scramjet-utils-package; TGZ_PREFIX=mercuryworkshop-scramjet-utils- ;;
-            *-bootstrap)
-              PKG=bootstrap; DIR=packages/bootstrap; ARTIFACT=proxy-bootstrap-package; TGZ_PREFIX=mercuryworkshop-proxy-bootstrap- ;;
+          case "$GITHUB_REF_NAME" in
+            create-proxy-app-v*)
+              PKG=create-proxy-app; DIR=packages/create-proxy-app; ARTIFACT=create-proxy-app-package; TGZ_PREFIX=create-proxy-app-; VERSION_PART="${GITHUB_REF_NAME#create-proxy-app-v}" ;;
+            controller-v*)
+              PKG=controller; DIR=packages/controller; ARTIFACT=scramjet-controller-package; TGZ_PREFIX=mercuryworkshop-scramjet-controller-; VERSION_PART="${GITHUB_REF_NAME#controller-v}" ;;
+            utils-v*)
+              PKG=utils; DIR=packages/utils; ARTIFACT=scramjet-utils-package; TGZ_PREFIX=mercuryworkshop-scramjet-utils-; VERSION_PART="${GITHUB_REF_NAME#utils-v}" ;;
+            bootstrap-v*)
+              PKG=bootstrap; DIR=packages/bootstrap; ARTIFACT=proxy-bootstrap-package; TGZ_PREFIX=mercuryworkshop-proxy-bootstrap-; VERSION_PART="${GITHUB_REF_NAME#bootstrap-v}" ;;
+            v*)
+              PKG=core; DIR=packages/core; ARTIFACT=scramjet-package; TGZ_PREFIX=mercuryworkshop-scramjet-; VERSION_PART="${GITHUB_REF_NAME#v}" ;;
             *)
-              PKG=core; DIR=packages/core; ARTIFACT=scramjet-package; TGZ_PREFIX=mercuryworkshop-scramjet- ;;
+              echo "Unrecognized tag '$GITHUB_REF_NAME'; expected v<version>, controller-v<version>, utils-v<version>, bootstrap-v<version> or create-proxy-app-v<version>" >&2
+              exit 1 ;;
           esac
 
           VERSION=$(jq -r .version "$DIR/package.json")
           echo "Tag: $GITHUB_REF_NAME, package: $PKG, version: $VERSION"
 
-          if [ "$REF" != "$VERSION" ] && [[ "$REF" != "$VERSION"-* ]]; then
-            echo "Tag version does not match $DIR/package.json version ($VERSION)" >&2
+          if [ "$VERSION_PART" != "$VERSION" ]; then
+            echo "Tag version '$VERSION_PART' does not match $DIR/package.json version ($VERSION)" >&2
             exit 1
           fi
 
@@ -84,7 +89,7 @@ jobs:
           echo "tag_arg=$TAG_ARG" >> "$GITHUB_OUTPUT"
           echo "artifact_name=$ARTIFACT" >> "$GITHUB_OUTPUT"
           echo "tgz_prefix=$TGZ_PREFIX" >> "$GITHUB_OUTPUT"
-          echo "release_name=$REF" >> "$GITHUB_OUTPUT"
+          echo "release_name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build Scramjet
@@ -334,7 +339,7 @@ jobs:
         with:
           name: "${{ needs.release-info.outputs.release_name }}"
           tag: "${{ github.ref_name }}"
-          body: "Release ${{ needs.release-info.outputs.release_name }} ([${{ needs.release-info.outputs.release_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }}))"
+          body: "[${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})"
           artifacts: "${{ needs.release-info.outputs.tgz_prefix }}${{ needs.release-info.outputs.version }}.tgz"
           makeLatest: ${{ needs.release-info.outputs.package == 'core' }}
           draft: true
