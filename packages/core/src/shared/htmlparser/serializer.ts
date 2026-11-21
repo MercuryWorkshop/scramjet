@@ -20,7 +20,9 @@ import {
 	String,
 	String_charCodeAt,
 	String_codePointAt,
+	String_indexOf,
 	String_slice,
+	String_startsWith,
 	String_substring,
 	String_toLowerCase,
 } from "../snapshot";
@@ -301,7 +303,18 @@ function formatAttributes(
 			key = attributeNames.get(key) ?? key;
 		}
 
-		if (index > 0) output += " ";
+		// in an XML document `scramjet-attr-xlink:href` names an undeclared
+		// prefix, which fails the whole parse; the rewritten value stays and
+		// only the original's read-back is lost
+		if (
+			xmlMode === true &&
+			String_startsWith(key, "scramjet-attr-") &&
+			String_indexOf(key, ":") !== -1
+		) {
+			continue;
+		}
+
+		if (output) output += " ";
 		// always quoted, even when empty: the page reads this back through
 		// `outerHTML`, and the HTML serializer writes `name=""`
 		// https://html.spec.whatwg.org/multipage/parsing.html#serialising-html-fragments

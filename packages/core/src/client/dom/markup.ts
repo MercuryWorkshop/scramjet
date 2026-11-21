@@ -523,6 +523,16 @@ export default function (client: ScramjetClient, _self: Self) {
 			const mime = String(type);
 			const isHtml = isHtmlMimeType(mime);
 
+			// malformed XML is the browser's to report: the rewriter's parse
+			// would repair it on the way through, and the page would never see
+			// its `<parsererror>`
+			if (!isHtml) {
+				const original = super.parseFromString(html, type);
+				if (new client.native.Document(original).querySelector("parsererror")) {
+					return original;
+				}
+			}
+
 			return super.parseFromString(
 				rewriteHtml(html, client.context, client.meta, {
 					loadScripts: false,
