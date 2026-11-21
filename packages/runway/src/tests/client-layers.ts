@@ -151,4 +151,57 @@ export default [
   assert(threw, "Intercept after hook throws");
 `,
 	}),
+
+	// a later layer must not drop a page wrapper installed in between
+	basicTest({
+		name: "client-layers-page-wrapper-survives-new-layer",
+		scramjetOnly: true,
+		js: `
+			const client = window[Symbol.for("scramjet client global")];
+			let page = 0, layer = 0;
+			const saved = EventTarget.prototype.addEventListener;
+			EventTarget.prototype.addEventListener = function (...args) { page++; return saved.apply(this, args); };
+			client.Proxy("EventTarget.prototype.addEventListener", { apply(ctx) { layer++; } });
+			document.body.addEventListener("x", () => {});
+			assertEqual(JSON.stringify([page, layer]), "[1,1]", "both the page wrapper and the new layer ran");
+		`,
+	}),
+	// Proxy and Trap took an array of names in the v2 API
+	basicTest({
+		name: "client-layers-proxy-array-names",
+		scramjetOnly: true,
+		js: `
+			const client = window[Symbol.for("scramjet client global")];
+			let hits = 0;
+			try {
+				client.Proxy(["History.prototype.pushState", "History.prototype.replaceState"], { apply(ctx) { hits++; } });
+			} catch (e) {}
+			history.pushState(null, "");
+			history.replaceState(null, "");
+			assertEqual(hits, 2, "one handler for both names");
+		`,
+	}),
+	// an embedder's layer installed before hook() on a static that core
+	// also intercepts must not make core's static super call recurse
+	basicTest({
+		name: "client-layers-static-proxy-before-hook",
+		scramjetOnly: true,
+		js: `
+			const SJ = Symbol.for("scramjet client global");
+			const parentClient = window[SJ];
+			const f = document.createElement("iframe");
+			document.body.appendChild(f);
+			const w = window[0];
+			assertEqual(SJ in w, false, "the child is not hooked yet");
+			let ran = 0;
+			const c = new parentClient.constructor(w, parentClient.init);
+			c.Proxy("URL.createObjectURL", { apply(ctx) { ran++; } });
+			c.hook();
+			let url, err;
+			try { url = w.URL.createObjectURL(new w.Blob(["x"])); } catch (e) { err = String(e); }
+			assertEqual(err, undefined, "createObjectURL threw");
+			assertEqual(typeof url === "string" && url.startsWith("blob:"), true, "a blob URL");
+			assertEqual(ran, 1, "the embedder's layer ran once");
+		`,
+	}),
 ];

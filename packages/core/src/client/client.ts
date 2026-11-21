@@ -65,6 +65,7 @@ import {
 	String_toLowerCase,
 	_RegExp,
 	Array_includes,
+	Array_isArray,
 } from "@/shared/snapshot";
 import {
 	isConstructorMember,
@@ -205,6 +206,8 @@ type SlotSite = {
 	key: string | symbol;
 	/** the descriptor the engine had there, whose attributes we keep */
 	descriptor: PropertyDescriptor;
+	/** what the last render put there */
+	installed?: PropertyDescriptor;
 };
 
 /**
@@ -1012,8 +1015,13 @@ export class ScramjetClient {
 	 * `Intercept`'s implementation of it, if it has one, whose argument
 	 * conversion has then already run by the time the handler sees `ctx.args`.
 	 */
-	Proxy<T extends string>(name: T, handler: Proxy<T>): void {
-		const target = this.resolvePath(name);
+	Proxy<T extends string>(name: T | readonly T[], handler: Proxy<T>): void {
+		if (Array_isArray(name)) {
+			for (let i = 0; i < name.length; i++) this.Proxy(name[i], handler);
+
+			return;
+		}
+		const target = this.resolvePath(name as T);
 		if (!target) return;
 
 		this.RawProxy(target.owner, target.prop, handler, name);
@@ -1258,7 +1266,21 @@ return { apply, construct };
 				descriptor.get = next.get;
 				descriptor.set = next.set;
 			}
+			// the slot's objects are made once, so a new layer usually changes
+			// nothing here. Writing them again anyway would drop whatever the
+			// page has installed over them since: base, then embedders' layers,
+			// then the page's, which still calls through to ours
+			const last = site.installed;
+			if (
+				last &&
+				last.value === descriptor.value &&
+				last.get === descriptor.get &&
+				last.set === descriptor.set
+			) {
+				continue;
+			}
 			Object_defineProperty(site.owner, site.key, descriptor);
+			site.installed = descriptor;
 		}
 	}
 
@@ -1538,8 +1560,13 @@ return { apply, construct };
 	}
 
 	/** Wrap an attribute, named from this client's global. See `RawTrap`. */
-	Trap<T extends string>(name: T, descriptor: Trap<T>): void {
-		const target = this.resolvePath(name);
+	Trap<T extends string>(name: T | readonly T[], descriptor: Trap<T>): void {
+		if (Array_isArray(name)) {
+			for (let i = 0; i < name.length; i++) this.Trap(name[i], descriptor);
+
+			return;
+		}
+		const target = this.resolvePath(name as T);
 		if (!target) return;
 
 		this.RawTrap(target.owner, target.prop, descriptor, name);
@@ -1631,11 +1658,20 @@ return { apply, construct };
 		Object_defineProperties(fakePrototype, this.nativeStore.get(classname));
 		Object_setPrototypeOf(handler.prototype, fakePrototype);
 
+		// a static `super.x()` must reach the native, not whatever is installed
+		// on the live constructor now: a layer put on a static before this
+		// (an embedder's, before hook) is the slot's own callable, and calling
+		// that from the slot's base would come straight back in
 		const fakeStatics = {};
-		Object_defineProperties(
-			fakeStatics,
-			Object_getOwnPropertyDescriptors(baseclass)
-		);
+		const statics = Object_getOwnPropertyDescriptors(baseclass);
+		const staticSlots = this.slots.get(baseclass);
+		if (staticSlots) {
+			for (const key of drain(Reflect_ownKeys(statics))) {
+				const slot = staticSlots.get(key);
+				if (slot) statics[key as any] = slot.native;
+			}
+		}
+		Object_defineProperties(fakeStatics, statics);
 		Object_setPrototypeOf(handler, fakeStatics);
 
 		/**
