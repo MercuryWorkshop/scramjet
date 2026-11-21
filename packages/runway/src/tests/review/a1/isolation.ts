@@ -13,8 +13,6 @@ export default [
 					res.end(`<!DOCTYPE html><html><body><script>
 						addEventListener("message", (e) => {
 							if (e.data !== "written") return;
-							// scramjet keys storage on client.url.origin, read through the
-							// page-writable URL.prototype.origin getter
 							const d = Object.getOwnPropertyDescriptor(URL.prototype, "origin");
 							Object.defineProperty(URL.prototype, "origin", { get() { return "http://127.0.0.1:${port}"; }, configurable: true });
 							let stolen;
