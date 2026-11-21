@@ -166,6 +166,18 @@ function rewriteSpecifierMap(
 	return out;
 }
 
+/** A scope key naming the root of the document's own origin: `"./"`, `"/"`. */
+function isOriginRootScope(prefix: string, meta: URLMeta): boolean {
+	let url: _URL;
+	try {
+		url = new _URL(prefix, meta.base);
+	} catch {
+		return false;
+	}
+
+	return url.pathname === "/" && !url.search && url.origin === meta.base.origin;
+}
+
 /**
  * Rewrite an import map's JSON. Throws what `JSON.parse` throws; a map the
  * browser would reject is handed back as it is, for the browser to reject.
@@ -187,14 +199,23 @@ export function rewriteImportMap(
 		const prefixes = Object_keys(map.scopes);
 		for (let i = 0; i < prefixes.length; i++) {
 			const prefix = prefixes[i];
-			scopes[
-				rewriteModuleURL(
-					prefix,
-					String_endsWith(prefix, "/") ? "scope" : "exact",
-					context,
-					meta
-				)
-			] = rewriteSpecifierMap(map.scopes[prefix], context, meta);
+			const key = isOriginRootScope(prefix, meta)
+				? // every module the page's own origin serves is under it. A
+					// proxied URL is encoded whole, so no prefix of the site's
+					// can match one; the proxy's own prefix matches them all
+					context.prefix.href
+				: rewriteModuleURL(
+						prefix,
+						String_endsWith(prefix, "/") ? "scope" : "exact",
+						context,
+						meta
+					);
+			const entries = rewriteSpecifierMap(map.scopes[prefix], context, meta);
+			// "./" and "/" are the same scope
+			scopes[key] =
+				key in scopes
+					? { ...(scopes[key] as SpecifierMap), ...entries }
+					: entries;
 		}
 		map.scopes = scopes;
 	}
