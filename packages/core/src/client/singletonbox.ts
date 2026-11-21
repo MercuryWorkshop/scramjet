@@ -27,6 +27,14 @@ export class SingletonBox {
 	globals: _Map<Self, ScramjetClient> = new _Map();
 	documents: _Map<Document, ScramjetClient> = new _Map();
 	histories: _Map<History, ScramjetClient> = new _Map();
+	/**
+	 * The proxy URL each site URL has had in a document's history. A link
+	 * written on the entry URL (`/catalog#reviews`, parsed while there) is
+	 * built on the entry's proxy URL; pushing away and back has to land on
+	 * that same proxy URL, or following the link is no longer a fragment
+	 * navigation and the document reloads.
+	 */
+	historyUrls: _WeakMap<ScramjetClient, _Map<string, string>> = new _WeakMap();
 	objectPrototypes: _Map<object, ScramjetClient> = new _Map();
 	locations: _Map<Location, ScramjetClient> = new _Map();
 	functions: _Map<typeof Function, ScramjetClient> = new _Map();

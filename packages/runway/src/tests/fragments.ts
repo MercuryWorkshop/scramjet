@@ -327,6 +327,28 @@ export default [
 		)
 	),
 
+	// a parsed link to the entry route, followed after the app has pushed
+	// away and back: the document is the same, so this is a fragment
+	// navigation, not a reload
+	fragmentTest({
+		name: "fragment-nav-parsed-link-after-pushstate-round-trip",
+		path: "/catalog",
+		body: `<a id="rv" href="/catalog#reviews">reviews</a><section id="reviews"></section>`,
+		js: `
+			if (!noReload("doc")) return;
+			history.pushState(null, "", "/item");
+			await sleep(30);
+			history.pushState(null, "", "/catalog");
+			await sleep(30);
+			document.getElementById("rv").click();
+			await until(() => location.hash === "#reviews");
+			await sleep(50);
+			assertConsistent("href", location.href.slice(location.origin.length));
+			assertConsistent("target", document.querySelector(":target")?.id ?? null);
+			assertConsistent("events", events);
+		`,
+	}),
+
 	fragmentTest({
 		name: "fragment-nav-link-created-before-pushstate",
 		js: `
