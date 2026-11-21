@@ -23,6 +23,11 @@ export default function (client: ScramjetClient, self: Self) {
 	 *
 	 * Null in a worker, which has no import maps, and in a document with none.
 	 */
+	// parsed once per set of maps (and base): normalizing a map is linear in
+	// its entries, and every `import()` asks
+	let parsedKey: string | null = null;
+	let parsed: ImportMapState | null = null;
+
 	const importMaps = (): ImportMapState | null => {
 		const document = client.global.document as Document | undefined;
 		if (!document) return null;
@@ -30,7 +35,14 @@ export default function (client: ScramjetClient, self: Self) {
 		const sources = client.text.registeredImportMaps(document);
 		if (sources.length === 0) return null;
 
-		return parseImportMaps(sources, client.meta.base);
+		const base = client.meta.base;
+		const key = base.href + "\u0000" + sources.join("\u0000");
+		if (key !== parsedKey) {
+			parsed = parseImportMaps(sources, base);
+			parsedKey = key;
+		}
+
+		return parsed;
 	};
 
 	Object_defineProperty(self, client.config.globals.importfn, {
