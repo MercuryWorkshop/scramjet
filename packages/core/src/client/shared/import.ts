@@ -2,6 +2,7 @@ import { ScramjetClient } from "@client/index";
 import {
 	type ImportMapState,
 	parseImportMaps,
+	prefixImportURL,
 	resolveWithImportMaps,
 } from "@rewriters/importmap";
 import { Object_defineProperty, Promise_reject, _URL } from "@/shared/snapshot";
@@ -48,7 +49,19 @@ export default function (client: ScramjetClient, self: Self) {
 						})
 					);
 				}
-				resolved = match;
+				// through a prefix entry: the URL a static import of the same
+				// specifier gets, or the module would be loaded and run twice
+				if (match?.viaPrefix) {
+					return boundimport(
+						prefixImportURL(
+							match.viaPrefix.address,
+							match.viaPrefix.rest,
+							client.context,
+							client.meta
+						)
+					);
+				}
+				resolved = match?.url ?? null;
 			}
 
 			if (

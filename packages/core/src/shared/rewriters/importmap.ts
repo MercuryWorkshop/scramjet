@@ -124,6 +124,20 @@ function rewriteModuleURL(
 }
 
 /**
+ * The URL a static import through the prefix entry `address` gets for `rest`:
+ * the browser resolves `rest` against the address as the rewritten map has it.
+ */
+export function prefixImportURL(
+	address: _URL,
+	rest: string,
+	context: ScramjetContext,
+	meta: URLMeta
+): string {
+	return new _URL(rest, rewriteModuleURL(address.href, "prefix", context, meta))
+		.href;
+}
+
+/**
  * A specifier map: every address, and every key that is URL-like. A bare key
  * is left as it is - it is compared against the specifier the page wrote,
  * which nothing rewrites.
@@ -202,7 +216,19 @@ export type ImportMapState = {
 };
 
 /** A resolution: the URL, "blocked" by a null or backtracking entry, or no match. */
-export type ImportMapResolution = _URL | "blocked" | null;
+export type ImportMapResolution = ImportMapMatch | "blocked" | null;
+
+/**
+ * What a map resolved a specifier to. A match through a prefix key also says
+ * which address and what was left of the specifier, because that is how the
+ * browser builds a static import's URL from the rewritten map - and a dynamic
+ * import of the same module has to come out at the same URL to be the same
+ * module.
+ */
+export type ImportMapMatch = {
+	url: _URL;
+	viaPrefix?: { address: _URL; rest: string };
+};
 
 /** https://html.spec.whatwg.org/multipage/webappapis.html#resolving-a-url-like-module-specifier */
 function urlLike(specifier: string, base: string | _URL): _URL | null {
@@ -334,7 +360,7 @@ function matchSpecifierMap(
 ): ImportMapResolution {
 	for (let i = 0; i < map.length; i++) {
 		const { key, address } = map[i];
-		if (key === normalized) return address ?? "blocked";
+		if (key === normalized) return address ? { url: address } : "blocked";
 
 		if (
 			String_endsWith(key, "/") &&
@@ -344,16 +370,17 @@ function matchSpecifierMap(
 				asURL.protocol === "https:")
 		) {
 			if (!address) return "blocked";
+			const rest = String_substring(normalized, key.length);
 			let url: _URL;
 			try {
-				url = new _URL(String_substring(normalized, key.length), address);
+				url = new _URL(rest, address);
 			} catch {
 				return "blocked";
 			}
 			// a backtracking `../` out of the mapped prefix
 			if (!String_startsWith(url.href, address.href)) return "blocked";
 
-			return url;
+			return { url, viaPrefix: { address, rest } };
 		}
 	}
 
