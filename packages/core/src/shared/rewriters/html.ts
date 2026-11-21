@@ -30,6 +30,7 @@ import {
 	String_slice,
 	String_startsWith,
 	String_toLowerCase,
+	String_trim,
 	_URL,
 	_WeakSet,
 } from "@/shared/snapshot";
@@ -640,26 +641,56 @@ function traverseChildren(
 	}
 }
 
+/**
+ * https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute
+ *
+ * A candidate's URL runs to the next whitespace, commas and all - CDN image
+ * URLs carry them (`…_SX300,QL70_.jpg 2x`) - and its descriptors run to the
+ * next comma outside parentheses. Splitting on commas cut such URLs apart.
+ */
 export function rewriteSrcset(
 	srcset: string,
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	const sources = srcset.split(/ .*,/).map((src) => src.trim());
-	const rewrittenSources = sources.map((source) => {
-		// Split into URLs and descriptors (if any)
-		// e.g. url0, url1 1.5x, url2 2x
-		const [url, ...descriptors] = source.split(/\s+/);
+	const isSpace = (c: string) =>
+		c === " " || c === "\t" || c === "\n" || c === "\r" || c === "\f";
+	const out: string[] = [];
+	const n = srcset.length;
+	let i = 0;
+	while (i < n) {
+		while (i < n && (isSpace(srcset[i]) || srcset[i] === ",")) i++;
+		if (i >= n) break;
 
-		// Rewrite the URLs and keep the descriptors (if any)
-		const rewrittenUrl = rewriteUrl(url.trim(), context, meta);
+		const start = i;
+		while (i < n && !isSpace(srcset[i])) i++;
+		let url = String_slice(srcset, start, i);
+		let descriptors = "";
 
-		return descriptors.length > 0
-			? `${rewrittenUrl} ${descriptors.join(" ")}`
-			: rewrittenUrl;
-	});
+		if (url[url.length - 1] === ",") {
+			// a URL ending in commas has no descriptors, and the commas end it
+			let end = url.length;
+			while (end > 0 && url[end - 1] === ",") end--;
+			url = String_slice(url, 0, end);
+		} else {
+			const from = i;
+			let depth = 0;
+			while (i < n) {
+				const c = srcset[i];
+				if (c === "(") depth++;
+				else if (c === ")") depth--;
+				else if (c === "," && depth <= 0) break;
+				i++;
+			}
+			descriptors = String_trim(String_slice(srcset, from, i));
+			i++;
+		}
 
-	return rewrittenSources.join(", ");
+		const rewritten = rewriteUrl(url, context, meta);
+		out[out.length] = descriptors ? rewritten + " " + descriptors : rewritten;
+	}
+
+	return out.join(", ");
 }
 
 /**
