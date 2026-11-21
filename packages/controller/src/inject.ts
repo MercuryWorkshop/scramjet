@@ -163,7 +163,7 @@ class RemoteTransport implements ProxyTransport {
 	}
 }
 
-const sw = navigator.serviceWorker.controller;
+const sw = navigator.serviceWorker?.controller;
 
 type Init = {
 	config: Config;
