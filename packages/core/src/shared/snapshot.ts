@@ -536,12 +536,6 @@ export const _Blob = makeWrap(globalThis.Blob);
 export type _Blob = Wrapped<Blob>;
 
 export function makeWrap<T extends object>(source: T): Wrapped<T> {
-	// Constructable builtins like Set/Map/URL need to retain their [[Construct]]
-	// behavior; cloning them into plain objects breaks `new _Set(...)`.
-	if (typeof source === "function") {
-		return new Proxy(source, {}) as Wrapped<T>;
-	}
-
 	function getAllPropertyDescriptors(obj: object) {
 		const descriptors: PropertyDescriptorMap = {};
 
@@ -565,6 +559,10 @@ export function makeWrap<T extends object>(source: T): Wrapped<T> {
 		return clone;
 	}
 
+	if (typeof source === "function") {
+		return wrapConstructor(source as any) as Wrapped<T>;
+	}
+
 	// Actually clone the source itself (including own properties)
 	const wrapped = Object.create(
 		clonePrototypeChain(Object.getPrototypeOf(source)),
@@ -572,4 +570,49 @@ export function makeWrap<T extends object>(source: T): Wrapped<T> {
 	);
 
 	return wrapped as Wrapped<T>;
+
+	/**
+	 * A constructor of our own over a builtin one. Its instances are born
+	 * with a snapshot of the builtin's prototype chain, and its statics are a
+	 * snapshot too, so nothing the page does to `URL.prototype` or
+	 * `Map.prototype` (or to `URL` itself) later reaches them.
+	 *
+	 * A function rather than a Proxy over the builtin: `prototype` on a
+	 * builtin is non-writable and non-configurable, so a Proxy's `get` would
+	 * have to hand back the page's own.
+	 */
+	function wrapConstructor(ctor: Function) {
+		const construct = Reflect.construct;
+		const apply = Reflect.apply;
+		const wrapper = function (this: unknown, ...args: unknown[]) {
+			// `new.target` is the wrapper, or a subclass of it, so the instance
+			// takes its prototype from the snapshot
+			return new.target
+				? construct(ctor, args, new.target)
+				: apply(ctor, this, args);
+		};
+
+		const prototype = clonePrototypeChain(ctor.prototype)!;
+		Object.defineProperty(prototype, "constructor", {
+			value: wrapper,
+			writable: true,
+			enumerable: false,
+			configurable: true,
+		});
+
+		const statics = getAllPropertyDescriptors(ctor);
+		statics.prototype = {
+			value: prototype,
+			writable: false,
+			enumerable: false,
+			configurable: false,
+		};
+		Object.defineProperties(wrapper, statics);
+		Object.setPrototypeOf(
+			wrapper,
+			clonePrototypeChain(Object.getPrototypeOf(ctor))
+		);
+
+		return wrapper;
+	}
 }
