@@ -29,6 +29,7 @@ import {
 	attachCarriedHeaders,
 	rewriteResponseHeaders,
 	worstFetchSite,
+	registrableDomain,
 } from "./headers";
 import { Object_keys, _URL, URL_revokeObjectURL } from "@/shared/snapshot";
 import {
@@ -155,8 +156,8 @@ export async function doHandleFetch(
 		const crossSiteRedirect =
 			parsed.crossSiteRedirect ||
 			(!!initiatorOriginUrl &&
-				registrableDomainForRedirect(initiatorOriginUrl.hostname) !==
-					registrableDomainForRedirect(parsed.url.hostname));
+				registrableDomain(initiatorOriginUrl.hostname) !==
+					registrableDomain(parsed.url.hostname));
 
 		// Sec-Fetch-Site chain state: combine the worst classification seen so
 		// far with the relation between the initiator and *this* hop's URL.
@@ -333,16 +334,6 @@ async function handleBlobOrDataUrlFetch(
 		statusText: response.statusText,
 		headers: headers,
 	};
-}
-
-/** Simplified registrable-domain check used for cross-site redirect detection. */
-export function registrableDomainForRedirect(hostname: string): string {
-	if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) return hostname;
-	const labels = hostname.split(".");
-	if (labels.length <= 1) return hostname;
-	if (labels[0] === "www") return labels.slice(1).join(".");
-	if (labels.length === 2) return hostname;
-	return labels.slice(-2).join(".");
 }
 
 async function handleCookies(

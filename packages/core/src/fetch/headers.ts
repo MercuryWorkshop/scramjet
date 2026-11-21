@@ -12,6 +12,7 @@ import {
 	ScramjetFetchRequest,
 } from ".";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
+import { SafeSet } from "@/shared/htmlparser/safe";
 import {
 	_URL,
 	_Set,
@@ -862,26 +863,41 @@ function computeSameSiteContext(
 }
 
 /**
- * Compute the "registrable domain" (eTLD+1) of a hostname for same-site comparison.
- * This is a simplified implementation that handles common test cases
- * (localhost, IPs, and typical domain structures) without a full PSL lookup.
+ * The "registrable domain" (eTLD+1) of a hostname, for same-site checks:
+ * cookies' SameSite, a redirect's site, a WebSocket handshake's cookies.
+ *
+ * No public suffix list: the last two labels, or three under a common
+ * second-level suffix (`co.uk`, `com.au`, ...). Where it is wrong it is wrong
+ * towards same-site, so a cookie the browser would send is never held back.
+ * A leading `www.` is not special: `www.example.co.uk` and `ws.example.co.uk`
+ * are one site, which stripping it made them not.
  */
-function registrableDomain(hostname: string): string {
+const secondLevel = new SafeSet([
+	"co",
+	"com",
+	"org",
+	"net",
+	"ac",
+	"gov",
+	"edu",
+	"ne",
+	"or",
+	"go",
+	"gv",
+]);
+
+export function registrableDomain(hostname: string): string {
 	// IPv4 / IPv6: site = exact IP
 	if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) return hostname;
 
 	const labels = hostname.split(".");
-	if (labels.length <= 1) return hostname; // bare hostname like "localhost"
+	const tld = labels[labels.length - 1];
+	// every `*.localhost` is the one site `localhost`
+	if (tld === "localhost") return "localhost";
+	if (labels.length <= 2) return hostname; // "example.com"
 
-	// Strip a leading "www." for same-site comparison so that
-	// www.example.com and example.com are treated as the same site.
-	// More complex cases (e.g. s1.s2.example.co.uk) are not handled here
-	// but are uncommon in test environments.
-	if (labels[0] === "www") return labels.slice(1).join(".");
+	const take =
+		tld.length === 2 && secondLevel.has(labels[labels.length - 2]) ? 3 : 2;
 
-	// For two-label hostnames like "example.com", use as-is
-	if (labels.length === 2) return hostname;
-
-	// For longer hostnames, use the last two labels as a rough eTLD+1
-	return labels.slice(-2).join(".");
+	return labels.slice(-take).join(".");
 }

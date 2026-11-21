@@ -29,7 +29,7 @@ import {
 	idlUSVString,
 } from "@client/webidl";
 import { EventHandlerSlot } from "@client/eventhandler";
-import { registrableDomainForRedirect } from "@/fetch/fetch";
+import { registrableDomain } from "@/fetch/headers";
 
 // https://websockets.spec.whatwg.org/#dom-websocket-connecting — named rather
 // than read off `WebSocket.CONNECTING`, which is page-writable
@@ -216,8 +216,8 @@ export function webSocketHeaders(
 
 	const sameSite =
 		!opaque &&
-		registrableDomainForRedirect(new _URL(origin).hostname) ===
-			registrableDomainForRedirect(url.hostname);
+		registrableDomain(new _URL(origin).hostname) ===
+			registrableDomain(url.hostname);
 
 	const headers: RawHeaders = [
 		["User-Agent", self.navigator.userAgent],
