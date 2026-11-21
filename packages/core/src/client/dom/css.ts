@@ -1,4 +1,4 @@
-import { rewriteCss, unrewriteCss } from "@rewriters/css";
+import { cssMayHoldUrl, rewriteCss, unrewriteCss } from "@rewriters/css";
 import { ScramjetClient } from "@client/index";
 import {
 	Object_getOwnPropertyDescriptor,
@@ -34,13 +34,41 @@ export default function (client: ScramjetClient, self: Self) {
 	 * the serialization the engine produced, with its URLs as the page wrote
 	 * them.
 	 */
-	const touched = (declaration: object) => {
+	const touched = (declaration: object, written?: string) => {
 		const owner = client.box.inlineStyleOwners.get(declaration);
 		if (!owner) return;
 
+		// an element with no mirror has nothing of ours in its style - every
+		// path that writes a rewritten URL there writes the mirror with it - and
+		// a write with no URL in it cannot add one. Reading the attribute back
+		// is what this skips: it serializes the whole declaration block
+		if (
+			written !== undefined &&
+			!cssMayHoldUrl(written) &&
+			!attrs.raw.has(owner, STYLE_MIRROR)
+		) {
+			return;
+		}
+
+		// only when it changes: an attribute write queues a MutationRecord
+		// even with the same value, and an observer that writes the style it
+		// was told about would then hear about it again, forever. A write the
+		// engine left the attribute alone for gives the page no record
 		const current = attrs.raw.get(owner, "style");
-		if (current === null) attrs.raw.remove(owner, STYLE_MIRROR);
-		else attrs.raw.set(owner, STYLE_MIRROR, unrewrite(current));
+		const mirror = attrs.raw.get(owner, STYLE_MIRROR);
+		if (current === null) {
+			if (mirror !== null) attrs.raw.remove(owner, STYLE_MIRROR);
+			return;
+		}
+		const next = unrewrite(current);
+		// nothing of ours in it, so the attribute already reads as the page's.
+		// A mirror kept in step with it would be a second attribute write -
+		// and a second MutationRecord - on every style write an animation makes
+		if (next === current) {
+			if (mirror !== null) attrs.raw.remove(owner, STYLE_MIRROR);
+			return;
+		}
+		if (mirror !== next) attrs.raw.set(owner, STYLE_MIRROR, next);
 	};
 
 	// https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface
@@ -58,7 +86,7 @@ export default function (client: ScramjetClient, self: Self) {
 		@Returns("CSSOMString")
 		removeProperty(property: string): string {
 			const removed = super.removeProperty(property);
-			touched(this);
+			touched(this, "");
 
 			return removed ? unrewrite(removed) : removed;
 		}
@@ -75,7 +103,7 @@ export default function (client: ScramjetClient, self: Self) {
 		@Returns("undefined")
 		setProperty(property: string, value: string, priority?: string): void {
 			super.setProperty(property, value ? rewrite(value) : value, priority);
-			touched(this);
+			touched(this, value);
 		}
 
 		@Type("[LegacyNullToEmptyString] CSSOMString")
@@ -86,7 +114,7 @@ export default function (client: ScramjetClient, self: Self) {
 		@Type("[LegacyNullToEmptyString] CSSOMString")
 		set cssText(value: string) {
 			super.cssText = rewrite(value);
-			touched(this);
+			touched(this, value);
 		}
 	});
 
@@ -259,7 +287,7 @@ export default function (client: ScramjetClient, self: Self) {
 				// the empty string is the spec's signal to remove the property,
 				// not something to rewrite
 				const result = Reflect_set(target, prop, css ? rewrite(css) : css);
-				touched(target);
+				touched(target, css);
 
 				return result;
 			},
@@ -284,7 +312,7 @@ export default function (client: ScramjetClient, self: Self) {
 					...desc,
 					value: css ? rewrite(css) : css,
 				});
-				touched(target);
+				touched(target, css);
 
 				return result;
 			},
@@ -421,14 +449,14 @@ export default function (client: ScramjetClient, self: Self) {
 			@Returns("undefined")
 			delete(property: string): void {
 				super.delete(property);
-				touched(this);
+				touched(this, "");
 			}
 
 			@Arguments()
 			@Returns("undefined")
 			clear(): void {
 				super.clear();
-				touched(this);
+				touched(this, "");
 			}
 		});
 	}

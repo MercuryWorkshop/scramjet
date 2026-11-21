@@ -5,7 +5,7 @@ import {
 	unrewriteUrl,
 } from "@rewriters/url";
 import { ScramjetContext } from "@/shared";
-import { String } from "@/shared/snapshot";
+import { RegExp_exec, String } from "@/shared/snapshot";
 
 export function rewriteCss(
 	css: string,
@@ -17,6 +17,18 @@ export function rewriteCss(
 
 export function unrewriteCss(css: string, context: ScramjetContext) {
 	return handleCss("unrewrite", css, context);
+}
+
+/**
+ * Whether `css` has anything {@link handleCss} would change: a `url(` or an
+ * `@import`, as its two expressions spell them. Most of what goes through here
+ * - an animation's `transform`, a `--var` - has neither, and both expressions
+ * cost far more than this to run over it.
+ */
+const mayHoldUrl = /(?i:url)\(|@import/;
+
+export function cssMayHoldUrl(css: string): boolean {
+	return RegExp_exec(mayHoldUrl, css) !== null;
 }
 
 function handleCss(
@@ -31,6 +43,7 @@ function handleCss(
 	const Atruleregex =
 		/@import\s+((?i:url)\s*?\(.{0,9999}?\)|['"].{0,9999}?['"]|.{0,9999}?)($|\s|;)/gm;
 	css = String(css);
+	if (!cssMayHoldUrl(css)) return css;
 	css = css.replace(
 		urlRegex,
 		(
