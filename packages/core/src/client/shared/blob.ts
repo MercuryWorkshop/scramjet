@@ -17,7 +17,16 @@ export default function (client: ScramjetClient) {
 		@Arguments("DOMString")
 		@Returns("undefined")
 		static revokeObjectURL(url: string): void {
-			const real = unrewriteBlob(url, client.context, client.meta);
+			// natively this never throws: anything that is not one of this
+			// page's blob URLs is ignored
+			let real = url;
+			if (String_startsWith(url, "blob:")) {
+				try {
+					real = unrewriteBlob(url, client.context, client.meta);
+				} catch {
+					// not a URL after "blob:", which the native ignores too
+				}
+			}
 
 			// scramjet rewrites blob urls to pass through the service worker first
 			// this is neccesary if rewrites need to be applied to the blob
