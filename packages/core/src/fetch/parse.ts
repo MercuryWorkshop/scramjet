@@ -43,10 +43,11 @@ const QP_INVERSE: Record<string, QueryParamKey> = (() => {
 
 export function parseQueryParams(searchParams: URLSearchParams): {
 	params: QueryParams;
-	extras: Record<string, string>;
+	extras: [string, string][];
 } {
 	const params: QueryParams = {};
-	const extras: Record<string, string> = {};
+	// pairs, in order: a GET form repeats a name for every checked box
+	const extras: [string, string][] = [];
 	for (const [key, value] of [...searchParams.entries()]) {
 		const logical = QP_INVERSE[key];
 		if (logical) {
@@ -55,7 +56,7 @@ export function parseQueryParams(searchParams: URLSearchParams): {
 			dbg.warn(
 				`extraneous query parameter ${key}=${value}. Assuming <form> element`
 			);
-			extras[key] = value;
+			extras[extras.length] = [key, value];
 		}
 	}
 	return { params, extras };
@@ -136,7 +137,7 @@ export function parseRequest(
 	const { params, extras } = parseQueryParams(request.rawUrl.searchParams);
 	strippedUrl.search = "";
 
-	const hadExtraParams = Object_keys(extras).length > 0;
+	const hadExtraParams = extras.length > 0;
 
 	if (!_URL.canParse(unrewriteUrl(strippedUrl, handler.context))) {
 		throw new Error(`unable to parse rewritten url: ${strippedUrl.href}`);
@@ -150,8 +151,14 @@ export function parseRequest(
 		);
 	}
 
-	for (const [key, value] of Object_entries(extras)) {
-		url.searchParams.set(key, value);
+	// a GET form's fields: the browser replaced the action's whole query
+	// with them, which the action's own query (kept in the encoded path) has
+	// to give way to as well
+	if (hadExtraParams) {
+		url.search = "";
+		for (let i = 0; i < extras.length; i++) {
+			url.searchParams.append(extras[i][0], extras[i][1]);
+		}
 	}
 
 	const referrerSourceUrl =
