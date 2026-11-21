@@ -377,7 +377,9 @@ impl<'alloc: 'data, 'data> Transform<'data> for JsChange<'alloc, 'data> {
 				if optional_call {
 					LL::replace(transforms!["(", &cfg.tempcalleeid, "="])
 				} else {
-					LL::replace(transforms![&cfg.callfn, "(", receiver.as_str(), ","])
+					// the space keeps the helper from running into a keyword the
+					// callee followed with no space of its own: `return(0,f)()`
+					LL::replace(transforms![" ", &cfg.callfn, "(", receiver.as_str(), ","])
 				}
 			}
 			Ty::LiteralCallFnRight { receiver } => {
