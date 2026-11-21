@@ -152,10 +152,19 @@ export class Runner {
 		const all: Manifest = {};
 		for (const glob of node.def.outputs ?? []) {
 			const m = await manifest(node.dir, [glob]);
-			if (strict && Object.keys(m).length === 0) {
-				throw new CvError(
-					`${node.id} declared output "${glob}" but nothing matched it`
-				);
+			if (Object.keys(m).length === 0) {
+				// a prebuilt package is often only its shipped outputs (CI
+				// downloads core's dist, not the wasm build's intermediates)
+				if (this.isPrebuilt(node)) {
+					log.task(
+						node.id,
+						c.yellow(`prebuilt, but nothing matched declared output "${glob}"`)
+					);
+				} else if (strict) {
+					throw new CvError(
+						`${node.id} declared output "${glob}" but nothing matched it`
+					);
+				}
 			}
 			Object.assign(all, m);
 		}

@@ -14,7 +14,12 @@ export default definePackage(import.meta.dirname, {
 				"tsconfig*.json",
 				"../../rspack.config.ts",
 			],
-			outputs: ["dist/controller.api.js", "dist/controller-external.mjs"],
+			outputs: [
+				"dist/controller.api.js",
+				"dist/controller-external.mjs",
+				"dist/controller.sw.js",
+				"dist/controller.inject.js",
+			],
 			run: (ctx) =>
 				runRspack(
 					join(ctx.dir, "../../rspack.config.ts"),
