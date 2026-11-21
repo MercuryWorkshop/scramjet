@@ -545,6 +545,7 @@ export class Controller {
 			{
 				$controller$init: {
 					prefix: this.prefix,
+					basePrefix: this.config.prefix,
 					id: this.id,
 				},
 			},

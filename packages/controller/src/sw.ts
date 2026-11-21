@@ -142,13 +142,65 @@ class ControllerReference {
 }
 
 // tab registrations only live in memory, so they vanish whenever the browser
-// stops this worker. routing therefore keys off the static prefix in the url,
-// and a request for a tab we don't know about asks the owning page to
-// reconnect and waits for it instead of falling through to the network.
+// stops this worker. routing therefore keys off the prefix in the url, and a
+// request for a tab we don't know about asks the owning page to reconnect and
+// waits for it instead of falling through to the network.
+//
+// the prefix is whatever the page configured, so it can't be baked in here.
+// every controller reports its prefix on init, and the worker keeps the set it
+// has seen in cache storage, which (unlike the worker's memory) survives the
+// worker being stopped.
 export const config = {
-	prefix: "/~/sj/",
 	reviveTimeout: 10000,
 };
+
+const PREFIX_CACHE = "$controller$sw";
+const PREFIX_KEY = new URL("/$controller$/prefixes", location.origin).href;
+
+let knownPrefixes: string[] = [];
+let prefixesLoaded = false;
+const prefixesReady: Promise<void> = (async () => {
+	try {
+		const cache = await caches.open(PREFIX_CACHE);
+		const res = await cache.match(PREFIX_KEY);
+		if (res) {
+			const stored = await res.json();
+			if (Array.isArray(stored)) {
+				for (const prefix of stored) {
+					if (typeof prefix === "string") addPrefix(prefix);
+				}
+			}
+		}
+	} catch (e) {
+		console.error("failed to load stored controller prefixes", e);
+	} finally {
+		prefixesLoaded = true;
+	}
+})();
+
+function addPrefix(prefix: string): boolean {
+	if (!prefix || knownPrefixes.includes(prefix)) return false;
+	knownPrefixes.push(prefix);
+	// longest first, so a nested prefix wins over the one containing it
+	knownPrefixes.sort((a, b) => b.length - a.length);
+	return true;
+}
+
+async function rememberPrefix(prefix: string) {
+	await prefixesReady;
+	if (!addPrefix(prefix)) return;
+	try {
+		const cache = await caches.open(PREFIX_CACHE);
+		await cache.put(
+			PREFIX_KEY,
+			new Response(JSON.stringify(knownPrefixes), {
+				headers: { "content-type": "application/json" },
+			})
+		);
+	} catch (e) {
+		console.error("failed to store controller prefix", e);
+	}
+}
 
 const tabs: ControllerReference[] = [];
 const tabWaiters = new Map<string, Array<(tab: ControllerReference) => void>>();
@@ -159,6 +211,16 @@ addEventListener("message", (e) => {
 	if (!e.data.$controller$init) return;
 	if (typeof e.data.$controller$init != "object") return;
 	const init = e.data.$controller$init;
+
+	// older controllers don't send basePrefix; their tab prefix is always
+	// `${basePrefix}${id}/`, so it can be recovered from that
+	let basePrefix: string | undefined = init.basePrefix;
+	if (typeof basePrefix !== "string" && init.prefix.endsWith(init.id + "/")) {
+		basePrefix = init.prefix.slice(0, -(init.id.length + 1));
+	}
+	if (basePrefix) {
+		(e as ExtendableMessageEvent).waitUntil(rememberPrefix(basePrefix));
+	}
 
 	const existing = tabs.findIndex((t) => t.id === init.id);
 	if (existing !== -1) {
@@ -175,19 +237,21 @@ addEventListener("message", (e) => {
 });
 
 function tabIdFromPath(pathname: string): string | null {
-	if (!pathname.startsWith(config.prefix)) return null;
-	const id = pathname.slice(config.prefix.length).split("/")[0];
+	const prefix = knownPrefixes.find((p) => pathname.startsWith(p));
+	if (!prefix) return null;
+	const id = pathname.slice(prefix.length).split("/")[0];
 	return id || null;
 }
 
-function findTabForPath(
+async function findTabForPath(
 	pathname: string
 ): Promise<ControllerReference | undefined> {
 	const tab = tabs.find((tab) => pathname.startsWith(tab.prefix));
-	if (tab) return Promise.resolve(tab);
+	if (tab) return tab;
 
+	await prefixesReady;
 	const id = tabIdFromPath(pathname);
-	if (!id) return Promise.resolve(undefined);
+	if (!id) return undefined;
 
 	return new Promise((resolve) => {
 		let waiters = tabWaiters.get(id);
@@ -226,6 +290,11 @@ async function requestRevive(id: string) {
 }
 
 export function shouldRoute(event: FetchEvent): boolean {
+	// respondWith has to be called synchronously, but the stored prefixes are
+	// read asynchronously. a fetch that wakes a stopped worker lands before
+	// they are back, so until then claim everything and let route() pass
+	// through whatever turns out not to be ours.
+	if (!prefixesLoaded) return true;
 	const url = new URL(event.request.url);
 	if (tabIdFromPath(url.pathname)) return true;
 	return tabs.some((tab) => url.pathname.startsWith(tab.prefix));
@@ -235,6 +304,10 @@ export async function route(event: FetchEvent): Promise<Response> {
 	try {
 		const url = new URL(event.request.url);
 		const tab = await findTabForPath(url.pathname);
+		if (!tab && !tabIdFromPath(url.pathname)) {
+			// only reachable for requests claimed before the prefixes loaded
+			return fetch(event.request);
+		}
 		if (!tab) {
 			return new Response(
 				"Proxy controller for this page is gone; reload the proxy page.",
