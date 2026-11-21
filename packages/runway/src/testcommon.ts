@@ -110,8 +110,6 @@ export function runwayTestTargetUrl(test: Test): string {
 	return `${scheme}://${hostname}:${test.port}${normalizedPath}`;
 }
 
-let nextPort = 10000 + Math.floor(Math.random() * 40000);
-
 export function basicTest(props: {
 	name: string;
 	js: string;
@@ -465,117 +463,118 @@ export function multiFrameTest(props: {
 		subframes: Record<string, string[]>;
 	};
 
-	const servers: Record<string, Server> = {};
-	const serversOpenPromise: Promise<void>[] = [];
+	let servers: Record<string, Server> = {};
 
-	const createServer = (originid: string) => {
-		const js: Record<string, string> = {};
-		const subframes: Record<string, string[]> = {};
-		const port = nextPort++;
-
-		const server = http.createServer((req, res) => {
-			if (req.url === "/") {
-				res.writeHead(302, {
-					Location: `http://localhost:${port}/${props.root.id}`,
-				});
-				res.end();
-			} else {
-				if (req.url!.endsWith(".js")) {
-					const id = req.url!.split("/").pop()!.split(".")[0];
-					if (!js[id]) {
-						res.writeHead(404);
-						res.end("Not found");
-						return;
-					}
-					res.writeHead(200, { "Content-Type": "application/javascript" });
-					res.end(js[id]);
+	const createServer = async (originid: string): Promise<Server> => {
+		const entry: Server = {
+			server: http.createServer((req, res) => {
+				if (req.url === "/") {
+					res.writeHead(302, {
+						Location: `http://localhost:${entry.port}/${props.root.id}`,
+					});
+					res.end();
 				} else {
-					const id = req.url!.split("/").pop()!;
+					if (req.url!.endsWith(".js")) {
+						const id = req.url!.split("/").pop()!.split(".")[0];
+						if (!entry.js[id]) {
+							res.writeHead(404);
+							res.end("Not found");
+							return;
+						}
+						res.writeHead(200, { "Content-Type": "application/javascript" });
+						res.end(entry.js[id]);
+					} else {
+						const id = req.url!.split("/").pop()!;
+						if (!entry.subframes[id]) {
+							res.writeHead(404);
+							res.end("Not found");
+							return;
+						}
 
-					const subframesHtml: string[] = [];
-					for (const subframe of subframes[id]) {
-						const server = Object.values(servers).find(
-							(server) => server.js[subframe]
-						)!;
-						subframesHtml.push(`
-							<iframe src="http://localhost:${server.port}/${subframe}"></iframe>
+						const subframesHtml: string[] = [];
+						for (const subframe of entry.subframes[id]) {
+							const server = Object.values(servers).find(
+								(server) => server.js[subframe]
+							)!;
+							subframesHtml.push(`
+								<iframe src="http://localhost:${server.port}/${subframe}"></iframe>
+							`);
+						}
+						res.writeHead(200, { "Content-Type": "text/html" });
+						res.end(`
+							<!DOCTYPE html>
+							<html>
+								<head>
+								</head>
+								<body>
+									<h1>Frame ${originid}/${id}</h1>
+									${subframesHtml.join("<br>")}
+									<script src="/${id}.js"></script>
+								</body>
+							</html>
 						`);
 					}
-					res.writeHead(200, { "Content-Type": "text/html" });
-					res.end(`
-						<!DOCTYPE html>
-						<html>
-							<head>
-							</head>
-							<body>
-								<h1>Frame ${originid}/${id}</h1>
-								${subframesHtml.join("<br>")}
-								<script src="/${id}.js"></script>
-							</body>
-						</html>
-					`);
 				}
-			}
-		});
-
-		serversOpenPromise.push(
-			new Promise((resolve) => {
-				server.listen(port, () => resolve());
-			})
-		);
-
-		return {
-			server,
-			subframes,
-			port,
-			js,
+			}),
+			port: 0,
+			js: {},
+			subframes: {},
 		};
+		await new Promise<void>((resolve, reject) => {
+			entry.server.once("error", reject);
+			entry.server.listen(0, () => {
+				entry.port = (entry.server.address() as AddressInfo).port;
+				resolve();
+			});
+		});
+		return entry;
 	};
 
-	const walk = (frame: Frame) => {
+	const assignIds = (frame: Frame) => {
 		frame.id ??= "main";
 		frame.originid ??= "main";
 		frame.subframes ??= [];
-		let server: Server;
-		if (servers[frame.originid]) {
-			server = servers[frame.originid];
-		} else {
-			server = createServer(frame.originid);
-			servers[frame.originid] = server;
-		}
+		frame.subframes.forEach(assignIds);
+	};
+	assignIds(props.root);
 
-		const url = `http://localhost:${server.port}/${frame.id}`;
-		server.js[frame.id] = frame.js({
-			url,
+	// Servers bind ephemeral ports in start(), so a filtered run never opens
+	// sockets for tests it skips and fixed ports can't collide.
+	const walk = async (frame: Frame) => {
+		const server = (servers[frame.originid!] ??= await createServer(
+			frame.originid!
+		));
+		server.js[frame.id!] = frame.js({
+			url: `http://localhost:${server.port}/${frame.id}`,
 		});
-		server.subframes[frame.id] = frame.subframes!.map(
+		server.subframes[frame.id!] = frame.subframes!.map(
 			(subframe) => subframe.id!
 		);
-
-		for (const subframe of frame.subframes) {
-			walk(subframe);
+		for (const subframe of frame.subframes!) {
+			await walk(subframe);
 		}
 	};
-	walk(props.root);
 
-	return {
+	const test: Test = {
 		name: props.name,
-		port: servers[props.root.originid!]!.port,
+		port: 0,
 		expectedOkCount: props.expectedOkCount,
 		async start() {
-			await Promise.all(serversOpenPromise);
+			servers = {};
+			await walk(props.root);
+			test.port = servers[props.root.originid!]!.port;
 		},
 		async stop() {
-			const promises: Promise<void>[] = [];
-			for (const server of Object.values(servers)) {
-				promises.push(
-					new Promise((resolve) => {
-						server.server.closeAllConnections();
-						server.server.close(() => resolve());
-					})
-				);
-			}
-			await Promise.all(promises);
+			await Promise.all(
+				Object.values(servers).map(
+					({ server }) =>
+						new Promise<void>((resolve) => {
+							server.closeAllConnections();
+							server.close(() => resolve());
+						})
+				)
+			);
 		},
 	};
+	return test;
 }

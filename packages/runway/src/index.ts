@@ -1,7 +1,8 @@
 import { glob, mkdir, writeFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { isDeepStrictEqual } from "node:util";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { format, isDeepStrictEqual } from "node:util";
 import { chromium } from "playwright";
 import type { Page, Browser, BrowserContext } from "playwright";
 import v8toIstanbul from "v8-to-istanbul";
@@ -16,16 +17,54 @@ import { setupRunwayPageBindings } from "./cdp-page.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Node-side output raised while a test runs (its servers, fixtures, start and
+ * stop) is held here and printed inside that test's result block, so parallel
+ * workers can't interleave it with each other's results or leave it
+ * unattributed. Request handlers inherit the context of the `listen()` call.
+ */
+const testOutput = new AsyncLocalStorage<string[]>();
+for (const level of ["log", "info", "warn", "error", "debug"] as const) {
+	const original = console[level].bind(console);
+	console[level] = (...args: unknown[]) => {
+		const buffer = testOutput.getStore();
+		if (buffer) buffer.push(format(...args));
+		else original(...args);
+	};
+}
+
+/** Print a block of lines with a single write, so it can't be split by another worker's output. */
+function writeBlock(
+	lines: Array<string | null | undefined | false>,
+	stream: NodeJS.WriteStream = process.stdout
+) {
+	stream.write(
+		lines.filter((line) => line != null && line !== false).join("\n") + "\n"
+	);
+}
+
+/** Exit once everything written so far has been flushed; plain `process.exit` can drop the tail of piped output. */
+async function exit(code: number): Promise<never> {
+	await Promise.all(
+		[process.stdout, process.stderr].map(
+			(stream) =>
+				new Promise<void>((resolve) => stream.write("", () => resolve()))
+		)
+	);
+	process.exit(code);
+}
+
 // Check if running in GitHub Actions
 const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
 
 // GitHub Actions annotation helpers
+/** A GitHub Actions error annotation line, or null outside Actions. */
 function ghaError(message: string, file?: string, line?: number) {
-	if (!isGitHubActions) return;
+	if (!isGitHubActions) return null;
 	const params = [file && `file=${file}`, line && `line=${line}`]
 		.filter(Boolean)
 		.join(",");
-	console.log(`::error ${params}::${message.replace(/\n/g, "%0A")}`);
+	return `::error ${params}::${message.replace(/\n/g, "%0A")}`;
 }
 
 /** The heading for a group of output lines, opening a group under GitHub Actions. */
@@ -769,7 +808,7 @@ async function main() {
 		console.log(
 			`❌ No tests found${testFilter ? ` matching "${testFilter}"` : ""}`
 		);
-		process.exit(1);
+		await exit(1);
 	}
 
 	const needsHarness = tests.some((test) => !test.directFn);
@@ -831,27 +870,32 @@ async function main() {
 				const el = document.getElementById("status");
 				return el?.textContent || "";
 			});
-			console.error(
-				`\n💥 FATAL: ${label} harness failed to initialize: ${statusText}`
+			writeBlock(
+				[
+					`\n💥 FATAL: ${label} harness failed to initialize: ${statusText}`,
+					"   Check that scramjet is built and all dependencies are available.\n",
+					ghaError(`Harness failed to initialize: ${label}: ${statusText}`),
+				],
+				process.stderr
 			);
-			console.error(
-				"   Check that scramjet is built and all dependencies are available.\n"
-			);
-			ghaError(`Harness failed to initialize: ${label}: ${statusText}`);
 			await browser?.close();
-			process.exit(1);
+			await exit(1);
 		}
 	};
 
-	const runTestsForWorker = async (workerId: number, workerTests: Test[]) => {
+	const queue = tests.slice();
+	const takeTests = function* () {
+		let test: Test | undefined;
+		while ((test = queue.shift())) yield test;
+	};
+
+	const runTestsForWorker = async (workerId: number) => {
 		let consistencyHandler: (
 			source: HarnessKind,
 			label: string,
 			value: any
 		) => Promise<void> = async () => {};
-		const workerNeedsBare =
-			runBareTests &&
-			workerTests.some((test) => !test.directFn && !test.scramjetOnly);
+		const workerNeedsBare = needsBareHarness;
 		const createPages = async (installScramjetBindings: boolean) => {
 			if (!browser) {
 				throw new Error("Browser is unavailable for harness-based tests");
@@ -874,10 +918,10 @@ async function main() {
 			};
 		};
 		let scramjetBindingsInstalled = true;
-		let testPages: Awaited<ReturnType<typeof createPages>> | null = null;
+		let testPages = null as Awaited<ReturnType<typeof createPages>> | null;
 		let needsReload = true;
 
-		for (const test of workerTests) {
+		for (const test of takeTests()) {
 			const runBareForTest = runBareTests && !test.scramjetOnly;
 			const consistencyTracker = createConsistencyTracker(runBareForTest);
 			consistencyHandler = consistencyTracker.handle;
@@ -886,143 +930,149 @@ async function main() {
 			}
 
 			const start = Date.now();
-			let result: TestResult | { status: "error"; message: string } | null =
-				null;
-			let started = false;
-			try {
-				if (test.directFn) {
-					await test.directFn();
-					result = { status: "pass" };
-				} else {
-					// Reload pages if needed (first run or after failure)
-					const desiredScramjetBindings = fastMode
-						? true
-						: !test.topLevelScramjet;
-					if (
-						!testPages ||
-						needsReload ||
-						desiredScramjetBindings !== scramjetBindingsInstalled
-					) {
-						if (testPages) {
-							if (!testPages.scramjet.page.isClosed()) {
-								await flushCoverage(testPages.scramjet.page);
-							}
-							await Promise.all([
-								testPages.scramjet.cleanup(),
-								testPages.bare?.cleanup(),
-							]);
-						}
-						scramjetBindingsInstalled = desiredScramjetBindings;
-						testPages = await createPages(scramjetBindingsInstalled);
-						await ensureHarnessReady(
-							testPages.scramjet.page,
-							scramjetUrl,
-							"Scramjet"
-						);
-						if (testPages.bare) {
-							await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
-						}
-						needsReload = false;
-					}
-
-					let serverResult: Promise<TestResult> | null = null;
-					let serverResultResolve: (result: TestResult) => void = () => {};
-
-					if (!test.playwrightFn) {
-						serverResult = new Promise<TestResult>((resolve) => {
-							serverResultResolve = resolve;
-						});
-						await test.start({
-							pass: async (message?: string, details?: any) =>
-								serverResultResolve({ status: "pass", message, details }),
-							fail: async (message?: string, details?: any) =>
-								serverResultResolve({ status: "fail", message, details }),
-						});
-						started = true;
-					}
-
-					const scramjetPromise = runTestOnHarness(
-						testPages.scramjet.page,
-						testPages.scramjet.context,
-						testPages.scramjet.waitForResult,
-						testPages.scramjet.cancelWaitForResult,
-						testPages.scramjet.getOkCount,
-						testPages.scramjet.watchPage,
-						test,
-						serverResult,
-						test.timeoutMs
-					);
-					const barePromise = runBareForTest
-						? runTestOnHarness(
-								testPages.bare!.page,
-								testPages.bare!.context,
-								testPages.bare!.waitForResult,
-								testPages.bare!.cancelWaitForResult,
-								testPages.bare!.getOkCount,
-								testPages.bare!.watchPage,
-								test,
-								serverResult,
-								test.timeoutMs
-							)
-						: null;
-
-					const [scramjetResult, bareResult] = runBareForTest
-						? await Promise.all([scramjetPromise, barePromise!])
-						: [await scramjetPromise, null];
-
-					const consistencyResult = await consistencyTracker.finalize(30000);
-
-					let computedResult: TestResult;
-					if (!runBareForTest) {
-						computedResult = scramjetResult;
-					} else if (
-						scramjetResult.status !== "pass" ||
-						bareResult!.status !== "pass"
-					) {
-						const failures: string[] = [];
-						if (scramjetResult.status !== "pass") {
-							failures.push(
-								`scramjet: ${scramjetResult.message || scramjetResult.status}`
-							);
-						}
-						if (bareResult!.status !== "pass") {
-							failures.push(
-								`bare: ${bareResult!.message || bareResult!.status}`
-							);
-						}
-						computedResult = {
-							status: "fail",
-							message: failures.join(" | "),
-							details: { scramjet: scramjetResult, bare: bareResult },
-						};
-					} else if (consistencyResult.status === "fail") {
-						computedResult = {
-							status: "fail",
-							message: consistencyResult.message,
-							details: consistencyResult.details,
-						};
+			const output: string[] = [];
+			const result = await testOutput.run(output, async () => {
+				let result: TestResult | { status: "error"; message: string } | null =
+					null;
+				let started = false;
+				try {
+					if (test.directFn) {
+						await test.directFn();
+						result = { status: "pass" };
 					} else {
-						computedResult = { status: "pass" };
+						// Reload pages if needed (first run or after failure)
+						const desiredScramjetBindings = fastMode
+							? true
+							: !test.topLevelScramjet;
+						if (
+							!testPages ||
+							needsReload ||
+							desiredScramjetBindings !== scramjetBindingsInstalled
+						) {
+							if (testPages) {
+								if (!testPages.scramjet.page.isClosed()) {
+									await flushCoverage(testPages.scramjet.page);
+								}
+								await Promise.all([
+									testPages.scramjet.cleanup(),
+									testPages.bare?.cleanup(),
+								]);
+							}
+							scramjetBindingsInstalled = desiredScramjetBindings;
+							testPages = await createPages(scramjetBindingsInstalled);
+							await ensureHarnessReady(
+								testPages.scramjet.page,
+								scramjetUrl,
+								"Scramjet"
+							);
+							if (testPages.bare) {
+								await ensureHarnessReady(testPages.bare.page, bareUrl, "Bare");
+							}
+							needsReload = false;
+						}
+
+						let serverResult: Promise<TestResult> | null = null;
+						let serverResultResolve: (result: TestResult) => void = () => {};
+
+						if (!test.playwrightFn) {
+							serverResult = new Promise<TestResult>((resolve) => {
+								serverResultResolve = resolve;
+							});
+							await test.start({
+								pass: async (message?: string, details?: any) =>
+									serverResultResolve({ status: "pass", message, details }),
+								fail: async (message?: string, details?: any) =>
+									serverResultResolve({ status: "fail", message, details }),
+							});
+							started = true;
+						}
+
+						const scramjetPromise = runTestOnHarness(
+							testPages.scramjet.page,
+							testPages.scramjet.context,
+							testPages.scramjet.waitForResult,
+							testPages.scramjet.cancelWaitForResult,
+							testPages.scramjet.getOkCount,
+							testPages.scramjet.watchPage,
+							test,
+							serverResult,
+							test.timeoutMs
+						);
+						const barePromise = runBareForTest
+							? runTestOnHarness(
+									testPages.bare!.page,
+									testPages.bare!.context,
+									testPages.bare!.waitForResult,
+									testPages.bare!.cancelWaitForResult,
+									testPages.bare!.getOkCount,
+									testPages.bare!.watchPage,
+									test,
+									serverResult,
+									test.timeoutMs
+								)
+							: null;
+
+						const [scramjetResult, bareResult] = runBareForTest
+							? await Promise.all([scramjetPromise, barePromise!])
+							: [await scramjetPromise, null];
+
+						let computedResult: TestResult;
+						if (!runBareForTest) {
+							computedResult = scramjetResult;
+						} else if (
+							scramjetResult.status !== "pass" ||
+							bareResult!.status !== "pass"
+						) {
+							const failures: string[] = [];
+							if (scramjetResult.status !== "pass") {
+								failures.push(
+									`scramjet: ${scramjetResult.message || scramjetResult.status}`
+								);
+							}
+							if (bareResult!.status !== "pass") {
+								failures.push(
+									`bare: ${bareResult!.message || bareResult!.status}`
+								);
+							}
+							computedResult = {
+								status: "fail",
+								message: failures.join(" | "),
+								details: { scramjet: scramjetResult, bare: bareResult },
+							};
+						} else {
+							// Both sides have finished, so every value either will send is
+							// already in; the grace only covers bindings still in flight.
+							const consistencyResult = await consistencyTracker.finalize(2000);
+							computedResult =
+								consistencyResult.status === "fail"
+									? {
+											status: "fail",
+											message: consistencyResult.message,
+											details: consistencyResult.details,
+										}
+									: { status: "pass" };
+						}
+						result = computedResult;
 					}
-					result = computedResult;
-				}
-			} catch (error) {
-				result = {
-					status: "error",
-					message: error instanceof Error ? error.message : String(error),
-				};
-			} finally {
-				if (!test.directFn && !test.playwrightFn && started) {
-					try {
-						await test.stop();
-					} catch (error) {
-						result = {
-							status: "error",
-							message: error instanceof Error ? error.message : String(error),
-						};
+				} catch (error) {
+					result = {
+						status: "error",
+						message: error instanceof Error ? error.message : String(error),
+					};
+				} finally {
+					if (!test.directFn && !test.playwrightFn && started) {
+						try {
+							await test.stop();
+						} catch (error) {
+							result = {
+								status: "error",
+								message: error instanceof Error ? error.message : String(error),
+							};
+						}
 					}
 				}
-			}
+				return result;
+			});
 
 			const duration = Date.now() - start;
 			const finalResult =
@@ -1033,37 +1083,40 @@ async function main() {
 				duration,
 			});
 
-			if (finalResult.status === "pass") {
-				console.log(`Test: ${test.name} ... ✅ passed (${duration}ms)`);
-			} else if (finalResult.status === "fail") {
-				console.log(
-					[
-						ghaGroup(`Test: ${test.name} ... ❌ failed (${duration}ms)`),
-						finalResult.message ? `     ${finalResult.message}` : null,
-						(finalResult as any).details
-							? `     details: ${JSON.stringify((finalResult as any).details, null, 2)}`
-							: null,
-						ghaEndGroup(),
-					]
-						.filter(Boolean)
+			const outputLines = output.length
+				? output
 						.join("\n")
-				);
+						.split("\n")
+						.map((line) => `     | ${line}`)
+				: [];
+			if (finalResult.status === "pass") {
+				writeBlock([
+					`Test: ${test.name} ... ✅ passed (${duration}ms)`,
+					...outputLines,
+				]);
+			} else if (finalResult.status === "fail") {
+				writeBlock([
+					ghaGroup(`Test: ${test.name} ... ❌ failed (${duration}ms)`),
+					finalResult.message ? `     ${finalResult.message}` : null,
+					(finalResult as any).details
+						? `     details: ${JSON.stringify((finalResult as any).details, null, 2)}`
+						: null,
+					...outputLines,
+					ghaEndGroup(),
+				]);
 				if (!test.directFn) {
 					needsReload = !fastMode; // Reload after failure unless fast mode is reusing harnesses
 				}
 			} else {
-				console.log(
-					[
-						ghaGroup(`Test: ${test.name} ... 💥 error (${duration}ms)`),
-						finalResult.message ? `     ${finalResult.message}` : null,
-						ghaEndGroup(),
-					]
-						.filter(Boolean)
-						.join("\n")
-				);
-				ghaError(
-					`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
-				);
+				writeBlock([
+					ghaGroup(`Test: ${test.name} ... 💥 error (${duration}ms)`),
+					finalResult.message ? `     ${finalResult.message}` : null,
+					...outputLines,
+					ghaEndGroup(),
+					ghaError(
+						`Test "${test.name}" error: ${finalResult.message || "Unknown error"}`
+					),
+				]);
 				if (!test.directFn) {
 					needsReload = !fastMode; // Reload after error unless fast mode is reusing harnesses
 				}
@@ -1080,12 +1133,10 @@ async function main() {
 	};
 
 	const workerCount = Math.min(parallelism, tests.length);
-	const workerBuckets = Array.from({ length: workerCount }, () => [] as Test[]);
-	for (let i = 0; i < tests.length; i += 1) {
-		workerBuckets[i % workerCount].push(tests[i]);
-	}
 	await Promise.all(
-		workerBuckets.map((bucket, index) => runTestsForWorker(index + 1, bucket))
+		Array.from({ length: workerCount }, (_, index) =>
+			runTestsForWorker(index + 1)
+		)
 	);
 	await browser?.close();
 
@@ -1239,7 +1290,7 @@ async function main() {
 		console.log(
 			`📝 Wrote ${actualFailing.length} failing test(s) to ${path.relative(process.cwd(), failingTestsPath)}`
 		);
-		process.exit(0);
+		await exit(0);
 	}
 
 	const allExpectedFailing = await loadExpectedFailingTests(failingTestsPath);
@@ -1270,10 +1321,10 @@ async function main() {
 		}
 	}
 
-	process.exit(unexpectedFailing.length > 0 ? 1 : 0);
+	await exit(unexpectedFailing.length > 0 ? 1 : 0);
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
 	console.error("Fatal error:", err);
-	process.exit(1);
+	await exit(1);
 });

@@ -197,6 +197,7 @@ async function main() {
 		args = [...restPositional, ...cli.rest];
 	} else if (loaded.nodes.has(verb)) {
 		ids = [verb];
+		args = [...restPositional, ...cli.rest];
 	} else {
 		throw new CvError(`unknown command "${verb}"\n\n${usage(loaded)}`);
 	}
