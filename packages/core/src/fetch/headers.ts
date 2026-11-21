@@ -12,7 +12,14 @@ import {
 	ScramjetFetchRequest,
 } from ".";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
-import { _URL, _Set, String_startsWith } from "@/shared/snapshot";
+import {
+	_URL,
+	_Set,
+	Array_includes,
+	String_split,
+	String_startsWith,
+	String_toLowerCase,
+} from "@/shared/snapshot";
 import {
 	createReferrerString,
 	DEFAULT_REFERRER_POLICY,
@@ -129,11 +136,18 @@ function rewriteLinkHeader(
 			// which is the rewritten one - so it goes, as an element's `integrity`
 			// does in htmlRules, except on a `fetch` preload whose body is as-is
 			const keepIntegrity = isFetchPreload(getParam);
+			// a module's URL is marked as one wherever it is loaded from; an
+			// unmarked preload never matches the module's own request, so the
+			// module would be fetched twice
+			const isModule = Array_includes(
+				String_split(String_toLowerCase(getParam("rel") ?? ""), /\s+/),
+				"modulepreload"
+			);
 
 			return [
 				target.replace(
 					/<([^>]+)>/,
-					(_match, url) => `<${rewriteUrl(url, context, meta)}>`
+					(_match, url) => `<${rewriteUrl(url, context, meta, { isModule })}>`
 				),
 				...params
 					.filter((param) => keepIntegrity || param.name !== "integrity")
