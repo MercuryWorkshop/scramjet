@@ -51,7 +51,9 @@ export default function (client: ScramjetClient, self: Self) {
 
 	const realUrl = (request: RequestInfo): string =>
 		typeof request === "string"
-			? new _URL(request, client.url).href
+			? // the API base URL: the document base, which an about:blank
+				// document inherits from its creator
+				new _URL(request, client.meta.base).href
 			: client.unrewriteUrl(new client.native.Request(request).url);
 
 	/**

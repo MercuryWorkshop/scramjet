@@ -92,6 +92,10 @@ export default function (client: ScramjetClient, self: Self) {
 				? new client.native.window(view).frameElement
 				: null;
 			if (container) return baseURL(container);
+			// no container: a popup (`window.open("")`), whose creator is its
+			// opener, which the document's client has kept
+			const documentClient = client.box.documents.get(owner);
+			if (documentClient) return documentClient.fallbackBaseUrl().href;
 		} catch {
 			// a cross-origin container: the frame has nothing to inherit
 		}
