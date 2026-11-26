@@ -46,9 +46,9 @@ Some popular websites supported by Scramjet include:
 #### Building
 
 - Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
-- Build all packages with `./cv build` (`.\cv.ps1` on Windows). It installs the
-  dependencies, offers to install the Rust tools above through cargo, and
-  only rebuilds what changed. `./cv build wasm` builds just the rewriter.
+- Build all packages with `./cv build` (`.\cv.ps1` on Windows). This installs the
+  dependencies, offers to install the Rust tools above through Cargo, and
+  only rebuilds what has changed. `./cv build wasm` builds just the rewriter.
 
 ### Running Scramjet Locally
 
