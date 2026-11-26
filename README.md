@@ -20,10 +20,10 @@ Scramjet allows you to sandbox arbitrary web content, bypass CORS restrictions o
 
 ## Supported Sites
 
-Some of the popular websites that Scramjet supports include:
+Some popular websites supported by Scramjet include:
 
 - [Google](https://google.com)
-- [Youtube](https://youtube.com)
+- [YouTube](https://youtube.com)
 - [Instagram](https://instagram.com)
 - [ChatGPT](https://chatgpt.com)
 - [Reddit](https://reddit.com)
@@ -46,16 +46,16 @@ Some of the popular websites that Scramjet supports include:
 #### Building
 
 - Clone the repository with `git clone --recursive https://github.com/MercuryWorkshop/scramjet`
-- Build everything with `./cv build` (`.\cv.ps1` on Windows). It installs the
-  dependencies, offers to install the rust tools above through cargo, and
+- Build all packages with `./cv build` (`.\cv.ps1` on Windows). It installs the
+  dependencies, offers to install the Rust tools above through cargo, and
   only rebuilds what changed. `./cv build wasm` builds just the rewriter.
 
 ### Running Scramjet Locally
 
-You can run the Scramjet dev server when running this command at the root
+You can run the Scramjet dev server by running the following command at the repository root:
 
 ```sh
 ./cv dev
 ```
 
-The demo page for scramjet should now be running at <http://localhost:4141> and should rebuild upon a file being changed (excluding the rewriter).
+The demo page for Scramjet should now be running at <http://localhost:4141> and should rebuild upon a file being changed, excluding the rewriter.
